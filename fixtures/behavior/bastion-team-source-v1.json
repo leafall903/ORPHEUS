@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "case_id": "bastion-team-source-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "a3a5dd5d989a9c8b18de9c612a1fe21ee6f446ec",
+    "paths": ["src/ow174/game/match.py", "src/ow174/game/projectiles.py", "src/ow174/game/observers.py"],
+    "provenance": "Synthetic source team0, ally team0, enemy team1 and delayed source-body introduction. Real Tank command, encrypted Client frames and encrypted ACKs. Original104319 GetTeam helper5D9570 uses team bits23..27; body/controller component26 and source-body volley are decoded independently."
+  },
+  "evidence": "synthetic-production-protocol-source-team",
+  "client_acceptance": "pending; neither native effect selector nor visible colors are accepted",
+  "input": {
+    "source_hero": "02E0000000000015",
+    "source_projectile": "04000000000003CE",
+    "viewer_teams": [0, 0, 1, 0],
+    "source_body_introduction_steps": [0, 0, 0, 5],
+    "fire_step": 15,
+    "packet_loss": []
+  },
+  "expected": {
+    "source_team_filter": 8388608,
+    "enemy_team_filter": 16777216,
+    "all_viewers_receive_source_body_team": true,
+    "observer_launch_entity": "captured shooter body",
+    "observer_launch_labels": "original shooter instance/state/activation/frame",
+    "projectiles_retire": true,
+    "fixed_blue_or_red_override": false
+  },
+  "limits": [
+    "Delayed introduction is acknowledged before the shot; mid-flight join replay is not established.",
+    "Do not infer component72/26 additions for03CE from Soldier Field or Mei ice.",
+    "Original effect parameters, native inherited affiliation and visible color remain a separate native-consumer requirement."
+  ]
+}

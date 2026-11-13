@@ -1,4 +1,4 @@
-"""1259/32 provider and native pre-profile arithmetic on resolved host inputs.
+"""1259/32 and ordinary0EE3/15 providers on resolved host inputs.
 
 The host binds the impact snapshot once. Native actor snapshot capture and final
 D73830 conversion remain receiver work; this module never reads consume-time
@@ -80,3 +80,53 @@ def evaluate_whip(instance, target, airborne):
     if len(rings) != 1 or rings[0][0] != expr.f32(999.):
         return None  # broader ring interpolation belongs to the shared consumer
     return WhipSpec(vector, *values, rings)
+
+
+@dataclass(frozen=True)
+class BashSpec:
+    horizontal: float
+    vertical: float
+    minimum_y: float
+    application_parameter: float
+    rings: tuple
+
+    def impulse(self, direction, incoming):
+        """Ordinary Bash's flat99 ring and non-explicit scalar fallback.
+
+        Direction and incoming are separately resolved host operands. Native
+        target-to-axis resolution and incoming capture phase remain open.
+        """
+        _, horizontal, vertical = self.rings[0]
+        x, y, z = direction
+        length = math.hypot(x, z)
+        scale = self.horizontal * horizontal / length if length else 0.
+        lift = expr.f32(expr.f32(y * self.vertical) * vertical)
+        if vertical > 0:
+            lift = max(lift, expr.f32(self.minimum_y - incoming[1]))
+        return expr.Vec3(expr.f32(x * scale), lift, expr.f32(z * scale))
+
+
+def evaluate_bash(state):
+    """Do not substitute normal3 for alternate132/state78's authored5."""
+    if (state.instance.graph.index, state.node.pos) != (0x0EE3, 15):
+        return None
+    modify = state.node.field("m_modifyHealth") or {}
+    if modify.get("m_1376B4DF") is not None:
+        return None
+
+    def number(config, default):
+        value = default if config is None else state.evaluate(config, watch=False)
+        if type(value) not in (int, float) or not math.isfinite(value):
+            raise ValueError("unresolved Bash force scalar")
+        return expr.f32(value)
+
+    values = [number(modify.get(key), default) for key, default in (
+        ("m_E33EFEE1", 0.), ("m_10399AE7", 0.),
+        ("m_583C208B", -FLOAT_MAX), ("m_8394CF8C", FLOAT_MAX),
+    )]
+    rings = tuple(tuple(number(ring.get(key), default) for key, default in (
+        ("m_radius", 0.), ("m_579D7CFF", 1.), ("m_10399AE7", 1.),
+    )) for ring in modify.get("m_knockbackRings") or ())
+    if len(rings) != 1 or rings[0][0] != expr.f32(99.):
+        return None
+    return BashSpec(*values, rings)

@@ -31,7 +31,7 @@ The release (reader chain: ch2 0x7FF789A4A490 -> state 0x7FF789A34600 -> record 
 
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import cache
 
 from ow174.game import bots, hanzo_projectiles, pharah, world
@@ -583,8 +583,9 @@ class Projectiles:
         return shots
 
     def _show_others(self, shot: Shot, state, origin, direction, snapshot: Snapshot | None,
-                     *, shots=None) -> None:
+                     *, shots=None, viewers=None, original_record=None, deadline=None) -> None:
         """Send all projectile IDs in one native volley event, with independent retirements."""
+        # A live-flight catch-up supplies the immutable event and its original deadline.
         shots = (shot,) if shots is None else shots
         observers = self.combat.observers
         npc = isinstance(shot.player, bots.Bot)
@@ -599,7 +600,7 @@ class Projectiles:
             # Export the actual orb ID used by the target's0CCE effect caller.
             shot.entity = SEEN_FIRST + self.next_seen % SEEN_SPAN
             self.next_seen += 1
-        for viewer in self.match.players:
+        for viewer in self.match.players if viewers is None else viewers:
             if (viewer is shot.player and not shot.authoritative) or viewer.client is None:
                 continue
             stream = observers.projectile_stream(viewer, shot.body, npc=npc)
@@ -611,17 +612,21 @@ class Projectiles:
                 ids = tuple(SEEN_FIRST + (self.next_seen + index) % SEEN_SPAN
                             for index in range(len(shots)))
                 self.next_seen += len(shots)
-            record = ShotRecord(
-                shot.frame, shot.instance, shot.state, shot.activation[0],
-                tuple(origin), tuple(direction), ids, shot=shot.shot_index, volleys=state.volleys & 0xFF,
-            )
+            if original_record is None:
+                record = ShotRecord(
+                    shot.frame, shot.instance, shot.state, shot.activation[0],
+                    tuple(origin), tuple(direction), ids, shot=shot.shot_index, volleys=state.volleys & 0xFF,
+                )
+            else:
+                record = replace(original_record, ids=ids)
             launch = EntityUpdate(shot.body)
             launch.ch2 = shot_events([record])
             group = _ProjectileVolley(len(shots)) if len(shots) > 1 else None
-            deadline = self.match.tick + shot.bound + DELIVERY_GRACE_TICKS
+            delivery_deadline = (self.match.tick + shot.bound + DELIVERY_GRACE_TICKS
+                                 if deadline is None else deadline)
             for member, entity in zip(shots, ids, strict=True):
                 delivery = _ObservedProjectile(
-                    viewer, viewer.client, stream, record, launch, deadline,
+                    viewer, viewer.client, stream, record, launch, delivery_deadline,
                     npc=npc, entity=entity, volley=group, clock_origin=member.clock_origin,
                 )
                 if group is not None:

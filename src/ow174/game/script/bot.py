@@ -702,6 +702,11 @@ class BotWorld(runtime.World):
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, doomfist_helper, npc_context, npc_shields, orisa_halt
 
+        if self.match is not None and instance is not None and instance.graph.index == 0x1590:
+            response = self.match.combat.sentries.native(cfg, instance)
+            if response is not NotImplemented:
+                return response
+
         response = doomfist_helper.native(self, cfg, instance)
         if response is not NotImplemented:
             return response
@@ -937,6 +942,11 @@ class BotWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import assassin, heavy_assault, npc_shields
+
+        if self.match is not None and state.instance.graph.index == 0x1590:
+            value = self.match.combat.sentries.graph_health(state)
+            if value is not NotImplemented:
+                return value
 
         from ow174.game import sigma_flux
         flux = sigma_flux.flux_modify_health(self, state, elapsed_ms)

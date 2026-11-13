@@ -29,7 +29,9 @@
     "component26": "owner team/filter bits",
     "component72": "explicit m_D749D7D8 result: player controller entity, not body source",
     "builtin001B": "typed owner body entity on every ice script",
-    "pillar_world": "same match and pillar entity, on its existing component"
+    "pillar_world": "same match and pillar entity, on its existing component",
+    "pillar_create_order": "install the same authoritative PillarScript before publishing CREATE",
+    "played0636_descriptor_source": "caster body"
   },
   "limits": "Confirms decoded protocol inputs and VM context. Does not establish native rendering, animation, effects, sound or live-client acceptance."
 }

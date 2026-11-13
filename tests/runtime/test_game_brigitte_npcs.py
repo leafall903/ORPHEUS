@@ -6,15 +6,15 @@ import math
 import os
 import unittest
 from pathlib import Path
-from ow174.paths import DATA_DIR
 from unittest.mock import patch
 
 import test_game_brigitte as brigitte_tests
 import test_game_combat as combat_tests
 
-from ow174.game import npc, npc_control, world
+from ow174.game import defenses, npc, npc_control, world
 from ow174.game.content import find_hero, heroes
 from ow174.game.script import graph, runtime
+from ow174.paths import DATA_DIR
 
 EXTERNAL = Path(os.environ.get("ORPHEUS_PVE_NPC_DATA", str(DATA_DIR)))
 
@@ -627,7 +627,12 @@ class ActualNpcTests(unittest.TestCase):
                 for _ in range(40):
                     run.step({})
                 self.assertTrue(bot.body_script.component.entity_var(888).value())
-                self.assertGreater(bot.position[2], initial_z)
+                if definition.name == "Heavy Assault":
+                    # The existing live property26 SET0 response admits no force.
+                    self.assertEqual(defenses.knockback_scale(bot), 0)
+                    self.assertEqual(bot.position[2], initial_z)
+                else:
+                    self.assertGreater(bot.position[2], initial_z)
                 for _ in range(15):
                     run.step({})
                 self.assertFalse(bot.body_script.component.entity_var(888).value())
@@ -646,28 +651,40 @@ class ActualNpcTests(unittest.TestCase):
                     start = bot.position
                     for _ in range(20):
                         run.step({player: (0, 0, 2)})
-                    run.step({player: (0, 0, 3)})
-                    player.body_script.component.set(14130, scalar)
-                    run.step({player: (0, 0, 2)})
+                    host = fight.knockbacks
+                    with patch.object(host, "apply", wraps=host.apply) as submit:
+                        run.step({player: (0, 0, 3)})
+                        player.body_script.component.set(14130, scalar)
+                        run.step({player: (0, 0, 2)})
                     self.assertEqual(vitals.total, before - 5)
                     self.assertTrue(fight.is_stunned(bot))
-                    if scalar == 0:
+                    response = defenses.knockback_scale(bot)
+                    self.assertEqual(response, 0 if definition.name == "Heavy Assault" else 1)
+                    self.assertEqual(submit.call_count, 1)
+                    self.assertEqual(tuple(submit.call_args.args[1]),
+                                     (0, scalar * response, 3 * scalar * response))
+                    if scalar == 0 or response == 0:
                         self.assertIsNone(bot.impulse_mover)
                     else:
                         self.assertIsNotNone(bot.impulse_mover)
-                        self.assertEqual(bot.velocity, (0, scalar, 3 * scalar))
+                        # Canonical ADD is queued for the recipient's next physical
+                        # frame; the formed vector above retains its original values.
+                        self.assertEqual(len(bot.impulse_mover.velocity_changes), 1)
                     for _ in range(30):
                         run.step({})
                     self.assertTrue(fight.is_stunned(bot))
                     distances.append(bot.position[2] - start[2])
-                    if scalar == 0:
+                    if scalar == 0 or response == 0:
                         self.assertEqual(bot.position, start)
                     for _ in range(25):
                         run.step({})
                     self.assertFalse(fight.is_stunned(bot))
             self.assertEqual(len(distances), 3)
-            self.assertGreater(distances[1], distances[0], definition.name)
-            self.assertGreater(distances[2], distances[1], definition.name)
+            if definition.name == "Heavy Assault":
+                self.assertEqual(distances, [0, 0, 0])
+            else:
+                self.assertGreater(distances[1], distances[0], definition.name)
+                self.assertGreater(distances[2], distances[1], definition.name)
 
     def test_manual_removal_retires_each_actual_bash_recipient_immediately(self):
         for definition in self.catalog.values():

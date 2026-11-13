@@ -548,7 +548,8 @@ class BrigitteCombat:
 
     def _bash_command(self, player, command, instance, old, live) -> None:
         """Consume the graph's actual damage activation, once per selected target."""
-        from ow174.game.combat import _number, aim
+        from ow174.game import brigitte_force, defenses
+        from ow174.game.combat import TICK, _number, aim
 
         state = instance.states.get(10)
         if state is None or not state.active:
@@ -563,8 +564,8 @@ class BrigitteCombat:
         modify = state.node.field("m_modifyHealth") or {}
         amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0.0)
         loadout = state.evaluate(modify.get("m_loadout"), watch=False)
-        horizontal = _number(state.evaluate(modify.get("m_E33EFEE1"), watch=False), 0.0)
-        vertical = _number(state.evaluate(modify.get("m_583C208B"), watch=False), 0.0)
+        spec = brigitte_force.evaluate_bash(state)
+        impact_tick = round(self._whip_world_time(player, command.frame * instance.component.frame_ms) / TICK)
         selected = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
         # The missing one-shot health consumer must finish after application.
         # Leaving10 active makes later native begin requests no-ops forever.
@@ -578,24 +579,29 @@ class BrigitteCombat:
                 continue
             hit.add(target.entity)
             before = self.combat.vitals_of(target).total
-            self.combat._damage(player, target, amount, False, loadout.guid, command.frame)
+            self.combat._damage(player, target, amount, False, loadout.guid, command.frame,
+                                world_tick=impact_tick)
             if (not self.combat.vitals_of(target).dead
                     and self.combat.vitals_of(target).total < before):
                 controlled = self.host_control(player, target, instance, instance.graph.node(13))
-                if (horizontal or vertical) and controlled:
+                if spec is not None and controlled:
                     # Reconstruct direction from the horizontal Bash aim. The control gate
                     # preserves the active Fortify/Particle Barrier recipient policy.
-                    dx, _, dz = aim(command.aim()[0], 0)
-                    velocity = (dx * horizontal, vertical, dz * horizontal)
+                    direction = aim(command.aim()[0], 0)
                     owner = target.owner
-                    if getattr(owner, "mover", None) is not None:
-                        # ModifyHealth +80 is minimum Y, not an additive lift.
-                        vy = owner.mover.velocity[1]
-                        velocity = (velocity[0], max(0.0, vertical - vy), velocity[2])
-                        owner.mover.add_external_impulse(velocity)
-                    else:
-                        owner.impulse(velocity, self.combat.tick, self.combat._collision(),
-                                      free_for_all=self.combat.match.game_map.free_for_all)
+                    mover = self.combat.knockbacks.active.get(target.entity)
+                    if mover is None:
+                        mover = (getattr(owner, "control_mover", None)
+                                 or getattr(owner, "impulse_mover", None)
+                                 or getattr(owner, "mover", None))
+                    incoming = tuple(mover.velocity if mover is not None else owner.velocity)
+                    # Retain the host impact snapshot/axis policy. Native argument9
+                    # actor capture and direction resolution remain unaccepted.
+                    impulse = spec.impulse(direction, incoming)
+                    response = defenses.knockback_scale(owner)
+                    impulse = expr.Vec3(*(axis * response for axis in impulse))
+                    self.combat.knockbacks.apply(target, impulse, impact_tick=impact_tick,
+                                                source_entity=player.body)
 
     def _opposing_charge(self, owner, yaw) -> bool:
         from ow174.game.combat import _dot, aim

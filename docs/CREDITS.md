@@ -176,3 +176,12 @@ coverage and the work still pending.
   definitions and010E viewer/team-color expressions, plus the existing native
   component72 source encoding. Restricted XML/assets remain external. Synthetic
   encrypted protocol checks establish source/filter inputs, not final colors.
+
+## Focused original-owner follow-ups, 2026-11-14
+
+The consolidated source composes the focused Mei, Sigma, Reaper, Symmetra,
+Zarya, Reinhardt, Doomfist and Brigitte owner changes, plus Bastion and Genji
+protocol-only regressions. Exact original commit mappings are recorded in
+CONSOLIDATED_DELIVERY_20261113.md. Synthetic fixtures accompany each contract;
+external game catalogs, research captures and private comparison assets remain
+outside published Git history. No native visual pass is implied.

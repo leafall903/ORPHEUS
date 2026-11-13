@@ -397,7 +397,7 @@ DATACLASSES = (
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
     healing.Spec, healing.Modifier, healing_status.Applied,
     deflection.ProjectileTags,
-    moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
+    moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, graviton.FieldScript, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile,
     projectiles._ProjectileArrival, projectiles._ProjectileVolley, projectiles._RetiredTurretThrow,
     RetainedFlight, scopes.History, scopes.Edge,

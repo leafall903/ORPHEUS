@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "provenance": "Synthetic role expectations for existing encrypted Sigma scenario. Source behavior reuses statescript-descriptor-source-v1 contract; no game assets or rendered-colour claims.",
+  "input": {
+    "caster_team": 0,
+    "receiver_team": 1,
+    "observers": 4
+  },
+  "expected": {
+    "descriptor_source_role": "caster_body",
+    "receiver_team": 1
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "reinhardt-live-flight-viewer-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "93d6bb64862b0bca120af478e5d48e4ab7b59e3b",
+    "evidence": "synthetic encrypted-peer scenario"
+  },
+  "client_acceptance": "pending; packet delivery does not prove native rendering",
+  "input": {
+    "hero": "02E0000000000007",
+    "start_time": 100.944,
+    "tick_seconds": 0.016,
+    "ticks": 450,
+    "fire_offset": 30,
+    "live_join": 100,
+    "expired_join": 350
+  },
+  "expected": {
+    "definition": 490,
+    "state": 0,
+    "activation": 1,
+    "volleys": 1,
+    "live_create_launch_destroy_counts": [
+      1,
+      1,
+      1
+    ],
+    "expired_records": 0,
+    "original_shot_fields_preserved": true,
+    "original_deadline_not_extended": true
+  }
+}

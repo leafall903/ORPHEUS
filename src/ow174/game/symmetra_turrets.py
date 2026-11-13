@@ -76,14 +76,62 @@ class Turrets:
             self._retire(old)
         return True
 
-    def _clear_slow(self, sentry):
+    def _set_target(self, sentry, target):
+        """Feed actual acquisition/loss through the inherited fire-control button."""
+        sentry.target = target
+        component = sentry.bot.body_script.component
+        if component.owner_dead:
+            return
+        pressed = target is not None
+        if (20 in component.held) != pressed:
+            component.edges(((20, pressed),))
+            component.run_now()
+
+    def native(self, cfg, instance):
+        """Declared world-host endpoint for the original slot-0 target expression.
+
+        This does not manufacture a native possessor/controller identity. The
+        existing acquisition policy supplies this exact outer expression only;
+        generic F726 and other indexed slots remain unhosted.
+        """
+        sentry = self._script_sentry(instance)
+        if sentry is None or cfg is not instance.graph.node(7).field("m_value"):
+            return NotImplemented
+        owner = cfg.get("m_152B6961") or {}
+        if (cfg.get("$") != "STU_A37A910D" or cfg.get("m_A60150E2") is not None
+                or owner.get("$") != "STU_F7262B36"
+                or owner.get("m_801B298F", {}).get("$") != "STU_B5A0CAF0"):
+            return NotImplemented
+        return expr.Entity(sentry.target if sentry.target is not None else 0)
+
+    def _script_sentry(self, instance):
+        if (instance is None or instance.graph.index != BEAM_GRAPH
+                or instance.component.strict or instance.stopped or instance.teardown
+                or instance.component.instances.get(instance.id) is not instance):
+            return None
+        return next((item for item in self.sentries
+                     if item.bot.body == BODY and not item.bot.dead
+                     and item.bot.body_script.component is instance.component), None)
+
+    def graph_health(self, state):
+        """Keep retained-window world damage as the sole sentry authority.
+
+        Original1590/3 is not client-only. Hosting target acquisition must not
+        enable its second health path in addition to update's existing40DPS.
+        """
+        if self._script_sentry(state.instance) is not None and state.node.pos == 3:
+            return True
+        return NotImplemented
+
+    def _clear_slow(self, sentry, *, clear_target=True):
         if sentry.slow is not None:
             component, instance = sentry.slow
             if component.instances.get(instance.id) is instance:
                 component.destroy(instance)
                 component.run_now()
             sentry.slow = None
-        sentry.target = None
+        if clear_target:
+            self._set_target(sentry, None)
 
     def release_target(self, entity):
         for sentry in self.sentries:
@@ -642,11 +690,9 @@ class Turrets:
             protected = (_attached_barrier(self.combat, target.owner) is not None
                          or fortify.active_filter(target.owner) is not None)
             if protected:
-                self._clear_slow(sentry)
-                sentry.target = target.entity
+                self._clear_slow(sentry, clear_target=False)
             elif sentry.target != target.entity or (target_script is not None and sentry.slow is None):
-                self._clear_slow(sentry)
-                sentry.target = target.entity
+                self._clear_slow(sentry, clear_target=False)
                 if target_script is not None:
                     component = target_script.component
                     aura = component.create(graph.graph(SLOW_GRAPH))
@@ -658,6 +704,7 @@ class Turrets:
                         raise ValueError("sentry slow aura has no authored activation entry")
                     component.run_now()
                     sentry.slow = component, aura
+            self._set_target(sentry, target.entity)
             # Normally only the retained combat window has usable target poses.
             cryo_expiry = _cryo_cover_expiry(self.combat, origin, target, cryo_expiries, start)
             barrier_start = start

@@ -1117,6 +1117,15 @@ class BodyWorld(runtime.World):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
         cls = cfg.get("$")
+        if (cls == "STU_21A13145" and self.match is not None and instance is not None
+                and self.hero == 0x02E000000000012F and instance.graph.index == 0x0D06
+                and instance.component.entity == self.body
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            owner = self.match.script_player_body(self.body, self.body)
+            if (owner is not None and owner.body_script is not None
+                    and not owner.body_script.retired
+                    and owner.body_script.component is instance.component):
+                return Vec3(*self.match.combat._eye(owner))
         if (self.hero == regeneration.MERCY and self.match is not None and instance is not None
                 and instance.graph.index == 0x006E and cls == "STU_309B0570"
                 and cfg.get("m_5B94EDB8") is None
@@ -3791,10 +3800,12 @@ def create_body_graphs(
             created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
     # These are allocation roots on their own bodies. 1536's subsequent
     # PlayScript inherits Ashe as the charge instigator; 153B fires as B.O.B.
-    source_graph = {0x02E0000000000200: 0x1536, 0x02E000000000021D: 0x153B}.get(
-        getattr(component.world, 'hero', None))
+    hero = getattr(component.world, 'hero', None)
+    source_graph = {0x02E0000000000200: 0x1536, 0x02E000000000021D: 0x153B}.get(hero)
     for instance in created:
-        if instance.graph.index == source_graph:
+        # Reaper's body roots use native977F20's zero-source owner fallback
+        # before init. Keep the descriptor's existing implicit SELF source.
+        if hero == 0x02E0000000000002 or instance.graph.index == source_graph:
             instance.set_source_entity(component.entity)
     return created
 

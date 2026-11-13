@@ -1,0 +1,8 @@
+{
+  "schema": "zarya-field-component-startup-v1",
+  "provenance": "Approved synthetic lifecycle contract. Original104319 03E2 declares an empty StatescriptComponent; existing shared BE8E10 ComponentStartup owns its normal startup. Original XML and extracted entity catalog remain external.",
+  "input": "Actual player Q produces an accepted flight then the existing landed field actor, with the original component declared by an external catalog.",
+  "expected_initial_graph_count": 0,
+  "expected": "Register one empty component on the actual landed field identity; preserve the distinct projectile output and captured caster body. Retire it with that exact actor. Unknown legacy catalog entries allocate no inferred component.",
+  "limits": "This does not start explicit0260, supply12F, route0261, add another physical actor or establish native model/FX acceptance."
+}

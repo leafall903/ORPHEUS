@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-sentry-target-endpoint-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "2f1eeb3e7be7a044ab36454aa751470c8f212e93",
+    "provenance": "Original2658 parent0256 AIWeaponFireControlInfo slot0 logical20, identifier023A; original1590/23 logical20 to node7 Stack536, exact A37(F726(self),nullslot), node9 TrackRay. Existing acquisition/40DPS policy supplies a scoped outer target endpoint."
+  },
+  "evidence": "synthetic-actual-command-host-contract",
+  "client_acceptance": "pending",
+  "input": {"launch_button": 8, "logical_fire_button": 20, "target_variable": 536},
+  "expected": {"damage_per_second": 40, "extra_damage_producers": 0, "acquisition_presses": 1, "loss_releases": 1},
+  "limits": "The endpoint reconstructs only the exact outer target query from real existing acquisition. It does not implement a native controller/possession registry or prove a controller identity. F726, F4 BOOL answers, Pet72, current model poses, hardpoints, ray hits/432 vector links, native effects/models/colors remain unqualified. No reference-pose or bot-position substitute; graph1590/3 is authority-suppressed because existing world damage remains the sole health producer."
+}

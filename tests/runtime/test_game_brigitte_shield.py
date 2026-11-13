@@ -393,11 +393,12 @@ class BarrierTests(unittest.TestCase):
         run, player, enemy, _ = self.fixture()
         x, y, z = player.mover.position
         enemy.mover.position, enemy.mover.body = [x, y, z + 3], None
-        with patch.object(
-            enemy.mover, "add_external_impulse", wraps=enemy.mover.add_external_impulse,
-        ) as impulse:
+        host = run.match.combat.knockbacks
+        with patch.object(host, "apply", wraps=host.apply) as impulse:
             self.bash(run, player, frames=2)
-        impulse.assert_called_once_with((0.0, 1.0, 3.0))
+        self.assertEqual(impulse.call_count, 1)
+        self.assertEqual(impulse.call_args.args[0].entity, enemy.body)
+        self.assertEqual(tuple(impulse.call_args.args[1]), (0.0, 1.0, 3.0))
         barrier = run.match.combat.brigitte.barriers[player.body]
         self.assertFalse(barrier.instance.states[14].active)  # authored488 transition ends the dash
         self.raise_shield(run, player, 33)

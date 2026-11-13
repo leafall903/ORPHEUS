@@ -401,3 +401,27 @@ slots; retired identities do not resolve. These staged tests use an explicit
 target evaluator and suppress legacy side effects, and do not establish normal
 source16 or original health14 completion. Routes, active original MoveTo,
 possession, delayed clocks, unknown body data and native acceptance remain open.
+
+## Original source identities, late viewers and bounded motion queries
+
+The focused Mei pillar fixture covers first CREATE carrying its installed script
+and original0636 caster source while preserving five actor identities. Cryo and
+native visual acceptance remain open. Sigma publishes the actual cached Flux
+source without replacing its existing velocity correction. Reaper roots seed
+typed SELF before graph initialization; this does not qualify rendered colors.
+Symmetra carries real acquisition/loss edges to the scoped logical endpoint and
+keeps the existing turret world damage authority; generic ModelPose, hardpoints
+and native ray behavior remain unqualified. Zarya03E2 receives its known empty
+original component only with the separately reviewed external graph supplement;
+unknown catalogs remain unbound and active runtime inputs are unchanged.
+Reinhardt late viewers reuse the live shot record and original expiry. Doomfist
+source14 is a typed, explicitly bound test query, not enablement of normal16 or
+health14. Brigitte Bash uses the existing canonical physical-clock force queue
+and applies the live response once. Bastion and Genji additions are protocol
+regression coverage of existing behavior only, with no production repair.
+
+Nineteen selected methods pass without errors, skips or captured ERROR logs:
+fifteen new methods (including two test-only protocol regressions) and four
+retained checks. These counts do not establish whole-hero or native acceptance.
+All summon colors, Soldier76 E, Mei Cryo and Halloween current-cut entry/story
+acceptance remain open. The user selected code merges only; no runtime restart.

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "case_id": "genji-affiliation-wire-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "a3a5dd5d989a9c8b18de9c612a1fe21ee6f446ec",
+    "paths": ["src/ow174/game/match.py", "src/ow174/game/script/entity_team.py", "tests/runtime/test_genji_affiliation_wire.py"],
+    "provenance": "Synthetic encrypted session through the production router, world writer and original-graph statescript codec. No captured game bytes are included."
+  },
+  "evidence": "decoded-runtime-wire-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "teams": [0, 1, 0],
+    "team_sizes": [2, 1],
+    "frame_seconds": 0.016,
+    "primary_button": 1,
+    "deflect_button": 16,
+    "late_viewer": 2,
+    "late_join": "After Deflect command admission; 64 delivery ticks, no packet loss. All peers ACK through the encrypted router."
+  },
+  "expected": {
+    "source_body_filter_bits": 8388608,
+    "relations": ["self", "enemy", "ally"],
+    "controller_possession": "same Genji body for every viewer",
+    "active_graph": 931,
+    "active_state": 10,
+    "controlled_replay": "matched_controlled_roots_and_wire"
+  },
+  "limits": "Affiliation and active-state delivery only. Does not establish native effect colors, particle/material fallback, projectile reflection rendering, damage or Physics acceptance."
+}

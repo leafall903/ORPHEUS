@@ -2454,6 +2454,8 @@ class Combat:
         actor = self.deployables.pop(entity, None)
         if actor is None:
             return
+        if actor.definition == graviton.FIELD_ENTITY:
+            graviton.retire_component(self, actor)
         from ow174.game import volskaya
 
         if isinstance(self.match.scene_host, volskaya.LiftHost):

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from ow174.game import bots, heavy_assault, immunity, moira, orisa_fortify, reinhardt_charge, sigma_flux
 from ow174.game.mover import Mover, mover_data
-from ow174.game.script import expr, graph
+from ow174.game.script import expr, graph, runtime, startup
 
 FIELD_ENTITY = 0x04000000000003E2
 INPUT_LOCK = "graviton"
@@ -37,6 +37,42 @@ def publish_projectile_output(fight, rocket):
         return
     rocket.entity = entity
     state.instance.write(expr.lvalue(state.node.field("m_505472EF")), expr.Entity(entity))
+
+
+@dataclass
+class FieldScript:
+    component: runtime.Component
+    retired: bool = False
+
+
+def start_component(fight, actor):
+    """03E2 has an empty component; 0260 is a separate explicit invocation."""
+    definition = graph.entity_script_component(actor.definition)
+    if definition is NotImplemented or definition is None:
+        return  # Older catalogs do not establish component presence.
+    from ow174.game.script.driver import BodyWorld
+
+    child_world = BodyWorld(0x02E0000000000068, fight.match.game_map.mode_guid,
+                            actor.entity, actor.definition)
+    child_world.match = fight.match
+    component = runtime.Component(actor.entity, world=child_world)
+    startup.ComponentStartup(component, definition).start()
+    component.run_frame(fight.tick)
+    fight.match.register_body_component(component)
+    actor.body_script = FieldScript(component)
+
+
+def retire_component(fight, actor):
+    script = actor.body_script
+    if not isinstance(script, FieldScript) or script.retired:
+        return
+    script.retired = True
+    component = script.component
+    fight.match.unregister_body_component(component)
+    component.disconnect_foreign_watchers()
+    for instance in tuple(component.instances.values()):
+        component.destroy(instance)
+    component.world.match = None
 
 
 @dataclass
@@ -93,6 +129,7 @@ class Gravitons:
         # Player FFA roster teams are not native faction slots. Keep the cast's
         # original faction; NPC flights without that capture retain their mapping.
         actor.filter_bits = TEAM_BIT << rocket.team if faction is None else faction
+        start_component(self.fight, actor)
         for viewer in self.fight.match.players:
             if viewer.spawned and viewer.client is not None:
                 viewer.client.queue_entities([self.fight.deployable_create(actor)])

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "graph": "0580000000000D06",
+  "node": 14,
+  "eye_offsets": {"m_05BE62DD": -0.18, "m_D59188D5": -0.5},
+  "native_minimum_charge_volume": {
+    "outer_cos": [0.954856812953949, 0.9341383576393127],
+    "outer_extent": [0.6999999284744263, 0.8469999432563782]
+  },
+  "output": {"scope": 0, "identifier": 375, "type": "entity-array"},
+  "paired_output": {"identifier": 23530, "qualified": false},
+  "normal_host_enabled": false,
+  "native_rvas": ["C9B9AB", "C9BBE6", "C8E660", "CAA6C0", "CAFC9C"],
+  "scope": "Registered ordinary Match player/NPC capsules and current caller clock; explicit query binding only. Original state owns typed publication; original transition is unqualified. Native arbitrary tag/parented-shape enumeration, paired producer, recipient scheduling and health completion remain open."
+}

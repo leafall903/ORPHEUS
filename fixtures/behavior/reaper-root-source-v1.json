@@ -1,0 +1,31 @@
+{
+  "schema": "reaper-root-source-v1",
+  "provenance": "Original 104319 root allocator 977F20: zero source falls back to actual component owner before typed001B/cache seed. Three-peer scenario is synthetic; native rendering unverified.",
+  "rootCount": 10,
+  "viewerTeams": [
+    0,
+    1,
+    0
+  ],
+  "viewerRoles": [
+    "self",
+    "enemy",
+    "ally"
+  ],
+  "sourceTeamFilterBits": 8388608,
+  "descriptorSource": null,
+  "lateScope": "existing observer remote_body_create/current full-frame; no new connection",
+  "nativeColorAccepted": false,
+  "rootGraphs": [
+    "0015",
+    "0019",
+    "0020",
+    "0033",
+    "0043",
+    "0044",
+    "004B",
+    "0075",
+    "00F2",
+    "08B6"
+  ]
+}

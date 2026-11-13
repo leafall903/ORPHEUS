@@ -96,10 +96,12 @@ def play_flux_request(world, instance, node):
         if (receiver.entity != entity or receiver.fault is not None or receiver.owner_dead
                 or receiver.strict or getattr(receiver.world, "match", None) is not world.match):
             continue
-        receiver.play_loaded_graph(
+        played = receiver.play_loaded_graph(
             definition, source=request.context.caller, instigator=request.context.instigator,
             params=request.params, overrides=resource.overrides, policy=request.policy,
         )
+        if played is not None:
+            played.set_source_entity(played.source_entity(), publish_source=True)
     return True
 
 

@@ -229,7 +229,7 @@ def _spawn_actor(fight, player, point, duration, width, height, *, axis=None, pe
     lift = host.lift if isinstance(host, volskaya.LiftHost) else None
     health = graph.graph(PILLAR_GRAPH).node(1).field("m_amount")["m_value"]
     actor = fight.create_deployable(player, PILLAR, "Ice Wall pillar", tuple(point), health=health,
-                                    radius=width / 2, height=height, seconds=duration, publish=lift is None,
+                                    radius=width / 2, height=height, seconds=duration, publish=False,
                                     pet_owner=pet_owner)
     child_world = BodyWorld(player.hero.guid, fight.match.game_map.mode_guid, actor.entity, PILLAR)
     child_world.match = fight.match
@@ -250,11 +250,12 @@ def _spawn_actor(fight, player, point, duration, width, height, *, axis=None, pe
             piece = lift.actor_piece(actor)
             if lift.supports_wall(piece):
                 lift.attached_walls.add(actor.entity)
-        # Publish this same actor once, after its original parent pose is known.
-        for viewer in fight.match.players:
-            if viewer.spawned and viewer.client is not None:
-                viewer.seen[actor.entity] = False
-                viewer.client.queue_entities([fight.deployable_create(actor)])
+    # CREATE tracking captures the actor's script immediately. Publish only
+    # after that same VM and any original parent pose are installed.
+    for viewer in fight.match.players:
+        if viewer.spawned and viewer.client is not None:
+            viewer.seen[actor.entity] = False
+            viewer.client.queue_entities([fight.deployable_create(actor)])
     return actor
 
 
@@ -337,9 +338,13 @@ def play_pillar(fight, instance, node):
                 or not isinstance(actor.body_script, actors.PillarScript)):
             continue
         component = actor.body_script.component
-        component.play_loaded_graph(child, source=player.body, instigator=player.body,
-                                    params=request.params, overrides=resource.overrides,
-                                    policy=request.policy)
+        played = component.play_loaded_graph(child, source=player.body, instigator=player.body,
+                                             params=request.params, overrides=resource.overrides,
+                                             policy=request.policy)
+        if played is not None:
+            # Preserve this allocation's source, including policy2 reuse. The
+            # client factory otherwise initializes builtin001B with pillarSELF.
+            played.set_source_entity(played.source_entity(), publish_source=True)
         component.run_now()
     return True
 
