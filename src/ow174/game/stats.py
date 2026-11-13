@@ -46,6 +46,7 @@ OBJECTIVE_TIME = 0x0860000000000327  # seconds
 HERO_DAMAGE = 0x08600000000004B8
 HEALING = 0x08600000000001D1
 DEATHS = 0x0860000000000029
+TIME_PLAYED = 0x0860000000000026  # seconds on a hero; not on the board, counted for the career profile
 
 
 @cache

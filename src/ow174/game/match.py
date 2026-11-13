@@ -279,6 +279,11 @@ class Player:
         # The numbers his Tab board shows (stats.py); the combat code adds to them. His client gets them
         # in component 64 when they change.
         self.stats = stats.PlayerStats()
+        # What he did as each hero he played, for his career profile: hero -> stat -> amount. The
+        # board's numbers are split by hero at each pick (Match._count_hero).
+        self.career: dict[int, dict[int, float]] = {}
+        self.career_from: dict[int, float] = {}  # the board's numbers at the last pick
+        self.career_tick = 0  # the tick of the last pick
         self.stats_sent: list | None = None
         self.next_stats = 0.0
 
@@ -2363,6 +2368,7 @@ class Match:
             self.combat.retire_player_body(player, next_hero=hero.guid)
             if old_hero == 0x02E0000000000007:
                 self.stop_body_script(player)
+        self._count_hero(player)
         player.hero = hero
         if old is not None:
             player.new_body(entity)
@@ -2405,6 +2411,20 @@ class Match:
         log.info("[game] %s: %s plays %s%s", self.label(), player.name, hero.name, look)
         return True
 
+    def _count_hero(self, player: Player) -> None:
+        """Put what the player did since his last pick on the hero he played: the board's numbers he
+        gained and the time. Called before a pick takes effect and when he leaves."""
+        if player.has_body:
+            counted = player.career.setdefault(player.hero.guid, {})
+            before = player.career_from
+            gained = {stat: value - before.get(stat, 0.0) for stat, value in player.stats.values.items()}
+            gained[stats.TIME_PLAYED] = (self.tick - player.career_tick) * combat.TICK
+            for stat, amount in gained.items():
+                if amount:
+                    counted[stat] = counted.get(stat, 0.0) + amount
+        player.career_from = dict(player.stats.values)
+        player.career_tick = self.tick
+
     def leave(self, player: Player, reason: str = "left") -> None:
         """The player's game left the match, or never came: the lobby takes the player back (the match
         chat goes), and the match ends with its last player."""
@@ -2422,6 +2442,7 @@ class Match:
         if player.has_body:
             self.combat.retire_player_body(player)
             self.destroy_for_others(player, player.body)
+        self._count_hero(player)
         log.info("[game] %s: %s %s", self.label(), player.name, reason)
         if self.on_leave is not None:
             self.on_leave(player)

@@ -1,5 +1,28 @@
 # Changelog
 
+## Career profile from played matches
+
+- A match from a queue card now counts for the player's career: time played, eliminations, deaths
+  and hero damage, per hero. The match splits the Tab board's numbers by hero at each pick
+  (`Match._count_hero`) and once more when the player leaves; the lobby then adds them to the
+  profile's new `career` field and saves it. A match without a queue card, such as the Practice
+  Range, counts nothing. The player's new fields are in the stored-state export's name lists.
+- The career profile shows these numbers once a profile has any, for each hero and as "All Heroes"
+  (`content/career.py` `played_stats`, with `ALL_HEROES` as a hero of its own in the stat lists). A
+  profile without a match of its own keeps the showcase hours as before.
+- Read from data: the stat identifiers, including Time Played (`0x0860000000000026`), come from
+  the original client's stat catalogue. Reconstructed: the split by hero at each pick.
+- Limits: every mode goes into "All Modes", so the Quick Play, Arcade and Competitive views stay
+  empty. Games played and won, final blows, healing, objective stats, time on fire and the Best
+  column are not counted.
+- Tests: `tests/runtime/test_career_stats.py` (the split across a switch and a leave, totals over
+  two matches and a save, the reply with and without a career, the lobby saving a queue card's
+  match only) and the public contract `tests/public/test_career_contracts.py` with
+  `fixtures/behavior/career-stats-v1.json`.
+- Ported from the kjs branch, where the original client showed a prepared profile's numbers under
+  All Modes and a real match's time reached the saved profile. Original-client acceptance on this
+  source is pending.
+
 ## End-to-end tests for Guardian Angel's, the Caduceus Staff's and Hack's targets
 
 - Runtime tests that drive Mercy and Sombra through their buttons on a flat floor with walls and
