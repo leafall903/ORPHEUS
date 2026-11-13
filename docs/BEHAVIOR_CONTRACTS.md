@@ -1,5 +1,24 @@
 # Shared behavior contracts
 
+## Observed recipient clocks and original caster launch observations
+
+`roadhog-victim-invocation-clock-v1.json` compares paced and32-command delivery
+at different owner epochs using recipient cursors actually retained at the world
+Hook phase. Scoped invocation restores component clocks and advances only the
+live admitted instance; sibling queues, owner inputs and component end phases
+are not replayed. History is script-identity-bound and limited to64 ticks;
+missing observations keep current-time admission. The original victim Wait,
+MoveTo, recovery, sole physical mover, damage and carrier identities remain.
+Separate source C6 queue-clock projection and native Clamp/speed are still open.
+
+`doomfist-uppercut-self-launch-v1.json` records the original directional caster
+launch and next-frame queue boundary. The maintained test observes the pending
+vector and quantized physical velocity before its unchanged ten-frame lift,
+victim displacement and final landing assertions. This is a corrected test
+observation supported by original instruction execution with adapted typed/math
+providers; production movement, recipient14/7 and helper ownership are unchanged.
+Neither contract grants original-client or complete helper acceptance.
+
 ## Existing physical movers and staged health receipts
 
 `ashe-bob-finite-receiver-v1.json` exercises original-Q charge, gun and retirement

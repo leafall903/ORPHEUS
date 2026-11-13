@@ -8,6 +8,7 @@ MoveTo request. Native target filters, Clamp and client adoption remain open.
 """
 
 import math
+from collections import deque
 from dataclasses import dataclass, replace
 
 from ow174.game import bots, defenses
@@ -63,6 +64,7 @@ class Flight:
     player_driven: bool = False
     victim_instance: object = None
     contact_published: bool = False
+    victim_clock: tuple | None = None
 
 
 class Hooks:
@@ -73,6 +75,52 @@ class Hooks:
         self.player_pose_ticks = {}
         self.player_command_cutoffs = {}
         self.command_clocks = {}
+        self.recipient_clocks = {}
+
+    def observe_clocks(self, tick):
+        """Record actual recipient VM cursors at the world Hook update phase."""
+        from ow174.game.combat import HISTORY
+
+        if not any(p.has_body and p.hero.guid == 0x02E0000000000040 for p in self.combat.match.players):
+            self.recipient_clocks.clear()
+            return
+        for target in self.combat._targets():
+            script = getattr(target.owner, 'body_script', None)
+            if script is None:
+                continue
+            row = self.recipient_clocks.get(target.entity)
+            if row is None or row[0] is not script:
+                row = self.recipient_clocks[target.entity] = (script, deque(maxlen=HISTORY))
+            clocks = row[1]
+            if not clocks or tick > clocks[-1][0]:
+                clocks.append((tick, script.component.frame, script.component.now))
+
+    def recipient_clock(self, script, tick):
+        if script is None:
+            return None
+        row = self.recipient_clocks.get(script.component.entity)
+        if row is not None and row[0] is script:
+            return next(((frame, now) for at, frame, now in reversed(row[1]) if at == tick), None)
+        return None
+
+    @staticmethod
+    def finish_victim_move(flight, *, finished):
+        victim = flight.victim_instance
+        if victim is None:
+            return
+        component = victim.component
+        move = victim.states.get(victim.graph.node(0).state)
+        if component.instances.get(victim.id) is not victim or move is None or not move.active:
+            return
+        clock = flight.victim_clock or (component.frame, component.now)
+        with component.observed_clock(*clock):
+            if finished:
+                move.request_finish()
+            else:
+                from ow174.game.script import runtime
+
+                move.request(runtime.ABORT)
+        component.advance_instance_until(victim, clock[1], clock[1])
 
     def observe_input(self, player, commands):
         actor = player.controlled_mech or player
@@ -223,10 +271,16 @@ class Hooks:
         if (component.entity != flight.target.entity or component.fault is not None or component.owner_dead
                 or component.strict or getattr(component.world, "match", None) is not self.combat.match):
             return True
-        flight.victim_instance = component.play_loaded_graph(
-            graph.graph(0x01C9), source=request.context.caller, instigator=request.context.instigator,
-            params=request.params, overrides=resource.overrides, policy=request.policy)
-        component.run_now()
+        clock = self.recipient_clock(script, flight.last_tick)
+        if clock is None:
+            clock = component.frame, component.now
+        with component.observed_clock(*clock):
+            flight.victim_instance = component.play_loaded_graph(
+                graph.graph(0x01C9), source=request.context.caller, instigator=request.context.instigator,
+                params=request.params, overrides=resource.overrides, policy=request.policy)
+        if flight.victim_instance is not None:
+            component.advance_instance_until(flight.victim_instance, clock[1], clock[1])
+            flight.victim_clock = clock
         return True
 
     def victim_actor(self, component, entity):
@@ -427,6 +481,7 @@ class Hooks:
         self.player_pose_ticks.pop(entity, None)
         self.player_command_cutoffs.pop(entity, None)
         self.command_clocks.pop(entity, None)
+        self.recipient_clocks.pop(entity, None)
 
     def destination(self, flight):
         owner = flight.owner.mover.position
@@ -570,6 +625,13 @@ class Hooks:
                     self.cancel_owner(body)
                     continue
             if flight.victim_instance is not None and flight.arrived_at is None:
+                victim = flight.victim_instance
+                clock = self.recipient_clock(target.owner.body_script, tick)
+                if (clock is not None and flight.victim_clock is not None
+                        and clock[1] >= flight.victim_clock[1]
+                        and victim.component.instances.get(victim.id) is victim):
+                    victim.component.advance_instance_until(victim, flight.victim_clock[1], clock[1])
+                    flight.victim_clock = clock
                 request = self.victim_move(flight)
                 if request is None:
                     victim = flight.victim_instance
@@ -615,26 +677,13 @@ class Hooks:
             elif not isinstance(target.owner, bots.Bot):
                 outcome = self.move_player(flight, target, destination, tick, elapsed)
             if outcome is False:
-                if flight.victim_instance is not None:
-                    from ow174.game.script import runtime
-
-                    victim = flight.victim_instance
-                    move = victim.states.get(victim.graph.node(0).state)
-                    if move is not None and move.active:
-                        move.request(runtime.ABORT)
-                        victim.component.run_now()
+                self.finish_victim_move(flight, finished=False)
                 self.cancel_owner(body)
                 continue
             if flight.arrived_at is None and outcome is True:
                 flight.arrived_at = now
             if flight.arrived_at is not None and flight.victim_instance is not None:
-                victim = flight.victim_instance
-                move = victim.states.get(victim.graph.node(0).state)
-                if move is not None and move.active:
-                    # The host mover reached the target. Retire the same native
-                    # MoveTo phase before its post-movement wait is replicated.
-                    move.request_finish()
-                    victim.component.run_now()
+                self.finish_victim_move(flight, finished=True)
             if flight.arrived_at is not None and now - flight.arrived_at >= flight.recovery:
                 self.cancel_owner(body)
 

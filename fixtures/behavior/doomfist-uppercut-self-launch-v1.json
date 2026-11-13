@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "graph": "0DD8",
+  "node": 1,
+  "view_yaw_pitch": [0, 0],
+  "direction_inputs": [[0, 0.1, 1], [0, 0.3, 1]],
+  "angle_limits_degrees": [90, 0],
+  "authored_scale": 10,
+  "native_launch_vector": [0, 2.873478889465332, 9.578263282775879],
+  "start_frame_offset": 1,
+  "velocity_grid_step": 0.0009765625,
+  "evidence": {
+    "build": 104319,
+    "direction_getter_rva": "CEB820",
+    "basis_store_rva": "1849750",
+    "queue_next_frame_rva": "D2B6BC",
+    "scope": "typed child inputs and standard math imports adapted; native direction and basis instructions executed; no native client acceptance"
+  }
+}

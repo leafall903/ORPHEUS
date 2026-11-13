@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "reference": "ed6d079b original104319 graphs and actual accepted owner commands",
+  "scope": "Synthetic paced versus32-command delivery; owner epochs1000/900000, recipient epoch1000; no native rendering claim",
+  "contact_world_tick": 1060,
+  "observed_recipient_start_ms": 16959,
+  "native_sequence": "01C9 Wait7 .3s -> MoveTo0 40*scale -> C6 once and Wait30 .4s",
+  "expected": "Same recipient16959 start,17259 MoveTo start,17423 arrival/recovery start and identical world-position path. Retain real caller/instigator and original sole mover/damage registration.",
+  "clock_rule": "Use the recipient frame and millisecond cursor actually recorded at the world Hook phase. Never infer a frame-end by adding or subtracting an unexplained offset.",
+  "remaining": "Source C6 receiver queue uses the existing caster cursor and is recorded separately; exact source-clock projection, native Clamp/fullpostpull and rendered speed curve remain unverified."
+}

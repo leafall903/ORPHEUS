@@ -192,7 +192,8 @@ FIELDS = {
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen beam_seen zarya_beam_world_ms reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples grapple_seen ball_contacts pile_air_locks orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
-    hook.Hooks: _names("combat flights seen player_pose_ticks player_command_cutoffs command_clocks"),
+    hook.Hooks: _names("combat flights seen player_pose_ticks player_command_cutoffs "
+                       "command_clocks recipient_clocks"),
     ball_mines.Mines: _names("fight devices volleys seen"),
     ball_mines.MineWorld: _names("hero mode manager mine"),
     ball_mines.MineScript: _names("frame death_frame component server_only latest_live"),

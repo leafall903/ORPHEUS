@@ -1825,6 +1825,45 @@ class Component:
 
     # --- time --------------------------------------------------------------------------------------
 
+    @contextmanager
+    def observed_clock(self, frame: int, now: int):
+        """Use a recorded component cursor for scoped historical invocation.
+
+        This does not update other instances, inject edges or run a component
+        end phase. The ordinary frame/cursor are restored even on failure.
+        """
+        if (type(frame) is not int or type(now) is not int or frame < 0
+                or not frame * self.frame_ms <= now < (frame + 1) * self.frame_ms
+                or now > self.now):
+            raise ValueError("historical invocation requires an observed past component cursor")
+        saved = self.frame, self.now
+        with self.operation():
+            try:
+                self.frame, self.now = frame, now
+                yield
+            finally:
+                self.frame, self.now = saved
+
+    def advance_instance_until(self, instance: "Instance", start: int, end: int) -> None:
+        """Replay only one live instance's due events through an observed cursor."""
+        if (instance.component is not self or self.instances.get(instance.id) is not instance
+                or type(start) is not int or type(end) is not int
+                or not instance.start <= start <= end <= self.now):
+            raise ValueError("instance replay requires its live identity and ordered observed cursors")
+        with self.operation():
+            for _ in range(MAX_COMPONENT_UPDATES):
+                due = instance.queue[0].time if instance.queue else None
+                at = end if due is None or due > end else max(start, due)
+                with self.observed_clock(at // self.frame_ms, at):
+                    instance.update()
+                if instance.stopped or self.instances.get(instance.id) is not instance:
+                    return
+                due = instance.queue[0].time if instance.queue else None
+                if at == end and (due is None or due > end):
+                    return
+                start = at
+            self.budget_exceeded("scoped instance replay update budget exhausted")
+
     def next_event_time(self) -> int | None:
         times = [item.queue[0].time for item in self.instances.values()
                  if item.queue and not item.stopped and (item.initialized or item.initialization_pending)]

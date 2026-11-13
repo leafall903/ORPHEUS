@@ -1,9 +1,11 @@
 """Authoritative damage checks; these do not constitute original-client acceptance."""
 
+import json
 import math
 import struct
 import unittest
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, Run, aim
@@ -707,11 +709,21 @@ class UppercutMotionTests(DoomfistFixture, unittest.TestCase):
         self.prepare(1.5)
 
     def test_real_input_lifts_both_bodies_displaces_victim_and_lands(self):
+        spec = json.loads((Path(__file__).resolve().parents[2] / 'fixtures/behavior'
+                           / 'doomfist-uppercut-self-launch-v1.json').read_text())
         owner_y, victim_y = self.a.mover.position[1], self.b.mover.position[1]
         victim_z = self.b.mover.position[2]
         self.run.step({self.a: (0, 0, 8)})
-        self.assertEqual(self.a.mover.velocity[1], 10)
-        self.settle(10)
+        self.assertEqual(tuple(self.a.mover.velocity), (0, 0, 0))
+        launch, = (mod for mod in self.a.mover.mods.values() if mod.index == -3)
+        self.assertEqual(launch.start, self.run.frame + spec['start_frame_offset'])
+        self.assertEqual(launch.end, launch.start + 1)
+        for actual, expected in zip(launch.value, spec['native_launch_vector'], strict=True):
+            self.assertAlmostEqual(actual, expected, places=6)
+        self.settle(1)
+        for actual, expected in zip(self.a.mover.velocity, spec['native_launch_vector'], strict=True):
+            self.assertAlmostEqual(actual, expected, delta=spec['velocity_grid_step'] / 2)
+        self.settle(9)
         self.assertGreater(self.a.mover.position[1], owner_y + 0.5)
         self.assertGreater(self.b.mover.position[1], victim_y + 0.5)
         self.assertGreater(self.b.mover.position[2], victim_z + 0.5)

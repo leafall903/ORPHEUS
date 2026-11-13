@@ -5191,6 +5191,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.hooks.observe_clocks(at)
             self.hooks.update(at)
             self.ball_mines.update(at)
             self.junkrat.update()
