@@ -14,13 +14,13 @@ CONTRACT = json.loads((Path(__file__).resolve().parents[2] / 'fixtures/behavior/
 
 
 class RoadhogPublicForceProducerTests(unittest.TestCase):
-    def test_authored_ring_and_live_cap_produce_only_remaining_delta(self):
+    def test_original_force_axes_and_vertical_floor_produce_additive_delta(self):
         spec = whole_hog.Spec(14, 10, 1.8, 14,
-                              ((5, 1, 1, 1), (20, 1, 1, 1), (100, .1, .1, .1)))
-        for row in CONTRACT['expected']['cap_cases']:
+                              ((5, 1, 1), (20, 1, 1), (100, .1, .1)))
+        for row in CONTRACT['expected']['pre_application_cases']:
             distance, current, expected = row['distance'], row['current'], row['delta']
             with self.subTest(distance=distance):
-                force = whole_hog.volley_impulse((0, 0, 1), distance, spec, current=current)
+                force = whole_hog.volley_impulse(row['direction'], distance, spec, current=current)
                 for actual, wanted in zip(force, expected, strict=True):
                     self.assertAlmostEqual(actual, wanted, places=5)
         self.assertIsNone(whole_hog.volley_impulse((0, 0, 1), 101, spec, current=(0, 1, 8)))
@@ -56,5 +56,5 @@ class RoadhogPublicForceProducerTests(unittest.TestCase):
                 force = apply.call_args.args[1]
                 self.assertAlmostEqual(force.y, 1.8 * resistance, places=5)
                 self.assertAlmostEqual((force.x ** 2 + force.z ** 2) ** .5,
-                                       10 * resistance, places=5)
+                                       14 * resistance, places=5)
                 self.assertFalse(fight.knockbacks.whole_hog_motion)

@@ -1,5 +1,9 @@
 # Changelog
 
+## Original force-rule follow-ups — third batch
+
+Integrate reviewed Reinhardt response scaling, Roadhog original field/ring rules and Brigitte captured Whip direction. Six related checks passed; original native adoption and shared force/Physics gaps remain open. Full owner mapping and scope are in docs/CONSOLIDATED_DELIVERY_20261113.md. No runtime inputs or logs are committed.
+
 ## Focused owner follow-ups — 2026-11-13
 
 Preserve the completed Doomfist, Widowmaker, Zarya, Symmetra, Bastion and Reaper source corrections, plus Ashe/Lucio actual-command contracts. Compose shared Combat methods without losing prior increments.13 related methods passed (12 new,1 updated compatibility); native effects and remaining restoration work stay open. Owner commit mapping, external-fixture exception and validation scope: docs/CONSOLIDATED_DELIVERY_20261113.md. No runtime data or local evidence files are committed.

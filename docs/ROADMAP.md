@@ -507,3 +507,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate the8 reviewed unique owner follow-ups listed in CONSOLIDATED_DELIVERY_20261113.md, with13 selected related checks.
 - [ ] Accept their changed behavior in the original client; retain all listed native failures and shared force/Physics gaps.
+
+- [x] Integrate the third focused Rein/Hog/Brig source batch with6 selected related checks.
+- [ ] Accept final native force/limiter/arbitration and visual behavior; host checks do not close these.

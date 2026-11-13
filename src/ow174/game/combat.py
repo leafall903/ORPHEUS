@@ -4800,7 +4800,10 @@ class Combat:
             dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
             distance = math.hypot(dx, dz)
             scale = speed / distance if distance else 0.
-            self.knockbacks.apply(target, expr.Vec3(dx * scale, 0., dz * scale),
+            response = defenses.knockback_scale(target.owner)
+            if response <= 0:
+                return
+            self.knockbacks.apply(target, expr.Vec3(dx * scale * response, 0., dz * scale * response),
                                   impact_tick=self.tick, source_entity=state.instance.component.entity)
 
     def _advance_idle_protection(self, player):

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "reference": "Original 1.74.0.0.104319 scalar26 pre-queue consumer C3268A/C3270D; synthetic vectors, not a game asset or native-client acceptance",
+  "scope": "Apply the live receiver scalar once after the producer has formed its velocity delta. Existing hammer base-vector reconstruction and minimum-Y sampling phase remain independently unverified.",
+  "vectors": [
+    {"response": 0.7, "input": [0.0, 10.0, 30.0], "expected": [0.0, 7.0, 21.0]},
+    {"response": 0.0, "input": [0.0, 10.0, 30.0], "expected": null}
+  ],
+  "runtime_checks": {
+    "hammer": {"damage": 80.0, "force_count": 1, "retained_base_horizontal": 4.0, "horizontal": 2.8},
+    "charge_side": {"damage": 45.0, "force_count": 1, "horizontal": 21.0, "vertical": 1.4}
+  },
+  "native_client_accepted": false
+}

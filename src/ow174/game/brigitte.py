@@ -903,7 +903,7 @@ class BrigitteCombat:
         Whip head sweep is reconstructed. The graph owns windup, lockout,
         cooldown start and readiness. No independent cooldown can bypass it.
         """
-        from ow174.game.combat import _number, aim
+        from ow174.game.combat import _number
 
         phase = instance.states.get(6)
         ability = instance.states.get(0)
@@ -919,10 +919,14 @@ class BrigitteCombat:
         loadout = instance.evaluate(modify.get("m_loadout"))
         speed = _number(instance.vars[681].value(), 0.0)
         reach = _number(instance.vars[1648].value(), 0.0)
+        captured = instance.vars[433].value() if 433 in instance.vars else None
         if amount <= 0 or speed <= 0 or reach <= 0 or not isinstance(loadout, expr.Asset):
             return
+        if (not isinstance(captured, expr.Vec3) or not all(map(math.isfinite, captured))
+                or not any(captured)):
+            return
         self.whips.append(WhipFlight(
-            player, player.body, instance, self.combat._eye(player), aim(*command.aim()),
+            player, player.body, instance, self.combat._eye(player), tuple(captured),
             speed, reach, amount, loadout.guid, self._whip_world_time(player, phase.start), 0.5,
         ))
 

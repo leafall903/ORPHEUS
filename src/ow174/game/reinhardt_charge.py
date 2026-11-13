@@ -150,6 +150,14 @@ def lateral_impulse(source_position, target, state, forward, *, fight=None, fram
     if fight is not None:
         impulse = expr.Vec3(x * scale, vertical, z * scale)
         if state.instance.graph.index == 0x007D:
+            from ow174.game import defenses
+
+            # C3268A/C3270D scales the formed delta before queue insertion.
+            # The common receiver does not repeat this scalar26 operation.
+            response = defenses.knockback_scale(target.owner)
+            if response <= 0:
+                return
+            impulse = expr.Vec3(*(axis * response for axis in impulse))
             fight.knockbacks.apply(target, impulse, impact_tick=fight.tick,
                                   source_entity=state.instance.component.entity)
         else:

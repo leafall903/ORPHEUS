@@ -1,0 +1,10 @@
+{
+  "provenance": "Synthetic actual Whip command input. Original1259/node20 captures facing433 at outgoing release; an unrelated primary subframe click has distinct aim. No force/resistance inference.",
+  "release_offset": 13,
+  "click_subframe": 128,
+  "body_yaw": 0,
+  "primary_click_yaw": 16384,
+  "distance": 8,
+  "captured_direction": [0, 0, 1],
+  "expected_health": [130, 200]
+}

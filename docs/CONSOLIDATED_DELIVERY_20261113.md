@@ -68,3 +68,22 @@ Native UI token cleanup, hero movement/effect adoption, eligibility, MoveTo and
 minimum-Y gaps remain open. Running frozen735 was not replaced or edited.
 These source commits do not inherit735 native acceptance for changed behavior.
 No remote push or all-hero completion claim is made.
+
+## Original force-rule follow-ups, third batch
+
+- `reinhardt-original-response`: original focused owner commit `ab8de5d56faa0adae1f71bbf99a5938224d218cb`.
+- `roadhog-original-fields`: original focused owner commit `66232e130295f4c8166e88f40f65ce5e3363f283`.
+- `brigitte-captured-direction`: original focused owner commit `b0c2e631c3a51949e73a3973cd8b0dea393a8430`.
+
+Reinhardt hammer/side-contact scale the formed delta once by the recipient
+response. Roadhog preserves original horizontal/vertical/minimum-Y field roles
+and exclusive force-ring outer edge; this covers pre-application arithmetic,
+not final native profile/mass/limiter or deferred receiving phase. Brigitte
+uses the original Whip direction captured at release rather than an unrelated
+same-command primary click direction.
+
+Six related methods passed on the composed source; four are new methods and
+two are updated Roadhog producer contracts. Cumulatively19 distinct selected
+follow-up methods passed (16 new and3 modified compatibility methods).
+Native adoption, shared Physics/MoveTo arbitration, delayed minimum-Y and all
+previous native/model/effect failures remain open. The live735 server is unchanged.

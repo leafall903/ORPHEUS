@@ -3,11 +3,12 @@
   "case_id": "roadhog-public-force-producer-v1",
   "target_build": "104319",
   "source": {
-    "base_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "base_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
     "paths": ["src/ow174/game/combat.py", "src/ow174/game/knockback.py", "src/ow174/game/whole_hog.py", "src/ow174/game/hook.py"],
-    "original_nodes": ["01C6/33", "01C8/133", "01C8/182", "01C9/0"]
+    "original_nodes": ["01C6/33", "01C8/133", "01C8/182", "01C9/0"],
+    "original_consumers": "104319 D6D87C..D6DA6A ring/vector stage and D6DA6A..D6DB01 Y-floor stage; sibling native evidence reused"
   },
-  "evidence": "synthetic-reference; actual production input/VM/recipient path, no native client",
+  "evidence": "synthetic-reference; production input/VM path plus original instruction slices, no native client",
   "client_acceptance": "pending; prior Hook speed and post-pull hittability failures retained",
   "input": {
     "world_birth": 1000,
@@ -17,7 +18,8 @@
     "target_offset": [0, 0, 4],
     "resistance_scales": [1, 0.5, 0],
     "packet_loss": "none",
-    "seed": "production entity/activation seed"
+    "seed": "production entity/activation seed",
+    "force_distance_probe": "Actual ultimate contact at4m; controlled force-distance result isolates ring arithmetic from capsule quantisation; no native client."
   },
   "expected": {
     "health_after_first_volley": 179,
@@ -26,16 +28,24 @@
     "public_submissions_per_target_volley": 1,
     "hook_move_speed": 40,
     "hook_contact_health": 170,
-    "cap_cases": [
-      {"distance": 4, "current": [0, 13, 8], "delta": [0, 1, 2]},
-      {"distance": 100, "current": [0, 0, 0], "delta": [0, 0.18, 1]},
-      {"distance": 60, "current": [0, 0, 0], "delta": [0, 0.99, 5.5]}
+    "force_distance_probes": [
+      {"distance": 99.99, "public_submissions": 1},
+      {"distance": 99.99999237060547, "public_submissions": 1},
+      {"distance": 100, "public_submissions": 0},
+      {"distance": 99.999999, "public_submissions": 0}
+    ],
+    "pre_application_cases": [
+      {"distance": 4, "direction": [0, 0, 1], "current": [0, 13, 8], "delta": [0, 0, 14]},
+      {"distance": 60, "direction": [0, 0, 1], "current": [0, 0, 0], "delta": [0, 1.8, 7.7]},
+      {"distance": 4, "direction": [0, 1, 1], "current": [0, 20, 0], "delta": [0, 10, 14]},
+      {"distance": 4, "direction": [0, 1, 1], "current": [0, -20, 0], "delta": [0, 21.8, 14]}
     ]
   },
   "limits": [
-    "Retains inherited per-volley/target dedup and force/cap/lift field interpretation; native force/mass/per-pellet conversion remains unaccepted.",
-    "The recipient's live velocity replaces the old independent external-motion accumulator; the shared mover owns decay and landing.",
-    "Same-tick multiple producers require shared receiver queue arbitration; this fixture covers one actual Roadhog producer.",
+    "Original float32 force-ring outer radius is exclusive; distance100 and99.999999 select no force. Damage acquisition remains independent.",
+    "10399AE7 is vertical coefficient10;583C208B is minimum resulting Y1.8;8394CF8C=14 is a final-consumer parameter, not a producer velocity cap.",
+    "Pre-application ring/vector/Y-floor arithmetic is covered. Resolved target geometry, original per-pellet arbitration, final D73830/profile/mass/limit conversion and native adoption remain shared work.",
+    "One submission per target/volley remains the current host policy; it is not proof of native repeated-hit throttling.",
     "Ordinary-world 01C9/60 speed Clamp is a shared API dependency; no second velocity consumer is introduced."
   ]
 }
