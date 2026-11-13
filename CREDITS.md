@@ -9,6 +9,10 @@ This repository builds on existing Overwatch preservation work. Its lobby improv
 
 ## Protocol research and shared findings
 
+- The local Cassidy immunity routing cases use synthetic post-AI damage and
+  the existing authorized prepared 104319 scene/owner assets. They exercise
+  actual room dispatch without claiming native attack or client evidence.
+
 - Flashbang entry admission follows loaded 224E/4's Boolean expression, public
   schema variable7312(hex), and the absence of that override in0228/7. Its
   synthetic cases compare effective linked bindings through Rust and the normal

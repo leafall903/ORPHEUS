@@ -743,3 +743,10 @@ settings, other heroes/cards, missing owners and rejected invalid configuration.
 A prepared-runtime regression verifies the gate binding and unchanged harder-mode
 HUD. These are host configuration contracts; they do not supply native category
 provenance, a Python implementation or original-client acceptance.
+
+The same fixture supplies synthetic post-AI damage for
+`game_service::tests::junkenstein_validation::configured_cassidy_immunity_routes_real_room_damage_and_death_notices`.
+Real selection messages create Cassidy owner pools; actual `Room.finish_simulation`
+checks ordinary 225 -> 155 -> 0 health and one lethal death notice against
+protected 225 -> 225 -> 225 health with no death notice. These cases prove host
+dispatch and owner health routing, not enemy attack generation or client display.

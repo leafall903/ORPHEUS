@@ -749,6 +749,15 @@ impl RoomSimulation {
     pub(crate) fn take_external_enemy_damage(&mut self) -> Vec<crate::script_enemy::EnemyDamage> {
         std::mem::take(&mut self.external_enemy_damage)
     }
+
+    /// Synthetic post-AI ingress for testing the real room/owner damage boundary.
+    #[cfg(test)]
+    pub(crate) fn queue_test_external_enemy_damage(
+        &mut self,
+        hit: crate::script_enemy::EnemyDamage,
+    ) {
+        self.external_enemy_damage.push(hit);
+    }
     pub(crate) fn take_scripted_health(&mut self) -> Vec<EntityUpdate> {
         std::mem::take(&mut self.scripted_health)
     }

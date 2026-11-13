@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Exercise Cassidy acceptance immunity through actual room damage routing
+
+- Add a prepared-runtime regression using real hero-selection messages, owner
+  health pools and Room.finish_simulation. Synthetic post-AI damage confirms
+  ordinary health loss, lethal damage and the death notice, versus unchanged
+  health and no death notice with explicit Normal Cassidy immunity enabled.
+- Extend the existing language-neutral startup fixture with both routing cases.
+  The injection helper is test-only; production gameplay is unchanged. This
+  covers host dispatch, not attack generation, transport or client acceptance.
+- Verification: the focused prepared-runtime regression passes in default and
+  inspector builds; both locked workspace/all-target test and Clippy lanes,
+  formatting and Rust 1.85 workspace/all-target inspector check pass.
+
 #### Make the requested Normal Cassidy client validation settings launchable
 
 - Add an explicit local `--junkenstein-validation <json>` startup input. It can

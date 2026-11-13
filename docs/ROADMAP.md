@@ -381,3 +381,9 @@ explicit local startup profile, using real room damage routing and the existing
 authored gate binding. Its scoped prepared-scene and configuration checks are
 separate from the still-open original-client success/failure, UI/audio, Boss
 intro/camera, first-Reaper crash and Gallery acceptance.
+
+A prepared-runtime room regression now checks the optional Normal Cassidy
+immunity using real selection messages and actual post-AI damage dispatch.
+Ordinary damage and lethal death notices remain active with default settings;
+explicit immunity preserves health and suppresses death notices. This is host
+routing evidence only; native client acceptance remains open.

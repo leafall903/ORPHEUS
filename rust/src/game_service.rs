@@ -785,6 +785,7 @@ mod tests {
 
     mod benchmark;
     mod isolation;
+    mod junkenstein_validation;
     use crate::{
         bits::{BitReader, BitWriter},
         game_content::PRACTICE_RANGE_MAP,

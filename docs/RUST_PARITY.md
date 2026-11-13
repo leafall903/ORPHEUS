@@ -2195,3 +2195,9 @@ between the earlier private headless-test setup and launchable client sessions;
 it does not close original-client acceptance or production category provenance.
 The synthetic startup contract is a Rust local-host policy with no new Python
 or native default-parity claim.
+
+A prepared-runtime room regression now checks the optional Normal Cassidy
+immunity using real selection messages and actual post-AI damage dispatch.
+Ordinary damage and lethal death notices remain active with default settings;
+explicit immunity preserves health and suppresses death notices. This is host
+routing evidence only; native client acceptance remains open.
