@@ -176,17 +176,28 @@ def _same(a, b) -> bool:
     return expr.same(a[0], b[0])
 
 
-def delta(script, stream: BodyStream, snap: Snapshot):
+def delta(script, stream: BodyStream, snap: Snapshot, *, cache=None):
     """An H = 0 delta from what the client acknowledged (stream.base), carrying again everything the chunks
     since then carried (the client may have applied them). Returns (frame, keys); frame None when nothing
     changed."""
     base = stream.base
     touched = stream.touched()
-    graphs = _graphs(script)
     known = dict(base.instances)
     for pending, _ in stream.pending.values():
         known.update(pending.instances)
-    return _delta_from(graphs, base, snap, known, touched, next_chunk=stream.last + 1)
+    key = None
+    if cache is not None:
+        key = (id(script), id(base), id(snap), stream.last + 1,
+               frozenset(touched), tuple(known.items()))
+        found = cache.get(key)
+        if found is not None:
+            return found[2], set(found[3])
+    result = _delta_from(_graphs(script), base, snap, known, touched, next_chunk=stream.last + 1)
+    if cache is not None:
+        # Retain the identity-keyed snapshots for this call's lifetime, and give
+        # each stream its own mutable delivery keys. The encoded frame is read-only.
+        cache[key] = (base, snap, result[0], frozenset(result[1]))
+    return result
 
 
 def acknowledged_delta(script, base: Snapshot, snap: Snapshot, *, action=None):
@@ -324,6 +335,7 @@ class Observers:
     def update(self) -> None:
         match = self.match
         snaps: dict[int, Snapshot] = {}  # body -> its snapshot this tick, shared by every viewer
+        delta_cache = {}  # identical baselines only; never retained across updates or ACKs
         for viewer in match.players:
             if viewer.client is None or not viewer.spawned:
                 continue
@@ -341,7 +353,7 @@ class Observers:
                 try:
                     if other.body not in snaps:
                         snaps[other.body] = snapshot(other.body_script)
-                    self._frames(viewer, other, watch, snaps[other.body])
+                    self._frames(viewer, other, watch, snaps[other.body], delta_cache=delta_cache)
                 except Exception:
                     log.exception(
                         "[game] %s: %s's body frames for %s failed", match.label(), other.name, viewer.name
@@ -351,7 +363,7 @@ class Observers:
         for key in [key for key in self.watches if key not in live]:
             del self.watches[key]
 
-    def _frames(self, viewer, other, watch: Watch, snap: Snapshot) -> None:
+    def _frames(self, viewer, other, watch: Watch, snap: Snapshot, *, delta_cache=None) -> None:
         script = other.body_script
         stream = watch.stream
         tick = self.match.tick
@@ -369,7 +381,7 @@ class Observers:
         activity = _activity(snap, callout.serial if callout is not None else 0)
         if activity == watch.sent and tick < watch.next_lazy:
             return
-        frame, keys = delta(script, stream, snap)
+        frame, keys = delta(script, stream, snap, cache=delta_cache)
         if frame is not None:
             viewer.client.queue_entities([stream.delta(frame, snap, keys, 0)])
             watch.sent, watch.next_lazy = activity, tick + LAZY_TICKS

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "scope": "Synchronous reuse of identical H0 deltas with independent transport histories",
+  "sourceParent": "5d0aa0222e205d6c56d70ef88c50794b73aa6929",
+  "provenance": "Synthetic real Soldier fire and the existing independent-decoder communication-wheel scenarios; one separately marked original PvE twenty-hero hotspot capture",
+  "cacheLifetime": "One Observers.update call; no persistent VM or transport state",
+  "identicalInputsRequired": [
+    "script identity", "baseline snapshot identity", "current snapshot identity",
+    "next chunk stamp", "all cumulative touched keys", "all known instance descriptors"
+  ],
+  "contracts": [
+    "Encoded chunk bits and key contents match uncached computation",
+    "Each stream receives a distinct mutable delivery key set",
+    "Cached baseline and current snapshots remain alive until the cache expires",
+    "Different ACK, loss, descriptor knowledge or callout stamps do not share a result",
+    "Each observer is still sent its own record and retains its own ACK/loss state"
+  ],
+  "expected": {
+    "actualFireIdenticalBaselineBuilds": 1,
+    "secondViewerLostFirstDelta": "Recovers to the same decoded instances, states, variables and descriptor sources",
+    "voiceAndDirectedCallouts": "Original retry stamps and each speaker survive divergent acknowledgements",
+    "sendCadenceChanged": false,
+    "twentyHeroBudgetAccepted": false,
+    "nativeAccepted": false
+  }
+}

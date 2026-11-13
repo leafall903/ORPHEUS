@@ -461,3 +461,17 @@ fixture now supplies combat=None. Existing Zarya removed-storage errors and
 team-change damage failure were independently reproduced on parent39 and remain
 open. Universal typed root SELF from source40 must remain in all final baselines.
 No runtime restart or native acceptance is included.
+
+## Identical synchronous observer deltas
+
+`fixtures/behavior/observer-delta-reuse-v1.json` permits encoded H0 delta reuse
+only within one Observers.update call, with identical script and baseline/current
+snapshot identities, next chunk stamp, complete touched keys and known instance
+descriptors. The local cache holds snapshot references to prevent ID reuse and
+copies mutable keys for each stream. Different ACK/loss histories or callout
+stamps remain distinct. All observer recipients and original send cadence remain.
+Actual Soldier fire cached/uncached bits match and independently decoded clients
+converge after one loses its first delta. Actual voice retry and directed callout
+scenarios preserve each stream's stamps. Exact later performance receipts remain
+separate: source41 passed20 action/status rows but was RED at227.8343/436.2401ms.
+No16ms or native acceptance is claimed by these two selected regression methods.
