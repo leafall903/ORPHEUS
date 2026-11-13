@@ -14,6 +14,7 @@ use serde::Deserialize;
 
 use crate::{
     accounts::{Profile, parse_guid},
+    game_content::JunkensteinCard,
     jam_codec::{
         Fields,
         Value::{Array, Bool, Float32, Signed, Struct, Unsigned},
@@ -33,7 +34,7 @@ const WINDOWS: u32 = 39810;
 const LUNAR: &[u32] = &[0x1a3, 0x25, 0x10c];
 const COMPETITIVE_CTF: &[u32] = &[0x1c3];
 const WINTER: &[u32] = &[0x98, 0x107, 0x4b, 0x5b, 0x1f];
-const JUNKENSTEIN: &[u32] = &[
+pub(crate) const JUNKENSTEIN: &[u32] = &[
     0x3c, 0x3d, 0x4a, 0x3e, 0x43, 0x44, 0x49, 0x45, 0x16b, 0x16c, 0x16d, 0x16e, 0x16f, 0x170,
 ];
 const LUCIOBALL: &[u32] = &[0x132, 0x35, 0x1ad];
@@ -178,6 +179,21 @@ impl Arcade {
         self.cards
             .get(&(card as u32))
             .is_some_and(|card| card.roles)
+    }
+
+    pub(crate) fn junkenstein_queue(
+        card: u64,
+        profile: &Profile,
+        now: u64,
+    ) -> Option<JunkensteinCard> {
+        let index = card as u32;
+        if card != full(index)
+            || !JUNKENSTEIN.contains(&index)
+            || !card_order(&profile.events, now).contains(&index)
+        {
+            return None;
+        }
+        JunkensteinCard::from_index(index)
     }
 
     pub fn pass_pool(&self, card: u64) -> Option<Pool> {
@@ -351,7 +367,46 @@ mod tests {
     use sha2::{Digest, Sha256};
 
     use super::*;
-    use crate::{jam_codec::Schemas, lobby_passes, lobby_ranked::Ranked};
+    use crate::{
+        game_content::JUNKENSTEIN_MAP, jam_codec::Schemas, lobby_passes, lobby_ranked::Ranked,
+    };
+
+    #[test]
+    #[ignore = "requires the 104319 queue catalog in ORPHEUS_RUNTIME_DIR"]
+    fn junkenstein_queue_routes_all_offered_cards_to_the_authored_map_and_mode() {
+        let runtime = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let catalog: serde_json::Value =
+            serde_json::from_reader(File::open(runtime.join("data/game_queues_174.json")).unwrap())
+                .unwrap();
+        let profile = Profile {
+            events: vec!["halloween".into()],
+            ..Profile::default()
+        };
+        for &index in JUNKENSTEIN {
+            let card = full(index);
+            let entry = &catalog["cards"][format!("0x{card:016X}")];
+            let ruleset = &entry["rulesets"][0];
+            let JunkensteinCard { mode, players, .. } =
+                Arcade::junkenstein_queue(card, &profile, 0).unwrap();
+            assert_eq!(parse_guid(ruleset["mode"].as_str().unwrap()), Some(mode));
+            assert_eq!(
+                ruleset["team_sizes"]["blue"].as_u64(),
+                Some(u64::from(players))
+            );
+            assert_eq!(
+                parse_guid(entry["maps"][0]["map"].as_str().unwrap()),
+                Some(JUNKENSTEIN_MAP)
+            );
+            assert_eq!(
+                Arcade::junkenstein_queue(card, &Profile::default(), 0),
+                None
+            );
+            assert_eq!(
+                Arcade::junkenstein_queue(u64::from(index), &profile, 0),
+                None
+            );
+        }
+    }
 
     #[test]
     fn rotation_counts_groups_instead_of_cards_and_deduplicates_events() {

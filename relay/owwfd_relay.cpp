@@ -12,6 +12,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
+#include "gallery_roster.h"
+#include "gallery_preview.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdarg>
@@ -174,8 +176,33 @@ static DWORD WINAPI worker(LPVOID){
     g_base=(u64)GetModuleHandleW(L"Overwatch.exe");if(!g_base)g_base=(u64)GetModuleHandleW(NULL);
     IMAGE_DOS_HEADER* dos=(IMAGE_DOS_HEADER*)g_base;IMAGE_NT_HEADERS* nt=(IMAGE_NT_HEADERS*)(g_base+dos->e_lfanew);g_imgHi=g_base+nt->OptionalHeader.SizeOfImage;
     g_bsVA=g_base+BS_VT;
-    L("==== owwfd_relay (plaintext pipe -> 127.0.0.1:%u) base=%016llX bsVt=%016llX ====",SRV_PORT,(unsigned long long)g_base,(unsigned long long)g_bsVA);
-    for(int loop=0;;loop++){ scan(); if((loop%80)==0)L("[poll] loop=%d swaps=%ld send=%ld recv=%ld stateCalls=%ld relays=%d err=%ld",loop,g_swaps,g_send,g_recv,g_stateCalls,g_nRelays,g_relayErr); Sleep(8);}
+    L("==== owwfd_relay pid=%lu (plaintext pipe -> 127.0.0.1:%u) base=%016llX bsVt=%016llX imageSize=%llX ====",GetCurrentProcessId(),RELAY_PORT,(unsigned long long)g_base,(unsigned long long)g_bsVA,(unsigned long long)(g_imgHi-g_base));
+    auto gallery = gallery_roster::Install::waiting;
+    auto preview = gallery_roster::Install::waiting;
+    for (int loop = 0;; ++loop) {
+        if (preview == gallery_roster::Install::waiting && loop % 20 == 0) {
+            const auto result = gallery_preview::install(g_base, g_imgHi);
+            preview = result.state;
+            if (preview != gallery_roster::Install::waiting)
+                L("[gallery] NPC preview resources %s: stage=%s error=%lu",
+                  preview == gallery_roster::Install::installed ? "installed" : "failed",
+                  result.stage, result.error);
+        }
+        if (gallery == gallery_roster::Install::waiting &&
+            preview == gallery_roster::Install::installed && loop % 20 == 0) {
+            const auto result = gallery_roster::install(g_base, g_imgHi);
+            gallery = result.state;
+            if (gallery != gallery_roster::Install::waiting)
+                L("[gallery] NPC roster extension %s: stage=%s error=%lu",
+                  gallery == gallery_roster::Install::installed ? "installed" : "failed",
+                  result.stage, result.error);
+        }
+        scan();
+        if (loop % 80 == 0)
+            L("[poll] loop=%d swaps=%ld send=%ld recv=%ld stateCalls=%ld relays=%d err=%ld",
+              loop,g_swaps,g_send,g_recv,g_stateCalls,g_nRelays,g_relayErr);
+        Sleep(8);
+    }
     return 0;
 }
 BOOL WINAPI DllMain(HINSTANCE h,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH){g_module=h;DisableThreadLibraryCalls(h);HANDLE t=CreateThread(nullptr,0,worker,nullptr,0,nullptr);if(t)CloseHandle(t);}return TRUE;}

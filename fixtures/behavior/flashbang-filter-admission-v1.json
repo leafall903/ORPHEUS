@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "case_id": "flashbang.filter-admission.v1",
+  "target_build": 104319,
+  "source": {
+    "kind": "synthetic-native-restricted-emulation",
+    "native_entry": "CF4340 through actual environment+150 D0DA20, BCAAE0 masks, D0EC70 conversion order, DB323B/DB5030/DB4E70 tag predicate, null1B8D970/90BFC0 defaults, native DA8BD0 absent-world default and F66AF0 result",
+    "adapters": [
+      "explicit selector Entity77 and resolved actor identity",
+      "declared component97 presence",
+      "declared component25 pointer and absent source/watcher",
+      "declared conversion of actual literal excluded-tag list into native inline vectors",
+      "declared resolved base-tag component with empty live additions/removals",
+      "declared actor absent-world holder and variant ownership"
+    ],
+    "limits": [
+      "not proof of native actor category initialization or actual actor inventory",
+      "no component pointer decode, real world custom callback, watcher lifecycle or resource config conversion claim",
+      "no complete reaction/control/animation or client acceptance"
+    ]
+  },
+  "any": 64,
+  "all": 0,
+  "exclude": 20,
+  "excluded_tags": [
+    715,
+    58,
+    2365
+  ],
+  "cases": [
+    {
+      "name": "flags-0x0-tags-0",
+      "flags": 0,
+      "inventory": [],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-1",
+      "flags": 0,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-2",
+      "flags": 0,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-3",
+      "flags": 0,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-4",
+      "flags": 0,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-5",
+      "flags": 0,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-6",
+      "flags": 0,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x0-tags-7",
+      "flags": 0,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-0",
+      "flags": 1,
+      "inventory": [],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-1",
+      "flags": 1,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-2",
+      "flags": 1,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-3",
+      "flags": 1,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-4",
+      "flags": 1,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-5",
+      "flags": 1,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-6",
+      "flags": 1,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1-tags-7",
+      "flags": 1,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-0",
+      "flags": 64,
+      "inventory": [],
+      "accepted": true
+    },
+    {
+      "name": "flags-0x40-tags-1",
+      "flags": 64,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-2",
+      "flags": 64,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-3",
+      "flags": 64,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-4",
+      "flags": 64,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-5",
+      "flags": 64,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-6",
+      "flags": 64,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x40-tags-7",
+      "flags": 64,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-0",
+      "flags": 65,
+      "inventory": [],
+      "accepted": true
+    },
+    {
+      "name": "flags-0x41-tags-1",
+      "flags": 65,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-2",
+      "flags": 65,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-3",
+      "flags": 65,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-4",
+      "flags": 65,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-5",
+      "flags": 65,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-6",
+      "flags": 65,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x41-tags-7",
+      "flags": 65,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-0",
+      "flags": 16777217,
+      "inventory": [],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-1",
+      "flags": 16777217,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-2",
+      "flags": 16777217,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-3",
+      "flags": 16777217,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-4",
+      "flags": 16777217,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-5",
+      "flags": 16777217,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-6",
+      "flags": 16777217,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000001-tags-7",
+      "flags": 16777217,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-0",
+      "flags": 16777281,
+      "inventory": [],
+      "accepted": true
+    },
+    {
+      "name": "flags-0x1000041-tags-1",
+      "flags": 16777281,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-2",
+      "flags": 16777281,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-3",
+      "flags": 16777281,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-4",
+      "flags": 16777281,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-5",
+      "flags": 16777281,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-6",
+      "flags": 16777281,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000041-tags-7",
+      "flags": 16777281,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-0",
+      "flags": 16777297,
+      "inventory": [],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-1",
+      "flags": 16777297,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-2",
+      "flags": 16777297,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-3",
+      "flags": 16777297,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-4",
+      "flags": 16777297,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-5",
+      "flags": 16777297,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-6",
+      "flags": 16777297,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000051-tags-7",
+      "flags": 16777297,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-0",
+      "flags": 16777285,
+      "inventory": [],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-1",
+      "flags": 16777285,
+      "inventory": [
+        715
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-2",
+      "flags": 16777285,
+      "inventory": [
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-3",
+      "flags": 16777285,
+      "inventory": [
+        715,
+        58
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-4",
+      "flags": 16777285,
+      "inventory": [
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-5",
+      "flags": 16777285,
+      "inventory": [
+        715,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-6",
+      "flags": 16777285,
+      "inventory": [
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flags-0x1000045-tags-7",
+      "flags": 16777285,
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    }
+  ]
+}

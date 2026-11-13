@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.total-health-read.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::SceneWorld.native",
+      "ow174/game/script/scene.py::_health_value",
+      "ow174/game/script/play.py::_scalar"
+    ],
+    "native_references": [
+      "CEB6C0"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "living-total",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            150
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "dead-zero-overwrites-initial",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            0
+          ]
+        ],
+        "initial": true
+      },
+      {
+        "name": "float32-total",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            123.4
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "unbound-keeps-integer",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": 73
+      },
+      {
+        "name": "unbound-keeps-float",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": 2.5
+      },
+      {
+        "name": "unbound-keeps-vector",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": {
+          "vector": [
+            9,
+            8,
+            7
+          ]
+        }
+      },
+      {
+        "name": "unbound-keeps-array",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": [
+          1,
+          null
+        ]
+      },
+      {
+        "name": "bound-without-health",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            null
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "unavailable-service",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": null,
+        "initial": null
+      },
+      {
+        "name": "negative",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            -1
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "nan",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            {
+              "float": "NaN"
+            }
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "infinity",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            {
+              "float": "Infinity"
+            }
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "too-large",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            1e+40
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "above-reference-cap",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            {
+              "bits64": "47efffffe0000000"
+            }
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "reference-upper-bound",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            {
+              "bits64": "47efffffdff07036"
+            }
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "nested-first-entity",
+        "target": [
+          [
+            {
+              "entity": 2684354816
+            }
+          ],
+          {
+            "entity": 2684354817
+          }
+        ],
+        "table": [
+          [
+            2684354816,
+            50
+          ],
+          [
+            2684354817,
+            70
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "nonentity-scalar",
+        "target": 2684354816,
+        "table": [
+          [
+            2684354816,
+            50
+          ]
+        ],
+        "initial": 73
+      },
+      {
+        "name": "null-target",
+        "target": null,
+        "table": [],
+        "initial": 73
+      },
+      {
+        "name": "empty-target-array",
+        "target": [],
+        "table": [],
+        "initial": 73
+      },
+      {
+        "name": "group-reads-first-only",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            50
+          ]
+        ],
+        "initial": 73,
+        "selector": {
+          "$": "STU_06610EBC",
+          "m_configVars": [
+            null,
+            {
+              "$": "UnsupportedMustNotRun"
+            }
+          ]
+        }
+      },
+      {
+        "name": "empty-group",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": 73,
+        "selector": {
+          "$": "STU_06610EBC",
+          "m_configVars": []
+        }
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "living-total",
+        "value": 150.0
+      },
+      {
+        "name": "dead-zero-overwrites-initial",
+        "value": 0.0
+      },
+      {
+        "name": "float32-total",
+        "value": 123.4000015258789
+      },
+      {
+        "name": "unbound-keeps-integer",
+        "value": 73
+      },
+      {
+        "name": "unbound-keeps-float",
+        "value": 2.5
+      },
+      {
+        "name": "unbound-keeps-vector",
+        "value": {
+          "vector": [
+            9,
+            8,
+            7
+          ]
+        }
+      },
+      {
+        "name": "unbound-keeps-array",
+        "value": [
+          1,
+          null
+        ]
+      },
+      {
+        "name": "bound-without-health",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "unavailable-service",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "negative",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "nan",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "infinity",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "too-large",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "above-reference-cap",
+        "error": "STU_9B7648C3"
+      },
+      {
+        "name": "reference-upper-bound",
+        "value": {
+          "bits64": "47efffffe0000000"
+        }
+      },
+      {
+        "name": "nested-first-entity",
+        "value": 50.0
+      },
+      {
+        "name": "nonentity-scalar",
+        "value": 73
+      },
+      {
+        "name": "null-target",
+        "value": 73
+      },
+      {
+        "name": "empty-target-array",
+        "value": 73
+      },
+      {
+        "name": "group-reads-first-only",
+        "value": 73
+      },
+      {
+        "name": "empty-group",
+        "value": 73
+      }
+    ]
+  }
+}

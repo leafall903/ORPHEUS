@@ -1,0 +1,1477 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.voice-lifecycle.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/voice_stimulus.py",
+      "ow174/game/script/nodes.py::VoiceStimulus",
+      "ow174/game/script/runtime.py::Component.update"
+    ],
+    "native_references": [
+      "D43F70",
+      "D44090",
+      "D446A0",
+      "9FC440",
+      "1B8C690"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 2684354817,
+    "graph": {
+      "index": 28672,
+      "header": {
+        "m_nodesBitCount": 4,
+        "m_statesBitCount": 1,
+        "m_remoteSyncNodesBitCount": 1,
+        "m_syncVarsBitCount": 1
+      },
+      "fields": {},
+      "items": 6,
+      "containers": {},
+      "nodes": [
+        {
+          "pos": 0,
+          "uid": 0,
+          "rid": 0,
+          "remote": -1,
+          "state": 0,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_40E05F6B",
+          "fields": {
+            "m_2BBEEAB8": true,
+            "m_ADEB6E05": false,
+            "m_stimulus": {
+              "$": "STUConfigVarVoiceStimulus",
+              "m_resourceKey": null,
+              "m_voiceStimulus": "0x0EE000000000001F"
+            },
+            "m_targets": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 1,
+              "m_60DB8F99": 0
+            },
+            "m_B0263D2D": null,
+            "m_E0E02BD4": {
+              "$": "STUConfigVarFloat",
+              "m_value": 0.0
+            },
+            "m_FC2F7AAA": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 79,
+              "m_60DB8F99": 0
+            },
+            "m_onFinishedPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  1,
+                  "m_inPlug"
+                ]
+              ]
+            },
+            "m_onEndPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  2,
+                  "m_inPlug"
+                ]
+              ]
+            },
+            "m_F96FC964": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  3,
+                  "m_inPlug"
+                ]
+              ]
+            },
+            "m_onBeginPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  4,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 1,
+          "uid": 1,
+          "rid": 1,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 80,
+              "m_60DB8F99": 0
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": [
+                {
+                  "$": "STUConfigVarInt",
+                  "m_value": 1
+                }
+              ],
+              "m_expression": {
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 80,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  14,
+                  0,
+                  23,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "pos": 2,
+          "uid": 2,
+          "rid": 2,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 81,
+              "m_60DB8F99": 0
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": [
+                {
+                  "$": "STUConfigVarInt",
+                  "m_value": 1
+                }
+              ],
+              "m_expression": {
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 81,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  14,
+                  0,
+                  23,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "pos": 3,
+          "uid": 3,
+          "rid": 3,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 82,
+              "m_60DB8F99": 0
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": [
+                {
+                  "$": "STUConfigVarInt",
+                  "m_value": 1
+                }
+              ],
+              "m_expression": {
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 82,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  14,
+                  0,
+                  23,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "pos": 4,
+          "uid": 4,
+          "rid": 4,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 83,
+              "m_60DB8F99": 0
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": [
+                {
+                  "$": "STUConfigVarInt",
+                  "m_value": 1
+                }
+              ],
+              "m_expression": {
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 83,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  14,
+                  0,
+                  23,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "pos": 5,
+          "uid": 5,
+          "rid": 5,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptEntry",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_outPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  0,
+                  "m_beginPlug"
+                ]
+              ]
+            }
+          }
+        }
+      ],
+      "unknown_nodes": [],
+      "states": [
+        0
+      ],
+      "entries": [],
+      "remote": [],
+      "sync_vars": []
+    },
+    "cases": [
+      {
+        "name": "separate-poll-and-timer-phases",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "advance",
+            "frame": 1
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "advance",
+            "frame": 2
+          },
+          {
+            "op": "poll",
+            "clock": 100.25
+          },
+          {
+            "op": "drain"
+          }
+        ]
+      },
+      {
+        "name": "global-clock-delay-and-gap",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "advance",
+            "frame": 60
+          },
+          {
+            "op": "poll",
+            "clock": 100.49
+          },
+          {
+            "op": "poll",
+            "clock": 100.5
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.874
+          },
+          {
+            "op": "poll",
+            "clock": 100.875
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_B0263D2D": {
+            "$": "STUConfigVarFloat",
+            "m_value": 0.5
+          },
+          "m_E0E02BD4": {
+            "$": "STUConfigVarFloat",
+            "m_value": 0.125
+          }
+        }
+      },
+      {
+        "name": "missing-resource-strict-timeout",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.125
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.126
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "resource": [
+          "absent"
+        ],
+        "fields": {
+          "m_E0E02BD4": {
+            "$": "STUConfigVarFloat",
+            "m_value": 0.125
+          }
+        }
+      },
+      {
+        "name": "permission-denied",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "allow": false
+      },
+      {
+        "name": "invalid-submission-handle",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "handle": 0
+      },
+      {
+        "name": "six-duration-attempts",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "duration": [
+          0.0
+        ]
+      },
+      {
+        "name": "sixth-positive-duration-still-fails",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "duration": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.25
+        ]
+      },
+      {
+        "name": "duration-pending-then-ack",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.25
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "duration": [
+          0.0,
+          0.25
+        ]
+      },
+      {
+        "name": "next-part-keeps-duration-output",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "set_output",
+            "value": 99
+          },
+          {
+            "op": "poll",
+            "clock": 100.25
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.75
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "parts": {
+          "2": [
+            0.5,
+            0.0
+          ],
+          "3": [
+            0.0
+          ]
+        }
+      },
+      {
+        "name": "previous-part-can-keep-waiting",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.25
+          },
+          {
+            "op": "poll",
+            "clock": 100.3
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "parts": {
+          "2": [
+            0.0
+          ],
+          "1": [
+            0.5,
+            0.0
+          ]
+        }
+      },
+      {
+        "name": "nan-next-part-tests-previous",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.25
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "parts": {
+          "2": [
+            {
+              "float": "NaN"
+            }
+          ]
+        }
+      },
+      {
+        "name": "known-absent-context",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "advance",
+            "frame": 1
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "timer",
+            "parameter": 1
+          },
+          {
+            "op": "finish"
+          }
+        ],
+        "context": "absent"
+      },
+      {
+        "name": "known-absent-manager",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "advance",
+            "frame": 1
+          },
+          {
+            "op": "abort"
+          }
+        ],
+        "manager": "absent"
+      },
+      {
+        "name": "unavailable-context",
+        "steps": [
+          {
+            "op": "begin"
+          }
+        ],
+        "context": "unavailable"
+      },
+      {
+        "name": "unavailable-manager",
+        "steps": [
+          {
+            "op": "begin"
+          }
+        ],
+        "manager": "unavailable"
+      },
+      {
+        "name": "unavailable-clock",
+        "steps": [
+          {
+            "op": "begin"
+          }
+        ],
+        "clock": null
+      },
+      {
+        "name": "unavailable-resource",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          }
+        ],
+        "resource": [
+          "unavailable"
+        ]
+      },
+      {
+        "name": "unavailable-duration",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          }
+        ],
+        "duration": [
+          null
+        ]
+      },
+      {
+        "name": "unavailable-next-part",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll",
+            "clock": 100.25
+          }
+        ],
+        "parts": {
+          "2": [
+            null
+          ]
+        }
+      },
+      {
+        "name": "ordered-unique-typed-targets",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "targets": [
+          {
+            "entity": 2684354817
+          },
+          {
+            "entity": 0
+          },
+          [
+            {
+              "entity": 2147483650
+            },
+            {
+              "entity": 2684354817
+            }
+          ],
+          null,
+          17,
+          {
+            "entity": 2147483650
+          }
+        ]
+      },
+      {
+        "name": "external-failure-does-not-finish",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "failure"
+          },
+          {
+            "op": "abort"
+          },
+          {
+            "op": "failure"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ]
+      },
+      {
+        "name": "abort-cancels-pending-timer",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "abort"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll"
+          }
+        ]
+      },
+      {
+        "name": "finish-does-not-repeat-voice-plug",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "finish"
+          },
+          {
+            "op": "poll"
+          }
+        ]
+      },
+      {
+        "name": "destroy-active-unregisters",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "destroy"
+          },
+          {
+            "op": "drain"
+          },
+          {
+            "op": "poll"
+          }
+        ]
+      },
+      {
+        "name": "destroy-after-abort",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "abort"
+          },
+          {
+            "op": "destroy"
+          },
+          {
+            "op": "poll"
+          }
+        ]
+      },
+      {
+        "name": "invalid-duration-output",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_FC2F7AAA": {
+            "$": "STUConfigVarFloat",
+            "m_value": 2
+          }
+        }
+      },
+      {
+        "name": "zero-duration-output-skips-write",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_FC2F7AAA": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 0,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "other-timer-parameters-are-passive",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "timer",
+            "parameter": 0
+          },
+          {
+            "op": "timer",
+            "parameter": 3
+          },
+          {
+            "op": "abort"
+          }
+        ]
+      },
+      {
+        "name": "scalar-groups-select-only-first",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_B0263D2D": {
+            "$": "STU_06610EBC",
+            "m_configVars": []
+          },
+          "m_E0E02BD4": {
+            "$": "STU_06610EBC",
+            "m_configVars": [
+              {
+                "$": "STUConfigVarFloat",
+                "m_value": 0.125
+              },
+              {
+                "$": "STU_FADE0001"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "non-playable-resource",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "playable": false
+      },
+      {
+        "name": "mode-stimulus-duration-bit",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "mode": true
+      },
+      {
+        "name": "null-stimulus-config",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": null
+        }
+      },
+      {
+        "name": "null-stimulus-literal",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "poll",
+            "clock": 100.01
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": {
+            "$": "STUConfigVarVoiceStimulus",
+            "m_resourceKey": null,
+            "m_voiceStimulus": null
+          }
+        }
+      },
+      {
+        "name": "nonzero-resource-key-is-strict",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": {
+            "$": "STUConfigVarVoiceStimulus",
+            "m_voiceStimulus": "0x0EE000000000001F",
+            "m_resourceKey": "0x0C78000000000001"
+          }
+        }
+      },
+      {
+        "name": "zero-resource-key-uses-cached-guid",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": {
+            "$": "STUConfigVarVoiceStimulus",
+            "m_voiceStimulus": "0x0EE000000000001F",
+            "m_resourceKey": "0x0000000000000000"
+          }
+        }
+      },
+      {
+        "name": "recursive-first-asset",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 2,
+            "m_60DB8F99": 0
+          }
+        },
+        "variables": {
+          "2": [
+            [
+              {
+                "asset": "0x0EE000000000001F"
+              }
+            ],
+            {
+              "asset": "0x0EE0000000000020"
+            }
+          ]
+        }
+      },
+      {
+        "name": "empty-asset-array",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 2,
+            "m_60DB8F99": 0
+          }
+        },
+        "variables": {
+          "2": []
+        }
+      },
+      {
+        "name": "null-first-asset-array",
+        "steps": [
+          {
+            "op": "begin"
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "drain"
+          }
+        ],
+        "fields": {
+          "m_stimulus": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 2,
+            "m_60DB8F99": 0
+          }
+        },
+        "variables": {
+          "2": [
+            null,
+            {
+              "asset": "0x0EE000000000001F"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {"results": [
+      {"name": "separate-poll-and-timer-phases", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["part",1]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "global-clock-delay-and-gap", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059380000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059380000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd8000020000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059380000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd8000020000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["part",1]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059380000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd8000020000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"3fe0000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059380000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd8000020000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "missing-resource-strict-timeout", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "permission-denied", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "invalid-submission-handle", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "six-duration-attempts", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":1,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":2,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":3,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":4,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":5,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":6,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":6,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":17,"attempts":6,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "sixth-positive-duration-still-fails", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":1,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":2,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":3,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":4,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":5,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":6,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":6,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":17,"attempts":6,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "duration-pending-then-ack", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false]],"exists":true,"active":true,"registered":1,"voice":{"handle":17,"attempts":1,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":2,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":2,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["part",1]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":2,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":2,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "next-part-keeps-duration-output", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"4058c00000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":2,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059300000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"4058c00000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":2,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059300000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"4058c00000000000"},"80":{"bits64":"4000000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",3],["part",2]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":2,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059300000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"4058c00000000000"},"80":{"bits64":"4000000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":2,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059300000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"4058c00000000000"},"80":{"bits64":"4000000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "previous-part-can-keep-waiting", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["part",1]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["part",1]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "nan-next-part-tests-previous", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["part",2],["part",1]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "known-absent-context", "steps": [
+        {"events":[["context"]],"exists":true,"active":true,"registered":0,"voice":null,"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":0,"voice":null,"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":0,"voice":null,"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":0,"voice":null,"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":null,"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "known-absent-manager", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "unavailable-context", "steps": [
+        {"error":"voice stimulus context","events":[["context"],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "unavailable-manager", "steps": [
+        {"error":"voice manager lookup","events":[["context"],["manager"],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "unavailable-clock", "steps": [
+        {"error":"voice global clock","events":[["context"],["manager"],["clock"],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "unavailable-resource", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"error":"voice stimulus resource","events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "unavailable-duration", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"error":"voice duration status","events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "unavailable-next-part", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"error":"voice next part","events":[["context"],["manager"],["clock"],["part",2],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "ordered-unique-typed-targets", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817,2147483650]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "external-failure-does-not-finish", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"3ff0000000000000"}},"outcome":true},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"3ff0000000000000"}},"outcome":false},
+        {"events":[],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"4000000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"4000000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":{"bits64":"3ff0000000000000"},"83":{"bits64":"4000000000000000"}},"outcome":null}
+      ]},
+      {"name": "abort-cancels-pending-timer", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "finish-does-not-repeat-voice-plug", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "destroy-active-unregisters", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["context"]],"exists":false,"active":null,"registered":0,"voice":null,"values":null,"outcome":null},
+        {"events":[],"exists":false,"active":null,"registered":0,"voice":null,"values":null,"outcome":null},
+        {"events":[],"exists":false,"active":null,"registered":0,"voice":null,"values":null,"outcome":null}
+      ]},
+      {"name": "destroy-after-abort", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":false,"active":null,"registered":0,"voice":null,"values":null,"outcome":null},
+        {"events":[],"exists":false,"active":null,"registered":0,"voice":null,"values":null,"outcome":null}
+      ]},
+      {"name": "invalid-duration-output", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"error":"voice duration output","events":[["context"],["context"]],"class":"STU_40E05F6B"}
+      ]},
+      {"name": "zero-duration-output-skips-write", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "other-timer-parameters-are-passive", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "scalar-groups-select-only-first", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059180000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd8000020000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"3fc0000000000000"},"retry_at":{"bits64":"4059180000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd8000020000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "non-playable-resource", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "mode-stimulus-duration-bit", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",true],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,true],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "null-stimulus-config", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "null-stimulus-literal", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":false,"registered":0,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":{"bits64":"3ff0000000000000"},"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "nonzero-resource-key-is-strict", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"error":"world query","class":"STUConfigVarVoiceStimulus","events":[["context"],["manager"],["clock"],["context"]]}
+      ]},
+      {"name": "zero-resource-key-uses-cached-guid", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "recursive-first-asset", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["load","0x0EE000000000001F"],["allow",false],["submit",[2684354817]],["load","0x0EE000000000001F"],["duration",17,false],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":1,"duration":{"bits64":"3fd0000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"4059100000000000"},"submitted":true,"failed":false},"values":{"79":{"bits64":"3fd0000000000000"},"80":{"bits64":"3ff0000000000000"},"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "empty-asset-array", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]},
+      {"name": "null-first-asset-array", "steps": [
+        {"events":[["context"],["manager"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":false},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[["context"],["manager"],["clock"],["clock"]],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null},
+        {"events":[],"exists":true,"active":true,"registered":1,"voice":{"handle":0,"attempts":0,"duration":{"bits64":"0000000000000000"},"part":1,"started_at":{"bits64":"4059000000000000"},"delay":{"bits64":"0000000000000000"},"cooldown":{"bits64":"0000000000000000"},"retry_at":{"bits64":"0000000000000000"},"submitted":false,"failed":true},"values":{"79":null,"80":0,"81":0,"82":0,"83":{"bits64":"3ff0000000000000"}},"outcome":null}
+      ]}
+  ]}
+}

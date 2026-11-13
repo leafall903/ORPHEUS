@@ -59,6 +59,7 @@ impl Pool {
 #[derive(Debug, PartialEq)]
 pub struct Vitals {
     pools: Vec<Pool>,
+    wave_health: Option<u32>,
     last_id: u32,
     used: u64,
     changed: u64,
@@ -96,6 +97,7 @@ impl Vitals {
     pub(crate) fn empty() -> Self {
         Self {
             pools: Vec::new(),
+            wave_health: None,
             last_id: 0,
             used: 0,
             changed: 0,
@@ -144,8 +146,20 @@ impl Vitals {
             .map(|pool| pool.current)
     }
 
+    pub(crate) fn add_wave_health(&mut self, amount: f64) -> Option<u32> {
+        if self.death.is_some() || self.wave_health.is_some() || amount <= 0.0 {
+            return None;
+        }
+        let id = self.add_pool(PoolKind::Health, amount, amount)?;
+        self.wave_health = Some(id);
+        Some(id)
+    }
+
     pub(crate) fn remove_pool(&mut self, id: u32) -> Option<f64> {
         let index = self.pools.iter().position(|pool| pool.id == id)?;
+        if self.wave_health == Some(id) {
+            self.wave_health = None;
+        }
         let pool = self.pools.remove(index);
         self.changed |= 1 << pool.field;
         Some(pool.current)
@@ -178,6 +192,18 @@ impl Vitals {
         let mut left = amount;
         let mut dealt = 0.0;
         'damage: for kind in DAMAGE_ORDER {
+            if kind == PoolKind::Health
+                && let Some(id) = self.wave_health
+                && let Some(bonus) = self.pools.iter_mut().find(|pool| pool.id == id)
+            {
+                let taken = left.min(bonus.current);
+                if taken > 0.0 {
+                    bonus.current -= taken;
+                    self.changed |= 1 << bonus.field;
+                    left -= taken;
+                    dealt += taken;
+                }
+            }
             let mut reduce_armour = kind == PoolKind::Armour;
             for pool in self
                 .pools
@@ -239,6 +265,25 @@ impl Vitals {
         amount - left
     }
 
+    pub(crate) fn recharge_shields(&mut self, mut amount: f64) {
+        if self.death.is_some() || !amount.is_finite() || amount <= 0.0 {
+            return;
+        }
+        for pool in self
+            .pools
+            .iter_mut()
+            .filter(|pool| pool.kind() == SHIELDS_POOL)
+        {
+            let current = pool.current;
+            let restored = (current + amount).min(pool.maximum);
+            pool.current = f64::from(restored as f32).clamp(current, pool.maximum);
+            if pool.current > current {
+                self.changed |= 1 << pool.field;
+                amount = (amount - (pool.current - current)).max(0.0);
+            }
+        }
+    }
+
     pub fn component(&self) -> Component {
         pool_component(self.pools.iter().map(|pool| (pool.field, pool.wire())))
     }
@@ -286,6 +331,27 @@ mod tests {
         frame: 1042,
         killer: 9,
     };
+
+    #[test]
+    fn wave_health_absorbs_hits_before_base_health_and_retires_independently() {
+        let mut vitals = Vitals::new(250.0, 0.0, 0.0);
+        let bonus = vitals.add_wave_health(750.0).unwrap();
+        assert!(vitals.add_wave_health(1.0).is_none());
+        assert_eq!(vitals.maximum(), 1000.0);
+        assert_eq!(vitals.damage(800.0, HIT).dealt, 800.0);
+        assert_eq!(vitals.pool_current(bonus), Some(0.0));
+        assert_eq!(vitals.total(), 200.0);
+        assert!(vitals.death().is_none());
+        assert_eq!(vitals.heal(100.0), 100.0);
+        assert_eq!(vitals.pool_current(bonus), Some(50.0));
+        assert_eq!(vitals.remove_pool(bonus), Some(50.0));
+        assert_eq!(vitals.maximum(), 250.0);
+        assert_eq!(vitals.total(), 250.0);
+        let next = vitals.add_wave_health(750.0).unwrap();
+        assert_ne!(next, bonus);
+        assert!(vitals.damage(1000.0, HIT).killed);
+        assert!(vitals.add_wave_health(750.0).is_none());
+    }
 
     #[test]
     fn shield_armour_health_order_and_partial_updates_match_reference() {
@@ -338,6 +404,29 @@ mod tests {
             vitals.changed_component().unwrap().fields[0],
             Some(ComponentValue::Blob20(pool(1, 0, 10.0, 0.0)))
         );
+    }
+
+    #[test]
+    fn shield_recharge_only_restores_shields_and_respects_death() {
+        let mut vitals = Vitals::new(100.0, 0.0, 25.0);
+        vitals.damage(45.0, HIT);
+        vitals.clear_changed();
+        vitals.recharge_shields(0.48);
+        assert_eq!(
+            vitals.amount(Some(PoolKind::Shields), false),
+            f64::from(0.48_f32)
+        );
+        assert_eq!(vitals.amount(Some(PoolKind::Health), false), 80.0);
+        let changed = vitals.changed_component().unwrap();
+        assert_eq!(changed.fields[0], None);
+        assert!(changed.fields[SHIELDS_POOL * POOLS].is_some());
+        vitals.recharge_shields(50.0);
+        assert_eq!(vitals.amount(Some(PoolKind::Shields), false), 25.0);
+        assert!(vitals.damage(105.0, HIT).killed);
+        vitals.clear_changed();
+        vitals.recharge_shields(50.0);
+        assert_eq!(vitals.total(), 0.0);
+        assert!(vitals.changed_component().is_none());
     }
 
     #[test]

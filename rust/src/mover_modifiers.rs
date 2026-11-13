@@ -9,6 +9,9 @@ use crate::{
     mover_settings::MoverSettings,
 };
 
+const THROTTLE_FORWARD: u8 = 17;
+const THROTTLE_BACKWARD: u8 = 18;
+const THROTTLE_LATERAL: u8 = 19;
 pub const JUMP_INTENT: u8 = 20;
 pub const CROUCH_INTENT: u8 = 21;
 pub const LAND_LIMIT: u8 = 36;
@@ -162,6 +165,26 @@ impl ActiveModifiers {
             .fold(base, |value, modifier| modifier.apply(value))
     }
 
+    pub(crate) fn throttles(&self, right: f64, forward: f64) -> (f64, f64) {
+        if !self
+            .0
+            .iter()
+            .any(|(_, modifier)| (THROTTLE_FORWARD..=THROTTLE_LATERAL).contains(&modifier.index))
+        {
+            return (right, forward);
+        }
+        // 104319 C33960 separates the forward/backward magnitudes and
+        // restores the original lateral sign after evaluating the stack.
+        let ahead = self.intent(THROTTLE_FORWARD, forward.max(0.0));
+        let back = self.intent(THROTTLE_BACKWARD, -forward.min(0.0));
+        let lateral = self.intent(THROTTLE_LATERAL, right.abs());
+        let lateral = if right < 0.0 { -lateral } else { lateral };
+        (
+            lateral.clamp(-1.0, 1.0),
+            narrow(ahead - back).clamp(-1.0, 1.0),
+        )
+    }
+
     pub fn settings(&self, base: &MoverSettings) -> MoverSettings {
         if self.0.is_empty() {
             return *base;
@@ -261,6 +284,63 @@ mod tests {
         timeline.track(2, &sprint);
         assert_eq!(timeline.at(2).settings(&base), base);
         assert_eq!(timeline.at(3).settings(&base).run_forward, 8.25);
+    }
+
+    #[test]
+    fn throttle_modifiers_split_axes_and_preserve_the_command_bytes() {
+        use crate::{commands::Command, mover_kinematics::MotionInput};
+
+        let command = Command {
+            forward: -127,
+            right: -127,
+            ..Command::default()
+        };
+        let input = MotionInput::from(&command);
+        let mut timeline = ModifierTimeline::default();
+        let active = BTreeMap::from([
+            (
+                ModifierKey {
+                    instance: 1,
+                    state: 1,
+                    slot: 0,
+                },
+                Modifier {
+                    index: THROTTLE_FORWARD,
+                    ..modifier(Operation::Set, 1.0, 0.0)
+                },
+            ),
+            (
+                ModifierKey {
+                    instance: 1,
+                    state: 1,
+                    slot: 1,
+                },
+                Modifier {
+                    index: THROTTLE_BACKWARD,
+                    ..modifier(Operation::Multiply, 0.5, 0.0)
+                },
+            ),
+            (
+                ModifierKey {
+                    instance: 1,
+                    state: 1,
+                    slot: 2,
+                },
+                Modifier {
+                    index: THROTTLE_LATERAL,
+                    ..modifier(Operation::Multiply, 2.0, 0.0)
+                },
+            ),
+        ]);
+        timeline.track(10, &active);
+        assert_eq!(input.with_modifiers(&timeline.at(10)), input);
+        let applied = timeline.at(11);
+        assert_eq!(applied.throttles(-1.0, -1.0), (-1.0, 0.5));
+        let adjusted = input.with_modifiers(&applied);
+        assert_ne!(adjusted, input);
+        assert_eq!(adjusted.throttles, [-127, -127]);
+        timeline.track(11, &BTreeMap::new());
+        assert_eq!(input.with_modifiers(&timeline.at(12)), input);
     }
 
     #[test]

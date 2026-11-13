@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "case_id": "deadeye.aim-ray-visibility.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/combat.py::ray_capsule",
+      "ow174/game/combat.py::ray_world",
+      "ow174/game/combat.py::capsule_visible",
+      "ow174/game/collision.py::RayWorld"
+    ],
+    "scope": "Explicit Rust auto-aim admission policy, checked against normal Python collision kernels. This intentionally differs from the pinned nearest-surface Deadeye policy for partial cover; no native Deadeye selection equivalence is claimed."
+  },
+  "evidence": "synthetic-kernel-reference-and-rust-host-policy",
+  "client_acceptance": "pending",
+  "input": {
+    "origin": [
+      0.0,
+      1.55,
+      0.0
+    ],
+    "target": {
+      "feet": [
+        0.0,
+        6.0,
+        10.0
+      ],
+      "height": 2.0,
+      "radius": 0.5,
+      "eye": 1.55
+    },
+    "cases": [
+      {
+        "name": "clear",
+        "triangles": [],
+        "expected": {
+          "visible": true,
+          "legacy_visible": true
+        }
+      },
+      {
+        "name": "feet-cover",
+        "triangles": [
+          [
+            [
+              -10.0,
+              -10.0,
+              8.0
+            ],
+            [
+              -10.0,
+              6.0,
+              8.0
+            ],
+            [
+              10.0,
+              6.0,
+              8.0
+            ]
+          ],
+          [
+            [
+              -10.0,
+              -10.0,
+              8.0
+            ],
+            [
+              10.0,
+              6.0,
+              8.0
+            ],
+            [
+              10.0,
+              -10.0,
+              8.0
+            ]
+          ]
+        ],
+        "expected": {
+          "visible": true,
+          "legacy_visible": false
+        }
+      },
+      {
+        "name": "full-cover",
+        "triangles": [
+          [
+            [
+              -10.0,
+              -10.0,
+              8.0
+            ],
+            [
+              -10.0,
+              8.0,
+              8.0
+            ],
+            [
+              10.0,
+              8.0,
+              8.0
+            ]
+          ],
+          [
+            [
+              -10.0,
+              -10.0,
+              8.0
+            ],
+            [
+              10.0,
+              8.0,
+              8.0
+            ],
+            [
+              10.0,
+              -10.0,
+              8.0
+            ]
+          ]
+        ],
+        "expected": {
+          "visible": false,
+          "legacy_visible": false
+        }
+      },
+      {
+        "name": "behind-target",
+        "triangles": [
+          [
+            [
+              -10.0,
+              -10.0,
+              12.0
+            ],
+            [
+              -10.0,
+              20.0,
+              12.0
+            ],
+            [
+              10.0,
+              20.0,
+              12.0
+            ]
+          ],
+          [
+            [
+              -10.0,
+              -10.0,
+              12.0
+            ],
+            [
+              10.0,
+              20.0,
+              12.0
+            ],
+            [
+              10.0,
+              -10.0,
+              12.0
+            ]
+          ]
+        ],
+        "expected": {
+          "visible": true,
+          "legacy_visible": true
+        }
+      },
+      {
+        "name": "behind-capsule-entry",
+        "triangles": [
+          [
+            [
+              -10.0,
+              -10.0,
+              9.9
+            ],
+            [
+              -10.0,
+              20.0,
+              9.9
+            ],
+            [
+              10.0,
+              20.0,
+              9.9
+            ]
+          ],
+          [
+            [
+              -10.0,
+              -10.0,
+              9.9
+            ],
+            [
+              10.0,
+              20.0,
+              9.9
+            ],
+            [
+              10.0,
+              -10.0,
+              9.9
+            ]
+          ]
+        ],
+        "expected": {
+          "visible": true,
+          "legacy_visible": true
+        }
+      },
+      {
+        "name": "aim-only-cover",
+        "triangles": [
+          [
+            [
+              -10.0,
+              6.0,
+              8.0
+            ],
+            [
+              -10.0,
+              20.0,
+              8.0
+            ],
+            [
+              10.0,
+              20.0,
+              8.0
+            ]
+          ],
+          [
+            [
+              -10.0,
+              6.0,
+              8.0
+            ],
+            [
+              10.0,
+              20.0,
+              8.0
+            ],
+            [
+              10.0,
+              6.0,
+              8.0
+            ]
+          ]
+        ],
+        "expected": {
+          "visible": false,
+          "legacy_visible": true
+        }
+      }
+    ]
+  }
+}

@@ -104,6 +104,9 @@ pub struct MoverCatalog {
 }
 
 impl MoverCatalog {
+    pub(crate) fn authored_for_body(&self, body: u64) -> Option<&MoverSettings> {
+        self.by_body.get(&body)
+    }
     /// Read game_movers_174.json from the selected runtime.
     pub fn load(path: impl AsRef<Path>) -> io::Result<Self> {
         let path = path.as_ref();
@@ -217,7 +220,15 @@ mod tests {
             .map(PathBuf::from)
             .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).to_owned());
         let catalog = MoverCatalog::load(root.join("data/game_movers_174.json")).unwrap();
-        assert_eq!(catalog.by_body.len(), 38);
+        let expected = match catalog.by_body.len() {
+            38 => "cc067b2e1ab557fb6cd92f5ed485ccaf565c99f22394e01133a63d6464507991",
+            // Combined Python cc620be, including the five authored NPC movers.
+            43 => "55abbfcc331caf5c07a1ac66ee25779cfcc81fef107f1b772a9023557f324a30",
+            // The same 43 rows plus three common Junkenstein NPCs extracted
+            // from authorized 104319 XML with fd09a36f's mover_of mapping.
+            46 => "de05329a9908fec3c299690a48d72f0d17b72b0a07b91b7aa88294f2b66d426d",
+            count => panic!("no Python reference vector for the {count}-mover catalog"),
+        };
         let settings = |body| {
             let values = catalog.for_body(Some(body));
             (
@@ -259,9 +270,6 @@ mod tests {
             }
         }
         // Python mover._movers(), encoded as little-endian f64 and u32 values.
-        assert_eq!(
-            format!("{:x}", digest.finalize()),
-            "cc067b2e1ab557fb6cd92f5ed485ccaf565c99f22394e01133a63d6464507991"
-        );
+        assert_eq!(format!("{:x}", digest.finalize()), expected);
     }
 }

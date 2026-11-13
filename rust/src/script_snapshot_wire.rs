@@ -13,13 +13,165 @@ use crate::bits::{BitError, BitWriter};
 use crate::script_codecs::{Codec, CodecTable, PayloadError, PayloadMode, StatePayload};
 use crate::script_expr::{Scope, Variable, equal};
 use crate::script_graph::{Graph, GraphStore, Node, asset_guid};
-use crate::script_init::{Snapshot, StackBinding, State, StateKind};
+use crate::script_init::{ChasePayload, Snapshot, StackBinding, State, StateKind};
 use crate::script_stream::{BodyStream, ChangeKey, DeltaKind, ScriptChunk, StreamError};
 use crate::script_wire::{
     self, Binding, Bindings, Instance, Layout, Value, ValueEncoding, Variables, WireError,
 };
 
 const OWNER_HEALTH: u32 = 253;
+pub(crate) const COUNTDOWN_VAR: u32 = 1303;
+// Hero readiness, battle countdown, and overtime all write entity clock 1303.
+pub(crate) const COUNTDOWN_STATES: [u16; 4] = [52, 53, 37, 60];
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct CountdownFrame {
+    pub value: Value,
+    pub states: [Option<ChasePayload>; 4],
+}
+
+pub(crate) fn encounter_countdown_delta(
+    graph: &Graph,
+    codecs: &CodecTable,
+    instance: u16,
+    countdown: &CountdownFrame,
+) -> Result<BitWriter, WireError> {
+    let mut states = BTreeMap::new();
+    for (raw, chase) in COUNTDOWN_STATES.into_iter().zip(&countdown.states) {
+        let node = graph
+            .state(usize::from(raw))
+            .filter(|node| node.class == "STUStatescriptStateChaseVar")
+            .ok_or(WireError::InvalidValue)?;
+        let slot = graph
+            .remote_nodes
+            .iter()
+            .position(|pos| *pos == Some(node.pos))
+            .filter(|_| graph.remote_positions().contains(&node.pos))
+            .ok_or(WireError::SlotOutOfRange)?;
+        states.insert(slot, chase);
+    }
+    let codec = codecs
+        .codec("STUStatescriptStateChaseVar")
+        .filter(|codec| !codec.stec())
+        .ok_or(WireError::InvalidValue)?;
+    let mut out = BitWriter::new();
+    out.bits(0, 2)?; // H=0, existing encounter instance
+    out.w_u16(instance);
+    out.bits(0, 2)?; // no removal or descriptor
+    out.w_u16(0);
+    script_wire::variable_list(
+        &mut out,
+        &Variables::from([(COUNTDOWN_VAR, countdown.value.clone())]),
+        ValueEncoding::Compact,
+    )?;
+    write_delta_variables(&mut out, instance, graph, &ProjectedVariables::default())?;
+    write_mask(
+        &mut out,
+        graph.remote_nodes.len(),
+        &states.keys().copied().collect(),
+    );
+    for chase in states.into_values() {
+        out.bit(chase.is_some());
+        if let Some(chase) = chase {
+            let mut payload = StatePayload::from([
+                ("cur".into(), chase.current.clone()),
+                ("reached".into(), Value::Bool(chase.reached)),
+            ]);
+            if let Some(remaining) = chase.remaining_ms {
+                payload.insert("remaining".into(), Value::Integer(remaining));
+            }
+            let payload = codec
+                .payload(&payload, PayloadMode::Remote { full: false })
+                .map_err(|_| WireError::InvalidValue)?;
+            out.append(&payload);
+        }
+    }
+    out.bits(0, 2)?; // no frame action
+    Ok(out)
+}
+
+pub(crate) fn encounter_message_delta(
+    graph: &Graph,
+    codecs: &CodecTable,
+    instance: (u16, Option<(u16, u16)>),
+    raw: u16,
+    entity_variables: &Variables,
+    instance_variables: Variables,
+) -> Result<BitWriter, WireError> {
+    let node = graph
+        .state(usize::from(raw))
+        .filter(|node| node.class == "STU_38EE1100" && node.is_networked())
+        .ok_or(WireError::InvalidValue)?;
+    let slot = graph
+        .remote_nodes
+        .iter()
+        .position(|pos| *pos == Some(node.pos))
+        .filter(|&slot| graph.remote_slot(slot).is_some())
+        .ok_or(WireError::SlotOutOfRange)?;
+    let codec = codecs.codec(&node.class).ok_or(WireError::InvalidValue)?;
+    let payload = codec
+        .payload(&StatePayload::new(), PayloadMode::Remote { full: false })
+        .map_err(|_| WireError::InvalidValue)?;
+
+    let (id, parent) = instance;
+    let mut out = BitWriter::new();
+    out.bits(0, 2)?; // H=0, observer delta
+    out.w_u16(id);
+    out.bit(false); // instance is present
+    out.bit(parent.is_some());
+    if let Some(parent) = parent {
+        let index = u16::try_from(graph.index).map_err(|_| WireError::GraphIndex(graph.index))?;
+        script_wire::write_descriptor(&mut out, index, Some(parent))?;
+    }
+    out.w_u16(0);
+    script_wire::variable_list(&mut out, entity_variables, ValueEncoding::Compact)?;
+    write_delta_variables(
+        &mut out,
+        id,
+        graph,
+        &ProjectedVariables {
+            values: instance_variables,
+            ..Default::default()
+        },
+    )?;
+    write_mask(&mut out, graph.remote_nodes.len(), &BTreeSet::from([slot]));
+    if codec.stec() {
+        out.bit(true);
+    }
+    out.bit(true);
+    out.append(&payload);
+    out.bits(0, 2)?; // no frame action
+    Ok(out)
+}
+
+pub(crate) fn mode_action_delta(
+    graph: &Graph,
+    instance: u16,
+    position: u16,
+    stamp: u32,
+) -> Result<BitWriter, WireError> {
+    let node = graph
+        .node(position)
+        .filter(|node| node.is_action() && node.is_networked() && node.remote >= 0)
+        .ok_or(WireError::InvalidValue)?;
+    let mut entry = BitWriter::new();
+    entry.bit(true); // target instance is present
+    entry.w_u16(instance);
+    entry.bits(node.remote as u64, usize::from(graph.header.remote_bits))?;
+
+    let mut out = BitWriter::new();
+    out.bits(0, 2)?; // H=0, observer delta
+    out.w_u16(0); // no instance changes
+    script_wire::variable_list(&mut out, &Variables::new(), ValueEncoding::Compact)?;
+    out.bit(true);
+    out.w_u32(stamp);
+    out.w_var(u32::try_from(10 + entry.bit_len()).map_err(|_| WireError::ChunkRange)?);
+    out.bits(1, 2)?; // one entry with a short length and no node payload
+    out.bits((8 + entry.bit_len()) as u64, 8)?;
+    out.append(&entry);
+    out.bits(0, 3)?; // end of entries, groups, and ungrouped entries
+    Ok(out)
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum View {
@@ -60,6 +212,11 @@ impl ProjectedSnapshot {
     }
 
     #[cfg(test)]
+    pub(crate) fn entity_variables(&self) -> &Variables {
+        &self.variables.values
+    }
+
+    #[cfg(test)]
     pub(crate) fn instance_variables(&self, instance: u16) -> Option<&Variables> {
         Some(&self.instances.get(&instance)?.variables.values)
     }
@@ -91,7 +248,29 @@ struct ProjectedInstance {
 struct ProjectedState {
     active: bool,
     payload: StatePayload,
+    link: Option<ProjectedStateLink>,
     volley: Option<VolleyActivation>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct ProjectedStateLink {
+    instance: u16,
+    index: u16,
+    width: u8,
+}
+
+impl ProjectedState {
+    fn encode_payload(&self, codec: &Codec, mode: PayloadMode) -> Result<BitWriter, PayloadError> {
+        let Some(link) = self.link else {
+            return codec.payload(&self.payload, mode);
+        };
+        codec.payload_with_link(&self.payload, mode, |out, _| {
+            out.bit(true);
+            out.w_u16(link.instance);
+            out.bits(u64::from(link.index), usize::from(link.width))?;
+            Ok(())
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -286,6 +465,11 @@ impl From<StreamError> for SnapshotError {
     }
 }
 
+pub(crate) struct SceneProjection<'a> {
+    pub snapshot: &'a Snapshot,
+    pub encoder: SnapshotEncoder<'a>,
+}
+
 pub struct SnapshotEncoder<'a> {
     graphs: &'a GraphStore,
     codecs: &'a CodecTable,
@@ -301,7 +485,7 @@ impl<'a> SnapshotEncoder<'a> {
         snapshot: &Snapshot,
         view: View,
     ) -> Result<ProjectedSnapshot, SnapshotError> {
-        self.project_with_exclusions(snapshot, view, None)
+        self.project_with_exclusions(snapshot, view, None, None)
     }
 
     /// A later projection keeps the initial graph tree's entity exclusions.
@@ -314,7 +498,12 @@ impl<'a> SnapshotEncoder<'a> {
         if snapshot.entity != baseline.entity {
             return Err(SnapshotError::DifferentStream);
         }
-        self.project_with_exclusions(snapshot, baseline.view, Some(&baseline.entity_exclusions))
+        self.project_with_exclusions(
+            snapshot,
+            baseline.view,
+            Some(&baseline.entity_exclusions),
+            None,
+        )
     }
 
     fn project_with_exclusions(
@@ -322,13 +511,22 @@ impl<'a> SnapshotEncoder<'a> {
         snapshot: &Snapshot,
         view: View,
         frozen: Option<&BTreeSet<u32>>,
+        only_instance: Option<u16>,
     ) -> Result<ProjectedSnapshot, SnapshotError> {
-        if !snapshot.initialization_complete() {
+        let relevant = |diagnostic: &&crate::script_init::Diagnostic| {
+            only_instance.is_none_or(|id| diagnostic.site.instance == id)
+        };
+        if snapshot
+            .diagnostics
+            .iter()
+            .any(|diagnostic| relevant(&diagnostic))
+        {
             return Err(SnapshotError::Incomplete {
                 entity: snapshot.entity,
                 diagnostics: snapshot
                     .diagnostics
                     .iter()
+                    .filter(relevant)
                     .map(|diagnostic| {
                         let site = diagnostic.site;
                         match site.node {
@@ -346,6 +544,9 @@ impl<'a> SnapshotEncoder<'a> {
             .unwrap_or_else(|| BTreeSet::from([OWNER_HEALTH]));
         let mut instances = BTreeMap::new();
         for (&id, instance) in &snapshot.instances {
+            if only_instance.is_some_and(|only| id != only) {
+                continue;
+            }
             let graph = self.graph(id, instance.graph)?;
             let exclusions = server_only_variables(graph);
             let variables =
@@ -378,7 +579,7 @@ impl<'a> SnapshotEncoder<'a> {
                 }
                 let payload = codec
                     .filter(|codec| codec.projected())
-                    .and_then(|codec| state_payload(state, codec))
+                    .and_then(|codec| state_payload(state, codec, snapshot.now_ms))
                     .ok_or_else(|| SnapshotError::UnsupportedState {
                         site,
                         class: node.class.clone(),
@@ -389,6 +590,16 @@ impl<'a> SnapshotEncoder<'a> {
                     ProjectedState {
                         active: state.active,
                         payload,
+                        link: match state.kind {
+                            StateKind::Registered { next: Some(link) } => Some(
+                                self.project_state_link(snapshot, view, link)
+                                    .ok_or_else(|| SnapshotError::Payload {
+                                        site,
+                                        source: PayloadError::Field("link".into()),
+                                    })?,
+                            ),
+                            _ => None,
+                        },
                         volley: match state.kind {
                             StateKind::WeaponVolley {
                                 ammo_var, ammo0, ..
@@ -416,14 +627,61 @@ impl<'a> SnapshotEncoder<'a> {
                 },
             );
         }
-        let variables =
-            self.project_variables(snapshot, 0, &snapshot.variables, &entity_exclusions, view)?;
+        let variables = if let Some(id) = only_instance {
+            let graph = self.graph(id, snapshot.instances[&id].graph)?;
+            let related: BTreeSet<_> = graph
+                .sync_vars
+                .iter()
+                .filter(|var| var.1 == 1)
+                .filter_map(|var| var.0)
+                .collect();
+            let excluded = snapshot
+                .variables
+                .keys()
+                .filter(|&variable| !related.contains(variable))
+                .copied()
+                .chain(entity_exclusions.iter().copied())
+                .collect();
+            self.project_variables(snapshot, 0, &snapshot.variables, &excluded, view)?
+        } else {
+            self.project_variables(snapshot, 0, &snapshot.variables, &entity_exclusions, view)?
+        };
         Ok(ProjectedSnapshot {
             entity: snapshot.entity,
             view,
             variables,
             entity_exclusions,
             instances,
+        })
+    }
+
+    fn project_state_link(
+        &self,
+        snapshot: &Snapshot,
+        view: View,
+        (instance, raw): (u16, u16),
+    ) -> Option<ProjectedStateLink> {
+        let target = snapshot.instances.get(&instance)?;
+        let graph = self.graphs.graph(target.graph)?;
+        let node = graph.state(usize::from(raw))?;
+        if !node.is_networked() || node.server_only {
+            return None;
+        }
+        let (index, width) = match view {
+            View::Owner => (raw, graph.header.states_bits),
+            View::Observer => {
+                let remote = u16::try_from(node.remote).ok()?;
+                let mapped = graph.remote_node(usize::from(remote))?;
+                if mapped.pos != node.pos {
+                    return None;
+                }
+                (remote, graph.header.remote_bits)
+            }
+        };
+        (width <= 32 && u64::from(index) < 1_u64 << width).then_some(ProjectedStateLink {
+            instance,
+            index,
+            width,
         })
     }
 
@@ -453,7 +711,7 @@ impl<'a> SnapshotEncoder<'a> {
             // and never sends an unbound None (`script.driver` `_add_var`,
             // `observers._add_vars`), so an unbound map is omitted like null.
             // A bound map has no reference form and stays refused.
-            if matches!(value, Value::Map(_)) {
+            if matches!(value, Value::Map(_) | Value::IdentifierMap(_)) {
                 if bindings.is_some() {
                     return Err(SnapshotError::UnsupportedMap { owner, variable });
                 }
@@ -515,6 +773,258 @@ impl<'a> SnapshotEncoder<'a> {
             }
         }
         Ok(links)
+    }
+
+    /// Project the already-mounted mission notification graph without pulling
+    /// server spawners or unrelated entity variables into its observer stream.
+    /// Its authored entity sync slots supply difficulty, gate and timer inputs
+    /// consumed by the client-only presenters.
+    pub(crate) fn mission_notifications(
+        &self,
+        snapshot: &Snapshot,
+    ) -> Result<Option<ProjectedSnapshot>, SnapshotError> {
+        let Some((&id, _)) = snapshot
+            .instances
+            .iter()
+            .find(|(_, instance)| instance.graph == 0x1188 && instance.parent == Some((2, 68)))
+        else {
+            return Ok(None);
+        };
+        self.project_with_exclusions(snapshot, View::Observer, None, Some(id))
+            .map(Some)
+    }
+
+    pub(crate) fn mounted_delta(
+        &self,
+        previous: Option<&ProjectedSnapshot>,
+        current: &ProjectedSnapshot,
+    ) -> Result<Option<BitWriter>, SnapshotError> {
+        let mut baseline;
+        let base = if let Some(previous) = previous {
+            previous
+        } else {
+            baseline = current.clone();
+            baseline.variables = ProjectedVariables::default();
+            for instance in baseline.instances.values_mut() {
+                instance.variables = ProjectedVariables::default();
+                instance.states.clear();
+            }
+            &baseline
+        };
+        let known = base.instances.keys().copied().collect();
+        let delta = self.differences(base, current, &BTreeSet::new(), &known)?;
+        if delta.keys.is_empty() {
+            return Ok(None);
+        }
+        self.delta_frame(current, &delta, DeltaKind::Observer { resend: true }, 16)
+            .map(Some)
+    }
+
+    pub(crate) fn post_match_screens(
+        &self,
+        snapshot: &Snapshot,
+    ) -> Result<Option<ProjectedSnapshot>, SnapshotError> {
+        let Some((&manager, screen_manager)) = snapshot.instances.iter().find(|(_, instance)| {
+            instance.graph == 0x180a
+                && instance.parent.is_some_and(|(parent, raw)| {
+                    raw == 45 && snapshot.instances[&parent].graph == 0x0cbb
+                })
+        }) else {
+            return Ok(None);
+        };
+        let mut instances = BTreeMap::new();
+        let mut entity_inputs = BTreeSet::new();
+        // The native observer excludes server-only list rows. A graph played
+        // by a row is an independent observer root with its resolved start values.
+        for (&id, instance) in &snapshot.instances {
+            let mut parent = instance.parent;
+            if id != manager {
+                let Some((owner, raw)) = parent else { continue };
+                if owner == manager {
+                    continue; // same-graph list row
+                }
+                if snapshot.instances[&owner].parent == Some((manager, 17)) && raw == 16 {
+                    parent = None;
+                } else if !instances.contains_key(&owner) {
+                    continue;
+                }
+            }
+            let graph = self.graph(id, instance.graph)?;
+            entity_inputs.extend(
+                graph
+                    .sync_vars
+                    .iter()
+                    .filter(|var| var.1 == 1)
+                    .filter_map(|var| var.0),
+            );
+            let mut states = BTreeMap::new();
+            for (&raw, state) in &instance.states {
+                if !state.active
+                    || (id == manager
+                        && raw != 21
+                        && state.kind
+                            != StateKind::PersistentSend(
+                                crate::junkenstein_messages::POST_MATCH_SIGNAL,
+                            ))
+                {
+                    continue;
+                }
+                let Some(node) = graph.state(usize::from(raw)).filter(|node| {
+                    node.is_networked()
+                        && graph.remote_positions().contains(&node.pos)
+                        && !presenter(node)
+                }) else {
+                    continue;
+                };
+                let Some(codec) = self
+                    .codecs
+                    .codec(&node.class)
+                    .filter(|codec| codec.projected())
+                else {
+                    continue;
+                };
+                let Some(mut payload) = state_payload(state, codec, snapshot.now_ms) else {
+                    continue;
+                };
+                if matches!(state.kind, StateKind::ClientPulse { fresh_at: None, .. }) {
+                    // The screen graph's first pulse opens its client-only UI.
+                    // Deliver it even when it was authored on the instance's first tick.
+                    payload.insert("fresh".into(), Value::Bool(true));
+                }
+                states.insert(
+                    raw,
+                    ProjectedState {
+                        active: true,
+                        payload,
+                        link: None,
+                        volley: None,
+                    },
+                );
+            }
+            let mut variables = ProjectedVariables::default();
+            let excluded = server_only_variables(graph);
+            for (&key, value) in &instance.variables {
+                // Preserve the manager's resolved 0695 inputs alongside its
+                // sequence clock. Its observer listener does not run the
+                // server-side parameter assignment on the client.
+                if (id == manager && !matches!(key, 59 | 7525 | 10186 | 11251 | 13151))
+                    || excluded.contains(&key)
+                {
+                    continue;
+                }
+                let value = snapshot.resolved_bindings.get(&(id, key)).unwrap_or(value);
+                if !matches!(value, Value::Null) {
+                    variables.values.insert(key, value.clone());
+                }
+            }
+            if graph.index == 0x027f
+                && let Some(winner) = screen_manager.variables.get(&7525)
+            {
+                // The banner starts its client-only 0695 listener after the
+                // phase handoff. Seed the same resolved parameter at creation.
+                variables.values.insert(7525, winner.clone());
+            }
+            instances.insert(
+                id,
+                ProjectedInstance {
+                    graph: instance.graph,
+                    parent,
+                    variables,
+                    states,
+                    events: Vec::new(),
+                },
+            );
+        }
+        let excluded = snapshot
+            .variables
+            .keys()
+            .filter(|key| !entity_inputs.contains(key))
+            .copied()
+            .collect();
+        let variables =
+            self.project_variables(snapshot, 0, &snapshot.variables, &excluded, View::Observer)?;
+        Ok(Some(ProjectedSnapshot {
+            entity: snapshot.entity,
+            view: View::Observer,
+            entity_exclusions: BTreeSet::new(),
+            variables,
+            instances,
+        }))
+    }
+
+    pub(crate) fn post_match_delta(
+        &self,
+        previous: Option<&ProjectedSnapshot>,
+        current: &ProjectedSnapshot,
+    ) -> Result<Option<BitWriter>, SnapshotError> {
+        let mut baseline;
+        let base = if let Some(previous) = previous {
+            previous
+        } else {
+            baseline = current.clone();
+            baseline.variables = ProjectedVariables::default();
+            baseline.instances.retain(|_, instance| {
+                instance.graph == 0x180a && instance.parent.is_some_and(|(_, raw)| raw == 45)
+            });
+            for instance in baseline.instances.values_mut() {
+                instance.variables = ProjectedVariables::default();
+                instance.states.clear();
+            }
+            &baseline
+        };
+        let known = base.instances.keys().copied().collect();
+        let delta = self.differences(base, current, &BTreeSet::new(), &known)?;
+        if delta.keys.is_empty() {
+            return Ok(None);
+        }
+        self.delta_frame(current, &delta, DeltaKind::Observer { resend: true }, 16)
+            .map(Some)
+    }
+
+    pub(crate) fn biotic_field_frame(&self, faded: bool) -> Result<BitWriter, SnapshotError> {
+        let graph = self.graph(1, 0x0258)?;
+        let mut instance = ProjectedInstance {
+            graph: graph.index,
+            parent: None,
+            variables: ProjectedVariables::default(),
+            states: BTreeMap::new(),
+            events: Vec::new(),
+        };
+        for (raw, class) in [
+            (2, "STU_691BFA55"),
+            (3, "STUStatescriptStateCosmeticEntity"),
+            (5, "STUStatescriptStateDataFlowMapping"),
+        ] {
+            if faded && raw == 5 {
+                continue;
+            }
+            let site = StateSite {
+                instance: 1,
+                graph: graph.index,
+                state: raw,
+            };
+            let node = graph
+                .state(usize::from(raw))
+                .filter(|node| node.class == class && graph.remote_positions().contains(&node.pos))
+                .ok_or(SnapshotError::MissingState(site))?;
+            let payload = if node.class == "STU_691BFA55" {
+                StatePayload::from([("counter".into(), Value::Integer(1))])
+            } else {
+                StatePayload::new()
+            };
+            instance.states.insert(
+                raw,
+                ProjectedState {
+                    active: true,
+                    payload,
+                    link: None,
+                    volley: None,
+                },
+            );
+        }
+        let mut wire = Instance::new(1, Layout::try_from(graph)?, None);
+        self.remote_states(1, graph, &instance, &mut wire)?;
+        Ok(script_wire::remote_full(&[wire], &Variables::new())?)
     }
 
     /// The owner's first tree and the observer's first frame share the H0
@@ -929,8 +1439,8 @@ impl<'a> SnapshotEncoder<'a> {
             }
             out.bit(state.active);
             if state.active || codec.stec() {
-                let payload = codec
-                    .payload(&state.payload, mode)
+                let payload = state
+                    .encode_payload(codec, mode)
                     .map_err(|source| SnapshotError::Payload { site, source })?;
                 out.append(&payload);
             }
@@ -1019,8 +1529,8 @@ impl<'a> SnapshotEncoder<'a> {
                 bits.bit(true); // Y: this StEC entry has a payload
             }
             bits.bit(state.active);
-            let payload = codec
-                .payload(&state.payload, PayloadMode::Remote { full: true })
+            let payload = state
+                .encode_payload(codec, PayloadMode::Remote { full: true })
                 .map_err(|source| SnapshotError::Payload { site, source })?;
             bits.append(&payload);
             wire.states.insert(slot, bits);
@@ -1195,15 +1705,36 @@ pub(crate) fn uncertain_polled_switch(node: &Node, state: &State) -> bool {
         )
 }
 
-fn state_payload(state: &State, codec: &Codec) -> Option<StatePayload> {
+fn state_payload(state: &State, codec: &Codec, now_ms: u64) -> Option<StatePayload> {
     Some(match (state.kind, codec.codec.as_deref()) {
         (
             StateKind::Plain
+            | StateKind::ForCode
+            | StateKind::ModifyHealth
+            | StateKind::ShieldRecharge
+            | StateKind::ExplosionContact
+            | StateKind::DeadeyeEffects
+            | StateKind::WitchStaffEffect
+            | StateKind::WitchStaffHealing
+            | StateKind::SummonerBeamRay
+            | StateKind::SummonerBeamDamage
             | StateKind::HealthPool { .. }
+            | StateKind::HealthCapacity
+            | StateKind::AiWeaponOverride { .. }
+            | StateKind::AiControlOverride { .. }
+            | StateKind::AiControlSetting
+            | StateKind::AiFacing(_)
+            | StateKind::AiBehavior { .. }
+            | StateKind::DisplayName { .. }
             | StateKind::TargetTag { .. }
             | StateKind::Wait
+            | StateKind::WaitFrames { .. }
             | StateKind::AiCandidate { .. }
             | StateKind::MovementMod
+            | StateKind::BossIntroVoice(_)
+            | StateKind::GateVoice(_)
+            | StateKind::VictoryVoice
+            | StateKind::SameTeamContact { .. }
             | StateKind::CosmeticEntity
             | StateKind::Watch
             | StateKind::Switch { .. }
@@ -1227,9 +1758,24 @@ fn state_payload(state: &State, codec: &Codec) -> Option<StatePayload> {
             "child".into(),
             Value::Integer(i64::from(child.unwrap_or_default())),
         )]),
-        (StateKind::MessageIdle, Some("message")) => StatePayload::new(),
+        (
+            StateKind::ButtonBlock(_)
+            | StateKind::OutgoingDamageFilter { .. }
+            | StateKind::RollMovementParameter,
+            Some("link"),
+        )
+        | (StateKind::Registered { .. }, Some("link" | "linked_target")) => StatePayload::new(),
+        (StateKind::MessageIdle | StateKind::BossPauseReceiver { .. }, Some("message")) => {
+            StatePayload::new()
+        }
         (StateKind::WaitFrames { target }, Some("frames")) => {
             StatePayload::from([("target".into(), Value::Integer(i64::from(target)))])
+        }
+        (StateKind::CinematicTimeScale { boundary_frame }, Some("value_slot")) => {
+            StatePayload::from([
+                ("which".into(), Value::Bool(state.active)),
+                ("value".into(), Value::Integer(i64::from(boundary_frame))),
+            ])
         }
         (StateKind::LogicalButton { .. }, Some("button")) => StatePayload::from([(
             "counter".into(),
@@ -1262,7 +1808,30 @@ fn state_payload(state: &State, codec: &Codec) -> Option<StatePayload> {
             "counter".into(),
             Value::Integer(i64::from(state.activation & 3)),
         )]),
-        (StateKind::SendMessage, Some("send")) => StatePayload::new(),
+        (StateKind::SendMessage | StateKind::PersistentSend(_), Some("send")) => {
+            StatePayload::new()
+        }
+        (StateKind::ClientPulse { count, fresh_at }, Some("pulser")) => StatePayload::from([
+            ("count".into(), Value::Integer(i64::from(count))),
+            (
+                "fresh".into(),
+                Value::Bool(fresh_at.is_some_and(|at| now_ms.saturating_sub(at) <= 500)),
+            ),
+        ]),
+        (StateKind::PhaseScriptList, Some("hits")) | (StateKind::PhaseTransition, Some("bit")) => {
+            StatePayload::new()
+        }
+        (StateKind::EmptyTargets, Some("targets")) => StatePayload::new(),
+        (StateKind::TrackedTargets, Some("targets")) => StatePayload::from([(
+            "targets".into(),
+            Value::Array(
+                state
+                    .tracked_targets
+                    .iter()
+                    .map(|entity| Value::Array(vec![Value::Entity(*entity), Value::Integer(0)]))
+                    .collect(),
+            ),
+        )]),
         (StateKind::ChaseVar, Some("chase")) => {
             let chase = state.chase.as_ref()?;
             if !matches!(chase.current, Value::Float(_) | Value::Vector(_)) {
@@ -1482,6 +2051,71 @@ mod tests {
             .map(|byte| format!("{byte:02x}"))
             .collect();
         assert_eq!((bits.bit_len(), actual.as_str()), (length, hex));
+    }
+
+    #[test]
+    #[ignore = "requires the separately prepared 104319 Junkenstein runtime"]
+    fn mission_notifications_include_authored_entity_inputs() {
+        use crate::{
+            game_content::{JUNKENSTEIN_MAP, JunkensteinCard, MapCatalog},
+            scene_assets::SceneAssets,
+        };
+        let root = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let assets = SceneAssets::load(&root).unwrap();
+        let maps = MapCatalog::load(root.join("data/game_maps_174.json")).unwrap();
+        let card = JunkensteinCard::from_index(0x3c).unwrap();
+        let map = maps
+            .game_map(
+                JUNKENSTEIN_MAP,
+                card.mode,
+                "Junkenstein's Revenge",
+                false,
+                &[4, 0],
+            )
+            .unwrap();
+        let scene = assets.prepare_junkenstein(map, card, 0).unwrap();
+        let snapshot = scene.encounter_snapshot().unwrap();
+        let codecs = CodecTable::load(root.join("data/statescript_codecs_174.json")).unwrap();
+        let encoder = SnapshotEncoder::new(assets.graphs(), &codecs);
+        let projected = encoder.mission_notifications(snapshot).unwrap().unwrap();
+        for variable in [6751, 8439] {
+            assert_eq!(
+                projected.variables.values.get(&variable),
+                snapshot.variables.get(&variable)
+            );
+            assert!(projected.variables.values.contains_key(&variable));
+        }
+        let graph = assets.graphs().graph(0x1188).unwrap();
+        for variable in projected.variables.values.keys() {
+            assert!(
+                graph
+                    .sync_vars
+                    .iter()
+                    .any(|var| var.0 == Some(*variable) && var.1 == 1)
+            );
+        }
+        let mut states_only = projected.clone();
+        states_only.variables = ProjectedVariables::default();
+        let initial = encoder.mounted_delta(None, &projected).unwrap().unwrap();
+        let without_inputs = encoder.mounted_delta(None, &states_only).unwrap().unwrap();
+        assert_ne!(
+            (initial.bit_len(), initial.as_bytes()),
+            (without_inputs.bit_len(), without_inputs.as_bytes())
+        );
+        assert!(
+            encoder
+                .mounted_delta(Some(&projected), &projected)
+                .unwrap()
+                .is_none()
+        );
+        let mut changed = projected.clone();
+        changed.variables.values.insert(6751, Value::Asset(1));
+        assert!(
+            encoder
+                .mounted_delta(Some(&projected), &changed)
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[test]
@@ -2897,6 +3531,61 @@ mod tests {
             151,
             "040000302701b604801f0000004800863d3000",
         );
+    }
+
+    #[test]
+    #[ignore = "requires the prepared 104319 Junkenstein boss intro graphs"]
+    fn authored_boss_intro_receiver_publishes_one_active_camera() {
+        use crate::script_init::Component;
+        use std::{path::PathBuf, sync::Arc};
+
+        const BOSS: u32 = 0xc000_1000;
+        const BONE: u64 = 0x0880_0000_0000_0010;
+        let root = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let graphs = Arc::new(GraphStore::load(root.join("data/game_graphs_174.json.gz")).unwrap());
+        let codecs = CodecTable::load(root.join("data/statescript_codecs_174.json")).unwrap();
+        let encoder = SnapshotEncoder::new(&graphs, &codecs);
+        let mut component = Component::start(
+            Arc::clone(&graphs),
+            ENTITY,
+            Variables::new(),
+            vec![Root::listener(1, 0x0ca5, Some(11))],
+            0,
+            &mut EmptyWorld,
+            MAX_INIT_WORK,
+        )
+        .unwrap();
+        let owner = encoder
+            .project(component.snapshot().unwrap(), View::Owner)
+            .unwrap();
+        let mut stream = BodyStream::new(ENTITY);
+        let baseline = encoder.queue_full(&mut stream, &owner).unwrap();
+        stream.create_arrived();
+        stream.arrived(baseline.last);
+        let (_, base) = stream.base().unwrap();
+        for _ in 0..2 {
+            component
+                .queue_entity_message_from(
+                    BOSS,
+                    0x0240_0000_0000_06ab,
+                    Variables::from([(8, Value::Entity(BOSS)), (0x3b6, Value::Asset(BONE))]),
+                )
+                .unwrap();
+            component.run_now(&mut EmptyWorld).unwrap();
+            let snapshot = component.snapshot().unwrap();
+            let instance = &snapshot.instances[&1];
+            assert!(instance.states[&17].active);
+            assert_eq!(instance.states[&17].activation, 1);
+            assert_eq!(instance.variables[&38], Value::Entity(BOSS));
+            assert_eq!(instance.variables[&8695], Value::Asset(BONE));
+            let owner = encoder.project_next(snapshot, &owner).unwrap();
+            let delta = encoder
+                .differences(base, &owner, &BTreeSet::new(), &BTreeSet::new())
+                .unwrap();
+            encoder
+                .delta_frame(&owner, &delta, DeltaKind::InitialOwner(1000), 16)
+                .unwrap();
+        }
     }
 
     #[test]

@@ -343,6 +343,27 @@ impl Collection {
             );
             record.extend(self.loadout(profile, hero)?);
         }
+        for &hero in &self.items.npc_heroes {
+            if self.heroes.contains_key(&hero) {
+                continue;
+            }
+            array_mut(&mut value, 0x80)?.push(Struct(Fields::from([
+                (0, Array(Vec::new())),
+                (0x18, Array(Vec::new())),
+                (0x30, Unsigned(hero)),
+                (0x38, Unsigned(0)),
+                (0x40, Unsigned(0)),
+                (0x48, Unsigned(0)),
+                (0x50, Unsigned(0)),
+                (0x58, Array(Vec::new())),
+                (0x70, Array(Vec::new())),
+                (0x88, Array(Vec::new())),
+            ])));
+            array_mut(&mut value, 0x98)?.push(Struct(Fields::from([
+                (0, Array(Vec::new())),
+                (0x18, Unsigned(hero)),
+            ])));
+        }
         Ok(value)
     }
 
@@ -797,6 +818,8 @@ mod tests {
         let templates = RetailTemplates::load(runtime.join("retail_templates.json")).unwrap();
         let items = Arc::new(ItemDb::load(&runtime).unwrap());
         let reaper = items.hero_by_name("Reaper").unwrap();
+        let gallery_npcs = items.npc_heroes.clone();
+        assert_eq!(gallery_npcs.len(), 23);
         let collection = Collection::new(&templates, items).unwrap();
         assert_eq!(collection.heroes().len(), 32);
         assert_eq!(collection.store().len(), 7074);
@@ -854,17 +877,36 @@ mod tests {
                 ),
                 expected_owned
             );
+            let mut gallery = collection.hero_catalog(&profile).unwrap();
+            let count = gallery_npcs
+                .iter()
+                .filter(|hero| !collection.heroes().contains(hero))
+                .count();
+            let wire = schemas.encode(HERO_CATALOG, 24900, &gallery).unwrap();
+            assert!(!wire.is_empty());
+            let roster = array_mut(&mut gallery, 0x80).unwrap();
+            let extra = roster.split_off(roster.len() - count);
+            let stores = array_mut(&mut gallery, 0x98).unwrap();
+            let extra_stores = stores.split_off(stores.len() - count);
+            for ((record, store), &hero) in extra.iter().zip(&extra_stores).zip(
+                gallery_npcs
+                    .iter()
+                    .filter(|hero| !collection.heroes().contains(hero)),
+            ) {
+                let record = structure(record).unwrap();
+                let store = structure(store).unwrap();
+                assert_eq!(guid(record, 0x30).unwrap(), hero);
+                assert_eq!(guid(store, 0x18).unwrap(), hero);
+                assert!(array(record, 0).unwrap().is_empty());
+                assert!(array(store, 0).unwrap().is_empty());
+            }
             let messages = [
                 (
                     PROGRESSION,
                     24300,
                     collection.progression(&profile).unwrap(),
                 ),
-                (
-                    HERO_CATALOG,
-                    24900,
-                    collection.hero_catalog(&profile).unwrap(),
-                ),
+                (HERO_CATALOG, 24900, gallery),
                 collection.unlock_granted(aurisa),
                 collection.unlock_granted(pachimari),
                 collection.unlock_bought(luchador),

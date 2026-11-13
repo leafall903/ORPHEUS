@@ -1,22 +1,50 @@
-//! Post-login dispatch of the solo Practice Range create-game request.
+//! Post-login solo Practice Range and Junkenstein handoffs.
 
 use std::io;
 
 use crate::{
     accounts::battle_tag,
     collection::Collection,
-    game_content::GameMap,
+    game_content::{GameMap, JunkensteinCard},
     game_service::{GameService, MatchPlayer},
     jam_codec::{Fields, Value},
     lobby_session::PreparedLogin,
     lobby_transport::LobbyMessage,
-    match_handoff::{Handoff, LobbySeat, enter_game, general_channel, match_channel},
+    match_handoff::{
+        Handoff, LobbySeat, enter_game, game_found, general_channel, match_channel, queue_popped,
+    },
     match_scene::PlayerCard,
     scene_assets::{PreparedScene, SceneAssets},
 };
 
 pub const GAME_REQUEST: u32 = 0xa6e5_3896;
 pub const CREATE_GAME: u32 = 24000;
+const MATCHMAKE: u32 = 0x1c6e_c712;
+const QUEUE: u32 = 0xb4f8_bc62;
+
+pub(crate) fn arcade_queue((crc, id, fields): &LobbyMessage) -> Option<(u64, &Fields)> {
+    if (*crc, *id) != (MATCHMAKE, 44100) {
+        return None;
+    }
+    let Value::Struct(key) = fields.get(&0x78)? else {
+        return None;
+    };
+    let Value::Struct(mode) = key.get(&0)? else {
+        return None;
+    };
+    let Value::Unsigned(card) = mode.get(&0)? else {
+        return None;
+    };
+    Some((*card, key))
+}
+
+pub(crate) fn queue_unavailable(key: Fields) -> LobbyMessage {
+    (
+        QUEUE,
+        44202,
+        Fields::from([(0x78, Value::Struct(key)), (0xa8, Value::Unsigned(0))]),
+    )
+}
 
 /// Chat and address data from the authenticated session's owner. The caller
 /// supplies this only after confirming the account is playing alone.
@@ -65,23 +93,46 @@ pub fn dispatch(
         GameMap,
         Vec<MatchPlayer>,
     ) -> io::Result<Vec<Handoff>>,
-    mut send: impl FnMut(&LobbyMessage) -> io::Result<bool>,
+    send: impl FnMut(&LobbyMessage) -> io::Result<bool>,
 ) -> io::Result<Option<LobbySeat>> {
     if !is_request(request) {
         return Ok(None);
     }
+    transfer(
+        login,
+        game,
+        input,
+        (GameMap::practice_range(), None),
+        open_match,
+        send,
+    )
+    .map(Some)
+}
+
+fn transfer(
+    login: &PreparedLogin,
+    game: &GameService,
+    input: SoloPracticeHandoff<'_>,
+    (map, queue): (GameMap, Option<Fields>),
+    open_match: impl FnOnce(
+        &GameService,
+        [u64; 2],
+        GameMap,
+        Vec<MatchPlayer>,
+    ) -> io::Result<Vec<Handoff>>,
+    mut send: impl FnMut(&LobbyMessage) -> io::Result<bool>,
+) -> io::Result<LobbySeat> {
     let players = vec![MatchPlayer {
         name: login.account.name.clone(),
         team: 0,
         tournament: login.tournament,
         ranked: false,
     }];
-    let tickets = open_match(game, input.match_id, GameMap::practice_range(), players)?;
+    let tickets = open_match(game, input.match_id, map, players)?;
     let [handoff] = match <[Handoff; 1]>::try_from(tickets) {
         Ok(tickets) => tickets,
         Err(tickets) => {
-            let mut error =
-                io::Error::other("the solo Practice Range requires exactly one UDP seat");
+            let mut error = io::Error::other("a solo match requires exactly one UDP seat");
             for ticket in tickets {
                 error = release(game, ticket.conn, error);
             }
@@ -101,6 +152,13 @@ pub fn dispatch(
             input.host,
             game.local_addr().port(),
         )?;
+        if let Some(key) = queue {
+            send(&(QUEUE, 44201, queue_joined(&key)))?;
+            send(&queue_popped(key.clone()))?;
+            for message in game_found(key, input.match_id, None) {
+                send(&message)?;
+            }
+        }
         send(&leave)?;
         send(&join)?;
         if !send(&ticket)? {
@@ -114,11 +172,33 @@ pub fn dispatch(
     if let Err(error) = result {
         return Err(release(game, handoff.conn, error));
     }
-    Ok(Some(LobbySeat {
+    Ok(LobbySeat {
         account_lo: login.account.account_lo,
         lobby_session: login.identity.session[0],
         handoff,
-    }))
+    })
+}
+
+fn queue_joined(key: &Fields) -> Fields {
+    Fields::from([(
+        0x78,
+        Value::Struct(Fields::from([
+            (0, Value::Struct(key.clone())),
+            (
+                0x30,
+                Value::Struct(Fields::from([
+                    (0, Value::Unsigned(0)),
+                    (8, Value::Unsigned(0)),
+                    (0x10, Value::Unsigned(0)),
+                ])),
+            ),
+            (0x48, Value::Unsigned(0)),
+            (0x50, Value::Float32(0.0)),
+            (0x54, Value::Unsigned(0)),
+            (0x55, Value::Bool(false)),
+            (0x56, Value::Bool(false)),
+        ])),
+    )])
 }
 
 /// Build the player's world card from the same account and collection used at
@@ -157,32 +237,79 @@ pub(crate) fn dispatch_scene(
         login,
         game,
         input,
-        |game, id, map, mut players| {
-            let player = players.pop().expect("solo Practice Range player");
-            let card = {
-                let profile = login.account.profile();
-                PlayerCard {
-                    account: login.identity.account_id(),
-                    battle_tag: battle_tag(&profile.player_name, login.identity.account_lo),
-                    level: Some(u32::try_from(profile.level).map_err(io::Error::other)?),
-                    portrait_frame: Some(collection.portrait_frame(&profile)),
-                    skins: assets
-                        .heroes()
-                        .heroes()
-                        .map(|hero| {
-                            collection
-                                .equipped_skin(&profile, hero.guid)
-                                .map(|skin| (hero.guid, skin))
-                        })
-                        .collect::<io::Result<_>>()?,
-                    ..PlayerCard::default()
-                }
-            };
-            game.open_prepared_practice(id, prepare(map)?, player, card)
-                .map(|ticket| vec![ticket])
+        |game, id, map, players| {
+            open_with_card(
+                login,
+                game,
+                id,
+                players,
+                (assets, collection),
+                prepare(map)?,
+            )
         },
         send,
     )
+}
+
+pub(crate) fn dispatch_junkenstein(
+    (map, rules, key): (GameMap, JunkensteinCard, Fields),
+    login: &PreparedLogin,
+    game: &GameService,
+    input: SoloPracticeHandoff<'_>,
+    (assets, collection): (&SceneAssets, &Collection),
+    send: impl FnMut(&LobbyMessage) -> io::Result<bool>,
+) -> io::Result<LobbySeat> {
+    transfer(
+        login,
+        game,
+        input,
+        (map, Some(key)),
+        |game, id, map, players| {
+            let scene = assets
+                .prepare_junkenstein(map, rules, players[0].team)
+                .map_err(|error| {
+                    if error.kind() == io::ErrorKind::InvalidData {
+                        io::Error::new(io::ErrorKind::Unsupported, error)
+                    } else {
+                        error
+                    }
+                })?;
+            open_with_card(login, game, id, players, (assets, collection), scene)
+        },
+        send,
+    )
+}
+
+fn open_with_card(
+    login: &PreparedLogin,
+    game: &GameService,
+    id: [u64; 2],
+    mut players: Vec<MatchPlayer>,
+    (assets, collection): (&SceneAssets, &Collection),
+    scene: PreparedScene,
+) -> io::Result<Vec<Handoff>> {
+    let player = players.pop().expect("solo player");
+    let card = {
+        let profile = login.account.profile();
+        PlayerCard {
+            account: login.identity.account_id(),
+            battle_tag: battle_tag(&profile.player_name, login.identity.account_lo),
+            level: Some(u32::try_from(profile.level).map_err(io::Error::other)?),
+            portrait_frame: Some(collection.portrait_frame(&profile)),
+            skins: assets
+                .heroes()
+                .heroes()
+                .map(|hero| {
+                    collection
+                        .equipped_skin(&profile, hero.guid)
+                        .map(|skin| (hero.guid, skin))
+                })
+                .collect::<io::Result<_>>()?,
+            ..PlayerCard::default()
+        }
+    };
+    game.open_prepared_solo(id, scene, player, card)
+        .map(|ticket| vec![ticket])
 }
 
 fn release(game: &GameService, connection: u32, error: io::Error) -> io::Error {
@@ -192,6 +319,31 @@ fn release(game: &GameService, connection: u32, error: io::Error) -> io::Error {
             error.kind(),
             format!("{error} (could not release the Practice Range seat: {release})"),
         ),
+    }
+}
+
+#[cfg(test)]
+#[test]
+#[ignore = "requires an authorized 104319 lobby schema"]
+fn junkenstein_queue_messages_encode_against_retail_schema() {
+    let runtime = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+    let schemas = crate::jam_codec::Schemas::load(runtime.join("data/schemas_174.json")).unwrap();
+    let card = 0x0630_0000_0000_003c;
+    let key = Fields::from([(0, Value::Struct(Fields::from([(0, Value::Unsigned(card))])))]);
+    let request = (
+        MATCHMAKE,
+        44100,
+        Fields::from([(0x78, Value::Struct(key.clone()))]),
+    );
+    assert_eq!(arcade_queue(&request), Some((card, &key)));
+    let mut messages = vec![
+        (QUEUE, 44201, queue_joined(&key)),
+        queue_popped(key.clone()),
+        queue_unavailable(key.clone()),
+    ];
+    messages.extend(game_found(key, [1, 2], None));
+    for (crc, id, fields) in messages {
+        assert!(!schemas.encode(crc, id, &fields).unwrap().is_empty());
     }
 }
 

@@ -28,7 +28,7 @@ fn cross([ax, ay, az]: Vec3, [bx, by, bz]: Vec3) -> Vec3 {
     [ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx]
 }
 
-fn along(origin: Vec3, direction: Vec3, distance: f64) -> Vec3 {
+pub fn along(origin: Vec3, direction: Vec3, distance: f64) -> Vec3 {
     [
         origin[0] + distance * direction[0],
         origin[1] + distance * direction[1],
@@ -36,7 +36,7 @@ fn along(origin: Vec3, direction: Vec3, distance: f64) -> Vec3 {
     ]
 }
 
-fn norm([x, y, z]: Vec3) -> f64 {
+pub fn norm([x, y, z]: Vec3) -> f64 {
     // Keep the range stability of Python's math.hypot without squaring large coordinates.
     x.hypot(y).hypot(z)
 }
@@ -195,7 +195,7 @@ pub fn segment_distance(point: Vec3, a: Vec3, b: Vec3) -> f64 {
     norm(segment_separation(point, a, b))
 }
 
-fn segment_separation(point: Vec3, a: Vec3, b: Vec3) -> Vec3 {
+pub fn segment_separation(point: Vec3, a: Vec3, b: Vec3) -> Vec3 {
     let axis = sub(b, a);
     let offset = sub(point, a);
     let squared_length = dot(axis, axis);

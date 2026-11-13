@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.container-contains-condition.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/nodes.py::contains",
+      "ow174/game/script/nodes.py::branch",
+      "ow174/game/script/expr.py::contains_value"
+    ],
+    "native_references": [
+      "AA85A30",
+      "AA83CB0"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "array-hit",
+        "container": [
+          1,
+          2,
+          3
+        ],
+        "value": 2,
+        "links": true
+      },
+      {
+        "name": "array-miss",
+        "container": [
+          1,
+          2,
+          3
+        ],
+        "value": 4,
+        "links": true
+      },
+      {
+        "name": "empty",
+        "container": [],
+        "value": null,
+        "links": true
+      },
+      {
+        "name": "null-container",
+        "container": null,
+        "value": null,
+        "links": true
+      },
+      {
+        "name": "null-member",
+        "container": [
+          null
+        ],
+        "value": null,
+        "links": true
+      },
+      {
+        "name": "scalar-zero-null",
+        "container": 0,
+        "value": null,
+        "links": true
+      },
+      {
+        "name": "null-member-zero",
+        "container": [
+          null
+        ],
+        "value": 0,
+        "links": true
+      },
+      {
+        "name": "scalar-bool-number",
+        "container": false,
+        "value": 0,
+        "links": true
+      },
+      {
+        "name": "nested-singleton",
+        "container": [
+          [
+            4
+          ]
+        ],
+        "value": 4,
+        "links": true
+      },
+      {
+        "name": "nested-multiple",
+        "container": [
+          [
+            4,
+            5
+          ]
+        ],
+        "value": 4,
+        "links": true
+      },
+      {
+        "name": "entity-hit",
+        "container": [
+          {
+            "entity": 2684354816
+          }
+        ],
+        "value": {
+          "entity": 2684354816
+        },
+        "links": true
+      },
+      {
+        "name": "entity-miss",
+        "container": [
+          {
+            "entity": 2684354816
+          }
+        ],
+        "value": {
+          "entity": 2684354817
+        },
+        "links": true
+      },
+      {
+        "name": "epsilon-hit",
+        "container": [
+          1.0
+        ],
+        "value": 1.000005,
+        "links": true
+      },
+      {
+        "name": "epsilon-miss",
+        "container": [
+          1.0
+        ],
+        "value": 1.0001,
+        "links": true
+      },
+      {
+        "name": "unlinked-true",
+        "container": [
+          1
+        ],
+        "value": 1,
+        "links": false
+      },
+      {
+        "name": "unlinked-false",
+        "container": [
+          1
+        ],
+        "value": 2,
+        "links": false
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "array-hit",
+        "marker": 19
+      },
+      {
+        "name": "array-miss",
+        "marker": 23
+      },
+      {
+        "name": "empty",
+        "marker": 23
+      },
+      {
+        "name": "null-container",
+        "marker": 23
+      },
+      {
+        "name": "null-member",
+        "marker": 19
+      },
+      {
+        "name": "scalar-zero-null",
+        "marker": 19
+      },
+      {
+        "name": "null-member-zero",
+        "marker": 19
+      },
+      {
+        "name": "scalar-bool-number",
+        "marker": 19
+      },
+      {
+        "name": "nested-singleton",
+        "marker": 19
+      },
+      {
+        "name": "nested-multiple",
+        "marker": 23
+      },
+      {
+        "name": "entity-hit",
+        "marker": 19
+      },
+      {
+        "name": "entity-miss",
+        "marker": 23
+      },
+      {
+        "name": "epsilon-hit",
+        "marker": 19
+      },
+      {
+        "name": "epsilon-miss",
+        "marker": 23
+      },
+      {
+        "name": "unlinked-true",
+        "marker": null
+      },
+      {
+        "name": "unlinked-false",
+        "marker": null
+      }
+    ]
+  }
+}

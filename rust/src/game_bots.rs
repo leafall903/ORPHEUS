@@ -329,7 +329,9 @@ pub struct Bot {
     pub spawn: Arc<BotSpawn>,
     pub position: [f64; 3],
     pub yaw: f64,
+    pitch: i32,
     pub velocity: [f64; 3],
+    movement_flags: u32,
     pub dead: bool,
     walk: BotWalk,
     pace: f64,
@@ -350,9 +352,39 @@ pub struct Bot {
     last_tick: Option<u32>,
     records_from: Option<u32>,
     patrol_failed: bool,
+    stunned_until: u32,
+    velocity_changes: Vec<(u32, crate::mover::VelocityChange)>,
 }
 
 impl Bot {
+    pub(crate) fn scene_enemy(
+        entity: u32,
+        definition: &crate::npc_catalog::NpcDefinition,
+        team: u8,
+        position: [f64; 3],
+        yaw: f64,
+        walk: BotWalk,
+        tick: u32,
+    ) -> Self {
+        let mut bot = Self::new(
+            entity,
+            Arc::new(BotSpawn {
+                hero: definition.hero,
+                body: definition.body,
+                name: definition.name.clone(),
+                team,
+                health: definition.pools.total(),
+                position,
+                yaw: s16((yaw * 65536.0 / 360.0).round_ties_even()) as i32,
+                firing: false,
+                route: Vec::new(),
+                initial_index: 0,
+            }),
+            walk,
+        );
+        bot.records_from = Some(tick.saturating_add(BOT_RECORD_DELAY));
+        bot
+    }
     fn new(entity: u32, spawn: Arc<BotSpawn>, walk: BotWalk) -> Self {
         let index = if spawn.route.is_empty() {
             0
@@ -363,7 +395,9 @@ impl Bot {
             entity,
             position: spawn.position,
             yaw: f64::from(spawn.yaw),
+            pitch: 0,
             velocity: [0.0; 3],
+            movement_flags: 0,
             dead: false,
             walk,
             pace: 0.0,
@@ -384,6 +418,8 @@ impl Bot {
             last_tick: None,
             records_from: None,
             patrol_failed: false,
+            stunned_until: 0,
+            velocity_changes: Vec::new(),
             spawn,
         }
     }
@@ -512,10 +548,20 @@ impl Bot {
         if !self.patrol_active() {
             return Ok(());
         }
+        if self.is_stunned(tick) {
+            self.last_tick = Some(tick);
+            self.stop_objective(tick);
+            return Ok(());
+        }
         let ticks = self
             .last_tick
             .map_or(1, |last| tick.saturating_sub(last))
-            .min(CATCH_UP);
+            .min(CATCH_UP)
+            .min(if self.stunned_until == 0 {
+                u32::MAX
+            } else {
+                tick.saturating_sub(self.stunned_until.saturating_sub(1))
+            });
         if ticks == 0 {
             return Ok(());
         }
@@ -530,6 +576,18 @@ impl Bot {
             self.moved_tick = Some(tick);
         }
         result
+    }
+
+    pub(crate) fn is_stunned(&self, tick: u32) -> bool {
+        !self.dead && tick < self.stunned_until
+    }
+
+    pub(crate) fn stun_for(&mut self, tick: u32, ticks: u32) {
+        if self.dead || ticks == 0 {
+            return;
+        }
+        self.stunned_until = self.stunned_until.max(tick.saturating_add(ticks));
+        self.stop_objective(tick);
     }
 
     pub(crate) fn patrol_active(&self) -> bool {
@@ -803,6 +861,106 @@ impl Bot {
         (tick / every) % period == self.entity % period
     }
 
+    pub(crate) fn apply_encounter_facing(&mut self, [x, _, z]: [f64; 3], tick: u32) {
+        if self.dead || (x == 0.0 && z == 0.0) {
+            return;
+        }
+        let yaw = heading([x, z]);
+        if self.yaw != yaw {
+            self.yaw = yaw;
+            self.moved_tick = Some(tick);
+        }
+    }
+
+    pub(crate) fn queue_velocity_changes(
+        &mut self,
+        changes: Vec<(u32, crate::mover::VelocityChange)>,
+    ) {
+        self.velocity_changes.extend(changes);
+    }
+
+    pub(crate) fn move_to_objective(&mut self, tick: u32, target: [f64; 3], speed: f64) {
+        let start = self.position;
+        let [x, y, z] = std::array::from_fn(|axis| target[axis] - start[axis]);
+        let distance = x.hypot(y).hypot(z);
+        if distance == 0.0 {
+            self.stop_objective(tick);
+            return;
+        }
+        let dt = TICK_PERIOD.as_secs_f64();
+        let fraction = (speed * dt / distance).min(1.0);
+        let mut intended = [
+            start[0] + x * fraction,
+            start[1] + y * fraction,
+            start[2] + z * fraction,
+        ];
+        if self
+            .velocity_changes
+            .iter()
+            .any(|&(frame, _)| frame == tick)
+        {
+            let mut velocity = [x * fraction / dt, y * fraction / dt, z * fraction / dt];
+            for &(_, change) in self
+                .velocity_changes
+                .iter()
+                .filter(|&&(frame, _)| frame == tick)
+            {
+                change.apply(&mut velocity);
+            }
+            intended = std::array::from_fn(|axis| start[axis] + velocity[axis] * dt);
+        }
+        self.velocity_changes.retain(|&(frame, _)| frame > tick);
+        let collision = self.collision.as_mut().expect("bound objective capsule");
+        self.position = collision.advance(tick, start, intended, dt);
+        if self.position == start {
+            self.stop_objective(tick);
+            return;
+        }
+        self.velocity = std::array::from_fn(|axis| (self.position[axis] - start[axis]) / dt);
+        self.yaw = heading([x, z]);
+        self.held = [0, FORWARD as i8];
+        self.last_held = self.held;
+        self.input_tick = Some(tick);
+        self.moved_tick = Some(tick);
+    }
+
+    pub(crate) fn stop_objective(&mut self, tick: u32) {
+        self.velocity_changes.retain(|&(frame, _)| frame > tick);
+        if self.held != [0; 2] || self.velocity != [0.0; 3] {
+            self.held = [0; 2];
+            self.velocity = [0.0; 3];
+            self.moved_tick = Some(tick);
+        }
+    }
+
+    pub(crate) fn apply_encounter_aim(&mut self, [yaw, pitch]: [i32; 2], tick: u32) {
+        if !self.dead && (self.yaw != f64::from(yaw) || self.pitch != pitch) {
+            self.yaw = f64::from(yaw);
+            self.pitch = pitch;
+            self.moved_tick = Some(tick);
+        }
+    }
+
+    pub(crate) fn apply_objective_pose(&mut self, pose: Movement, tick: u32) {
+        self.position = pose.position;
+        self.yaw = f64::from(pose.yaw);
+        self.pitch = pose.pitch;
+        self.velocity = pose.velocity;
+        self.movement_flags = pose.flags;
+        self.held = pose.throttles;
+        if self.held != [0; 2] {
+            self.last_held = self.held;
+            self.input_tick = Some(tick);
+        }
+        self.moved_tick = Some(tick);
+    }
+
+    pub(crate) fn apply_objective_aim(&mut self, [x, y, z]: [f64; 3], tick: u32) {
+        let yaw = heading([x, z]) as i32;
+        let pitch = (-y.atan2(x.hypot(z)) * YAW_UNITS / consts::TAU).round_ties_even() as i32;
+        self.apply_encounter_aim([yaw, pitch], tick);
+    }
+
     pub fn movement(&self, tick: u32) -> Movement {
         let input_frame = if self.held != [0; 2] {
             None
@@ -816,8 +974,13 @@ impl Bot {
         Movement {
             position: self.position,
             yaw: s16(self.yaw.round_ties_even()) as i32,
+            pitch: self.pitch,
             velocity: self.velocity,
-            flags: if self.dead { DEAD_MOVEMENT_FLAG } else { 0 },
+            flags: if self.dead {
+                DEAD_MOVEMENT_FLAG
+            } else {
+                self.movement_flags
+            },
             throttles: self.held,
             input_frame,
             input_throttles: self.last_held,
@@ -922,6 +1085,66 @@ mod tests {
     }
 
     #[test]
+    fn shared_flashbang_horizontal_motion_contract() {
+        use crate::mover::VelocityChange;
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/flashbang-horizontal-cap-v1.json"
+        ))
+        .unwrap();
+        let active = fixture["active_frame"].as_u64().unwrap() as u32;
+        let cap = fixture["upper"].as_f64().unwrap();
+        for case in fixture["cases"].as_array().unwrap() {
+            let velocity: [f64; 4] = serde_json::from_value(case["input"].clone()).unwrap();
+            let expected: [f64; 4] = serde_json::from_value(case["expected"].clone()).unwrap();
+            let tick = case["frame"].as_u64().unwrap() as u32;
+            let target = [
+                velocity[0] * 100.0,
+                velocity[1] * 100.0,
+                velocity[2] * 100.0,
+            ];
+            let speed = velocity[0].hypot(velocity[1]).hypot(velocity[2]);
+            let mut bot = walker(target);
+            bot.attach_collision(
+                &MoverSettings::default(),
+                Arc::new(ContactWorld::new(vec![]).unwrap()),
+                0x08,
+                |_, _, _, _| Some(0.0),
+            );
+            bot.queue_velocity_changes(vec![(active, VelocityChange::HorizontalCap(cap))]);
+            bot.move_to_objective(tick, target, speed);
+            for axis in 0..3 {
+                assert!(
+                    (bot.velocity[axis] - expected[axis]).abs() < 2e-5,
+                    "frame{tick} velocity {:?}, expected {expected:?}",
+                    bot.velocity
+                );
+                assert!(
+                    (bot.position[axis] - expected[axis] * TICK_PERIOD.as_secs_f64()).abs() < 2e-6
+                );
+            }
+            assert_eq!(bot.velocity_changes.len(), usize::from(tick < active));
+            if tick == active {
+                let before = bot.position;
+                bot.move_to_objective(active + 1, target, speed);
+                let step = std::array::from_fn::<_, 3, _>(|axis| bot.position[axis] - before[axis]);
+                assert!(
+                    (step[0].hypot(step[2])
+                        - velocity[0].hypot(velocity[2]) * TICK_PERIOD.as_secs_f64())
+                    .abs()
+                        < 2e-5
+                );
+            }
+        }
+        let mut stopped = walker([0.0, 0.0, 10.0]);
+        stopped.queue_velocity_changes(vec![(active, VelocityChange::HorizontalCap(cap))]);
+        stopped.stop_objective(active);
+        assert!(
+            stopped.velocity_changes.is_empty(),
+            "control pause expires the edit without deferred catch-up"
+        );
+    }
+
+    #[test]
     fn missing_spawner_file_leaves_an_empty_catalog() {
         let root = tempfile::tempdir().unwrap();
         let catalog = BotCatalog::load(root.path().join("ai_spawners_174.json")).unwrap();
@@ -940,6 +1163,51 @@ mod tests {
             route_vector(std::slice::from_mut(&mut bot), 1..=750),
             "80053f3ad91f5ca2e6e9fb638a2cb5fd1ac83851602e4079a6385c9ce39a7ee7"
         );
+    }
+
+    #[test]
+    fn stun_retains_the_route_extends_and_recovers_without_paused_time_catchup() {
+        let patrol = PatrolScript::load().unwrap();
+        let run = |contiguous: bool| {
+            let mut bot = walker([0.0, 0.0, 30.0]);
+            // Begin on the active patrol leg, after the authored spawn wait.
+            bot.last_tick = Some(0);
+            for tick in 1..=100 {
+                bot.step(tick, &patrol, |_, _, _, _| None).unwrap();
+            }
+            let position = bot.position;
+            let target = bot.target;
+            bot.stun_for(100, 50);
+            bot.stun_for(110, 50);
+            bot.stun_for(120, 1); // shorter hits do not shorten the active effect
+            assert!(bot.is_stunned(159));
+            assert!(!bot.is_stunned(160));
+            for tick in 101..160 {
+                if contiguous {
+                    bot.step(tick, &patrol, |_, _, _, _| None).unwrap();
+                }
+                assert_eq!(bot.position, position);
+                assert_eq!(bot.target, target);
+                assert_eq!(bot.velocity, [0.0; 3]);
+            }
+            bot.step(160, &patrol, |_, _, _, _| None).unwrap();
+            assert_ne!(bot.position, position);
+            assert!(norm_delta(bot.position, position) < 0.2);
+            bot
+        };
+        fn norm_delta(a: [f64; 3], b: [f64; 3]) -> f64 {
+            (a[0] - b[0]).hypot(a[1] - b[1]).hypot(a[2] - b[2])
+        }
+        let a = run(true);
+        let b = run(false);
+        assert_eq!(a.position, b.position);
+        assert_eq!(a.velocity, b.velocity);
+        let fresh = a.respawned(a.entity + 1, 200);
+        assert!(!fresh.is_stunned(100));
+        let mut dead = b;
+        dead.died(161);
+        dead.stun_for(162, 100);
+        assert!(!dead.is_stunned(163));
     }
 
     #[test]

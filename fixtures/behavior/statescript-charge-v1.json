@@ -1,0 +1,2123 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.charge.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/runtime.py",
+      "ow174/game/script/nodes.py",
+      "ow174/game/script/scene.py::native",
+      "ow174/game/combat.py::hit_def",
+      "ow174/game/junkenstein_scene.py::JunkensteinSceneHost.before_units"
+    ],
+    "scope": "Synthetic authored-format charge flow; ordinary two-team hostility via the pinned scene service. Live owner admission, exact 0B8B topology and room damage coupling use separate prepared regressions.",
+    "native_references": [
+      "C1CF60 ordinary two-team branch",
+      "0B8B 3/4 passive wait/value, 23 cap/multipliers, ordered 59/60 and 97/98 target reductions"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 2684354817,
+    "target": 3221229568,
+    "mode": "0x0230000000000003",
+    "graph": {
+      "index": 2955,
+      "header": {
+        "m_nodesBitCount": 5,
+        "m_statesBitCount": 3,
+        "m_remoteSyncNodesBitCount": 1,
+        "m_syncVarsBitCount": 1
+      },
+      "fields": {},
+      "items": 17,
+      "containers": {},
+      "nodes": [
+        {
+          "pos": 0,
+          "uid": 0,
+          "rid": 0,
+          "remote": -1,
+          "state": 0,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptState",
+          "fields": {
+            "m_2BBEEAB8": true,
+            "m_ADEB6E05": false
+          }
+        },
+        {
+          "pos": 1,
+          "uid": 1,
+          "rid": 1,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptEntry",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_outPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  2,
+                  "m_beginPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 2,
+          "uid": 2,
+          "rid": 2,
+          "remote": -1,
+          "state": 1,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptStateBooleanSwitch",
+          "fields": {
+            "m_2BBEEAB8": true,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 2426,
+              "m_60DB8F99": 1
+            },
+            "m_trueSubgraphPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  3,
+                  "m_beginPlug"
+                ]
+              ],
+              "m_FF3DAF1E": [
+                2
+              ]
+            }
+          }
+        },
+        {
+          "pos": 3,
+          "uid": 3,
+          "rid": 3,
+          "remote": -1,
+          "state": 2,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptStateBooleanSwitch",
+          "fields": {
+            "m_2BBEEAB8": true,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 842,
+              "m_60DB8F99": 1
+            },
+            "m_falseSubgraphPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  4,
+                  "m_beginPlug"
+                ]
+              ],
+              "m_FF3DAF1E": [
+                3
+              ]
+            }
+          }
+        },
+        {
+          "pos": 4,
+          "uid": 4,
+          "rid": 4,
+          "remote": -1,
+          "state": 3,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptStateBooleanSwitch",
+          "fields": {
+            "m_2BBEEAB8": true,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STU_919FD47C",
+              "m_configVars": null,
+              "m_expression": {
+                "$": "STUConfigVarExpressionData",
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 342,
+                    "m_60DB8F99": 1
+                  },
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 338,
+                    "m_60DB8F99": 1
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  8,
+                  1,
+                  34,
+                  0
+                ],
+                "m_D99EF254": null,
+                "m_fragments": null
+              }
+            },
+            "m_trueSubgraphPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  5,
+                  "m_beginPlug"
+                ]
+              ],
+              "m_FF3DAF1E": [
+                4
+              ]
+            }
+          }
+        },
+        {
+          "pos": 5,
+          "uid": 5,
+          "rid": 5,
+          "remote": -1,
+          "state": 4,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptStateWait",
+          "fields": {
+            "m_2BBEEAB8": true,
+            "m_ADEB6E05": false,
+            "m_timeout": {
+              "$": "STUConfigVarInt",
+              "m_value": 1
+            },
+            "m_onFinishedPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  6,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 6,
+          "uid": 6,
+          "rid": 6,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 342,
+              "m_60DB8F99": 1
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": [
+                {
+                  "$": "STU_91EFD5B1",
+                  "m_value": {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 9532,
+                    "m_60DB8F99": 1
+                  },
+                  "m_default": {
+                    "$": "STUConfigVarInt",
+                    "m_value": 1
+                  }
+                },
+                {
+                  "$": "STU_91EFD5B1",
+                  "m_value": {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 12918,
+                    "m_60DB8F99": 1
+                  },
+                  "m_default": {
+                    "$": "STUConfigVarInt",
+                    "m_value": 1
+                  }
+                }
+              ],
+              "m_expression": {
+                "$": "STUConfigVarExpressionData",
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 338,
+                    "m_60DB8F99": 1
+                  },
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 342,
+                    "m_60DB8F99": 1
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  8,
+                  1,
+                  6,
+                  0,
+                  14,
+                  0,
+                  25,
+                  14,
+                  1,
+                  25,
+                  23,
+                  63,
+                  0
+                ],
+                "m_D99EF254": [
+                  5
+                ],
+                "m_fragments": null
+              }
+            },
+            "m_outPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  5,
+                  "m_beginPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 7,
+          "uid": 7,
+          "rid": 7,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptEntryGameMessage",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_gameMessage": {
+              "$": "STUConfigVarGameMessage",
+              "m_resourceKey": null,
+              "m_gameMessage": "0x0240000000000012"
+            },
+            "m_params": [
+              {
+                "$": "STU_EF930FD7",
+                "m_B5051BCE": "0x0A40000000000013",
+                "m_out_Var": {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 336,
+                  "m_60DB8F99": 0
+                }
+              },
+              {
+                "$": "STU_EF930FD7",
+                "m_B5051BCE": "0x0A40000000000015",
+                "m_out_Var": {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 393,
+                  "m_60DB8F99": 0
+                }
+              }
+            ],
+            "m_outPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  8,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 8,
+          "uid": 8,
+          "rid": 8,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_3387AB5D",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 2426,
+              "m_60DB8F99": 1
+            },
+            "m_truePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  9,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 9,
+          "uid": 9,
+          "rid": 9,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_3387AB5D",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 842,
+              "m_60DB8F99": 1
+            },
+            "m_falsePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  10,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 10,
+          "uid": 10,
+          "rid": 10,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_3387AB5D",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STU_A58C1E63",
+              "m_source": {
+                "$": "STU_B5A0CAF0"
+              },
+              "m_target": {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 393,
+                "m_60DB8F99": 0
+              },
+              "m_AFBBE9C3": {
+                "$": "STUConfigVarBool",
+                "m_value": false
+              }
+            },
+            "m_truePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  11,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 11,
+          "uid": 11,
+          "rid": 11,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_3387AB5D",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STU_919FD47C",
+              "m_configVars": null,
+              "m_expression": {
+                "$": "STUConfigVarExpressionData",
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 393,
+                    "m_60DB8F99": 0
+                  },
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 602,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  7,
+                  1,
+                  15,
+                  0
+                ],
+                "m_D99EF254": null,
+                "m_fragments": null
+              }
+            },
+            "m_falsePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  12,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 12,
+          "uid": 12,
+          "rid": 12,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_3387AB5D",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STU_25ECB55F",
+              "m_entity": {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 393,
+                "m_60DB8F99": 0
+              },
+              "m_88B0050A": "0x0D600000000003C3"
+            },
+            "m_truePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  13,
+                  "m_inPlug"
+                ]
+              ]
+            },
+            "m_falsePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  14,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 13,
+          "uid": 13,
+          "rid": 13,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 336,
+              "m_60DB8F99": 0
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": null,
+              "m_expression": {
+                "$": "STUConfigVarExpressionData",
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 336,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  6,
+                  0,
+                  26,
+                  0
+                ],
+                "m_D99EF254": [
+                  2
+                ],
+                "m_fragments": null
+              }
+            },
+            "m_outPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  16,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 14,
+          "uid": 14,
+          "rid": 14,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_3387AB5D",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": false,
+            "m_condition": {
+              "$": "STU_25ECB55F",
+              "m_entity": {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 393,
+                "m_60DB8F99": 0
+              },
+              "m_88B0050A": "0x0D6000000000011E"
+            },
+            "m_truePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  15,
+                  "m_inPlug"
+                ]
+              ]
+            },
+            "m_falsePlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  16,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 15,
+          "uid": 15,
+          "rid": 15,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 336,
+              "m_60DB8F99": 0
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": null,
+              "m_expression": {
+                "$": "STUConfigVarExpressionData",
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 336,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  6,
+                  0,
+                  25,
+                  0
+                ],
+                "m_D99EF254": [
+                  0.75
+                ],
+                "m_fragments": null
+              }
+            },
+            "m_outPlug": {
+              "$": "STUStatescriptOutputPlug",
+              "links": [
+                [
+                  16,
+                  "m_inPlug"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "pos": 16,
+          "uid": 16,
+          "rid": 16,
+          "remote": -1,
+          "state": null,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptActionSetVar",
+          "fields": {
+            "m_2BBEEAB8": false,
+            "m_ADEB6E05": true,
+            "m_out_Var": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 342,
+              "m_60DB8F99": 1
+            },
+            "m_value": {
+              "$": "STU_919FD47C",
+              "m_configVars": [
+                {
+                  "$": "STU_91EFD5B1",
+                  "m_value": {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 9532,
+                    "m_60DB8F99": 1
+                  },
+                  "m_default": {
+                    "$": "STUConfigVarInt",
+                    "m_value": 1
+                  }
+                },
+                {
+                  "$": "STU_91EFD5B1",
+                  "m_value": {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 13022,
+                    "m_60DB8F99": 1
+                  },
+                  "m_default": {
+                    "$": "STUConfigVarInt",
+                    "m_value": 1
+                  }
+                }
+              ],
+              "m_expression": {
+                "$": "STUConfigVarExpressionData",
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 338,
+                    "m_60DB8F99": 1
+                  },
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 342,
+                    "m_60DB8F99": 1
+                  },
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 336,
+                    "m_60DB8F99": 0
+                  }
+                ],
+                "m_opcodes": [
+                  8,
+                  0,
+                  8,
+                  1,
+                  8,
+                  2,
+                  14,
+                  0,
+                  25,
+                  14,
+                  1,
+                  25,
+                  23,
+                  63,
+                  0
+                ],
+                "m_D99EF254": null,
+                "m_fragments": null
+              }
+            }
+          }
+        }
+      ],
+      "states": [
+        0,
+        2,
+        3,
+        4,
+        5
+      ],
+      "entries": [
+        1,
+        7
+      ],
+      "remote": [],
+      "sync_vars": [],
+      "unknown_nodes": []
+    },
+    "cases": [
+      {
+        "name": "passive-boundary-and-same-clock-poll",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "observe"
+          },
+          {
+            "op": "advance",
+            "frame": 62
+          },
+          {
+            "op": "advance",
+            "frame": 63
+          },
+          {
+            "op": "poll"
+          },
+          {
+            "op": "advance",
+            "frame": 125
+          },
+          {
+            "op": "advance",
+            "frame": 250
+          }
+        ]
+      },
+      {
+        "name": "damage-and-cap",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "damage",
+            "amount": 50
+          },
+          {
+            "op": "damage",
+            "amount": 999
+          },
+          {
+            "op": "advance",
+            "frame": 1000
+          }
+        ]
+      },
+      {
+        "name": "half-target",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          }
+        ],
+        "target_tags": [
+          "0x0D600000000003C3"
+        ]
+      },
+      {
+        "name": "three-quarter-target",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          }
+        ],
+        "target_tags": [
+          "0x0D6000000000011E"
+        ]
+      },
+      {
+        "name": "ordered-target-reductions",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          }
+        ],
+        "target_tags": [
+          "0x0D6000000000011E",
+          "0x0D600000000003C3"
+        ]
+      },
+      {
+        "name": "target-no-charge",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "advance",
+            "frame": 63
+          }
+        ],
+        "no_charge": true
+      },
+      {
+        "name": "friendly-damage",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          }
+        ],
+        "target_flags": 8388609
+      },
+      {
+        "name": "disabled-and-resume",
+        "kind": "flow",
+        "initial": {
+          "2426": false
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "advance",
+            "frame": 63
+          },
+          {
+            "op": "set",
+            "values": {
+              "2426": true
+            }
+          },
+          {
+            "op": "advance",
+            "frame": 125
+          },
+          {
+            "op": "advance",
+            "frame": 126
+          }
+        ]
+      },
+      {
+        "name": "ultimate-block-and-resume",
+        "kind": "flow",
+        "initial": {
+          "2426": true,
+          "842": true
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "advance",
+            "frame": 100
+          },
+          {
+            "op": "set",
+            "values": {
+              "842": false
+            }
+          },
+          {
+            "op": "advance",
+            "frame": 162
+          },
+          {
+            "op": "advance",
+            "frame": 163
+          }
+        ]
+      },
+      {
+        "name": "round-end-cancels-pending-passive",
+        "kind": "flow",
+        "initial": {
+          "2426": true
+        },
+        "steps": [
+          {
+            "op": "advance",
+            "frame": 61
+          },
+          {
+            "op": "set",
+            "values": {
+              "2426": false
+            }
+          },
+          {
+            "op": "advance",
+            "frame": 1000
+          },
+          {
+            "op": "damage",
+            "amount": 70
+          }
+        ]
+      },
+      {
+        "name": "multipliers",
+        "kind": "flow",
+        "initial": {
+          "2426": true,
+          "338": 1000.0,
+          "9532": 2.0,
+          "12918": 0.5,
+          "13022": 1.5
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "advance",
+            "frame": 63
+          }
+        ]
+      },
+      {
+        "name": "zero-multiplier-is-not-default",
+        "kind": "flow",
+        "initial": {
+          "2426": true,
+          "9532": 0.0
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "advance",
+            "frame": 125
+          }
+        ]
+      },
+      {
+        "name": "near-cap",
+        "kind": "flow",
+        "initial": {
+          "2426": true,
+          "342": 199.5
+        },
+        "steps": [
+          {
+            "op": "damage",
+            "amount": 70
+          },
+          {
+            "op": "advance",
+            "frame": 1000
+          }
+        ],
+        "target_tags": [
+          "0x0D6000000000011E"
+        ]
+      },
+      {
+        "name": "relation-hostile",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        }
+      },
+      {
+        "name": "relation-friendly",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "target_flags": 8388609
+      },
+      {
+        "name": "relation-spectator-source",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "source_flags": 276824065
+      },
+      {
+        "name": "relation-spectator-target",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "target_flags": 285212673
+      },
+      {
+        "name": "relation-first-team-bit",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "source_flags": 25165825
+      },
+      {
+        "name": "relation-unsupported-team",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "target_flags": 33554433
+      },
+      {
+        "name": "relation-missing-team",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "source_flags": 1
+      },
+      {
+        "name": "relation-unavailable-service",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": false
+          }
+        },
+        "context": false
+      },
+      {
+        "name": "relation-unsupported-option",
+        "kind": "query",
+        "query": {
+          "$": "STU_A58C1E63",
+          "m_source": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_target": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 393,
+            "m_60DB8F99": 0
+          },
+          "m_AFBBE9C3": {
+            "$": "STUConfigVarBool",
+            "m_value": true
+          }
+        }
+      },
+      {
+        "name": "damage-tags-empty",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": null
+          }
+        }
+      },
+      {
+        "name": "damage-tags-ordered",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0D800000000003BF"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0D800000000009A2"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-duplicates",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000001"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000001"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-zero",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000000"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-dynamic",
+        "kind": "tags",
+        "variable": {
+          "asset": "0x0D80000000000042"
+        },
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 1,
+                  "m_60DB8F99": 0
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-non-asset",
+        "kind": "tags",
+        "variable": 17,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 1,
+                  "m_60DB8F99": 0
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-ignore-nonobjects",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              null,
+              17,
+              "bad",
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000002"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-missing-field",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {}
+            ]
+          }
+        }
+      },
+      {
+        "name": "damage-tags-budget-sixteen",
+        "kind": "tags",
+        "variable": null,
+        "hit": {
+          "$": "STU_00D9C7E1",
+          "m_modifyHealth": {
+            "$": "STUStatescriptModifyHealth",
+            "m_amount": {
+              "$": "STUConfigVarFloat",
+              "m_value": 10.0
+            },
+            "m_148F3152": [
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000000"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000001"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000002"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000003"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000004"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000005"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000006"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000007"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000008"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x0000000000000009"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x000000000000000A"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x000000000000000B"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x000000000000000C"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x000000000000000D"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x000000000000000E"
+                }
+              },
+              {
+                "$": "STUStatescriptModifyHealthTag",
+                "m_EE3055BD": {
+                  "$": "STUConfigVarIdentifier",
+                  "m_resourceKey": null,
+                  "m_identifier": "0x000000000000000F"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "corpse-alive",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": null,
+        "frame": 500
+      },
+      {
+        "name": "corpse-same-frame",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": 20,
+        "frame": 20
+      },
+      {
+        "name": "corpse-before-grace",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": 20,
+        "frame": 519
+      },
+      {
+        "name": "corpse-at-grace",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": 20,
+        "frame": 520
+      },
+      {
+        "name": "corpse-after-grace",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": 20,
+        "frame": 521
+      },
+      {
+        "name": "corpse-bomber-at-grace",
+        "kind": "corpse",
+        "hero": "0x02E0000000000177",
+        "death_frame": 20,
+        "frame": 520
+      },
+      {
+        "name": "corpse-tire-excluded",
+        "kind": "corpse",
+        "hero": "0x02E0000000000176",
+        "death_frame": 20,
+        "frame": 1000
+      },
+      {
+        "name": "corpse-other-excluded",
+        "kind": "corpse",
+        "hero": "0x02E0000000000100",
+        "death_frame": 20,
+        "frame": 1000
+      },
+      {
+        "name": "corpse-future-death",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": 21,
+        "frame": 20
+      },
+      {
+        "name": "corpse-near-u32-boundary",
+        "kind": "corpse",
+        "hero": "0x02E0000000000175",
+        "death_frame": 4294966795,
+        "frame": 4294967295
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "passive-boundary-and-same-clock-poll",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4014000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4014000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4014000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4024000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4034000000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "damage-and-cap",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "4051800000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "405e000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4069000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "4069000000000000",
+              "waiting": false
+            }
+          ]
+        }
+      },
+      {
+        "name": "half-target",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "4041800000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "three-quarter-target",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "404a400000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "ordered-target-reductions",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "4041800000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "target-no-charge",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4014000000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "friendly-damage",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "disabled-and-resume",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4014000000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "ultimate-block-and-resume",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "4014000000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "round-end-cancels-pending-passive",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": false
+            }
+          ]
+        }
+      },
+      {
+        "name": "multipliers",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "406a400000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "406ae00000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "zero-multiplier-is-not-default",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            },
+            {
+              "charge_bits": "0000000000000000",
+              "waiting": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "near-cap",
+        "output": {
+          "steps": [
+            {
+              "charge_bits": "4069000000000000",
+              "waiting": false
+            },
+            {
+              "charge_bits": "4069000000000000",
+              "waiting": false
+            }
+          ]
+        }
+      },
+      {
+        "name": "relation-hostile",
+        "output": {
+          "hostile": true
+        }
+      },
+      {
+        "name": "relation-friendly",
+        "output": {
+          "hostile": false
+        }
+      },
+      {
+        "name": "relation-spectator-source",
+        "output": {
+          "hostile": false
+        }
+      },
+      {
+        "name": "relation-spectator-target",
+        "output": {
+          "hostile": false
+        }
+      },
+      {
+        "name": "relation-first-team-bit",
+        "output": {
+          "hostile": true
+        }
+      },
+      {
+        "name": "relation-unsupported-team",
+        "output": {
+          "error": "STU_A58C1E63"
+        }
+      },
+      {
+        "name": "relation-missing-team",
+        "output": {
+          "error": "STU_A58C1E63"
+        }
+      },
+      {
+        "name": "relation-unavailable-service",
+        "output": {
+          "error": "STU_A58C1E63"
+        }
+      },
+      {
+        "name": "relation-unsupported-option",
+        "output": {
+          "error": "STU_A58C1E63"
+        }
+      },
+      {
+        "name": "damage-tags-empty",
+        "output": {
+          "tags": []
+        }
+      },
+      {
+        "name": "damage-tags-ordered",
+        "output": {
+          "tags": [
+            "0x0D800000000003BF",
+            "0x0D800000000009A2"
+          ]
+        }
+      },
+      {
+        "name": "damage-tags-duplicates",
+        "output": {
+          "tags": [
+            "0x0000000000000001",
+            "0x0000000000000001"
+          ]
+        }
+      },
+      {
+        "name": "damage-tags-zero",
+        "output": {
+          "tags": [
+            "0x0000000000000000"
+          ]
+        }
+      },
+      {
+        "name": "damage-tags-dynamic",
+        "output": {
+          "tags": [
+            "0x0D80000000000042"
+          ]
+        }
+      },
+      {
+        "name": "damage-tags-non-asset",
+        "output": {
+          "tags": []
+        }
+      },
+      {
+        "name": "damage-tags-ignore-nonobjects",
+        "output": {
+          "tags": [
+            "0x0000000000000002"
+          ]
+        }
+      },
+      {
+        "name": "damage-tags-missing-field",
+        "output": {
+          "tags": []
+        }
+      },
+      {
+        "name": "damage-tags-budget-sixteen",
+        "output": {
+          "tags": [
+            "0x0000000000000000",
+            "0x0000000000000001",
+            "0x0000000000000002",
+            "0x0000000000000003",
+            "0x0000000000000004",
+            "0x0000000000000005",
+            "0x0000000000000006",
+            "0x0000000000000007",
+            "0x0000000000000008",
+            "0x0000000000000009",
+            "0x000000000000000A",
+            "0x000000000000000B",
+            "0x000000000000000C",
+            "0x000000000000000D",
+            "0x000000000000000E",
+            "0x000000000000000F"
+          ]
+        }
+      },
+      {
+        "name": "corpse-alive",
+        "output": {
+          "retire": false
+        }
+      },
+      {
+        "name": "corpse-same-frame",
+        "output": {
+          "retire": false
+        }
+      },
+      {
+        "name": "corpse-before-grace",
+        "output": {
+          "retire": false
+        }
+      },
+      {
+        "name": "corpse-at-grace",
+        "output": {
+          "retire": true
+        }
+      },
+      {
+        "name": "corpse-after-grace",
+        "output": {
+          "retire": true
+        }
+      },
+      {
+        "name": "corpse-bomber-at-grace",
+        "output": {
+          "retire": true
+        }
+      },
+      {
+        "name": "corpse-tire-excluded",
+        "output": {
+          "retire": false
+        }
+      },
+      {
+        "name": "corpse-other-excluded",
+        "output": {
+          "retire": false
+        }
+      },
+      {
+        "name": "corpse-future-death",
+        "output": {
+          "retire": false
+        }
+      },
+      {
+        "name": "corpse-near-u32-boundary",
+        "output": {
+          "retire": true
+        }
+      }
+    ]
+  }
+}

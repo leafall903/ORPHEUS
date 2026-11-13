@@ -11,6 +11,7 @@ use crate::{
 const HIT: u32 = 25001;
 const DEATH: u32 = 25004;
 const ELIMINATION: u32 = 25005;
+const VOICE: u32 = 27500;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CombatNotice {
@@ -29,11 +30,18 @@ pub enum CombatNotice {
         killer: u32,
         victim: u32,
     },
+    Voice {
+        anchor: u32,
+        speaker: u32,
+        listener: u32,
+        stimulus: u64,
+        line: u64,
+    },
 }
 
 impl CombatNotice {
     pub(crate) fn needs_mode_ui(self) -> bool {
-        !matches!(self, Self::Hit { .. })
+        matches!(self, Self::Death { .. } | Self::Elimination { .. })
     }
 
     pub fn required_identity(self) -> Option<u32> {
@@ -41,6 +49,7 @@ impl CombatNotice {
             Self::Hit { target, .. } => Some(target),
             Self::Death { source, killed_by } => killed_by.then_some(source),
             Self::Elimination { victim, .. } => Some(victim),
+            Self::Voice { anchor, .. } => Some(anchor),
         }
     }
 
@@ -88,6 +97,24 @@ impl CombatNotice {
                     (0x84, entity(victim)),
                     (0x88, Value::Unsigned(0)),
                     (0x89, Value::Bool(false)),
+                ]),
+            ),
+            Self::Voice {
+                speaker,
+                listener,
+                stimulus,
+                line,
+                ..
+            } => (
+                VOICE,
+                Fields::from([
+                    (0x78, entity(speaker)),
+                    (0x7c, entity(listener)),
+                    (0x80, entity(u32::MAX)),
+                    (0x88, Value::Unsigned(stimulus)),
+                    (0x90, Value::Unsigned(line)),
+                    (0x98, Value::Unsigned(0)),
+                    (0xa0, Value::Unsigned(0)),
                 ]),
             ),
         };
@@ -146,6 +173,45 @@ mod tests {
         for (notice, identity, expected) in cases {
             assert_eq!(notice.required_identity(), identity);
             assert_eq!(notice.encode(&schemas).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    #[ignore = "requires the separately prepared 104319 game schemas"]
+    fn boss_intro_voice_notices_match_python() {
+        let root = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let schemas = Schemas::load(root.join("data/game_schemas_174.json")).unwrap();
+        let anchor = 0xc000_1000;
+        for (speaker, stimulus, line, expected) in [
+            (
+                crate::world::GAME_MODE_ENTITY,
+                0x0ee0_0000_0000_06b5,
+                0x0760_0000_0000_8cb1,
+                "0300100000d0010100a0ffffffffb50600000000e00eb18c000000006007000000000000000000000000",
+            ),
+            (
+                anchor,
+                0x0ee0_0000_0000_06bd,
+                0x0760_0000_0000_8a2b,
+                "0300001000c0010100a0ffffffffbd0600000000e00e2b8a000000006007000000000000000000000000",
+            ),
+        ] {
+            let notice = CombatNotice::Voice {
+                anchor,
+                speaker,
+                listener: 0xa000_0101,
+                stimulus,
+                line,
+            };
+            assert_eq!(notice.required_identity(), Some(anchor));
+            assert!(!notice.needs_mode_ui());
+            let encoded: String = notice
+                .encode(&schemas)
+                .unwrap()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            assert_eq!(encoded, expected);
         }
     }
 }

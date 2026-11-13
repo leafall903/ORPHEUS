@@ -1,0 +1,31 @@
+{
+  "case_id": "statescript.absent-target-filter.v1",
+  "target_build": 104319,
+  "image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+  "evidence": "Original CF4340 and D0DA20 execute with explicit selector variants, known-absent actor lookup, absent optional world service and variant cleanup adapters. Mask/tag predicates are asserted unreachable.",
+  "filter": {
+    "$": "STUConfigVarFilter",
+    "m_84065FD1": 1,
+    "m_1E14CCA8": 0,
+    "m_4EA686DB": 0,
+    "m_27CF71D5": 0,
+    "m_66747E7D": 2,
+    "m_89831602": 0,
+    "m_8B2A4DF3": {
+      "$": "STU_357DABBB",
+      "m_7D7C86A1": "0x0D600000000006AD",
+      "m_EE729DCB": 0,
+      "m_resourceKey": null
+    }
+  },
+  "cases": [
+    {"selector": "absent", "result": false},
+    {"selector": "null", "result": false},
+    {"selector": 0, "result": false},
+    {"selector": 4294967295, "result": false},
+    {"selector": 77, "known_exists": false, "result": false}
+  ],
+  "host_boundaries": "Unknown fields, malformed numeric masks and invalid metadata remain errors, including with null selectors. A present or unavailable valid actor still requires supported relationship services.",
+  "limits": "No actor category initialization, complete relational predicate or original-client acceptance is established.",
+  "client_acceptance": "pending"
+}

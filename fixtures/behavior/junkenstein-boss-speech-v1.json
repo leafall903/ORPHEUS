@@ -1,0 +1,6458 @@
+{
+  "schema_version": 1,
+  "case_id": "junkenstein.boss-speech.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/junkenstein_ai.py::bind_boss_voice",
+      "ow174/game/voicelines.py::queue_voice_notice"
+    ],
+    "randomness": "Explicit normalized random draws; seed sequence equivalence is not claimed."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 2684354817,
+    "killer": 2684354819,
+    "listener": 2684354821,
+    "graph": {
+      "index": 28672,
+      "header": {
+        "m_nodesBitCount": 4,
+        "m_statesBitCount": 1,
+        "m_remoteSyncNodesBitCount": 1,
+        "m_syncVarsBitCount": 1
+      },
+      "fields": {},
+      "items": 6,
+      "containers": {},
+      "nodes": [
+        {
+          "pos": 0,
+          "uid": 0,
+          "rid": 0,
+          "remote": -1,
+          "state": 0,
+          "client_only": false,
+          "server_only": false,
+          "class": "STU_40E05F6B",
+          "fields": {
+            "m_8C8C5285": {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 1,
+              "m_60DB8F99": 0
+            }
+          }
+        }
+      ],
+      "unknown_nodes": [],
+      "states": [
+        0
+      ],
+      "entries": [],
+      "remote": [],
+      "sync_vars": []
+    },
+    "cases": [
+      {
+        "name": "defeat-06d9-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb999999999999a"
+      },
+      {
+        "name": "defeat-06d9-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000013B",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000006E",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000042",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000005",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-5",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000006",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-6",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000029",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-7",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000000A",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-8",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000020",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06d9-row-9",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd999999999999a"
+      },
+      {
+        "name": "defeat-06d9-row-10",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe999999999999a"
+      },
+      {
+        "name": "defeat-06d9-row-11",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000195",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06d9-row-12",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000003",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06d9-row-13",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000200",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06d9-row-14",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000221",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06d9-row-15",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000021D",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06d9-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-06d9-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-06dc-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000042",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000006E",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000013B",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000005",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb999999999999a"
+      },
+      {
+        "name": "defeat-06dc-row-5",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000006",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-6",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000029",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-7",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000020",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-8",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000000A",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd2492492492492"
+      },
+      {
+        "name": "defeat-06dc-row-9",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd999999999999a"
+      },
+      {
+        "name": "defeat-06dc-row-10",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe999999999999a"
+      },
+      {
+        "name": "defeat-06dc-row-11",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000003",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06dc-row-12",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000195",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06dc-row-13",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000221",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06dc-row-14",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000200",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06dc-row-15",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000021D",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feb6db6db6db6db"
+      },
+      {
+        "name": "defeat-06dc-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-06dc-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DC",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-06df-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000005",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000006E",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000013B",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000042",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000006",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-5",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000020",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-6",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc5555555555555"
+      },
+      {
+        "name": "defeat-06df-row-7",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000000A",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd8000000000000"
+      },
+      {
+        "name": "defeat-06df-row-8",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000029",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd8000000000000"
+      },
+      {
+        "name": "defeat-06df-row-9",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-06df-row-10",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feaaaaaaaaaaaab"
+      },
+      {
+        "name": "defeat-06df-row-11",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000003",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-06df-row-12",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000195",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-06df-row-13",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000221",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-06df-row-14",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000200",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-06df-row-15",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000021D",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-06df-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-06df-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DF",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-08e3-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000006E",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000042",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000000A",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000029",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000006",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-5",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000020",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-6",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000013B",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-7",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000005",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-8",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc5555555555555"
+      },
+      {
+        "name": "defeat-08e3-row-9",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-10",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feaaaaaaaaaaaab"
+      },
+      {
+        "name": "defeat-08e3-row-11",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000003",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-12",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000195",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-13",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000221",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-14",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000200",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e3-row-15",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000021D",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e3-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-08e3-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E3",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-08e9-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000000A",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000042",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000029",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000006E",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000005",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-5",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000013B",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-6",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000006",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-7",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc5555555555555"
+      },
+      {
+        "name": "defeat-08e9-row-8",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000020",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd8000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-9",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-10",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feaaaaaaaaaaaab"
+      },
+      {
+        "name": "defeat-08e9-row-11",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000003",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-12",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000195",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-13",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000221",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-14",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E0000000000200",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e9-row-15",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000021D",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "defeat-08e9-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-08e9-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E9",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-091b-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb5555555555555"
+      },
+      {
+        "name": "defeat-091b-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd0000000000000"
+      },
+      {
+        "name": "defeat-091b-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fdaaaaaaaaaaaab"
+      },
+      {
+        "name": "defeat-091b-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe2aaaaaaaaaaab"
+      },
+      {
+        "name": "defeat-091b-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe8000000000000"
+      },
+      {
+        "name": "defeat-091b-row-5",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fed555555555555"
+      },
+      {
+        "name": "defeat-091b-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-091b-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091B",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-091d-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb999999999999a"
+      },
+      {
+        "name": "defeat-091d-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd3333333333333"
+      },
+      {
+        "name": "defeat-091d-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-091d-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe6666666666666"
+      },
+      {
+        "name": "defeat-091d-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feccccccccccccd"
+      },
+      {
+        "name": "defeat-091d-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-091d-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091D",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-091e-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb999999999999a"
+      },
+      {
+        "name": "defeat-091e-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd3333333333333"
+      },
+      {
+        "name": "defeat-091e-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-091e-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe6666666666666"
+      },
+      {
+        "name": "defeat-091e-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feccccccccccccd"
+      },
+      {
+        "name": "defeat-091e-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-091e-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000091E",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-0921-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb999999999999a"
+      },
+      {
+        "name": "defeat-0921-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd3333333333333"
+      },
+      {
+        "name": "defeat-0921-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-0921-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe6666666666666"
+      },
+      {
+        "name": "defeat-0921-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feccccccccccccd"
+      },
+      {
+        "name": "defeat-0921-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-0921-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000921",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "defeat-0923-row-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fb999999999999a"
+      },
+      {
+        "name": "defeat-0923-row-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd3333333333333"
+      },
+      {
+        "name": "defeat-0923-row-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-0923-row-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe6666666666666"
+      },
+      {
+        "name": "defeat-0923-row-4",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feccccccccccccd"
+      },
+      {
+        "name": "defeat-0923-boundary-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "defeat-0923-boundary-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000923",
+        "mode_set": "0x07A000000000013B",
+        "killer": "0x02E000000000FFFF",
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-2-default-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-2-default-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-2-encounter-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": "0x0A50000000001BEB",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-2-encounter-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": "0x0A50000000001BEB",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-2-unsupported-0.0",
+        "hero": "0x02E0000000000002",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-2-unsupported-0.9999999999999999",
+        "hero": "0x02E0000000000002",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-4-default-0.0",
+        "hero": "0x02E0000000000004",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-4-default-0.9999999999999999",
+        "hero": "0x02E0000000000004",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-4-encounter-0.0",
+        "hero": "0x02E0000000000004",
+        "skin": "0x0A5000000000196A",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-4-encounter-0.9999999999999999",
+        "hero": "0x02E0000000000004",
+        "skin": "0x0A5000000000196A",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-4-unsupported-0.0",
+        "hero": "0x02E0000000000004",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-4-unsupported-0.9999999999999999",
+        "hero": "0x02E0000000000004",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-40-default-0.0",
+        "hero": "0x02E0000000000040",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-40-default-0.9999999999999999",
+        "hero": "0x02E0000000000040",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-40-encounter-0.0",
+        "hero": "0x02E0000000000040",
+        "skin": "0x0A5000000000195C",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-40-encounter-0.9999999999999999",
+        "hero": "0x02E0000000000040",
+        "skin": "0x0A5000000000195C",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-40-unsupported-0.0",
+        "hero": "0x02E0000000000040",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-40-unsupported-0.9999999999999999",
+        "hero": "0x02E0000000000040",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-65-default-0.0",
+        "hero": "0x02E0000000000065",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-65-default-0.9999999999999999",
+        "hero": "0x02E0000000000065",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-65-encounter-0.0",
+        "hero": "0x02E0000000000065",
+        "skin": "0x0A50000000001962",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-65-encounter-0.9999999999999999",
+        "hero": "0x02E0000000000065",
+        "skin": "0x0A50000000001962",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-65-unsupported-0.0",
+        "hero": "0x02E0000000000065",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-65-unsupported-0.9999999999999999",
+        "hero": "0x02E0000000000065",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-16-default-0.0",
+        "hero": "0x02E0000000000016",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-16-default-0.9999999999999999",
+        "hero": "0x02E0000000000016",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-16-encounter-0.0",
+        "hero": "0x02E0000000000016",
+        "skin": "0x0A500000000016DF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-16-encounter-0.9999999999999999",
+        "hero": "0x02E0000000000016",
+        "skin": "0x0A500000000016DF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "body-16-unsupported-0.0",
+        "hero": "0x02E0000000000016",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "0000000000000000"
+      },
+      {
+        "name": "body-16-unsupported-0.9999999999999999",
+        "hero": "0x02E0000000000016",
+        "skin": "0x0A5000000000FFFF",
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 77,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fefffffffffffff"
+      },
+      {
+        "name": "spawn-6b5-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006B5",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 61,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6b6-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006B6",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 62,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6b7-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006B7",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 63,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6c4-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006C4",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 64,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-8e1-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E1",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 65,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6d6-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D6",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 66,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc5555555555555"
+      },
+      {
+        "name": "spawn-6d6-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D6",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 66,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6d6-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D6",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 66,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feaaaaaaaaaaaab"
+      },
+      {
+        "name": "spawn-6da-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DA",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 67,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc5555555555555"
+      },
+      {
+        "name": "spawn-6da-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DA",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 67,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6da-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DA",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 67,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feaaaaaaaaaaaab"
+      },
+      {
+        "name": "spawn-6dd-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 68,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc5555555555555"
+      },
+      {
+        "name": "spawn-6dd-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 68,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-6dd-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006DD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 68,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3feaaaaaaaaaaaab"
+      },
+      {
+        "name": "spawn-6e0-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006E0",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 69,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fc0000000000000"
+      },
+      {
+        "name": "spawn-6e0-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006E0",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 69,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd8000000000000"
+      },
+      {
+        "name": "spawn-6e0-2",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006E0",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 69,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe4000000000000"
+      },
+      {
+        "name": "spawn-6e0-3",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006E0",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 69,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fec000000000000"
+      },
+      {
+        "name": "spawn-8e4-0",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E4",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 70,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fd0000000000000"
+      },
+      {
+        "name": "spawn-8e4-1",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000008E4",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 70,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe8000000000000"
+      },
+      {
+        "name": "barrier-65",
+        "hero": "0x02E0000000000016",
+        "skin": null,
+        "stimulus": "0x0EE0000000000A5A",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 5483,
+        "node": 65,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "barrier-65-wrong-target",
+        "hero": "0x02E0000000000016",
+        "skin": null,
+        "stimulus": "0x0EE0000000000A5A",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 5483,
+        "node": 65,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "barrier-65-wrong-hero",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000A5A",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "barrier-66",
+        "hero": "0x02E0000000000016",
+        "skin": null,
+        "stimulus": "0x0EE0000000000A5B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 5483,
+        "node": 66,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "barrier-66-wrong-target",
+        "hero": "0x02E0000000000016",
+        "skin": null,
+        "stimulus": "0x0EE0000000000A5B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 5483,
+        "node": 66,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "barrier-66-wrong-hero",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE0000000000A5B",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-invalid-graph",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3278,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-invalid-node",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 16,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-invalid-targets",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-invalid-empty-targets",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-invalid-extra-targets",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944,
+          2684354817
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "defeat-wrong-mode-set",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006D9",
+        "mode_set": "0x07A000000000FFFF",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "unknown-cue",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE000000000FFFF",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 6,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "body-invalid-node",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006BD",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3296,
+        "node": 76,
+        "targets": [
+          2684354817
+        ],
+        "draw_bits": "3fe0000000000000"
+      },
+      {
+        "name": "spawn-invalid-graph",
+        "hero": "0x02E0000000000002",
+        "skin": null,
+        "stimulus": "0x0EE00000000006B5",
+        "mode_set": "0x07A000000000013B",
+        "killer": null,
+        "graph": 3277,
+        "node": 61,
+        "targets": [
+          3489660944
+        ],
+        "draw_bits": "3fe0000000000000"
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "defeat-06d9-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36028,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x0760000000008CBC"
+            }
+          ],
+          "duration_bits": "4006bce2a53490ba",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36029,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x0760000000008CBD"
+            }
+          ],
+          "duration_bits": "401b498ead65b7a3",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36030,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x0760000000008CBE"
+            }
+          ],
+          "duration_bits": "40185485cd7b900b",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36031,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x0760000000008CBF"
+            }
+          ],
+          "duration_bits": "401448da740da741",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36032,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x0760000000008CC0"
+            }
+          ],
+          "duration_bits": "401245d2f1a9fbe7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-5",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41980,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A3FC"
+            }
+          ],
+          "duration_bits": "4013e353f7ced917",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-6",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41981,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A3FD"
+            }
+          ],
+          "duration_bits": "401858bf258bf259",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-7",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41982,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A3FE"
+            }
+          ],
+          "duration_bits": "401589374bc6a7f0",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-8",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41983,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A3FF"
+            }
+          ],
+          "duration_bits": "40136872b020c49c",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-9",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42524,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A61C"
+            }
+          ],
+          "duration_bits": "401c7ae147ae147b",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-10",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42531,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A623"
+            }
+          ],
+          "duration_bits": "4014b2dbd1942380",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-11",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47386,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000B91A"
+            }
+          ],
+          "duration_bits": "401799e60f04c757",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-12",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47387,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000B91B"
+            }
+          ],
+          "duration_bits": "40194b8a94d242e7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-13",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57759,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000E19F"
+            }
+          ],
+          "duration_bits": "40192ee978d4fdf4",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-14",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57760,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000E1A0"
+            }
+          ],
+          "duration_bits": "4014f454a6921736",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-row-15",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57779,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000E1B3"
+            }
+          ],
+          "duration_bits": "4017d3ece2a53491",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36028,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x0760000000008CBC"
+            }
+          ],
+          "duration_bits": "4006bce2a53490ba",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06d9-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42531,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D9",
+              "line": "0x076000000000A623"
+            }
+          ],
+          "duration_bits": "4014b2dbd1942380",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36041,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x0760000000008CC9"
+            }
+          ],
+          "duration_bits": "40207b92c5f92c60",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36042,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x0760000000008CCA"
+            }
+          ],
+          "duration_bits": "401f661f671529a5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36043,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x0760000000008CCB"
+            }
+          ],
+          "duration_bits": "40208bc3ece2a535",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36044,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x0760000000008CCC"
+            }
+          ],
+          "duration_bits": "40198740da740da7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36045,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x0760000000008CCD"
+            }
+          ],
+          "duration_bits": "4021d237fa89e60f",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-5",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42032,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A430"
+            }
+          ],
+          "duration_bits": "401556b2dbd19423",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-6",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42033,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A431"
+            }
+          ],
+          "duration_bits": "4019a485cd7b900b",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-7",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42034,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A432"
+            }
+          ],
+          "duration_bits": "40195810624dd2f2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-8",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42035,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A433"
+            }
+          ],
+          "duration_bits": "4019e1f671529a48",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-9",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42523,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A61B"
+            }
+          ],
+          "duration_bits": "40213126e978d4fe",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-10",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42530,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A622"
+            }
+          ],
+          "duration_bits": "401fc8057619f0fb",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-11",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47388,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000B91C"
+            }
+          ],
+          "duration_bits": "401eb6921735ee40",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-12",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47389,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000B91D"
+            }
+          ],
+          "duration_bits": "4016fc49ba5e353f",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-13",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57761,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000E1A1"
+            }
+          ],
+          "duration_bits": "401b761f671529a5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-14",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57762,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000E1A2"
+            }
+          ],
+          "duration_bits": "401ef5242e6bdc80",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-row-15",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57780,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000E1B4"
+            }
+          ],
+          "duration_bits": "40193740da740da7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36045,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x0760000000008CCD"
+            }
+          ],
+          "duration_bits": "4021d237fa89e60f",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06dc-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42530,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DC",
+              "line": "0x076000000000A622"
+            }
+          ],
+          "duration_bits": "401fc8057619f0fb",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36055,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x0760000000008CD7"
+            }
+          ],
+          "duration_bits": "401c2d867c3ece2a",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36056,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x0760000000008CD8"
+            }
+          ],
+          "duration_bits": "4018c513cc1e098f",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36057,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x0760000000008CD9"
+            }
+          ],
+          "duration_bits": "4015a3020c49ba5e",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36058,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x0760000000008CDA"
+            }
+          ],
+          "duration_bits": "401e8e1f671529a5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42036,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A434"
+            }
+          ],
+          "duration_bits": "4021d44f3078263b",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-5",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42037,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A435"
+            }
+          ],
+          "duration_bits": "401d604189374bc7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-6",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42038,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A436"
+            }
+          ],
+          "duration_bits": "401bb4e81b4e81b5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-7",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42039,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A437"
+            }
+          ],
+          "duration_bits": "4017e37a32846ff5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-8",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42083,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A463"
+            }
+          ],
+          "duration_bits": "40168dfea27983c1",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-9",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42522,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A61A"
+            }
+          ],
+          "duration_bits": "4022490b9af72016",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-10",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42529,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A621"
+            }
+          ],
+          "duration_bits": "40235e353f7ced91",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-11",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47390,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000B91E"
+            }
+          ],
+          "duration_bits": "401bbb3333333333",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-12",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47391,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000B91F"
+            }
+          ],
+          "duration_bits": "401859999999999a",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-13",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57763,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000E1A3"
+            }
+          ],
+          "duration_bits": "401b13f7ced91687",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-14",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57764,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000E1A4"
+            }
+          ],
+          "duration_bits": "4016a846ff513cc2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-row-15",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57781,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000E1B5"
+            }
+          ],
+          "duration_bits": "4019e09e60f04c75",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42038,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A436"
+            }
+          ],
+          "duration_bits": "401bb4e81b4e81b5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-06df-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42529,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DF",
+              "line": "0x076000000000A621"
+            }
+          ],
+          "duration_bits": "40235e353f7ced91",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41995,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A40B"
+            }
+          ],
+          "duration_bits": "4010f5c28f5c28f6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41996,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A40C"
+            }
+          ],
+          "duration_bits": "401dced916872b02",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41998,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A40E"
+            }
+          ],
+          "duration_bits": "4019777777777777",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41999,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A40F"
+            }
+          ],
+          "duration_bits": "401ab6f46508dfea",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42000,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A410"
+            }
+          ],
+          "duration_bits": "4017529a485cd7b9",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-5",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42003,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A413"
+            }
+          ],
+          "duration_bits": "4019d0369d0369d0",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-6",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42004,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A414"
+            }
+          ],
+          "duration_bits": "401b6b2dbd194238",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-7",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42005,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A415"
+            }
+          ],
+          "duration_bits": "401467c3ece2a535",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-8",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42011,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A41B"
+            }
+          ],
+          "duration_bits": "4003e4b17e4b17e5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-9",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42526,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A61E"
+            }
+          ],
+          "duration_bits": "401a0aec33e1f671",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-10",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42527,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A61F"
+            }
+          ],
+          "duration_bits": "401931d5acb6f465",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-11",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47394,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000B922"
+            }
+          ],
+          "duration_bits": "4020d81e098ead66",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-12",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47395,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000B923"
+            }
+          ],
+          "duration_bits": "401bebc131d5acb7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-13",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57767,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000E1A7"
+            }
+          ],
+          "duration_bits": "401d3aaaaaaaaaab",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-14",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57768,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000E1A8"
+            }
+          ],
+          "duration_bits": "40143d9c54a69217",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-row-15",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57783,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000E1B7"
+            }
+          ],
+          "duration_bits": "4018d4131d5acb6f",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42011,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A41B"
+            }
+          ],
+          "duration_bits": "4003e4b17e4b17e5",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e3-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42527,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E3",
+              "line": "0x076000000000A61F"
+            }
+          ],
+          "duration_bits": "401931d5acb6f465",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42040,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A438"
+            }
+          ],
+          "duration_bits": "4017f258bf258bf2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42041,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A439"
+            }
+          ],
+          "duration_bits": "40209db22d0e5604",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42042,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43A"
+            }
+          ],
+          "duration_bits": "40183d70a3d70a3d",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42043,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43B"
+            }
+          ],
+          "duration_bits": "40146921735ee403",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42044,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43C"
+            }
+          ],
+          "duration_bits": "4017fa89e60f04c7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-5",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42045,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43D"
+            }
+          ],
+          "duration_bits": "401f5c28f5c28f5c",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-6",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42046,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43E"
+            }
+          ],
+          "duration_bits": "401c45a1cac08312",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-7",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42047,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43F"
+            }
+          ],
+          "duration_bits": "401a7983c131d5ad",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-8",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42048,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A440"
+            }
+          ],
+          "duration_bits": "401d374bc6a7ef9e",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-9",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42525,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A61D"
+            }
+          ],
+          "duration_bits": "401a49ba5e353f7d",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-10",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42528,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A620"
+            }
+          ],
+          "duration_bits": "40185604189374bc",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-11",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47392,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000B920"
+            }
+          ],
+          "duration_bits": "401e888dfea27984",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-12",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47393,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000B921"
+            }
+          ],
+          "duration_bits": "401d1bece2a53491",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-13",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57765,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000E1A5"
+            }
+          ],
+          "duration_bits": "401a902bb0cf87da",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-14",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57766,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000E1A6"
+            }
+          ],
+          "duration_bits": "40184dd867c3ece3",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-row-15",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 57782,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000E1B6"
+            }
+          ],
+          "duration_bits": "401a46e402bb0cf8",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42047,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A43F"
+            }
+          ],
+          "duration_bits": "401a7983c131d5ad",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-08e9-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42528,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E9",
+              "line": "0x076000000000A620"
+            }
+          ],
+          "duration_bits": "40185604189374bc",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42477,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000A5ED"
+            }
+          ],
+          "duration_bits": "400a7c3ece2a5349",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42478,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000A5EE"
+            }
+          ],
+          "duration_bits": "4007b0cf87d9c54a",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42479,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000A5EF"
+            }
+          ],
+          "duration_bits": "400658bf258bf259",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42480,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000A5F0"
+            }
+          ],
+          "duration_bits": "4005d5acb6f46509",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42481,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000A5F1"
+            }
+          ],
+          "duration_bits": "40031a9fbe76c8b4",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-row-5",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47433,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000B949"
+            }
+          ],
+          "duration_bits": "400605b7a32846ff",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42477,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000A5ED"
+            }
+          ],
+          "duration_bits": "400a7c3ece2a5349",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091b-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 47433,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091B",
+              "line": "0x076000000000B949"
+            }
+          ],
+          "duration_bits": "400605b7a32846ff",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42487,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5F7"
+            }
+          ],
+          "duration_bits": "400d26e978d4fdf4",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42488,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5F8"
+            }
+          ],
+          "duration_bits": "4007645a1cac0831",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42489,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5F9"
+            }
+          ],
+          "duration_bits": "4005735ee402bb0d",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42490,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5FA"
+            }
+          ],
+          "duration_bits": "40078a94d242e6be",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42491,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5FB"
+            }
+          ],
+          "duration_bits": "400b3b645a1cac08",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42487,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5F7"
+            }
+          ],
+          "duration_bits": "400d26e978d4fdf4",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091d-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42491,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091D",
+              "line": "0x076000000000A5FB"
+            }
+          ],
+          "duration_bits": "400b3b645a1cac08",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42497,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A601"
+            }
+          ],
+          "duration_bits": "400bb645a1cac083",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42498,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A602"
+            }
+          ],
+          "duration_bits": "400cf5c28f5c28f6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42499,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A603"
+            }
+          ],
+          "duration_bits": "400d9f0fb38a94d2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42500,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A604"
+            }
+          ],
+          "duration_bits": "4007e76c8b439581",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42501,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A605"
+            }
+          ],
+          "duration_bits": "400663ab596de8ca",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42497,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A601"
+            }
+          ],
+          "duration_bits": "400bb645a1cac083",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-091e-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42501,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE000000000091E",
+              "line": "0x076000000000A605"
+            }
+          ],
+          "duration_bits": "400663ab596de8ca",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42507,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60B"
+            }
+          ],
+          "duration_bits": "4009ddddddddddde",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42508,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60C"
+            }
+          ],
+          "duration_bits": "400531d5acb6f465",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42509,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60D"
+            }
+          ],
+          "duration_bits": "40024b17e4b17e4b",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42510,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60E"
+            }
+          ],
+          "duration_bits": "400606d3a06d3a07",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42511,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60F"
+            }
+          ],
+          "duration_bits": "400219f0fb38a94d",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42507,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60B"
+            }
+          ],
+          "duration_bits": "4009ddddddddddde",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0921-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42511,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000921",
+              "line": "0x076000000000A60F"
+            }
+          ],
+          "duration_bits": "400219f0fb38a94d",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-row-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42517,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A615"
+            }
+          ],
+          "duration_bits": "400d374bc6a7ef9e",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-row-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42518,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A616"
+            }
+          ],
+          "duration_bits": "40074395810624dd",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-row-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42519,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A617"
+            }
+          ],
+          "duration_bits": "4002c8b439581062",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-row-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42520,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A618"
+            }
+          ],
+          "duration_bits": "4006015d867c3ece",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-row-4",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42521,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A619"
+            }
+          ],
+          "duration_bits": "40058ead65b7a328",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-boundary-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42517,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A615"
+            }
+          ],
+          "duration_bits": "400d374bc6a7ef9e",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "defeat-0923-boundary-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42521,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE0000000000923",
+              "line": "0x076000000000A619"
+            }
+          ],
+          "duration_bits": "40058ead65b7a328",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-2-default-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35371,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2B"
+            }
+          ],
+          "duration_bits": "400cb9e60f04c757",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-2-default-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35371,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2B"
+            }
+          ],
+          "duration_bits": "400cb9e60f04c757",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-2-encounter-0.0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35371,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2B"
+            }
+          ],
+          "duration_bits": "400cb9e60f04c757",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-2-encounter-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35371,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2B"
+            }
+          ],
+          "duration_bits": "400cb9e60f04c757",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-2-unsupported-0.0",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-2-unsupported-0.9999999999999999",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-4-default-0.0",
+        "output": {
+          "body_set": "0x07A0000000000017",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35206,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008986"
+            }
+          ],
+          "duration_bits": "4003131d5acb6f46",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-4-default-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000017",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35206,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008986"
+            }
+          ],
+          "duration_bits": "4003131d5acb6f46",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-4-encounter-0.0",
+        "output": {
+          "body_set": "0x07A000000000012C",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35206,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008986"
+            }
+          ],
+          "duration_bits": "4003131d5acb6f46",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-4-encounter-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A000000000012C",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35206,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008986"
+            }
+          ],
+          "duration_bits": "4003131d5acb6f46",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-4-unsupported-0.0",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-4-unsupported-0.9999999999999999",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-40-default-0.0",
+        "output": {
+          "body_set": "0x07A0000000000053",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35372,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2C"
+            }
+          ],
+          "duration_bits": "40050846ff513cc2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-40-default-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000053",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35372,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2C"
+            }
+          ],
+          "duration_bits": "40050846ff513cc2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-40-encounter-0.0",
+        "output": {
+          "body_set": "0x07A0000000000149",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35372,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2C"
+            }
+          ],
+          "duration_bits": "40050846ff513cc2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-40-encounter-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000149",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35372,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008A2C"
+            }
+          ],
+          "duration_bits": "40050846ff513cc2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-40-unsupported-0.0",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-40-unsupported-0.9999999999999999",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-65-default-0.0",
+        "output": {
+          "body_set": "0x07A0000000000055",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35604,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008B14"
+            }
+          ],
+          "duration_bits": "4013e80aec33e1f6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-65-default-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000055",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35604,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008B14"
+            }
+          ],
+          "duration_bits": "4013e80aec33e1f6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-65-encounter-0.0",
+        "output": {
+          "body_set": "0x07A0000000000145",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35604,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008B14"
+            }
+          ],
+          "duration_bits": "4013e80aec33e1f6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-65-encounter-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A0000000000145",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 35604,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x0760000000008B14"
+            }
+          ],
+          "duration_bits": "4013e80aec33e1f6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-65-unsupported-0.0",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-65-unsupported-0.9999999999999999",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-16-default-0.0",
+        "output": {
+          "body_set": "0x07A000000000003F",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 41745,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x076000000000A311"
+            }
+          ],
+          "duration_bits": "40091a9fbe76c8b4",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-16-default-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A000000000003F",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 41746,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x076000000000A312"
+            }
+          ],
+          "duration_bits": "40010a7ef9db22d1",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-16-encounter-0.0",
+        "output": {
+          "body_set": "0x07A000000000017D",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 41745,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x076000000000A311"
+            }
+          ],
+          "duration_bits": "40091a9fbe76c8b4",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-16-encounter-0.9999999999999999",
+        "output": {
+          "body_set": "0x07A000000000017D",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 41746,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE00000000006BD",
+              "line": "0x076000000000A312"
+            }
+          ],
+          "duration_bits": "40010a7ef9db22d1",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "body-16-unsupported-0.0",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-16-unsupported-0.9999999999999999",
+        "output": {
+          "body_set": null,
+          "loaded": false
+        }
+      },
+      {
+        "name": "spawn-6b5-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36017,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006B5",
+              "line": "0x0760000000008CB1"
+            }
+          ],
+          "duration_bits": "400ab20c49ba5e35",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6b6-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 35270,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006B6",
+              "line": "0x07600000000089C6"
+            }
+          ],
+          "duration_bits": "4017a6098ead65b8",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6b7-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36046,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006B7",
+              "line": "0x0760000000008CCE"
+            }
+          ],
+          "duration_bits": "4018ac756b2dbd19",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6c4-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36060,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006C4",
+              "line": "0x0760000000008CDC"
+            }
+          ],
+          "duration_bits": "40160851eb851eb8",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-8e1-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42086,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E1",
+              "line": "0x076000000000A466"
+            }
+          ],
+          "duration_bits": "4018aaaaaaaaaaab",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6d6-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36018,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D6",
+              "line": "0x0760000000008CB2"
+            }
+          ],
+          "duration_bits": "40175cd7b900aec3",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6d6-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36019,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D6",
+              "line": "0x0760000000008CB3"
+            }
+          ],
+          "duration_bits": "4014e0d4fdf3b646",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6d6-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42078,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006D6",
+              "line": "0x076000000000A45E"
+            }
+          ],
+          "duration_bits": "401aead65b7a3284",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6da-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36034,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DA",
+              "line": "0x0760000000008CC2"
+            }
+          ],
+          "duration_bits": "4025e9242e6bdc80",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6da-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36035,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DA",
+              "line": "0x0760000000008CC3"
+            }
+          ],
+          "duration_bits": "40200a4dd2f1a9fc",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6da-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42079,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DA",
+              "line": "0x076000000000A45F"
+            }
+          ],
+          "duration_bits": "40210e5604189375",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6dd-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36051,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DD",
+              "line": "0x0760000000008CD3"
+            }
+          ],
+          "duration_bits": "402195b4e81b4e82",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6dd-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36053,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DD",
+              "line": "0x0760000000008CD5"
+            }
+          ],
+          "duration_bits": "40212253490b9af7",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6dd-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 42080,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006DD",
+              "line": "0x076000000000A460"
+            }
+          ],
+          "duration_bits": "401ead65b7a32847",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6e0-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36061,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006E0",
+              "line": "0x0760000000008CDD"
+            }
+          ],
+          "duration_bits": "401b4dc8057619f1",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6e0-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36062,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006E0",
+              "line": "0x0760000000008CDE"
+            }
+          ],
+          "duration_bits": "401a8fced916872b",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6e0-2",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36063,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006E0",
+              "line": "0x0760000000008CDF"
+            }
+          ],
+          "duration_bits": "4021dd78d4fdf3b6",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-6e0-3",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 36080,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000006E0",
+              "line": "0x0760000000008CF0"
+            }
+          ],
+          "duration_bits": "400f23078263ab59",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-8e4-0",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41984,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E4",
+              "line": "0x076000000000A400"
+            }
+          ],
+          "duration_bits": "401aec33e1f67153",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "spawn-8e4-1",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "handle": 41985,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 3489660944,
+              "stimulus": "0x0EE00000000008E4",
+              "line": "0x076000000000A401"
+            }
+          ],
+          "duration_bits": "4019f258bf258bf2",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "barrier-65",
+        "output": {
+          "body_set": "0x07A000000000003F",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 46512,
+          "notices": [
+            {
+              "anchor": 2684354817,
+              "speaker": 2684354817,
+              "stimulus": "0x0EE0000000000A5A",
+              "line": "0x076000000000B5B0"
+            }
+          ],
+          "duration_bits": "400412c5f92c5f93",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "barrier-65-wrong-target",
+        "output": {
+          "body_set": "0x07A000000000003F",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "error": "Summoner barrier voice targets"
+        }
+      },
+      {
+        "name": "barrier-65-wrong-hero",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": false
+        }
+      },
+      {
+        "name": "barrier-66",
+        "output": {
+          "body_set": "0x07A000000000003F",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "handle": 46455,
+          "notices": [],
+          "duration_bits": "40041529a485cd7c",
+          "part": 0.0
+        }
+      },
+      {
+        "name": "barrier-66-wrong-target",
+        "output": {
+          "body_set": "0x07A000000000003F",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "error": "Summoner barrier voice targets"
+        }
+      },
+      {
+        "name": "barrier-66-wrong-hero",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": false
+        }
+      },
+      {
+        "name": "defeat-invalid-graph",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "error": "boss defeat voice targets"
+        }
+      },
+      {
+        "name": "defeat-invalid-node",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "error": "boss defeat voice targets"
+        }
+      },
+      {
+        "name": "defeat-invalid-targets",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "error": "boss defeat voice targets"
+        }
+      },
+      {
+        "name": "defeat-invalid-empty-targets",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "error": "boss defeat voice targets"
+        }
+      },
+      {
+        "name": "defeat-invalid-extra-targets",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "error": "boss defeat voice targets"
+        }
+      },
+      {
+        "name": "defeat-wrong-mode-set",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": false
+        }
+      },
+      {
+        "name": "unknown-cue",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": false
+        }
+      },
+      {
+        "name": "body-invalid-node",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": false,
+          "allowed": true,
+          "error": "boss spawn voice targets"
+        }
+      },
+      {
+        "name": "spawn-invalid-graph",
+        "output": {
+          "body_set": "0x07A0000000000001",
+          "loaded": true,
+          "playable": true,
+          "mode": true,
+          "allowed": true,
+          "error": "boss spawn voice targets"
+        }
+      }
+    ]
+  }
+}

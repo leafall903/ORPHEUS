@@ -249,6 +249,13 @@ pub struct Body {
     pub weapons: Vec<Option<u32>>,
     #[serde(default)]
     pub ai_weapon_buttons: Map<String, Value>,
+    #[serde(default)]
+    pub ai_association: Option<u64>,
+    #[serde(default)]
+    pub ai_weapon_identifiers: Map<String, Value>,
+    /// None means the local entity definition was unavailable.
+    #[serde(default)]
+    pub component92_present: Option<bool>,
     /// An omitted list means the source definition was unavailable.
     #[serde(default, deserialize_with = "body_target_tags")]
     pub target_tags: Option<BTreeSet<u64>>,
@@ -261,6 +268,113 @@ pub enum ModeValue {
     Asset(u64),
 }
 
+#[derive(Debug, Deserialize)]
+pub(crate) struct ModeScripts {
+    pub pve: bool,
+    pub scripted_loading: bool,
+    #[serde(default, deserialize_with = "optional_graph_index")]
+    pub graph: Option<u32>,
+    #[serde(default, deserialize_with = "optional_graph_index")]
+    pub shared_graph: Option<u32>,
+    pub teams: BTreeMap<u8, TeamScripts>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct TeamScripts {
+    #[serde(default, deserialize_with = "optional_graph_index")]
+    pub controller: Option<u32>,
+    #[serde(default, deserialize_with = "optional_graph_index")]
+    pub body: Option<u32>,
+}
+
+fn optional_graph_index<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<u32>, D::Error> {
+    Option::<Value>::deserialize(deserializer)?
+        .map(|value| {
+            asset_guid(&value)
+                .filter(|guid| guid >> 48 == GRAPH_TYPE)
+                .and_then(|guid| u32::try_from(guid & 0x0000_ffff_ffff_ffff).ok())
+                .ok_or_else(|| serde::de::Error::custom("invalid mode script graph GUID"))
+        })
+        .transpose()
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EnemyPair {
+    pub body: u64,
+    pub controller: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawEnemyPair {
+    body: String,
+    controller: String,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct EnemyCatalog {
+    #[serde(default)]
+    pairs: BTreeMap<String, RawEnemyPair>,
+    #[serde(default)]
+    entities: BTreeMap<String, Body>,
+}
+
+impl EnemyCatalog {
+    fn validate(mut self) -> io::Result<Self> {
+        let asset = |text: &str, kind| {
+            parse_guid(text).filter(|guid| guid >> 48 == kind && guid & 0x0000_ffff_ffff_ffff != 0)
+        };
+        for (key, body) in std::mem::take(&mut self.entities) {
+            let guid = asset(&key, 0x0400)
+                .ok_or_else(|| invalid("invalid Junkenstein entity definition"))?;
+            if self
+                .entities
+                .insert(format!("0x{guid:016X}"), body)
+                .is_some()
+            {
+                return Err(invalid("duplicate Junkenstein entity definition"));
+            }
+        }
+        for (hero, mut pair) in std::mem::take(&mut self.pairs) {
+            if asset(&hero, 0x02e0).is_none()
+                || asset(&pair.body, 0x0400).is_none()
+                || asset(&pair.controller, 0x0400).is_none()
+                || parse_guid(&pair.body) == parse_guid(&pair.controller)
+            {
+                return Err(invalid("invalid Junkenstein body/controller pair"));
+            }
+            pair.body = format!("0x{:016X}", parse_guid(&pair.body).unwrap());
+            pair.controller = format!("0x{:016X}", parse_guid(&pair.controller).unwrap());
+            let body = self
+                .entities
+                .get(&pair.body)
+                .ok_or_else(|| invalid("missing Junkenstein enemy body"))?;
+            let controller = self
+                .entities
+                .get(&pair.controller)
+                .ok_or_else(|| invalid("missing Junkenstein enemy controller"))?;
+            if body.hero.as_deref().and_then(parse_guid) != parse_guid(&hero)
+                || body
+                    .ai_association
+                    .is_some_and(|association| Some(association) != parse_guid(&pair.controller))
+                || body.graphs.is_empty()
+                || controller.graphs.is_empty()
+            {
+                return Err(invalid("inconsistent Junkenstein body/controller binding"));
+            }
+            if self
+                .pairs
+                .insert(format!("0x{:016X}", parse_guid(&hero).unwrap()), pair)
+                .is_some()
+            {
+                return Err(invalid("duplicate Junkenstein hero pair"));
+            }
+        }
+        Ok(self)
+    }
+}
+
 #[derive(Deserialize)]
 struct Bundle {
     version: u32,
@@ -270,6 +384,10 @@ struct Bundle {
     entities: BTreeMap<String, Body>,
     #[serde(default)]
     mode_variables: BTreeMap<String, BTreeMap<u32, Value>>,
+    #[serde(default)]
+    mode_scripts: BTreeMap<String, ModeScripts>,
+    #[serde(default)]
+    junkenstein: EnemyCatalog,
     missing: Vec<u32>,
 }
 
@@ -279,6 +397,8 @@ pub struct GraphStore {
     bodies: BTreeMap<u64, Body>,
     entities: BTreeMap<u64, Body>,
     mode_variables: BTreeMap<u64, BTreeMap<u32, ModeValue>>,
+    mode_scripts: BTreeMap<u64, ModeScripts>,
+    enemies: EnemyCatalog,
     missing: Vec<u32>,
 }
 
@@ -323,6 +443,8 @@ impl GraphStore {
                     Ok((guid, values))
                 })
                 .collect::<io::Result<_>>()?,
+            mode_scripts: keyed_by_guid(bundle.mode_scripts)?,
+            enemies: bundle.junkenstein.validate()?,
             missing: bundle.missing,
         })
     }
@@ -343,8 +465,26 @@ impl GraphStore {
         self.entities.get(&guid)
     }
 
+    pub fn enemy_pair(&self, hero: u64) -> Option<EnemyPair> {
+        self.enemies
+            .pairs
+            .get(&format!("0x{hero:016X}"))
+            .map(|pair| EnemyPair {
+                body: parse_guid(&pair.body).expect("validated enemy body"),
+                controller: parse_guid(&pair.controller).expect("validated enemy controller"),
+            })
+    }
+
+    pub fn enemy_body(&self, definition: u64) -> Option<&Body> {
+        self.enemies.entities.get(&format!("0x{definition:016X}"))
+    }
+
     pub fn mode_variables(&self, mode: u64) -> Option<&BTreeMap<u32, ModeValue>> {
         self.mode_variables.get(&mode)
+    }
+
+    pub(crate) fn mode_scripts(&self, mode: u64) -> Option<&ModeScripts> {
+        self.mode_scripts.get(&mode)
     }
 
     pub fn missing(&self) -> &[u32] {
@@ -377,9 +517,14 @@ fn body_target_tags<'de, D: serde::Deserializer<'de>>(
         .map(|tags| {
             tags.iter()
                 .map(|tag| {
-                    target_tag_guid(tag).ok_or_else(|| {
-                        serde::de::Error::custom("body target tag must be a packed .06C GUID")
-                    })
+                    target_tag_guid(tag)
+                        .or_else(|| {
+                            tag.as_u64()
+                                .filter(|guid| (guid >> 48) & 0xfff == TARGET_TAG_TYPE)
+                        })
+                        .ok_or_else(|| {
+                            serde::de::Error::custom("body target tag must be a packed .06C GUID")
+                        })
                 })
                 .collect()
         })
@@ -579,6 +724,62 @@ mod tests {
     }
 
     #[test]
+    fn enemy_pairs_keep_encounter_definitions_separate_and_validate_associations() {
+        let hero = "0x02E0000000000175";
+        let body = "0x040000000000000a";
+        let controller = "0x040000000000000b";
+        let mut data = fixture();
+        let mut actor = data["bodies"]["0x0400000000000001"].clone();
+        actor["hero"] = json!(hero);
+        actor["ai_association"] = json!(0x0400_0000_0000_000bu64);
+        actor["target_tags"] = json!([0x0d60_0000_0000_0109u64, "0x0D60000000000109"]);
+        let control = data["entities"]["0x0400000000000002"].clone();
+        data["junkenstein"] = json!({
+            "pairs":{hero:{"body":body,"controller":controller}},
+            "entities":{body:actor,controller:control}
+        });
+        let load = |data: &Value| GraphStore::from_json(&serde_json::to_vec(data).unwrap());
+        let parsed = load(&data).unwrap();
+        assert_eq!(
+            parsed.enemy_pair(0x02e0_0000_0000_0175),
+            Some(EnemyPair {
+                body: 0x0400_0000_0000_000a,
+                controller: 0x0400_0000_0000_000b,
+            })
+        );
+        assert!(parsed.entity_body(0x0400_0000_0000_000a).is_none());
+        assert_eq!(
+            parsed
+                .enemy_body(0x0400_0000_0000_000a)
+                .unwrap()
+                .target_tags,
+            Some(BTreeSet::from([0x0d60_0000_0000_0109]))
+        );
+        for (field, value) in [
+            ("ai_association", json!(0x0400_0000_0000_000cu64)),
+            ("hero", json!("0x02E0000000000176")),
+            ("target_tags", json!([0x0400_0000_0000_0109u64])),
+        ] {
+            let mut bad = data.clone();
+            bad["junkenstein"]["entities"][body][field] = value;
+            assert!(load(&bad).is_err());
+        }
+        let mut missing = data.clone();
+        missing["junkenstein"]["entities"]
+            .as_object_mut()
+            .unwrap()
+            .remove(controller);
+        assert!(load(&missing).is_err());
+        let mut duplicated = data.clone();
+        duplicated["junkenstein"]["entities"]["0x040000000000000A"] =
+            duplicated["junkenstein"]["entities"][body].clone();
+        assert!(load(&duplicated).is_err());
+        // Playable boss definitions use the explicit encounter pair instead of an AI association.
+        data["junkenstein"]["entities"][body]["ai_association"] = Value::Null;
+        assert!(load(&data).is_ok());
+    }
+
+    #[test]
     fn builds_wire_slots_and_keeps_data_order_through_holes() {
         let store = GraphStore::from_json(&serde_json::to_vec(&fixture()).unwrap()).unwrap();
         let graph = store.graph(42).unwrap();
@@ -714,6 +915,39 @@ mod tests {
                 assert_eq!(store.entities.len(), 8);
                 assert_eq!(store.mode_variables.len(), 25);
                 "eab09343964a53d44a53baa8d990ff9c2a3eea8922d9eb1927136fb7b661fc94"
+            }
+            699 => {
+                assert_eq!(store.entities.len(), 6);
+                assert_eq!(store.mode_variables.len(), 25);
+                "585ab3b69f4eb0966dd755171b33b227f8eac7de595f6f5ec7392939c92229df"
+            }
+            700 => {
+                assert_eq!(store.entities.len(), 6);
+                assert_eq!(store.mode_variables.len(), 25);
+                assert!(store.graph(0x0b92).is_some());
+                assert_eq!(store.enemies.pairs.len(), 8);
+                assert_eq!(store.enemies.entities.len(), 19);
+                assert_eq!(
+                    store.enemy_pair(0x02e0_0000_0000_0175),
+                    Some(EnemyPair {
+                        body: 0x0400_0000_0000_16be,
+                        controller: 0x0400_0000_0000_16c0,
+                    })
+                );
+                for (definition, expected) in [
+                    (0x0400_0000_0000_16be, vec![0x0be2, 0x0c89, 0x0cb8, 0x0cbf]),
+                    (0x0400_0000_0000_16c0, vec![0x0c87, 0x0cf3]),
+                ] {
+                    let roots =
+                        crate::script_init::body_roots(store.enemy_body(definition).unwrap())
+                            .unwrap();
+                    assert_eq!(
+                        roots.iter().map(|root| root.graph).collect::<Vec<_>>(),
+                        expected
+                    );
+                    assert!(roots.iter().all(|root| store.graph(root.graph).is_some()));
+                }
+                "8834709ac62f67287938b1eb747a0039131abc73f6fd6568b008d8689c2d9c22"
             }
             count => panic!("no Python reference vector for the {count}-graph bundle"),
         };

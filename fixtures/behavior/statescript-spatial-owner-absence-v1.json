@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.spatial-owner-absence.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "46b22130f05f9fe1a17f11fe13106c9d3c06a5d8",
+    "paths": [
+      "ow174/game/script/nodes.py::SpatialBindingState",
+      "ow174/game/script/scene.py::SceneWorld.declare_spatial_binding_owner_absent",
+      "tests/test_script_npc_combat_states.py::test_spatial_scope_requires_explicit_owner_absence"
+    ],
+    "native_evidence": {
+      "capture": "authorized immutable 104319 module, local only",
+      "shared_owner_lookup_rva": "978A30",
+      "spatial_enter_rva": "911920",
+      "spatial_exit_rva": "911E50",
+      "view_enter_rva": "AD6500",
+      "view_exit_rva": "AD6510",
+      "view_dispatch_rva": "AE03F0"
+    },
+    "scope": "Known auxiliary-owner absence only. Rust rejects unsupported ownership at state admission; Python rejects it at auxiliary scope dispatch. E8D976BE cases are native-only, with no Python equivalence claim."
+  },
+  "evidence": "synthetic-reference-and-native-absence-path",
+  "client_acceptance": "pending",
+  "input": {
+    "class": "STU_96333BBE",
+    "fields": {
+      "m_9524A8D6": {
+        "$": "Unreachable"
+      },
+      "m_A7B12CE0": {
+        "$": "Unreachable"
+      }
+    },
+    "cases": [
+      {
+        "name": "0-absent",
+        "position": 0,
+        "service": "absent",
+        "expected": {
+          "status": "ok",
+          "begin": [
+            true,
+            1
+          ],
+          "end": [
+            false,
+            1
+          ]
+        }
+      },
+      {
+        "name": "0-unknown",
+        "position": 0,
+        "service": "unknown",
+        "expected": {
+          "status": "unavailable"
+        }
+      },
+      {
+        "name": "0-present",
+        "position": 0,
+        "service": "present",
+        "expected": {
+          "status": "unavailable"
+        }
+      },
+      {
+        "name": "4-absent",
+        "position": 4,
+        "service": "absent",
+        "expected": {
+          "status": "ok",
+          "begin": [
+            true,
+            1
+          ],
+          "end": [
+            false,
+            1
+          ]
+        }
+      },
+      {
+        "name": "4-unknown",
+        "position": 4,
+        "service": "unknown",
+        "expected": {
+          "status": "unavailable"
+        }
+      },
+      {
+        "name": "4-present",
+        "position": 4,
+        "service": "present",
+        "expected": {
+          "status": "unavailable"
+        }
+      }
+    ],
+    "native_only": {
+      "class": "STU_E8D976BE",
+      "position": 6,
+      "fields": {}
+    }
+  }
+}

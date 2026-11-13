@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, io};
 
 use crate::{
     bits::BitWriter,
-    game_content::PRACTICE_RANGE_MODE,
+    game_content::{PRACTICE_RANGE_MODE, is_junkenstein_mode},
     script_graph::{Graph, GraphStore},
     script_wire::{
         Instance, Layout, Value, Variables, WireError, owner_full, remote_full, subscript,
@@ -48,6 +48,7 @@ pub struct Controller {
     screen: Layout,
     entry: Layout,
     hud: Option<Hud>,
+    parent: Option<(Layout, StateSlot)>,
     allow: usize,
     hero_select: usize,
     start_host: StateSlot,
@@ -77,6 +78,43 @@ impl Controller {
         let host = graph(graphs, HERO_SELECT_HOST)?;
         let screen = graph(graphs, HERO_SELECT)?;
         let entry = graph(graphs, TEAM_ENTRY)?;
+        let parent = if is_junkenstein_mode(mode_guid) {
+            let team = graphs
+                .mode_scripts(mode_guid)
+                .and_then(|mode| mode.teams.get(&0))
+                .ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "missing Junkenstein defender team scripts",
+                    )
+                })?;
+            let wrapper = graph(
+                graphs,
+                team.controller.ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "missing Junkenstein defender controller",
+                    )
+                })?,
+            )?;
+            let state = wrapper.state(0).filter(|node| {
+                node.class == "STU_37D754C8"
+                    && node
+                        .field("m_36F7B64C.m_36F7B64C.m_C974E369.m_graph")
+                        .and_then(serde_json::Value::as_str)
+                        .and_then(crate::accounts::parse_guid)
+                        == Some(0x0580_0000_0000_0c90)
+            });
+            if state.is_none() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "missing Junkenstein common controller SubScript",
+                ));
+            }
+            Some((layout(wrapper)?, owner_slot(wrapper, 0)?))
+        } else {
+            None
+        };
         let hud = start_hud
             .map(|index| {
                 let hud = graph(graphs, HUD)?;
@@ -94,6 +132,7 @@ impl Controller {
             screen: layout(screen)?,
             entry: layout(entry)?,
             hud,
+            parent,
             allow: presence_bit(root, ALLOW_SELECT)?,
             hero_select: owner_slot(root, hero_select)?.wire,
             start_host: owner_slot(root, start_host)?,
@@ -109,33 +148,57 @@ impl Controller {
         command_frame: u32,
         input: ControllerFrame<'_>,
     ) -> Result<BitWriter, WireError> {
-        let mut root = Instance::new(1, self.root, None);
+        let mut instances = Vec::with_capacity(5);
+        let root_id = if let Some((layout, slot)) = self.parent {
+            let mut parent = Instance::new(1, layout, None);
+            parent.states.insert(slot.wire, subscript(2));
+            instances.push(parent);
+            2
+        } else {
+            1
+        };
+        let mut root = Instance::new(
+            root_id,
+            self.root,
+            self.parent.map(|(_, slot)| (1, slot.index)),
+        );
         root.presence.insert(self.allow, Value::Bool(true));
         if let Some(extra) = input.presence {
             root.presence
                 .extend(extra.iter().map(|(&slot, value)| (slot, value.clone())));
         }
         root.states.insert(self.hero_select, BitWriter::new());
-        root.states.insert(self.start_host.wire, subscript(2));
+        let host_id = root_id + 1;
+        let screen_id = root_id + 2;
+        root.states.insert(self.start_host.wire, subscript(host_id));
 
-        let entry_id = if self.hud.is_some() { 5 } else { 4 };
-        let mut host = Instance::new(2, self.host, Some((1, self.start_host.index)));
-        host.states.insert(self.start_screen.wire, subscript(3));
+        let entry_id = root_id + if self.hud.is_some() { 4 } else { 3 };
+        let mut host = Instance::new(host_id, self.host, Some((root_id, self.start_host.index)));
+        host.states
+            .insert(self.start_screen.wire, subscript(screen_id));
         host.states
             .insert(self.start_entry.wire, subscript(entry_id));
-        let mut screen = Instance::new(3, self.screen, Some((2, self.start_screen.index)));
+        let mut screen = Instance::new(
+            screen_id,
+            self.screen,
+            Some((host_id, self.start_screen.index)),
+        );
         if input.skins {
             screen.presence.insert(self.assembling, Value::Bool(true));
         }
         if input.hide_assemble {
             screen.variables.insert(HIDE_ASSEMBLE, Value::Bool(true));
         }
-        let entry = Instance::new(entry_id, self.entry, Some((2, self.start_entry.index)));
+        let entry = Instance::new(
+            entry_id,
+            self.entry,
+            Some((host_id, self.start_entry.index)),
+        );
 
-        let mut instances = Vec::with_capacity(usize::from(entry_id));
         let hud = self.hud.map(|hud| {
-            root.states.insert(hud.root_state.wire, subscript(4));
-            let mut instance = Instance::new(4, hud.layout, Some((1, hud.root_state.index)));
+            let id = root_id + 3;
+            root.states.insert(hud.root_state.wire, subscript(id));
+            let mut instance = Instance::new(id, hud.layout, Some((root_id, hud.root_state.index)));
             instance.states.insert(hud.shared_vars, BitWriter::new());
             instance
         });
@@ -243,6 +306,33 @@ mod tests {
         let choosing = team_entry(layout, None).unwrap();
         assert_frame(&choosing, 69, "884614001342000000");
         assert_eq!(team_entry(layout, Some(0)).unwrap(), choosing);
+    }
+
+    #[test]
+    #[ignore = "requires an authorized 104319 runtime in ORPHEUS_RUNTIME_DIR"]
+    fn junkenstein_controller_matches_reference_parent_tree() {
+        let runtime = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let graphs = GraphStore::load(runtime.join("data/game_graphs_174.json.gz")).unwrap();
+        for mode in [
+            crate::game_content::JUNKENSTEIN_REVENGE,
+            crate::game_content::JUNKENSTEIN_ENDLESS,
+        ] {
+            let controller = Controller::load(&graphs, mode).unwrap();
+            let frame = controller
+                .controller_frame(
+                    200,
+                    ControllerFrame {
+                        select_open: true,
+                        ..ControllerFrame::default()
+                    },
+                )
+                .unwrap();
+            assert_frame(
+                &frame,
+                543,
+                "822c441940403250000042118504dc118b283400806844a10101c00c13a096f5200000090000003000004200080000000000000000000000001a00c0221518000000001b",
+            );
+        }
     }
 
     #[test]

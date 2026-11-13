@@ -222,11 +222,30 @@ impl GameService {
         player: MatchPlayer,
         card: PlayerCard,
     ) -> io::Result<Handoff> {
-        if scene.map().mode_guid != PRACTICE_RANGE_MODE || !scene.movement_ready() {
+        if scene.map().mode_guid != PRACTICE_RANGE_MODE {
             return Err(io::Error::new(
                 io::ErrorKind::Unsupported,
                 "the native world bootstrap requires the solo Practice Range without bot VM graphs",
             ));
+        }
+        self.open_prepared_solo(id, scene, player, card)
+    }
+
+    pub(crate) fn open_prepared_solo(
+        &self,
+        id: [u64; 2],
+        scene: PreparedScene,
+        player: MatchPlayer,
+        card: PlayerCard,
+    ) -> io::Result<Handoff> {
+        if !scene.movement_ready() {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "this map cannot start in the native solo worker",
+            ));
+        }
+        if scene.map().is_junkenstein() && scene.encounter_snapshot().is_none() {
+            return Err(invalid("Junkenstein world has no initialized encounter"));
         }
         let viewer = PlayerAppearance {
             entity: player_entity(0),
@@ -449,8 +468,8 @@ fn initial_controller(scene: &PreparedScene, tick: u32) -> io::Result<crate::bit
             tick,
             ControllerFrame {
                 select_open: true,
-                skins: true,
-                hide_assemble: true,
+                skins: !scene.map().is_junkenstein(),
+                hide_assemble: !scene.map().is_junkenstein(),
                 ..ControllerFrame::default()
             },
         )
@@ -465,7 +484,7 @@ fn script_record(entity: u32, payload: &crate::bits::BitWriter) -> io::Result<En
     })
 }
 
-fn player_entity(slot: usize) -> u32 {
+pub(crate) fn player_entity(slot: usize) -> u32 {
     0xa000_0000 | ((slot as u32 + 1) << 8)
 }
 
@@ -488,13 +507,18 @@ impl Peer {
     }
 
     fn bot_hit(&mut self, hit: BotHit) {
+        self.world.deliver_applied_damage(hit.damage);
         self.world.queue_health(hit.health);
         for notice in hit.notices.into_iter().flatten() {
-            if self.combat_ui.notices.len() == MAX_PENDING_COMBAT_NOTICES {
-                self.combat_ui.notices.pop_front();
-            }
-            self.combat_ui.notices.push_back(notice);
+            self.queue_combat_notice(notice);
         }
+    }
+
+    fn queue_combat_notice(&mut self, notice: CombatNotice) {
+        if self.combat_ui.notices.len() == MAX_PENDING_COMBAT_NOTICES {
+            self.combat_ui.notices.pop_front();
+        }
+        self.combat_ui.notices.push_back(notice);
     }
 
     fn flush_combat(&mut self, schemas: &Schemas, now: Duration) -> Result<(), RoomError> {
@@ -504,6 +528,11 @@ impl Peer {
                 .notices
                 .pop_front()
                 .ok_or(RoomError::Invariant("pending combat notice disappeared"))?;
+            if let CombatNotice::Voice { listener, .. } = notice
+                && self.world.spawned_body() != Some(listener)
+            {
+                continue;
+            }
             let entity = notice.required_identity();
             if entity.is_some_and(|entity| !self.world.identity_ready(entity))
                 || (notice.needs_mode_ui() && !self.world.mode_ready())
@@ -604,6 +633,13 @@ impl Peer {
                 .as_ref()
                 .ok_or(RoomError::Invariant("started world missing"))?;
             self.world.present(&world.scene, tick)?;
+        }
+        if self.world.world_started() {
+            let world = room
+                .world
+                .as_ref()
+                .ok_or(RoomError::Invariant("started scene scripts have no world"))?;
+            self.world.present_scene_scripts(&world.scene)?;
         }
         Ok(())
     }
@@ -1369,9 +1405,192 @@ mod tests {
         exercise_prepared_world(PreparedFixture::Projectile);
     }
 
+    #[test]
+    #[ignore = "requires a tagged 104319 Practice Range scene without bot VM graphs"]
+    fn prepared_worker_retries_the_stock_soldier_vm_on_encrypted_loopback() {
+        exercise_prepared_world(PreparedFixture::StockOwner);
+    }
+
+    #[test]
+    #[ignore = "requires a tagged 104319 Practice Range scene without bot VM graphs"]
+    fn prepared_worker_delivers_stock_helix_over_encrypted_udp() {
+        exercise_prepared_world(PreparedFixture::StockProjectile);
+    }
+
+    #[test]
+    #[ignore = "requires a tagged 104319 Practice Range scene without bot VM graphs"]
+    fn prepared_worker_delivers_stock_biotic_canister_and_field() {
+        exercise_prepared_world(PreparedFixture::StockBiotic);
+    }
+
+    #[test]
+    #[ignore = "requires the prepared 104319 Junkenstein map, collision and graph data"]
+    fn junkenstein_worker_delivers_castle_gate_and_mode_frame() {
+        use crate::game_content::{JUNKENSTEIN_GATE, JUNKENSTEIN_MAP, JunkensteinCard, MapCatalog};
+        let runtime = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let data = runtime.join("data");
+        let schemas = Arc::new(Schemas::load(data.join("game_schemas_174.json")).unwrap());
+        let maps = MapCatalog::load(data.join("game_maps_174.json")).unwrap();
+        let assets = crate::scene_assets::SceneAssets::load(runtime).unwrap();
+        let mut server = GameService::bind(local(), Arc::clone(&schemas)).unwrap();
+        for index in [0x3c, 0x43, 0x16e] {
+            let card = JunkensteinCard::from_index(index).unwrap();
+            let mode = card.mode;
+            let map = maps
+                .game_map(
+                    JUNKENSTEIN_MAP,
+                    mode,
+                    "Junkenstein's Revenge",
+                    false,
+                    &[card.players, 0],
+                )
+                .unwrap();
+            let scene = assets.prepare_junkenstein(map, card, 0).unwrap();
+            // Verify that encrypted delivery preserves the complete prepared HUD.
+            // Authored descriptor/parent structure is covered by the all-card test.
+            let expected_mode = (
+                scene.mode_ui().bit_len(),
+                scene.mode_ui().as_bytes().to_vec(),
+            );
+            let id = [MATCH[0], u64::from(index)];
+            let debug_id = format!("{:016X}{:016X}", id[0], id[1]);
+            let encounter = || {
+                server
+                    .debug_snapshot()
+                    .unwrap()
+                    .rooms
+                    .into_iter()
+                    .find(|room| room.id == debug_id)
+                    .unwrap()
+                    .encounter
+            };
+            let ticket = server
+                .open_prepared_solo(id, scene, player().pop().unwrap(), PlayerCard::default())
+                .unwrap();
+            let mut client = Client::new(server.local_addr(), &ticket);
+            client.handshake();
+            let load = client.receive();
+            assert!(client.window.accept(load.seq));
+            let messages = messages(&schemas, &load);
+            assert_eq!(messages[0].message.id, 20300);
+            assert_eq!(
+                messages[0].message.fields[&0x4a8],
+                Value::Unsigned(JUNKENSTEIN_MAP)
+            );
+            assert!(encounter().is_none());
+            let mut payload = BitWriter::new();
+            let loaded = encode(&schemas, 21602, &Fields::new()).unwrap();
+            write_channel(&mut payload, &[(0, loaded)], &[]).unwrap();
+            client.send(ACK, payload.into_bytes());
+
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let mut gate_created = false;
+            let mut presented = false;
+            let mut controller_ready = false;
+            loop {
+                let packet = client.receive();
+                assert!(client.window.accept(packet.seq));
+                for record in world_records(&schemas, &packet) {
+                    if record.entity == (0x8000_0000 | JUNKENSTEIN_GATE) && record.is_create() {
+                        gate_created = true;
+                    }
+                    controller_ready |=
+                        record.entity == player_entity(0) && record.script.is_some();
+                    if let Some(frame) = record
+                        .script
+                        .filter(|frame| record.entity == GAME_MODE_ENTITY && frame.first == 0)
+                    {
+                        assert_eq!(frame.width, expected_mode.0);
+                        assert_eq!(frame.data, expected_mode.1);
+                        presented = true;
+                    }
+                }
+                client.send(ACK, Vec::new());
+                if gate_created && presented && controller_ready {
+                    break;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "waiting for castle gate and mode {mode:x}"
+                );
+            }
+            let started = encounter().expect("encounter clock after world entry");
+            assert!(
+                started.elapsed_ms < 2_000,
+                "clock must be relative to world entry"
+            );
+            assert!(!started.countdown_started);
+            let hero = assets.heroes().find_hero("Cassidy").unwrap().guid;
+            send_game_message(
+                &mut client,
+                &schemas,
+                1,
+                crate::game_parameters::PICK_HERO,
+                hero.to_le_bytes().to_vec(),
+            );
+            let deadline = Instant::now() + Duration::from_secs(3);
+            let mut lost = None;
+            loop {
+                let packet = client.receive();
+                let delta = world_records(&schemas, &packet)
+                    .into_iter()
+                    .find(|record| record.entity == GAME_MODE_ENTITY)
+                    .and_then(|record| record.script)
+                    .filter(|script| {
+                        if script.first == 0 {
+                            return false;
+                        }
+                        let mut bits = script.bits();
+                        bits.bits(2).ok() == Some(0)
+                            && bits.w_u16().ok() == Some(2)
+                            && bits.bits(2).ok() == Some(0)
+                            && bits.w_u16().ok() == Some(0)
+                            && bits.bit().ok() == Some(true)
+                            && bits.w_var().ok() == Some(1303)
+                    });
+                if let Some(delta) = delta {
+                    assert_eq!(delta.span, 0);
+                    let mut bits = delta.bits();
+                    assert_eq!(bits.bits(2).unwrap(), 0);
+                    assert_eq!(bits.w_u16().unwrap(), 2);
+                    assert_eq!(bits.bits(2).unwrap(), 0);
+                    assert_eq!(bits.w_u16().unwrap(), 0);
+                    assert!(bits.bit().unwrap());
+                    assert_eq!(bits.w_var().unwrap(), 1303);
+                    let value = match bits.bits(4).unwrap() {
+                        5 => bits.bits(4).unwrap() as f32,
+                        8 => bits.f32().unwrap(),
+                        tag => panic!("unexpected countdown value type {tag}"),
+                    };
+                    assert!((7.5..=8.0).contains(&value));
+                    if let Some(first) = lost {
+                        assert_eq!(delta, first);
+                        assert!(client.window.accept(packet.seq));
+                        client.send(ACK, Vec::new());
+                        let live = encounter().unwrap();
+                        assert!(live.countdown_started && live.elapsed_ms > started.elapsed_ms);
+                        break;
+                    }
+                    lost = Some(delta);
+                } else {
+                    assert!(client.window.accept(packet.seq));
+                    client.send(ACK, Vec::new());
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "waiting for countdown retransmit in mode {mode:x}"
+                );
+            }
+        }
+        server.stop().unwrap();
+    }
+
     #[derive(Clone, Copy)]
     enum PreparedFixture {
         Stock,
+        StockOwner,
+        StockProjectile,
+        StockBiotic,
         Owner,
         Combat,
         Projectile,
@@ -1449,7 +1668,44 @@ mod tests {
             (&assets, &collection),
             |map| {
                 let mut scene = assets.prepare(map)?;
-                if !matches!(fixture, PreparedFixture::Stock) {
+                if matches!(fixture, PreparedFixture::StockOwner) {
+                    assert!(!scripted_bots);
+                    let [x, y, z] = scene.map().spawn_point(0, 0).unwrap().0;
+                    let (bots, _) = scene.bot_simulation();
+                    bots.body_mut(BOT_ENTITY + 1).unwrap().position = [x - 4.0, y, z];
+                }
+                if matches!(
+                    fixture,
+                    PreparedFixture::Projectile | PreparedFixture::StockProjectile
+                ) {
+                    assert!(!scripted_bots);
+                    let [x, y, z] = scene.map().spawn_point(0, 0).unwrap().0;
+                    let (bots, _) = scene.bot_simulation();
+                    assert_eq!(
+                        bots.bodies()
+                            .unwrap()
+                            .take(3)
+                            .map(|bot| bot.spawn.team)
+                            .collect::<Vec<_>>(),
+                        [0, 1, 1]
+                    );
+                    assert!(
+                        bots.bodies()
+                            .unwrap()
+                            .take(3)
+                            .all(|bot| bot.spawn.route.is_empty())
+                    );
+                    bots.body_mut(BOT_ENTITY).unwrap().position = [x - 3.5, y, z];
+                    bots.body_mut(BOT_ENTITY + 1).unwrap().position = [x - 5.0, y, z];
+                    bots.body_mut(BOT_ENTITY + 2).unwrap().position = [x - 5.0, y, z + 0.8];
+                }
+                if !matches!(
+                    fixture,
+                    PreparedFixture::Stock
+                        | PreparedFixture::StockOwner
+                        | PreparedFixture::StockProjectile
+                        | PreparedFixture::StockBiotic
+                ) {
                     assert!(!scripted_bots);
                     let factory = match fixture {
                         PreparedFixture::Combat => {
@@ -1628,11 +1884,28 @@ mod tests {
         }
         assert!(mode && controller && moving_bot);
         match fixture {
-            PreparedFixture::Owner => exercise_owner_vm(&mut client, &schemas),
+            PreparedFixture::Owner => {
+                exercise_owner_vm(&mut client, &schemas, true);
+            }
+            PreparedFixture::StockOwner => {
+                let frame = exercise_owner_vm(&mut client, &schemas, false);
+                exercise_stock_rifle(&mut client, &schemas, frame + 1, BOT_ENTITY + 1);
+            }
             PreparedFixture::Combat => {
                 exercise_combat(&mut client, &schemas, BOT_ENTITY + 1, BOT_ENTITY + 15)
             }
-            PreparedFixture::Projectile => exercise_projectile(&mut client, &schemas),
+            PreparedFixture::Projectile => exercise_projectile(&mut client, &schemas, None),
+            PreparedFixture::StockProjectile => {
+                let frame = exercise_owner_vm(&mut client, &schemas, false);
+                let launch = wait_for_stock_weapon(&mut client, &schemas, frame + 1);
+                exercise_projectile(&mut client, &schemas, Some(launch));
+            }
+            PreparedFixture::StockBiotic => {
+                assert!(!scripted_bots);
+                let frame = exercise_owner_vm(&mut client, &schemas, false);
+                let launch = wait_for_stock_weapon(&mut client, &schemas, frame + 1);
+                exercise_stock_biotic(&mut client, &schemas, launch);
+            }
             PreparedFixture::Stock => {
                 exercise_hero_selection(&mut client, &schemas, &assets, &server, &ticket);
                 let snapshot = server.debug_snapshot().unwrap();
@@ -1804,18 +2077,20 @@ mod tests {
         }
     }
 
-    fn exercise_projectile(client: &mut Client, schemas: &Schemas) {
+    fn exercise_projectile(client: &mut Client, schemas: &Schemas, stock_frame: Option<u32>) {
         use crate::{
             commands::SECONDARY, game_bots::BOT_ENTITY, game_projectiles::ProjectileLeases,
             script_player::FIXTURE_PROJECTILE_DEFINITION,
         };
 
-        let frame = pick_soldier_for_weapon(client, schemas);
+        let frame = stock_frame.unwrap_or_else(|| pick_soldier_for_weapon(client, schemas));
         let definition = FIXTURE_PROJECTILE_DEFINITION;
-        let original = ProjectileLeases::new(0, frame, [definition])
-            .unwrap()
-            .entity(definition, frame, 0)
-            .unwrap();
+        let mut original = stock_frame.is_none().then(|| {
+            ProjectileLeases::new(0, frame, [definition])
+                .unwrap()
+                .entity(definition, frame, 0)
+                .unwrap()
+        });
         let commands = command_batch(frame, 1, -16384, SECONDARY, false);
         client.send(ACK, commands.clone());
         client.send(ACK, commands);
@@ -1827,20 +2102,22 @@ mod tests {
         let mut creates = HashSet::new();
         let mut releases = HashSet::new();
         let mut lost_original = false;
-        while !releases.contains(&original) || health.len() < 2 || impacts.len() < 3 {
+        while !original.is_some_and(|id| releases.contains(&id))
+            || health.len() < 2
+            || impacts.len() < 3
+        {
             let packet = client.receive();
             let tick = BitReader::new(&packet.payload).var_a().unwrap();
             let records = world_records(schemas, &packet);
-            if !creates.contains(&original) {
-                assert!(!records.iter().any(|record| {
-                    record.entity == original && record.projectile_release.is_some()
+            let first_create = records.iter().find(|record| {
+                original.is_none_or(|id| record.entity == id)
+                    && record.definition == Some(definition as u32)
+            });
+            if let (false, Some(create)) = (lost_original, first_create) {
+                assert!(records.iter().all(|record| {
+                    record.entity != create.entity || record.projectile_release.is_none()
                 }));
-            }
-            if !lost_original
-                && records.iter().any(|record| {
-                    record.entity == original && record.definition == Some(definition as u32)
-                })
-            {
+                original = Some(create.entity);
                 lost_original = true;
                 continue; // a later ACK will expose the lost confirmation datagram
             }
@@ -1884,7 +2161,7 @@ mod tests {
             client.send(ACK, Vec::new());
             assert!(
                 Instant::now() < deadline,
-                "waiting for Helix: shot {frame}, entity {original:#x}, impacts {impacts:?}, health {health:?}, creates {creates:?}, releases {releases:?}"
+                "waiting for Helix: shot {frame}, entity {original:?}, impacts {impacts:?}, health {health:?}, creates {creates:?}, releases {releases:?}"
             );
         }
         assert!(lost_original);
@@ -1903,7 +2180,140 @@ mod tests {
         );
     }
 
-    fn exercise_owner_vm(client: &mut Client, schemas: &Schemas) {
+    fn exercise_stock_biotic(client: &mut Client, schemas: &Schemas, launch: u32) {
+        client.send(ACK, command_batch(launch, 32, 0, 0x10, false));
+        client.send(ACK, command_batch(launch + 32, 32, 0, 0, false));
+        let deadline = Instant::now() + Duration::from_secs(9);
+        let mut canisters = HashMap::new();
+        let mut fields = HashMap::new();
+        loop {
+            let packet = client.receive();
+            let tick = BitReader::new(&packet.payload).var_a().unwrap();
+            assert!(client.window.accept(packet.seq));
+            let mut retired = false;
+            let records = world_records(schemas, &packet);
+            for record in &records {
+                if record.is_create() && record.definition == Some(0x03dc) {
+                    assert!(
+                        !canisters.is_empty(),
+                        "field preceded canister confirmation"
+                    );
+                    fields.entry(record.entity).or_insert((0, None));
+                }
+                if let Some((phase, destroyed)) = fields.get_mut(&record.entity) {
+                    if let Some(script) = &record.script {
+                        assert!(!record.is_create(), "field script preceded create ACK");
+                        match (script.width, script.data.as_slice()) {
+                            (48, [0x08, 0x2c, 0x01, 0, 0x78, 0x0f]) => {
+                                assert!(*phase <= 1);
+                                *phase = 1;
+                            }
+                            (47, [0x08, 0x2c, 0x01, 0, 0x78, 0x03]) => {
+                                assert!(*phase >= 1, "fade preceded active field");
+                                *phase = 2;
+                            }
+                            _ => panic!("unexpected field script {script:?}"),
+                        }
+                    }
+                    if record.operation == Some(3) {
+                        assert_eq!(*phase, 2, "field retired before fade");
+                        destroyed.get_or_insert(tick);
+                    }
+                }
+                if let (Some(3), Some(&created)) = (record.operation, canisters.get(&record.entity))
+                {
+                    assert!(record.projectile_release.is_none());
+                    // The create can arrive after prediction acknowledgement.
+                    assert!(
+                        tick - created >= 250,
+                        "canister retired before field expiry"
+                    );
+                    assert!(!fields.is_empty(), "no field entity was replicated");
+                    assert!(
+                        fields
+                            .values()
+                            .all(|(_, destroyed)| destroyed.is_some_and(|t| t < tick)),
+                        "canister retired before field destroy ACK"
+                    );
+                    retired = true;
+                }
+            }
+            for record in records {
+                if record.is_create()
+                    && record.definition == Some(crate::game_combat::BIOTIC_CANISTER as u32)
+                {
+                    canisters.entry(record.entity).or_insert(tick);
+                }
+            }
+            client.send(ACK, Vec::new());
+            if retired {
+                break;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "waiting for canister and field lifecycle: {canisters:?}, {fields:?}"
+            );
+        }
+    }
+
+    fn wait_for_stock_weapon(client: &mut Client, schemas: &Schemas, frame: u32) -> u32 {
+        // The authored weapon startup must finish before combat input.
+        let warmup = command_batch(frame, 24, -16384, 0, false);
+        client.send(ACK, warmup);
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            let packet = client.receive();
+            assert!(client.window.accept(packet.seq));
+            client.send(ACK, Vec::new());
+            if input_ack(schemas, &packet) >= frame + 23 {
+                break;
+            }
+            assert!(Instant::now() < deadline, "waiting for the rifle warmup");
+        }
+        frame + 24
+    }
+
+    fn exercise_stock_rifle(client: &mut Client, schemas: &Schemas, frame: u32, target: u32) {
+        let frame = wait_for_stock_weapon(client, schemas, frame);
+        client.send(
+            ACK,
+            command_batch(frame, 8, -16384, crate::commands::FIRE, false),
+        );
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let mut damaged = false;
+        let mut reported = false;
+        while !damaged || !reported {
+            let packet = client.receive();
+            assert!(client.window.accept(packet.seq));
+            for message in messages(schemas, &packet) {
+                if message.message.id == 25001 {
+                    let Value::Struct(impact) = &message.message.fields[&0x78] else {
+                        panic!("missing hit body");
+                    };
+                    assert_eq!(
+                        impact[&0],
+                        Value::Struct(Fields::from([(0, Value::Unsigned(u64::from(target)))]))
+                    );
+                    assert!(matches!(impact[&4], Value::Unsigned(amount) if amount > 0));
+                    reported = true;
+                }
+            }
+            damaged |= world_records(schemas, &packet).iter().any(|record| {
+                record.entity == target
+                    && record.operation == Some(2)
+                    && record
+                        .base_health
+                        .is_some_and(|health| (0.0..200.0).contains(&health))
+            });
+            client.send(ACK, Vec::new());
+            assert!(
+                Instant::now() < deadline,
+                "waiting for an authored rifle hit"
+            );
+        }
+    }
+
+    fn exercise_owner_vm(client: &mut Client, schemas: &Schemas, forward: bool) -> u32 {
         use crate::{game_heroes::SOLDIER, game_parameters::PICK_HERO};
 
         let owner = player_entity(0);
@@ -1987,7 +2397,7 @@ mod tests {
         let (_, c0) = wait_chunk(client);
         assert_eq!((c0.first, c0.span), (2, 0));
         check_delta(&c0, false, start);
-        skip_chunk(client, input_batch(start + 1, 16, 0));
+        skip_chunk(client, command_batch(start + 1, 16, 0, 0, forward));
         let (sequence, retry) = wait_chunk(client);
         assert_eq!(retry, c0);
         accept_chunk(client, sequence);
@@ -1995,11 +2405,12 @@ mod tests {
         let (_, c1) = wait_chunk(client);
         assert_eq!((c1.first, c1.span), (3, 0));
         check_delta(&c1, true, start + 16);
-        skip_chunk(client, input_batch(start + 17, 1, 0));
+        skip_chunk(client, command_batch(start + 17, 1, 0, 0, forward));
         let (sequence, cumulative) = wait_chunk(client);
         assert_eq!((cumulative.first, cumulative.span), (3, 1));
         check_delta(&cumulative, true, start + 17);
         accept_chunk(client, sequence);
+        start + 17
     }
 
     fn exercise_hero_selection(
@@ -2158,10 +2569,15 @@ mod tests {
             let packet = client.receive();
             assert!(client.window.accept(packet.seq));
             let records = world_records(schemas, &packet);
-            if !describe(&records).is_empty() {
-                assert_eq!(describe(&records), [(OWNER, None, Some(3))]);
+            let changes: Vec<_> = describe(&records)
+                .into_iter()
+                .filter(|(entity, operation, _)| *entity != FIRST || operation.is_some())
+                .collect();
+            if !changes.is_empty() {
+                assert_eq!(changes, [(OWNER, None, Some(3))]);
                 break verify_controller(&records, SOLDIER, true);
             }
+            client.send(ACK, Vec::new());
             assert!(
                 Instant::now() < deadline,
                 "waiting for hero selection to reopen"

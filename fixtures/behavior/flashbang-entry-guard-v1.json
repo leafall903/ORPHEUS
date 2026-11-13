@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "case_id": "flashbang.entry-guard.v1",
+  "target_build": 104319,
+  "source": {
+    "kind": "synthetic-reference-and-authored-graph",
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "scope": "224E node4 Boolean entry guard, effective entity2547 and public-schema local29458; actual0228 does not override the local. No complete classification or reaction claim."
+  },
+  "condition": {
+    "$": "STU_919FD47C",
+    "m_EE729DCB": 0,
+    "m_configVars": null,
+    "m_expression": {
+      "$": "STUConfigVarExpressionData",
+      "m_D99EF254": null,
+      "m_dynamicVars": [
+        {
+          "$": "STUConfigVarDynamic",
+          "m_60DB8F99": 1,
+          "m_identifier": 2547
+        },
+        {
+          "$": "STUConfigVarDynamic",
+          "m_60DB8F99": 0,
+          "m_identifier": 29458
+        }
+      ],
+      "m_fragments": null,
+      "m_opcodes": [
+        8,
+        0,
+        30,
+        3,
+        4,
+        8,
+        1,
+        0
+      ]
+    }
+  },
+  "cases": [
+    {
+      "name": "unset",
+      "base": null,
+      "force_default": false,
+      "stack_value": null,
+      "accepted": true
+    },
+    {
+      "name": "false",
+      "base": false,
+      "force_default": false,
+      "stack_value": null,
+      "accepted": true
+    },
+    {
+      "name": "true",
+      "base": true,
+      "force_default": false,
+      "stack_value": null,
+      "accepted": false
+    },
+    {
+      "name": "forced",
+      "base": true,
+      "force_default": true,
+      "stack_value": null,
+      "accepted": true
+    },
+    {
+      "name": "linked-true-over-false",
+      "base": false,
+      "force_default": false,
+      "stack_value": true,
+      "accepted": false
+    },
+    {
+      "name": "linked-false-over-true",
+      "base": true,
+      "force_default": false,
+      "stack_value": false,
+      "accepted": true
+    },
+    {
+      "name": "unavailable-body",
+      "base": false,
+      "force_default": false,
+      "stack_value": null,
+      "unavailable": true,
+      "error": true
+    },
+    {
+      "name": "unhandled-wrapper-override",
+      "base": true,
+      "force_default": false,
+      "stack_value": null,
+      "wrapper_override": true,
+      "error": true
+    }
+  ]
+}

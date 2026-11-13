@@ -1,0 +1,334 @@
+{
+  "contract": "gallery-preview-policy-v1",
+  "provenance": {
+    "kind": "synthetic policy cases using approved target-build resource identifiers",
+    "native_evidence": "104319 93CBF16B resource getter, CosmeticEntity builder entry layout and native component-index/iterator replay",
+    "limits": "The native expression and builder adapter still require separate validation; this fixture does not prove rendering, camera or animation acceptance."
+  },
+  "selection": [
+    {
+      "name": "Training Bot 00000000016B.075",
+      "hero": "0x2e000000000016b",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x400000000001403",
+      "expected": "0x400000000001403"
+    },
+    {
+      "name": "Friendly Bot 00000000016C.075",
+      "hero": "0x2e000000000016c",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x40000000000143e",
+      "expected": "0x40000000000143e"
+    },
+    {
+      "name": "Friendly Bot 00000000016D.075",
+      "hero": "0x2e000000000016d",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x40000000000146e",
+      "expected": "0x40000000000146e"
+    },
+    {
+      "name": "Training Bot 00000000016E.075",
+      "hero": "0x2e000000000016e",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x4000000000014ed",
+      "expected": "0x4000000000014ed"
+    },
+    {
+      "name": "Training Bot 00000000016F.075",
+      "hero": "0x2e000000000016f",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x4000000000014a9",
+      "expected": "0x4000000000014a9"
+    },
+    {
+      "name": "Training Bot 000000000170.075",
+      "hero": "0x2e0000000000170",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x4000000000014d2",
+      "expected": "0x4000000000014d2"
+    },
+    {
+      "name": "Training Bot 000000000171.075",
+      "hero": "0x2e0000000000171",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x4000000000014d2",
+      "expected": "0x4000000000014d2"
+    },
+    {
+      "name": "Training Bot 000000000172.075",
+      "hero": "0x2e0000000000172",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x4000000000014d2",
+      "expected": "0x4000000000014d2"
+    },
+    {
+      "name": "Zomnic 000000000175.075",
+      "hero": "0x2e0000000000175",
+      "playable": false,
+      "preview": "0x40000000000021b",
+      "gameplay": "0x4000000000016be",
+      "expected": "0x4000000000016be"
+    },
+    {
+      "name": "Shock-Tire 000000000176.075",
+      "hero": "0x2e0000000000176",
+      "playable": false,
+      "preview": "0x40000000000021b",
+      "gameplay": "0x4000000000016d6",
+      "expected": "0x4000000000016d6"
+    },
+    {
+      "name": "Zombardier 000000000177.075",
+      "hero": "0x2e0000000000177",
+      "playable": false,
+      "preview": "0x40000000000021b",
+      "gameplay": "0x40000000000171c",
+      "expected": "0x40000000000171c"
+    },
+    {
+      "name": "Gunship 0000000001C7.075",
+      "hero": "0x2e00000000001c7",
+      "playable": false,
+      "preview": "0x400000000001ad1",
+      "gameplay": "0x400000000001fda",
+      "expected": "0x400000000001fda"
+    },
+    {
+      "name": "Boat 0000000001F9.075",
+      "hero": "0x2e00000000001f9",
+      "playable": false,
+      "preview": "0x400000000001ad1",
+      "gameplay": "0x4000000000022d7",
+      "expected": "0x4000000000022d7"
+    },
+    {
+      "name": "Bob 00000000021D.075",
+      "hero": "0x2e000000000021d",
+      "playable": false,
+      "preview": "0x400000000002474",
+      "gameplay": "0x4000000000025c3",
+      "expected": "0x4000000000025c3"
+    },
+    {
+      "name": "playable flag",
+      "hero": "0x2e000000000016b",
+      "playable": true,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x400000000001403",
+      "expected": "0x400000000000c5e"
+    },
+    {
+      "name": "unknown hero",
+      "hero": "0x2e000000000ffff",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x400000000001403",
+      "expected": "0x400000000000c5e"
+    },
+    {
+      "name": "different preview",
+      "hero": "0x2e000000000016b",
+      "playable": false,
+      "preview": "0x40000000000ffff",
+      "gameplay": "0x400000000001403",
+      "expected": "0x40000000000ffff"
+    },
+    {
+      "name": "different body",
+      "hero": "0x2e000000000016b",
+      "playable": false,
+      "preview": "0x400000000000c5e",
+      "gameplay": "0x40000000000ffff",
+      "expected": "0x400000000000c5e"
+    }
+  ],
+  "trees": [
+    {
+      "name": "root and child retain render components",
+      "count": 2,
+      "links": [
+        [
+          0,
+          1,
+          -1
+        ]
+      ],
+      "entries": [
+        [
+          0,
+          4,
+          100
+        ],
+        [
+          0,
+          42,
+          101
+        ],
+        [
+          0,
+          47,
+          102
+        ],
+        [
+          0,
+          51,
+          103
+        ],
+        [
+          1,
+          4,
+          200
+        ],
+        [
+          1,
+          47,
+          201
+        ]
+      ],
+      "success": true,
+      "retained": [
+        [
+          0,
+          4,
+          100
+        ],
+        [
+          0,
+          42,
+          101
+        ],
+        [
+          1,
+          4,
+          200
+        ]
+      ]
+    },
+    {
+      "name": "root sibling stays outside owned tree",
+      "count": 2,
+      "links": [
+        [
+          0,
+          -1,
+          1
+        ]
+      ],
+      "entries": [
+        [
+          0,
+          4,
+          100
+        ],
+        [
+          1,
+          47,
+          200
+        ]
+      ],
+      "success": true,
+      "retained": [
+        [
+          0,
+          4,
+          100
+        ],
+        [
+          1,
+          47,
+          200
+        ]
+      ]
+    },
+    {
+      "name": "sibling cycle rejects without mutations",
+      "count": 2,
+      "links": [
+        [
+          0,
+          1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          1
+        ]
+      ],
+      "entries": [
+        [
+          0,
+          47,
+          100
+        ]
+      ],
+      "success": false
+    },
+    {
+      "name": "ancestor cycle rejects without mutations",
+      "count": 2,
+      "links": [
+        [
+          0,
+          1,
+          -1
+        ],
+        [
+          1,
+          0,
+          -1
+        ]
+      ],
+      "entries": [
+        [
+          0,
+          47,
+          100
+        ]
+      ],
+      "success": false
+    },
+    {
+      "name": "64 builders accepted",
+      "count": 64,
+      "chain": true,
+      "entries": [
+        [
+          63,
+          4,
+          200
+        ]
+      ],
+      "success": true,
+      "retained": [
+        [
+          63,
+          4,
+          200
+        ]
+      ]
+    },
+    {
+      "name": "65 builders reject without mutations",
+      "count": 65,
+      "chain": true,
+      "entries": [
+        [
+          0,
+          47,
+          100
+        ]
+      ],
+      "success": false
+    }
+  ]
+}

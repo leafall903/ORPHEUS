@@ -203,6 +203,7 @@ fn box_id_overflow() -> io::Error {
 
 pub fn new_profile() -> Profile {
     let mut profile = Profile::default();
+    profile.events.push("halloween".into());
     for (box_type, _, count) in BOX_TYPES {
         profile
             .add_boxes(box_type, count)

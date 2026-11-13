@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.foreign-component-read.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::SceneWorld.entity_var_slot",
+      "ow174/game/script/runtime.py::Evaluation.member"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "target": 2684354816,
+    "config": {
+      "$": "STU_919FD47C",
+      "m_configVars": [
+        {
+          "$": "STUConfigVarInt",
+          "m_value": 7
+        }
+      ],
+      "m_expression": {
+        "m_opcodes": [
+          8,
+          0,
+          14,
+          0,
+          15,
+          0
+        ],
+        "m_dynamicVars": [
+          {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": false
+          }
+        ]
+      }
+    },
+    "cases": [
+      {
+        "name": "unavailable",
+        "state": "unavailable",
+        "variables": {}
+      },
+      {
+        "name": "declared-no-component",
+        "state": "absent",
+        "variables": {}
+      },
+      {
+        "name": "running-unset",
+        "state": "running",
+        "variables": {}
+      },
+      {
+        "name": "running-null",
+        "state": "running",
+        "variables": {
+          "7": null
+        }
+      },
+      {
+        "name": "running-false",
+        "state": "running",
+        "variables": {
+          "7": false
+        }
+      },
+      {
+        "name": "running-zero",
+        "state": "running",
+        "variables": {
+          "7": 0
+        }
+      },
+      {
+        "name": "running-integer",
+        "state": "running",
+        "variables": {
+          "7": 4437
+        }
+      },
+      {
+        "name": "running-float",
+        "state": "running",
+        "variables": {
+          "7": 2.5
+        }
+      },
+      {
+        "name": "running-array",
+        "state": "running",
+        "variables": {
+          "7": [
+            1,
+            2,
+            null
+          ]
+        }
+      },
+      {
+        "name": "faulted-component",
+        "state": "faulted",
+        "variables": {
+          "7": 23
+        }
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "unavailable",
+        "error": "unavailable_entity_variable"
+      },
+      {
+        "name": "declared-no-component",
+        "value": null
+      },
+      {
+        "name": "running-unset",
+        "value": null
+      },
+      {
+        "name": "running-null",
+        "value": null
+      },
+      {
+        "name": "running-false",
+        "value": false
+      },
+      {
+        "name": "running-zero",
+        "value": 0
+      },
+      {
+        "name": "running-integer",
+        "value": 4437
+      },
+      {
+        "name": "running-float",
+        "value": 2.5
+      },
+      {
+        "name": "running-array",
+        "value": [
+          1,
+          2,
+          null
+        ]
+      },
+      {
+        "name": "faulted-component",
+        "error": "unavailable_entity_variable"
+      }
+    ]
+  }
+}

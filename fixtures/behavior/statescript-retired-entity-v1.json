@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.retired-entity.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::SceneWorld.unbind",
+      "ow174/game/script/scene.py::SceneWorld.entity_var_slot",
+      "ow174/game/script/entity_queries.py::evaluate",
+      "ow174/game/script/entity_team.py::evaluate"
+    ],
+    "scope": "Explicit room retirement facts, known live component states and declared unavailable services; not a complete entity namespace."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "queries": {
+      "exists": {
+        "$": "STU_E72F6348",
+        "m_entity": {
+          "$": "STUConfigVarDynamic",
+          "m_identifier": 1,
+          "m_60DB8F99": false
+        }
+      },
+      "team": {
+        "$": "STU_65ABFCCC",
+        "m_target": {
+          "$": "STUConfigVarDynamic",
+          "m_identifier": 1,
+          "m_60DB8F99": false
+        }
+      },
+      "member": {
+        "$": "STU_919FD47C",
+        "m_configVars": [
+          {
+            "$": "STUConfigVarInt",
+            "m_value": 6604
+          }
+        ],
+        "m_expression": {
+          "m_dynamicVars": [
+            {
+              "$": "STUConfigVarDynamic",
+              "m_identifier": 1,
+              "m_60DB8F99": false
+            }
+          ],
+          "m_opcodes": [
+            8,
+            0,
+            14,
+            0,
+            15,
+            0
+          ]
+        }
+      }
+    },
+    "cases": [
+      {
+        "name": "retired-body",
+        "state": "retired",
+        "entity": 3221229584,
+        "value": true
+      },
+      {
+        "name": "retired-controller",
+        "state": "retired",
+        "entity": 3221229585,
+        "value": true
+      },
+      {
+        "name": "running-set",
+        "state": "running",
+        "entity": 3221229584,
+        "value": true,
+        "team": 1
+      },
+      {
+        "name": "running-false",
+        "state": "running",
+        "entity": 3221229584,
+        "value": false,
+        "team": 1
+      },
+      {
+        "name": "running-unset",
+        "state": "running",
+        "entity": 3221229584,
+        "team": 1
+      },
+      {
+        "name": "known-no-component",
+        "state": "absent",
+        "entity": 3221229584,
+        "team": 1
+      },
+      {
+        "name": "faulted-component",
+        "state": "faulted",
+        "entity": 3221229584,
+        "team": 1
+      },
+      {
+        "name": "unknown-services",
+        "state": "unavailable",
+        "entity": 3221229600
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "retired-body",
+        "output": {
+          "exists": false,
+          "member": null,
+          "team": -1
+        }
+      },
+      {
+        "name": "retired-controller",
+        "output": {
+          "exists": false,
+          "member": null,
+          "team": -1
+        }
+      },
+      {
+        "name": "running-set",
+        "output": {
+          "exists": true,
+          "member": true,
+          "team": 1
+        }
+      },
+      {
+        "name": "running-false",
+        "output": {
+          "exists": true,
+          "member": false,
+          "team": 1
+        }
+      },
+      {
+        "name": "running-unset",
+        "output": {
+          "exists": true,
+          "member": null,
+          "team": 1
+        }
+      },
+      {
+        "name": "known-no-component",
+        "output": {
+          "exists": true,
+          "member": null,
+          "team": 1
+        }
+      },
+      {
+        "name": "faulted-component",
+        "output": {
+          "exists": true,
+          "member": "unavailable",
+          "team": 1
+        }
+      },
+      {
+        "name": "unknown-services",
+        "output": {
+          "exists": "unavailable",
+          "member": "unavailable",
+          "team": "unavailable"
+        }
+      }
+    ]
+  }
+}

@@ -23,6 +23,40 @@ use crate::{
 const ABYSS: f64 = 100.0;
 const EPSILON: f64 = 1.1754943508222875e-36;
 
+/// Authored velocity edits, applied once before the next collision-aware pose.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum VelocityChange {
+    Delta([f64; 3]),
+    HorizontalCap(f64),
+}
+
+impl VelocityChange {
+    pub(crate) fn apply(self, velocity: &mut [f64; 3]) {
+        match self {
+            Self::Delta(delta) => {
+                for (axis, delta) in velocity.iter_mut().zip(delta) {
+                    *axis = f64::from((*axis as f32) + delta as f32);
+                }
+            }
+            Self::HorizontalCap(cap) => {
+                let speed = velocity[0].hypot(velocity[2]);
+                if speed > cap && speed > 0.0 {
+                    for axis in [0, 2] {
+                        velocity[axis] = f64::from((velocity[axis] * cap / speed) as f32);
+                    }
+                }
+            }
+        }
+    }
+
+    pub(crate) fn valid(self) -> bool {
+        match self {
+            Self::Delta(delta) => delta.iter().all(|value| (*value as f32).is_finite()),
+            Self::HorizontalCap(cap) => (cap as f32).is_finite() && cap >= 0.0,
+        }
+    }
+}
+
 /// Project the owner's current movement record into the authored 13-bit sample.
 pub(crate) fn sample_movement_flags(pose: &Movement) -> Option<u16> {
     // These modes require nested native movement records. Regular Rust poses
@@ -57,6 +91,8 @@ pub struct Mover {
     body: CharacterBody,
     posture: Posture,
     modifiers: ModifierTimeline,
+    cinematic_aim: Option<[i32; 2]>,
+    velocity_changes: Vec<(u32, VelocityChange)>,
     last_command: Option<Command>,
     last_input: Option<u32>,
     pose: Movement,
@@ -78,6 +114,8 @@ impl Mover {
             body: standing_body(&base, world, position, category),
             posture: Posture::new(&base),
             modifiers: ModifierTimeline::default(),
+            cinematic_aim: None,
+            velocity_changes: Vec::new(),
             last_command: None,
             last_input: None,
             pose: Movement {
@@ -93,12 +131,30 @@ impl Mover {
         self.pose
     }
 
+    pub(crate) fn capsule(&self) -> (f64, f64) {
+        if self.crouched() {
+            (self.base.crouch_height, self.base.crouch_radius)
+        } else {
+            (self.base.stand_height, self.base.stand_radius)
+        }
+    }
+
     pub(crate) fn crouched(&self) -> bool {
         self.posture.crouched()
     }
 
     pub fn track_modifiers(&mut self, frame: u32, active: &BTreeMap<ModifierKey, Modifier>) {
         self.modifiers.track(frame, active);
+    }
+
+    pub(crate) fn set_cinematic_aim(&mut self, aim: Option<[i32; 2]>) {
+        self.cinematic_aim = aim;
+    }
+
+    pub(crate) fn queue_velocity_change(&mut self, frame: u32, change: VelocityChange) {
+        if change.valid() {
+            self.velocity_changes.push((frame, change));
+        }
     }
 
     /// Simulate the newest command and any reconstructible poses before it.
@@ -128,7 +184,10 @@ impl Mover {
         mut after_pose: impl FnMut(&mut Self, Command),
     ) -> Result<usize, HullContactError> {
         let mut stepped = 0;
-        for command in pending.by_ref().take(limit) {
+        for mut command in pending.by_ref().take(limit) {
+            if let Some(aim) = self.cinematic_aim {
+                [command.yaw, command.pitch] = aim;
+            }
             self.step_pose(rays, command, dt)?;
             after_pose(self, command);
             stepped += 1;
@@ -145,9 +204,17 @@ impl Mover {
         command: Command,
         dt: f64,
     ) -> Result<(), HullContactError> {
+        self.velocity_changes.retain(|&(frame, change)| {
+            if frame <= command.frame {
+                change.apply(&mut self.pose.velocity);
+                false
+            } else {
+                true
+            }
+        });
         let active = self.modifiers.at(command.frame);
         let settings = active.settings(&self.base);
-        let input = MotionInput::from(&command);
+        let input = MotionInput::from(&command).with_modifiers(&active);
         let probe = self.probe.probe(
             rays,
             self.body.world(),
@@ -310,6 +377,102 @@ mod tests {
     };
 
     #[test]
+    fn velocity_changes_are_ordered_once_and_wait_for_their_pose() {
+        let rays = TriangleIndex::new([]).unwrap();
+        let mut mover = Mover::new(
+            MoverSettings::default(),
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            [0.0; 3],
+            0,
+            0x18,
+        )
+        .unwrap();
+        let mut reference = Mover::new(
+            MoverSettings::default(),
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            [0.0; 3],
+            0,
+            0x18,
+        )
+        .unwrap();
+        for frame in 1..=4 {
+            let command = Command {
+                frame,
+                ..Default::default()
+            };
+            if frame == 3 {
+                reference.pose.velocity[0] = 3.0;
+                reference.pose.velocity[2] = 4.0;
+            }
+            mover
+                .step(&rays, command, 0.016, |mover, command| {
+                    if command.frame == 1 {
+                        mover.queue_velocity_change(3, VelocityChange::Delta([6.0, 0.0, 8.0]));
+                        mover.queue_velocity_change(3, VelocityChange::HorizontalCap(5.0));
+                        mover.queue_velocity_change(3, VelocityChange::Delta([f64::NAN, 0.0, 0.0]));
+                    }
+                })
+                .unwrap();
+            reference.step(&rays, command, 0.016, |_, _| {}).unwrap();
+            assert_eq!(mover.pose(), reference.pose());
+        }
+        assert!(mover.velocity_changes.is_empty());
+        let mut velocity = [6.0, 7.0, 8.0];
+        VelocityChange::HorizontalCap(5.0).apply(&mut velocity);
+        assert_eq!(velocity, [3.0, 7.0, 4.0]);
+        assert!(!VelocityChange::HorizontalCap(-1.0).valid());
+    }
+
+    #[test]
+    fn directional_modifier_changes_live_motion_without_changing_input_records() {
+        let rays = TriangleIndex::new([]).unwrap();
+        let world = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let make_mover = || {
+            Mover::new(
+                MoverSettings::default(),
+                Arc::clone(&world),
+                [0.0; 3],
+                0,
+                0x18,
+            )
+            .unwrap()
+        };
+        let mut modified = make_mover();
+        let mut reference = make_mover();
+        modified.track_modifiers(
+            0,
+            &BTreeMap::from([(
+                ModifierKey {
+                    instance: 1,
+                    state: 1,
+                    slot: 0,
+                },
+                Modifier {
+                    index: 17,
+                    operation: Operation::Multiply,
+                    value: 0.5,
+                    priority: 0.0,
+                },
+            )]),
+        );
+        for frame in 1..=20 {
+            let mut command = Command {
+                frame,
+                forward: 126,
+                ..Command::default()
+            };
+            modified.step(&rays, command, 0.016, |_, _| {}).unwrap();
+            command.forward = 63;
+            reference.step(&rays, command, 0.016, |_, _| {}).unwrap();
+            assert_eq!(modified.pose().position, reference.pose().position);
+            assert_eq!(modified.pose().velocity, reference.pose().velocity);
+            assert_eq!(modified.pose().throttles, [0, 126]);
+            assert_eq!(modified.pose().input_throttles, [0, 126]);
+        }
+        assert!(modified.pose().position[2] > 0.0);
+    }
+
+    #[test]
     fn owner_movement_sample_covers_fresh_and_live_poses() {
         let mut pose = Movement::default();
         assert_eq!(sample_movement_flags(&pose), Some(1 << 1));
@@ -349,7 +512,12 @@ mod tests {
         let settings = MoverCatalog::load(&catalog_path).unwrap();
         let records: BTreeMap<String, serde_json::Value> =
             serde_json::from_slice(&fs::read(catalog_path).unwrap()).unwrap();
-        assert_eq!(records.len(), 38);
+        let expected = match records.len() {
+            // Combined Python cc620be includes normalized spring bounds.
+            38 => "1db24f3d6b8bbda247fcf7db88134d4ad88c5b27b05453d3f7a777f97c4ee9fd",
+            43 => "289ba18c0a1af9e621c4cc72d5e51a8acf45d1fb7a5806af7e866313c26c9e8e",
+            count => panic!("no Python reference vector for the {count}-mover replay"),
+        };
         let sprint = BTreeMap::from([(
             ModifierKey {
                 instance: 1,
@@ -418,9 +586,6 @@ mod tests {
             combined.update(body.to_le_bytes());
             combined.update(digest.finalize());
         }
-        assert_eq!(
-            format!("{:x}", combined.finalize()),
-            "e2fcdb617ec2f5429ea6c54616de11ac20352e46801f0c9f51664818a13b44cf"
-        );
+        assert_eq!(format!("{:x}", combined.finalize()), expected);
     }
 }

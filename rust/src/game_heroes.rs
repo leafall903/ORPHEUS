@@ -10,6 +10,7 @@ use serde::Deserialize;
 use crate::accounts::parse_guid;
 
 pub const SOLDIER: u64 = 0x02e0_0000_0000_006e;
+pub(crate) const CASSIDY: u64 = 0x02e0_0000_0000_0042;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Hero {
