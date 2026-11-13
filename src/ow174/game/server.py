@@ -968,27 +968,32 @@ class Client:
                 own = movements[-1]
             entities = (queued + movements)[:MAX_ENTITY_RECORDS]
         reliable = self.reliable[: messages.MAX_PER_KIND]
+        entity_cache = {}
+
+        def encode_payload(reliable, unreliable, entities):
+            return self._payload(tick, reliable, unreliable, entities, entity_cache=entity_cache)
+
         try:
-            payload = self._payload(tick, reliable, unreliable, entities)
+            payload = encode_payload(reliable, unreliable, entities)
             if len(payload) > MAX_PAYLOAD:
                 # Fit each channel in priority order so a smaller reliable batch
                 # leaves room for the other messages and the ordered entity prefix.
                 if unreliable or entities:
-                    payload = self._payload(tick, reliable, [], [])
+                    payload = encode_payload(reliable, [], [])
                 while len(payload) > MAX_PAYLOAD:
                     if len(reliable) <= 1:
                         self._frame_rejected("oldest reliable message exceeds datagram budget")
                         return
                     reliable = reliable[: len(reliable) // 2]
-                    payload = self._payload(tick, reliable, [], [])
+                    payload = encode_payload(reliable, [], [])
                 while unreliable:
-                    candidate = self._payload(tick, reliable, unreliable, [])
+                    candidate = encode_payload(reliable, unreliable, [])
                     if len(candidate) <= MAX_PAYLOAD:
                         payload = candidate
                         break
                     unreliable = unreliable[: len(unreliable) // 2]
                 while entities:
-                    candidate = self._payload(tick, reliable, unreliable, entities)
+                    candidate = encode_payload(reliable, unreliable, entities)
                     if len(candidate) <= MAX_PAYLOAD:
                         payload = candidate
                         break
@@ -1001,7 +1006,7 @@ class Client:
                 while keep >= prefix:
                     records = [*entities[:keep], own]
                     try:
-                        candidate = self._payload(tick, reliable, unreliable, records)
+                        candidate = encode_payload(reliable, unreliable, records)
                     except (ValueError, OverflowError, struct.error):
                         break  # the already validated packet is still sendable
                     if len(candidate) <= MAX_PAYLOAD:
@@ -1049,12 +1054,12 @@ class Client:
             self.log(f"[!] frame rejected: {reason}", logging.ERROR)
             self._frame_budget_warning = reason
 
-    def _payload(self, tick: int, reliable, unreliable, entities) -> bytes:
+    def _payload(self, tick: int, reliable, unreliable, entities, *, entity_cache=None) -> bytes:
         # The command ack: the newest command frame we have. The client stops
         # sending the frames before it again; our tick could make it drop frames we never got. While
         # the owner gets records of its body, it stays near them (correction.command_ack).
         ack = correction.command_ack(self.player, tick, entities)
-        return world.frame(tick, ack, reliable, unreliable, entities)
+        return world.frame(tick, ack, reliable, unreliable, entities, entity_cache=entity_cache)
 
     def acked(self, ack: int, ack_bits: int) -> None:
         """Take back what the client did not get: its reliable messages and entity records go out again."""

@@ -490,3 +490,18 @@ and two observer reuse scenarios pass on the composed source. This establishes
 source transport only: missing visible fire, native factory/Physics/marked
 receiver and whole-Ashe acceptance remain open. Twenty-hero next-tick performance
 is separately recorded on the exact latest source; no16ms pass is implied.
+
+## Send-local entity encoding reuse
+
+`fixtures/behavior/frame-encoding-reuse-v1.json` permits reuse of exact non-op
+EntityUpdate bits only within one Client.send_frame budget trial sequence, keyed
+by actual record identity and tick. These chunk/ch2/movement-only records have no
+origin-dependent builder. Create/update/destroy operations and custom classes
+remain uncached; builders still receive their actual bit origins. Packet budget,
+FIFO prefixes, correction ACKs, actual-send commit, nonce spending, loss replay,
+all viewer recipients and tick/send intervals remain unchanged. Two new methods
+verify exact mixed-origin/prefix bit equality and actual encrypted failing-send,
+changed movement and loss-retry equivalence against uncached control. Six retained
+budget/transport methods also pass. Exact source43 twenty-hero action/status
+rows passed20/20 but exceeded16ms at159.9488/252.2294ms; candidate performance is
+recorded separately against its exact source HEAD. No native acceptance claimed.

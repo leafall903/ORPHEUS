@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "scope": "Reuse origin-independent entity encoding within one send's budget trials",
+  "sourceParent": "830ef8dbc21d4b81e440167022f139bb0674745c",
+  "provenance": "Synthetic mixed-origin exact-bit comparison and existing real LinkCipher budget/loss fixtures; separately marked twenty-hero source43 profiler",
+  "cacheLifetime": "One Client.send_frame invocation",
+  "eligible": "Exact EntityUpdate with op zero: chunk, projectile channel and/or movement",
+  "ineligible": "Create/update/destroy operations, custom record classes and every origin-dependent builder",
+  "contracts": [
+    "Cache keys retain actual entity-update identity and physical tick",
+    "Different reliable-message prefixes retain exact packet alignment and bytes",
+    "Create/update builders still receive their current real bit origin on every trial",
+    "Record prefix budget selection, correction ACKs and send commits are unchanged",
+    "Failed send, changed next-frame movement and packet loss retain original nonce/queue/retry behavior"
+  ],
+  "unchanged": {
+    "datagramBudget": true,
+    "entityPrefixOrder": true,
+    "viewerRecipients": true,
+    "tickAndSendCadence": true,
+    "skillsAndStatuses": true
+  },
+  "acceptance": {
+    "source43TwentyFunctionalRows": 20,
+    "source43TMilliseconds": 159.9488,
+    "source43TPlus1Milliseconds": 252.2294,
+    "sixteenMsBudgetPassed": false,
+    "candidatePerformance": "Recorded separately against its exact formal source HEAD",
+    "nativeAccepted": false
+  }
+}
