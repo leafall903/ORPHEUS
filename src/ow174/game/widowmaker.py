@@ -165,6 +165,12 @@ def grapple_cast(self, state):
         return None
     direction = aim(round(source.mover.yaw), source.mover.pitch)
     origin = self._eye(source)
+    # C91AA0 publishes both positions before C93AB0's first ray update.
+    # This class's virtual56 (C9C5E0) copies the ray origin to the cosmetic origin.
+    for field, value in (("m_5ED803CF", expr.Vec3(*origin)),
+                         ("m_F2F8606D", expr.Vec3(*origin)),
+                         ("m_64801077", expr.Vec3(*direction))):
+        state.instance.write(expr.lvalue(state.node.field(field)), value)
     static_hit = self._collision().cast_ray(origin, direction, reach)
     hit, piece = self.walls.contact(origin, direction, reach, static_hit)
     self.walls.anchor(source.body, piece, state.instance)

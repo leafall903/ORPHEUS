@@ -311,3 +311,14 @@ This contract does not accept native effect colours or copy animation timing.
 ## Player-owned Torbjorn turret filter
 
 `fixtures/behavior/torbjorn-owned-filter-v1.json` pins team and FFA birth-filter expectations. `tests/runtime/test_torbjorn_owned_filter.py` uses the real throw command, native-authored carrier definition, existing landing factory and encrypted self/peer/delayed creates, then replaces the owner body and verifies old retirement and new actor publication. FFA same-slot-team viewers remain opponents; no blue/ally rendering assertion is made. The retained respawn scenario verifies that a surviving turret keeps its captured filter after its owner receives a new body. The only caller opt-in is the original player-owned turret. Pet and VM source remain unchanged; the dependency owns serialization and ordinary-NPC fallback. Native colors remain pending.
+
+## Widowmaker grapple entry vectors
+
+`fixtures/behavior/widowmaker-grapple-entry-geometry-v1.json` pins the existing
+original grapple entry's two origin vectors and normalized aim vector before
+the first ray. The actual-cast regression translates the caster away from the
+world origin and observes those fields before contact writes. The existing ray
+and single MoveTo remain responsible for contact and pull; no force producer or
+guessed muzzle offset is added. Related delivery, jump/death cancellation and
+mine regressions remain selected. Native camera, pose, collision filtering,
+anchor/chain attachment and rendered hardpoints remain unverified.

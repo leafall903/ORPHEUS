@@ -13,7 +13,7 @@ from test_game_combat import aim
 
 from ow174.game import venom, world
 from ow174.game.link import KIND_FRAME, peek_connection
-from ow174.game.script import decode, graph
+from ow174.game.script import decode, expr, graph
 from ow174.game.server_snapshot import export_server_state, snapshot_digest
 
 FIXTURES = Path(os.environ.get(
@@ -162,18 +162,25 @@ class WidowmakerPresentationDeliveryTests(unittest.TestCase):
             records, _ = records_for(peer, sent)
             model = decode.ClientBody.for_hero(venom.HERO)
             events = []
+            initial_geometry = False
             for record in records:
                 if record.entity != owner.body or record.chunk is None:
                     continue
                 frame = model.apply(record)
-                for item in frame.instances.values():
+                for next_id, item in frame.instances.items():
                     if item.graph == 0x5A:
+                        initial_geometry |= (
+                            model.vars.get((next_id, 431)) == expr.Vec3(0, 1.5, 0)
+                            and model.vars.get((next_id, 432)) == expr.Vec3(0, 1.5, 0)
+                            and model.vars.get((next_id, 433)) == expr.Vec3(0, 0, 1)
+                        )
                         events.extend((graph.graph(0x5A).state(index).pos, active, payload)
                                       for index, (active, payload) in item.states.items())
             self.assertTrue(any(node == 10 and active for node, active, _ in events))
             self.assertTrue(any(node == 104 and active for node, active, _ in events))
             self.assertTrue(any(node == 104 and not active for node, active, _ in events))
             if player is observer:
+                self.assertTrue(initial_geometry)
                 self.assertTrue(any(node == 1 and active and payload == {}
                                     for node, active, payload in events))
                 self.assertTrue(any(node == 52 and active for node, active, _ in events))

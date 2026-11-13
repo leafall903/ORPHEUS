@@ -594,3 +594,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Authored Sentry damage metadata at the existing receiver with3 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Original grapple entry origin and direction vectors with4 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

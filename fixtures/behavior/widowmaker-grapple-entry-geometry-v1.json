@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "case_id": "widowmaker-grapple-entry-geometry-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ddc025ac7e15d326b981a1bc17cfa80305c01fbe",
+    "provenance": "Synthetic actualbutton8 translatedwall. OriginalC91AA0 entrypublishes431/432/433 beforefirstC93AB0 ray; actualvirtual56 C9C5E0 copiesorigin. Nativecamera/filter/hardpoint/fullmap parity remainsunverified; rawimage stays external."
+  },
+  "client_acceptance": "pending",
+  "input": {
+    "body_position": [
+      11,
+      0,
+      -7
+    ],
+    "wall_z": 4,
+    "button": 8,
+    "frames": 85
+  },
+  "expected": {
+    "origin": [
+      11,
+      1.5,
+      -7
+    ],
+    "direction": [
+      0,
+      0,
+      1
+    ],
+    "contact": [
+      11,
+      1.5,
+      4
+    ],
+    "normal": [
+      0,
+      0,
+      -1
+    ],
+    "cast_reach": 20,
+    "pull_speed": 20,
+    "move_to_entries": 1
+  }
+}
