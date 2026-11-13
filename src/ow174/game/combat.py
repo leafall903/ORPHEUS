@@ -151,6 +151,7 @@ MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notic
 # shut until that message is posted. Assault, Escort and Hybrid (0F4A) are not listed: with a board
 # state on and no phase state the client draws an "UNSPECIFIED 0.0" objective header.
 MODE_GRAPHS = {
+    0x0230000000000018: (0x13C0, 4, 21),  # the Practice Range
     0x023000000000001D: (0x0F60, 0, 13),  # Deathmatch
     0x023000000000001E: (0x0F73, 0, 10),  # Team Deathmatch
 }

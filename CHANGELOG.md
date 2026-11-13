@@ -1,5 +1,23 @@
 # Changelog
 
+## Tab board in the Practice Range, and stat names on the board
+
+- The Practice Range is now in `combat.MODE_GRAPHS`: its game mode entity's full frame lists the
+  mode's own graph `13C0` as instance 1 with remote slot 4 on (state 6, the one that posts
+  `06DF.025`), and the mode UI graph `0CB6` as its child under state 21. The client holds its
+  scoreboard shut until that message is posted.
+- The Tab board's stats component (64) now sends its 14 stat GUID fields as ids, a mask of the
+  GUID's non-zero bytes and those bytes, instead of raw u64. Sent as raw u64 the board showed
+  "UNKNOWN STAT" entries. This also names the stats on the Deathmatch and Team Deathmatch boards.
+- Read from data: `13C0`'s remote states and the state that starts `0CB6`. The frame's bytes are
+  those another offline service sent when the board opened, and the test pins them.
+- Tests: `tests/runtime/test_game_combat.py` (the Practice Range frame, byte for byte) and
+  `tests/runtime/test_game_match_screens.py` (the component's size with ids, and Eliminations
+  sent as an id). `tests/runtime/test_game_bot_notices.py` now expects `13C0` and `0CB6` in the
+  Practice Range's mode baseline.
+- Ported from the kjs branch, where the original client opened the board in the Practice Range.
+  Original-client acceptance on this source is pending.
+
 ## A bot's statescript chunk and reliable messages take turns in a datagram
 
 - A bot's statescript chunk and reliable messages now take turns in a client's datagrams, the
@@ -77,8 +95,8 @@
 - A pack without a listed mode's graph keeps the plain frame. Other modes are unchanged: Assault,
   Escort and Hybrid (`0F4A`) are left out because, with a board state on and no phase state, the
   client drew an "UNSPECIFIED 0.0" objective header there.
-- Gap: on kjs the board's stat names also needed the stats component's GUID fields sent as ids;
-  this source still sends them as raw u64, so the board may list "UNKNOWN STAT" entries.
+- The board's stat names also need the stats component's GUID fields sent as ids, which the
+  Practice Range Tab board entry below adds.
 - Tests: `tests/runtime/test_game_combat.py` `ModeFrameTests`, checked against a local pack.
 - Ported from the kjs branch, where the original client opened the board in both modes with every
   stat named. Original-client acceptance on this source is pending.

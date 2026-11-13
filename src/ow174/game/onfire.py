@@ -19,9 +19,11 @@ from ow174.game.script.expr import f32
 GMP_STATS = 64
 SCORE, THRESHOLD, ON_FIRE = 19, 20, 36
 FULL = 1.28  # the bar is full at 1.28 times the threshold (0x7FF78B53BD08)
-# The component's fields (type 0x7FF78BFE9DA0): 5 nested {u64, f32} (not written here), 14 u64, 16 f32 (19
-# and 20 among them), u16, u8 (36), 8 u8. Fields 5-34 and 37-44 are owner-only (flag 0x10).
-FIELDS = ["struct"] * 5 + ["u64"] * 14 + ["f32"] * 16 + ["u16", "u8"] + ["u8"] * 8
+# The component's fields (type 0x7FF78BFE9DA0): 5 nested {u64, f32} (not written here), 14 stat GUIDs,
+# 16 f32 (19 and 20 among them), u16, u8 (36), 8 u8. Fields 5-34 and 37-44 are owner-only (flag 0x10).
+# The GUIDs go as ids, a mask of the non-zero bytes and those bytes: sent as raw u64 the board showed
+# "UNKNOWN STAT" entries.
+FIELDS = ["struct"] * 5 + ["id"] * 14 + ["f32"] * 16 + ["u16", "u8"] + ["u8"] * 8
 world.COMPONENT_FIELDS.setdefault(GMP_STATS, FIELDS)
 
 

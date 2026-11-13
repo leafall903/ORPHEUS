@@ -162,7 +162,10 @@ class BotNoticeTests(unittest.TestCase):
         chunk, = self.mode_chunks
         frame = decode.read_chunk(*chunk)
         self.assertTrue(frame.full)
-        self.assertEqual(frame.instances[1].graph, combat.MODE_UI)
+        graphs = {1: combat.MODE_UI}
+        if self.match.game_map.mode_guid in combat.MODE_GRAPHS:
+            graphs = {1: 0x13C0, 2: combat.MODE_UI}  # the Practice Range's graph, the mode UI its child
+        self.assertEqual({key: item.graph for key, item in frame.instances.items()}, graphs)
         return chunk
 
     def test_mode_baseline_waits_for_mode_create_ack(self):

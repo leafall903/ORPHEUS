@@ -145,8 +145,12 @@ class StatsComponentTests(unittest.TestCase):
         self.assertEqual(read[21], 7.0)
         self.assertEqual(read[37], stats.SILVER)
         self.assertEqual(read[13], 0x086000000000002F)
-        # 14 u64 + 14 f32 + 8 u8, after the index, the padding, the mask's size and its 6 bytes
-        self.assertEqual(len(made.getvalue()), 1 + 1 + 1 + 6 + 14 * 8 + 14 * 4 + 8)
+        # 14 ids + 14 f32 + 8 u8, after the index, the padding, the mask's size and its 6 bytes. An id is
+        # a mask of the GUID's non-zero bytes and those bytes: sent as raw u64 the board names no stat.
+        ids = sum(1 + sum(1 for byte in read[field].to_bytes(8, "little") if byte) for field in range(5, 19))
+        self.assertEqual(len(made.getvalue()), 1 + 1 + 1 + 6 + ids + 14 * 4 + 8)
+        self.assertIn(bytes([0b11000001, 0x25, 0x60, 0x08]), made.getvalue())  # Eliminations, 0860...0025
+        self.assertNotIn(stats.ELIMINATIONS.to_bytes(8, "little"), made.getvalue())
 
 
 class BoardInMatchTests(unittest.TestCase):
