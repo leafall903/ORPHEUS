@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "case_id": "echo-copied-native-heal-charge-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic effective-heal inputs; original1544 node5 computes positive charge delta, node4 adds delta*5.5 and caps at copied cost338.",
+  "input": {"missing_health": 3, "requested_heal": 10, "near_cap_missing_charge": 2},
+  "expected": {"effective_heal": 3, "copy_bonus": 5.5, "total_charge": 19.5, "overheal_charge": 0, "retired_source_charge": 0}
+}

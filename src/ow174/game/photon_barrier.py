@@ -98,6 +98,7 @@ class Shield:
     expires: int
     component: object = None
     pet_owner: int | None = None
+    filter_bits: int | None = None
 
 
 class BarrierWorld(runtime.World):
@@ -139,7 +140,8 @@ class Barriers:
                 if entity not in viewer.seen:
                     half = actor.yaw / 2
                     rotation = (0.0, math.sin(half), 0.0, math.cos(half))
-                    components = {26: [0x800000 << actor.team]}
+                    filters = actor.filter_bits if actor.filter_bits is not None else 0x800000 << actor.team
+                    components = {26: [filters]}
                     if actor.pet_owner is not None:
                         components[72] = [actor.pet_owner]
                     components.update(world.health(actor.health, 4000))
@@ -220,7 +222,8 @@ class Barriers:
             elapsed = (instance.component.frame - confirmed_frame) * instance.component.frame_ms
             deployed = min(deployed, confirmed_tick + math.ceil(elapsed / (TICK * 1000)))
         actor = Shield(owner, source, body, owner.team, tuple(position), yaw, health,
-                       deployed + math.ceil(min(lifetime, watchdog) / TICK), pet_owner=pet_source.id)
+                       deployed + math.ceil(min(lifetime, watchdog) / TICK), pet_owner=pet_source.id,
+                       filter_bits=owner.team_bit)
         actor.component = runtime.Component(body, frame_ms=16,
                                             world=BarrierWorld(self.fight.match.game_map.mode_guid, actor))
         actor.component.frame = deployed

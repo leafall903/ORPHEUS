@@ -203,3 +203,12 @@ Select the original64c pending-source stream registration without bypassing exis
 - `pending-projectile-source-stream`: original focused owner commit(s) `64c00652678376c66096ac95cee8ffde36779ab0`.
 - `ashe-bob-authored-pet-affiliation`: original focused owner commit(s) `3e7c54d61f35909da8cd0479ed7ed6103a0b023a`.
 - `mei-blizzard-actual-filter`: original focused owner commit(s) `48d3413d2c84e8d6d70d3eff56f2aba776608ae1`.
+
+## Captured deployment factions and copied healing charge
+
+Compose four original focused deliveries: Torbjorn1b49 pool birth filter captured from owner.team_bit and emitted with the independent descriptor source; Symmetra963f Photon birth filter retained across body replacement and late viewers while preserving authored controller Pet and birth-body VM source; Zarya1d12 Graviton field inherits captured playerShot.filter_bits with the existing no-player-capture NPC fallback unchanged; and Echoa7d9 copied Soldier healing receives the original extra5.5 times actual credited meter delta after its native base credit, instead of a second full6.5 credit. The original6.5 test expectation is retained; zero effective healing, cap, source-body retirement and ordinary Soldier eligibility stay bounded. Seventeen composed executions pass (10 new methods,1 maintained Torbjorn snapshot compatibility method,6 retained methods). Cumulative116 selected follow-up methods pass (102 new,14 maintained compatibility). Actual self/ally/enemy and late-viewer packets establish source/team metadata and lifecycle only. No fixed color/material changes or unproved common Pet schema are introduced. Final native palette classification, Soldier76 Field and Mei Cryo reported colors, strict-preview producer repairs and full shared force/control/Physics remain open. Source-only publication does not modify the running immutablea3a server; Halloween visual acceptance remains unverified after confirmed cross-version screenshot mismatch.
+
+- `torbjorn-pool-birth-filter`: original focused owner commit(s) `1b49f50ca2127f5e407fe8e858a10c563f10e501`.
+- `echo-copied-native-heal-charge`: original focused owner commit(s) `a7d91d702dd2c9e203b38784cd8c6fee88344c5a`.
+- `symmetra-photon-birth-filter`: original focused owner commit(s) `963f16cc8c49262b4a4ed01db0d336b27aecfc9d`.
+- `zarya-field-captured-filter`: original focused owner commit(s) `1d1229638a142fda2e0a5a81aba5fea09e900592`.

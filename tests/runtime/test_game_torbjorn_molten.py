@@ -148,6 +148,10 @@ class TorbjornMoltenTests(unittest.TestCase):
         victim.body_script.component.run_now()
         self.assertTrue(molten_core._activate_burn_scope(burn))
         first = snapshot_digest(case.capture(session))
+        captured_bits = pool.filter_bits
+        pool.filter_bits ^= 1
+        self.assertNotEqual(first, snapshot_digest(case.capture(session)))
+        pool.filter_bits = captured_bits
         pool.last_update += 0.01
         second = snapshot_digest(case.capture(session))
         self.assertNotEqual(first, second)

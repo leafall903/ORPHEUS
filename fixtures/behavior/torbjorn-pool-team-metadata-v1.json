@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn.pool-team-metadata.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "a3a5dd5d",
+    "paths": [
+      "src/ow174/game/molten_core.py",
+      "src/ow174/game/match.py",
+      "src/ow174/game/world.py"
+    ]
+  },
+  "evidence": "synthetic-team-metadata-contract; actual encrypted transport requires external prepared graphs",
+  "client_acceptance": "pending; component26 and descriptor source do not establish native rendered color",
+  "input": {
+    "cases": [
+      {
+        "team": 0,
+        "free_for_all": false,
+        "filter_bits": 8388608
+      },
+      {
+        "team": 1,
+        "free_for_all": false,
+        "filter_bits": 16777216
+      },
+      {
+        "team": 0,
+        "free_for_all": true,
+        "filter_bits": 134217728
+      }
+    ],
+    "viewers": [
+      "self",
+      "same team",
+      "enemy team",
+      "late same team",
+      "late enemy team"
+    ]
+  },
+  "expected": {
+    "pool_create_component": 26,
+    "pool_create_field": 0,
+    "team_source": "caster team_bit captured once at pool birth",
+    "descriptor_source": "captured launcher body",
+    "late_join": "same captured field and descriptor source as initial peers",
+    "pet_owner": "unchanged; absent until actual native producer assignment proven",
+    "fixed_color_override": null,
+    "barriers": "not applicable: no Torbjorn barrier definition or graph creation path in inspected original graph bundle"
+  }
+}

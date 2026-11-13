@@ -73,7 +73,10 @@ class Gravitons:
         from ow174.game.match import TEAM_BIT
 
         actor.team = rocket.team
-        actor.filter_bits = TEAM_BIT << rocket.team
+        faction = rocket.shot.filter_bits if rocket.shot is not None else None
+        # Player FFA roster teams are not native faction slots. Keep the cast's
+        # original faction; NPC flights without that capture retain their mapping.
+        actor.filter_bits = TEAM_BIT << rocket.team if faction is None else faction
         for viewer in self.fight.match.players:
             if viewer.spawned and viewer.client is not None:
                 viewer.client.queue_entities([self.fight.deployable_create(actor)])

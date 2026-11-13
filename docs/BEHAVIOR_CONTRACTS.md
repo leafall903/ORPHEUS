@@ -145,3 +145,15 @@ acceptance, or the unresolved original Pet source and VM initialization order.
 ## Explicit descriptor source
 
 `fixtures/behavior/statescript-descriptor-source-v1.json` pins synthetic descriptor bytes for omitted, zero, launcher and maximum round-trippable uint32 sources. `tests/public/test_descriptor_source_contracts.py` exercises both writers, decoding, explicit runtime opt-in, owner/observer snapshots, initial and delta transport, delayed snapshots and unacknowledged source reversion. Descriptor source is the native factory input, not the attachment entity or Pet owner. Omitted and explicit zero differ on wire; native factory zero fallback resolves the current entity before initialization. External target-build parser/factory/cache replay establishes that bounded initialization order; native rendering, weapon visibility, turret upgrades and Pet ownership remain pending.
+
+## Torbjorn pool team metadata
+
+`fixtures/behavior/torbjorn-pool-team-metadata-v1.json` records the existing native component26/team-bit wire contract for team0, team1 and FFA. `tests/runtime/test_torbjorn_team_metadata.py` consumes it through original ultimate/fire input and encrypted self, ally, enemy and delayed joins, while preserving the independent launcher descriptor. It also checks the already present body/turret team metadata and frozen pool birth bits. Original graph inventory and the isolated native null-teamColor consumer remain external research: neither component26 nor descriptor source alone proves original-client colors. No fixed color, material replacement or speculative Pet binding is supplied. Torbjorn has no barrier creation path in the inspected original graph bundle; gun/hammer/body FX, rivets, turret carrier/actor/shots, Overload, Molten globules/pools and victim burn FX are applicable and their final rendered relation remains pending.
+
+Echo copied native healing charge uses
+`fixtures/behavior/echo-copied-native-heal-charge-v1.json`. Original1544/node5
+measures a positive342 meter delta and node4 adds delta times5.5, capped at338.
+An already credited copied Soldier heal must receive only that bonus; zero
+effective healing and a retired copied-body source must add no charge. The
+actual command-driven copied-field regression retains its6.5 total expectation.
+This contract does not accept native effect colours or copy animation timing.

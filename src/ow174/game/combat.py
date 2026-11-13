@@ -6249,13 +6249,20 @@ class Combat:
                                         vitals.base_total - before)
             if not isinstance(shooter, (bots.Bot, SceneHazard)):
                 shooter.stats.add(stats.HEALING, given)
+                native_echo_charge = False
                 if target.owner is shooter or (not self.match.game_map.free_for_all and target.team == shooter.team):
                     self._charge_ana(shooter, given, source_entity=source_entity)
                     if (shooter.hero.guid == 0x02E000000000006E
                             and (source_entity is None or source_entity == shooter.body)):
                         script = shooter.body_script
                         if script is not None:
+                            copied_before = (expr.to_float(script.component.entity_var(342).value())
+                                             if self.echo_duplicates.active(shooter) else None)
                             script.gain_ult_charge(min(given, eligible), kind="healing", recipient=target.entity)
+                            if copied_before is not None:
+                                native_echo_charge = self.echo_duplicates.credit_native_healing(
+                                    shooter, copied_before, source_body=source_entity,
+                                )
                 if shooter.hero.guid == 0x02E0000000000040 and target.owner is shooter:
                     script = shooter.body_script
                     if script is not None and (source_entity is None or source_entity == shooter.body):
@@ -6264,7 +6271,8 @@ class Combat:
                     from ow174.game import mei_ultimate
 
                     mei_ultimate.grant(shooter, given, healing=True)
-                self._charge_echo_health_event(shooter, given, source_body=source_entity)
+                if not native_echo_charge:
+                    self._charge_echo_health_event(shooter, given, source_body=source_entity)
                 moira.gain_combat_charge(shooter, given, body=source_entity, healing_target=target, healing_tags=tags)
             self.baptiste.healing_charge(shooter, target, min(given, eligible), source_body=source_entity)
             self._sync_body_health(target.owner, vitals)

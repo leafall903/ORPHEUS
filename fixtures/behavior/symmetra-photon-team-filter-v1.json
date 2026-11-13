@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-photon-team-filter-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "a3a5dd5d989a9c8b18de9c612a1fe21ee6f446ec",
+    "paths": ["src/ow174/game/match.py:Player.team_bit", "src/ow174/game/world.py:component26"],
+    "producer": "Actual Q/primary-confirm Photon Barrier creation"
+  },
+  "evidence": "synthetic network identity contract; original graph/mesh prerequisites remain external",
+  "client_acceptance": "pending",
+  "input": {"owner_team": 0, "ally_team": 0, "enemy_team": 1, "late_viewer_team": 1},
+  "expected": {"normal_filter": 8388608, "ffa_filter": 134217728, "pet_source": "creator controller", "vm_source": "creation-time creator body"},
+  "boundary": "Filter and source consistency only. No fixed blue/red, material override or native color/rendering result is implied. FFA has no ally relationship between distinct players despite synthetic team-number equality."
+}

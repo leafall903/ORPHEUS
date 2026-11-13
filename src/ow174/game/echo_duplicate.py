@@ -10,7 +10,7 @@ import math
 from dataclasses import dataclass
 
 from ow174.game.content import heroes
-from ow174.game.script import graph
+from ow174.game.script import expr, graph
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
 ECHO = 0x02E0000000000206
@@ -46,6 +46,23 @@ class Duplicates:
     def active(self, player):
         state = self.states.get(player.entity)
         return state is not None and state.body == player.body
+
+    def credit_native_healing(self, player, before, *, source_body=None):
+        """Add1544's bonus to an effective heal already credited by the copied hero.
+
+        Node5 measures the positive342 delta; node4 adds that delta times5.5,
+        capped at338. Re-awarding the whole heal would count its base twice.
+        """
+        script = player.body_script
+        if (not self.active(player) or script is None or script.retired
+                or (source_body is not None and source_body != player.body)):
+            return False
+        after = expr.to_float(script.component.entity_var(ULT_CHARGE).value())
+        cost = expr.to_float(script.component.entity_var(ULT_COST).value())
+        delta = max(0.0, after - before)
+        if delta > 0 and script.ult_gain_bonus:
+            script.set_ult_charge(min(cost, expr.f32(after + expr.f32(delta * script.ult_gain_bonus))))
+        return True
 
     def retired(self, player):
         if player.entity not in self.busy:

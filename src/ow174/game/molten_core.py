@@ -40,6 +40,7 @@ class Pool:
     phase: int = -1
     targets: tuple = ()
     ended: bool = False
+    filter_bits: int = 0  # Capture at area birth; late joins must receive the same team metadata.
 
 
 @dataclass
@@ -101,7 +102,7 @@ def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0), source
     script._produced = script.latest_live
     script._initial_frame = None
     pool = Pool(owner, owner.hero.guid, entity, position, dict(cfg), script, instance.id,
-                born, born, ground_normal=ground_normal)
+                born, born, ground_normal=ground_normal, filter_bits=owner.team_bit)
     fight.molten_pools[entity] = pool
     _deliver(fight, pool)
     return pool
@@ -110,13 +111,16 @@ def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0), source
 def _deliver(fight, pool):
     theme = tuple(pool.owner.skin)
     where = pool.position
+    components = {26: [pool.filter_bits]}
     for viewer in fight.match.players:
         if viewer.client is None or not viewer.spawned or viewer.slot in pool.arrivals:
             continue
         arrival = Arrival(pool, viewer, Stream(pool.entity))
         pool.arrivals[viewer.slot] = arrival
-        create = world.EntityUpdate(pool.entity, world.OP_CREATE,
-                                    lambda origin: world.create(origin, POOL, {}, position=where, skin=theme))
+        create = world.EntityUpdate(
+            pool.entity, world.OP_CREATE,
+            lambda origin: world.create(origin, POOL, components, position=where, skin=theme),
+        )
         create.stream = arrival
         viewer.client.queue_entities([create])
 

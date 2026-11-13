@@ -1,0 +1,9 @@
+{
+  "schema": "zarya-graviton-faction-v1",
+  "provenance": "Original104319 source-team contract already used by Match.Player.team_bit and captured at Projectiles.fired;025F spawns03E2. Preserve supplied faction rather than converting logical FFA roster IDs into native team slots.",
+  "inputs": "Actual Q in a normal team match and FFA, caster logical team changes while airborne; owner/ally/enemy creates and the existing late-join spawn path. One separate actual NPC landing without player capture.",
+  "faction_component": 26,
+  "expected": "Player field component26 equals the immutable shot.filter_bits, for every viewer and retained/late create. NPC/no-capture fallback retains TEAM_BIT shifted by native NPC team. Pet source and finite field retirement remain intact.",
+  "native_color_acceptance": false,
+  "limits": "Checks faction and lifecycle protocol, not rendered friendly/enemy colors. Original beam FX and airborne08CE visibility remain open."
+}
