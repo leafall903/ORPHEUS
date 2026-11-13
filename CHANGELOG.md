@@ -1,5 +1,29 @@
 # Changelog
 
+## Start points for Uprising, Junkenstein and Retribution from the map data
+
+- The three PvE missions had no spawn rows in the extracted map data. Their maps hold no spawn
+  point entity: the players start at plain markers, entity `0176`, which lack the spawn component
+  `STU_737C5C41`.
+- Read from data: the mission scripts write only target tag `0x310` into var 8364 index 0
+  (Uprising `0D28` node 23, Junkenstein `0C8C`, Retribution `100B`) and then run the shared spawn
+  graph `0C8F`, which gathers its candidates by that tag. Uprising has four such markers,
+  Retribution four and Junkenstein six.
+- `tools/extract_game_maps.py` now also lists an entity the server creates as a spawn when
+  `0x310` is its only team tag (`is_spawn`). A parse of all 95 maps' entity chunks gives exactly
+  those 14 new rows. Junkenstein's six `0x30D` markers stay out, since `0C8C` never writes
+  `0x30D`, and so does a menu backdrop's marker tagged for both teams.
+- A public test covers the rule. A runtime test shows that four team 0 rows make the map hostable
+  and give four players four places. No server code changed.
+- The extractor change is unit-tested only: its entity input needs a DataTool mode the local
+  build lacks, so the tool was not run end to end. Map data made before this change has to be
+  extracted again to get the rows.
+- Open: which player gets which marker natively, what receives `0687.025` in Uprising's own
+  controller, and whether the native picker also wants the spawn component. Not checked:
+  Junkenstein and Retribution with their rows. Whether the rows change how this source hosts
+  Junkenstein, which it starts another way, is not checked either.
+- Ported from the kjs branch. Original-client acceptance on this source is pending.
+
 ## Uprising shows its defend and escort phases
 
 - An Uprising match puts the phase's director graph on the game mode entity: `0D4A` once the
