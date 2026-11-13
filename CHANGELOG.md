@@ -1,5 +1,21 @@
 # Changelog
 
+## Client research notes from the kjs branch
+
+- Added `docs/research/`: twelve notes on what the 1.74 client does and expects, written on the
+  `kjs` branch: the kill feed's gates, bot nameplates and hit feedback, the Training Bot's rebuild,
+  the Tab board, remote weapon fire, the shot origin and the client's own position, the
+  TrackTargets state, D.Va's two forms, the ultimate charge graph `0B8B`, Uprising's mission
+  graphs, and a presentation audit of D.Va, Mercy and Sombra.
+- Their claims about the client are labelled by evidence: seen live, read from data, read from
+  code.
+- Scope: every statement in them about what "ORPHEUS" does, and every run "against ORPHEUS",
+  describes the `kjs` branch's server. Those sections carry a line saying so, and the index's
+  reading guide explains it. They were not redone for this source, whose heroes, combat and
+  ultimate charge are other implementations.
+- Some notes name files of that branch which this source does not have.
+- No behavior changed.
+
 ## Tab board in the Practice Range, and stat names on the board
 
 - The Practice Range is now in `combat.MODE_GRAPHS`: its game mode entity's full frame lists the

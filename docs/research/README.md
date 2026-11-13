@@ -1,0 +1,54 @@
+# Client research notes
+
+Findings about the retail **1.74.0.0.104319** client that came out of a separate offline
+restoration effort on the same build. That effort used its own lobby and game service, so each
+note is rewritten here around what the client does and expects, not around that service's code.
+
+These notes add to the [research evidence ledger](../RESEARCH_EVIDENCE.txt). They do not replace
+the [verification record](../STATE.md): a result seen in that other service is evidence about the
+client, not acceptance of ORPHEUS.
+
+## How to read a note
+
+- **Seen live** means the original client was run against a local service and the result was
+  observed on screen or read from the client's memory without writing to it.
+- **Read from data** means the claim comes from the client's own statescript graphs or other
+  assets of the installation.
+- **Read from code** means the claim comes from disassembly of the client executable. Such
+  claims name the function.
+- **Compared with ORPHEUS**, **What ORPHEUS does** and **Seen live against ORPHEUS** sections,
+  and other statements about what "ORPHEUS" does, describe the `kjs` branch of this repository,
+  where these notes were written and where those runs of the original client were made. They
+  were not redone for the source the notes now sit in: its heroes, combat and ultimate charge are
+  other implementations. The changelog says which parts of that work were ported here.
+- A graph is named by the low 16 bits of its GUID in hex, as elsewhere in this repository
+  (`01CF`). `#392` is a statescript variable, `st108` a state index, `0765.025` a game message.
+
+## Addresses
+
+Code addresses are image-relative offsets: the address in the loaded executable minus its image
+base. Source comments in this repository cite the same functions as absolute addresses with image
+base `0x7FF788F10000`, so offset `0xA0D4F0` here is `0x7FF78991D4F0` there.
+
+## Notes
+
+| Note | What it settles | What the `kjs` branch took from it |
+| --- | --- | --- |
+| [Kill feed](kill-feed.md) | The client-side gates between a body's death message and a drawn kill feed line. | The login settings left the gating option at zero for a new profile. They now default it on. A bot kill needs a pack with the bot bodies' statescript, and the bot's chunk must not share a datagram with reliable messages: the client loses it. With both, the line draws. |
+| [Bot nameplates and hit feedback](bot-nameplates-and-hit-feedback.md) | What the overhead name and health widget, the hit marker and the elimination notice each need from the server. | Bots now have controllers and the elimination notice names them. With a pack that holds the bot bodies the overhead name and health bar draw. A confirmation of the hit flag is pending. |
+| [Tab board](tab-board.md) | Why the scoreboard key does nothing, and the layout of the board's numbers. | The board opens with names, numbers and medals in the Practice Range, Deathmatch, Team Deathmatch and Control. More modes have their row and are unseen. The objective modes need their phase states. |
+| [Training Bot death and rebuild](bot-rebuild.md) | What makes a killed Training Bot fall apart and put itself together again. | A respawned bot gets the message that starts its rebuild animation. Seen in the client: the new bot comes together over about a second and does not appear whole. |
+| [TrackTargets](track-targets.md) | How the client's target search picks its entities: the filter's masks, the range and cone, sight, the order by score and the result. | Guardian Angel, the Caduceus Staff and Hack find their target on the server and draw in the client. The same searches of other heroes are not answered yet. |
+| [D.Va's two forms](dva-forms.md) | How the pilot's graph makes and boards the mech, the eject message, Self-Destruct's fuse and damage, Call Mech's steps, and the config vars the two entities find each other with. | Eject, Self-Destruct and Call Mech play on the server and were seen in the client, as a change of body where the data keeps both entities. |
+| [Uprising: the mission's phases](uprising-mission.md) | Which graphs draw Uprising's objective box, how the mode script names the players' start, and what the mission's map does and does not hold. | The defend clock and the switch to escort are shown by hand, and the players start at the four markers the mode script names by tag. No mission is played. |
+| [Ultimate charge](ultimate-charge.md) | The game's own charge rules in graph `0B8B`: 5 points every second, a point for a point of what the hero does, the ruleset scales, and each cost. | The passive adds 5 points a second, as the graph does, where it filled any meter in 60 s. Combat feeds the graph its damage and healing messages, and the graph charges a point for a point; nothing for an elimination. Two evaluators are answered by reconstruction. |
+| [Presentation audit: D.Va, Mercy, Sombra](presentation-audit.md) | Which animation, voice, camera, HUD and effect states each ability's graphs hold, and which the server turns on for each button. | Defense Matrix was dead and is fixed. No voice line state exists in D.Va's or Sombra's ability graphs. Sound and a second player's view are not checked. |
+| [Shot origin and client position](shot-origin-and-client-position.md) | Per-hero eye heights, the click aim and view delay, and how to read the client's own position. | Eye heights for the other heroes, and a way to measure drift between server and client. |
+| [Remote weapon fire](remote-weapon-fire.md) | How a client draws another body's shots: shot modes, the shot record, variable bindings in remote frames. | Remote frames write a binding's state with the wrong width. |
+
+## Not ported yet
+
+The source effort has more notes: movement abilities, the statescript payloads of individual
+states, map collision props, mode graphs and match flow, menus and progression, and the per-hero
+weapon surveys. They will be added in the same form. Screenshots, logs and captures that back the
+live results stay in local storage, as the contribution guide asks.
