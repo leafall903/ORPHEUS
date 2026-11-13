@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-delayed-packet-pose-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "working_source_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "provenance": "Synthetic32-command packet whose first command contains fire+jump and all32commands contain forward127. Compare immediate delivery with13worldticks of packet delay; retain15PracticeNPCs. Native input framing retains32commands, prediction history64poses; delivery tolerance is explicit host scheduling policy, not a claimed retail server rule."
+  },
+  "evidence": "actual-command-admission-and-selected-owner-correction-regression",
+  "client_acceptance": "pending; no native prediction replay or severe stall root claim",
+  "input": {"delivery_delays": [0, 13], "packet_size": 32, "first_buttons": "FIRE|JUMP", "forward": 127},
+  "expected": {"damage": 20, "same_owner_frame_pose": true, "jump_retained": true, "same_release_end_position": true}
+}

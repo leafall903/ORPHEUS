@@ -1,0 +1,14 @@
+{
+  "targetBuild": "104319",
+  "provenance": "Synthetic distinct target identities exchange positions after the viewed frame; actual0043 input/damage/HIT and canonical force entry execute.",
+  "worldBirth": 1000,
+  "ownerBirths": [1000, 9000],
+  "attackOffset": 41,
+  "swapAfterOffset": 40,
+  "viewDelayMs": 128,
+  "leftOffset": [-1.8, 0, 2],
+  "rightOffset": [1.8, 0, 2],
+  "expectedWorldView": 1033,
+  "expected": {"viewedLeftHealth": 170, "viewedRightHealth": 200, "forceCalls": 1},
+  "nativeAcceptance": "Pending; ring minimumY and native receiver adoption are independent shared concerns."
+}

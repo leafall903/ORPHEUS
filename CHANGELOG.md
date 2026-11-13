@@ -1,5 +1,11 @@
 # Changelog
 
+## Fourth focused hero follow-ups
+
+Preserve Soldier first fire/jump edges in a delayed32-command packet using an explicit64-frame host retention policy, not a native server-time claim. Capture Zarya field Pet source before viewer creation. Resolve Sigma Flux victim health origin and submit the supported ordinary-body entry impulse once; original response/custom-body rules remain incomplete. Map Ball melee target history in world time while preserving the Widow mapping. Restore Doomfist Uppercut original filtered target production; actual victim0E7D script/control consumption remains unfinished. Seven new related methods passed; cumulative26 selected follow-up methods passed (23 new,3 modified compatibility). Full client force/prediction/UI/model/effect adoption and shared Physics/MoveTo/minimum-Y/control remain open. No default-server change.
+
+Owner commit mapping: docs/CONSOLIDATED_DELIVERY_20261113.md. External runtime inputs and native evidence remain outside Git.
+
 ## Original force-rule follow-ups — third batch
 
 Integrate reviewed Reinhardt response scaling, Roadhog original field/ring rules and Brigitte captured Whip direction. Six related checks passed; original native adoption and shared force/Physics gaps remain open. Full owner mapping and scope are in docs/CONSOLIDATED_DELIVERY_20261113.md. No runtime inputs or logs are committed.

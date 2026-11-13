@@ -1,0 +1,68 @@
+{
+  "build": 104319,
+  "nativeEvidence": "uppercut-filter-native-semantics-20261113.json",
+  "originalGraphNode": "0DD8/55",
+  "filterClass": "STU_951CAB4C",
+  "parameterBindings": {
+    "12": "position",
+    "142": "current value",
+    "1451": "typed key; not read by this hero predicate"
+  },
+  "predicate": "NOT contains(previous375, parameter142)",
+  "cases": [
+    {
+      "input": [],
+      "previous": [],
+      "output": []
+    },
+    {
+      "input": [
+        91
+      ],
+      "previous": [],
+      "output": [
+        91
+      ]
+    },
+    {
+      "input": [
+        91,
+        72,
+        37
+      ],
+      "previous": [
+        72
+      ],
+      "output": [
+        91,
+        37
+      ]
+    },
+    {
+      "input": [
+        91,
+        72
+      ],
+      "previous": [
+        91,
+        72
+      ],
+      "output": []
+    },
+    {
+      "input": [
+        91,
+        91,
+        72
+      ],
+      "previous": [
+        72
+      ],
+      "output": [
+        91,
+        91
+      ]
+    }
+  ],
+  "boundary": "Scoped permissive Doomfist value-list projection, not a generic native iterator/key implementation or0E7D receiver/control completion."
+}

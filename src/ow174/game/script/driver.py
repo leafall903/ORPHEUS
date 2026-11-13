@@ -889,8 +889,10 @@ class BodyWorld(runtime.World):
         return None
 
     def assignment_value(self, instance, node, value):
+        from ow174.game.doomfist import uppercut_assignment
         from ow174.game.zenyatta import weapon_assignment
 
+        value = uppercut_assignment(self, instance, node, value)
         return weapon_assignment(self, instance, node, value)
 
     def heal_self(self, entity, amount):

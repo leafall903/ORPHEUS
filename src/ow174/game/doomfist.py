@@ -94,6 +94,29 @@ def _two_height_visible(target, origin, collision, cryo_cover):
     return False
 
 
+def uppercut_assignment(world, instance, node, value):
+    """Collect 0DD8/55's original new-target filter in the body VM."""
+    if (world.match is None or world.hero != HERO or instance.component.strict
+            or (instance.graph.index, node.pos) != (0x0DD8, 55)):
+        return value
+    config = node.field('m_value') or {}
+    if (config.get('$') != 'STU_951CAB4C'
+            or expr.lvalue(node.field('m_out_Var')) != (expr.INSTANCE, 14366)):
+        return value
+    source = instance.evaluate(config.get('m_814F8EC3'))
+    values = source if isinstance(source, tuple) else (() if source is None else (source,))
+    selected = []
+    for index, item in enumerate(values):
+        instance.component.consume_work('Uppercut filtered target')
+        # Native1B7A300 pushes the current item;1B79920 exposes it as142.
+        with instance.component.parameter_scope({12: index, 142: item}):
+            if expr.truthy(instance.evaluate(config.get('m_condition'))):
+                selected.append(item)
+    # This permissive body host represents entity lists as value tuples. The
+    # original collector's typed keys are not consumed by 0DD8's target ports.
+    return tuple(selected)
+
+
 @dataclass
 class Dash:
     activation: tuple

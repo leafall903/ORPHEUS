@@ -1,0 +1,10 @@
+{
+  "schema": "zarya-graviton-source-context-v1",
+  "provenance": "Original build104319: 025F volley node1 spawns03E2 with0260;03E2 declares STUPetComponent;0260 node22 reads its Pet owner via F76C486C into21709. Existing03DC source-owner wire adapter supplies component72 from captured source body.",
+  "inputs": "One actual Q, change caster team during flight, retain each viewer create through field expiry and caster body replacement.",
+  "pet_component": 72,
+  "field_radius": 6,
+  "expected": "All03E2 viewer create records carry captured source body as Pet owner and frozen cast team. Retained create does not rebind after body replacement. Field retires normally.",
+  "native_acceptance": false,
+  "limits": "Does not prove airborne08CE visibility or initialize0260. Original beam/projectile FX failures remain open."
+}

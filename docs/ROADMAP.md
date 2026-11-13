@@ -510,3 +510,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate the third focused Rein/Hog/Brig source batch with6 selected related checks.
 - [ ] Accept final native force/limiter/arbitration and visual behavior; host checks do not close these.
+
+- [x] Integrate Fourth focused hero follow-ups with7 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

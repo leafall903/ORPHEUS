@@ -87,3 +87,13 @@ two are updated Roadhog producer contracts. Cumulatively19 distinct selected
 follow-up methods passed (16 new and3 modified compatibility methods).
 Native adoption, shared Physics/MoveTo arbitration, delayed minimum-Y and all
 previous native/model/effect failures remain open. The live735 server is unchanged.
+
+## Fourth focused hero follow-ups
+
+Preserve Soldier first fire/jump edges in a delayed32-command packet using an explicit64-frame host retention policy, not a native server-time claim. Capture Zarya field Pet source before viewer creation. Resolve Sigma Flux victim health origin and submit the supported ordinary-body entry impulse once; original response/custom-body rules remain incomplete. Map Ball melee target history in world time while preserving the Widow mapping. Restore Doomfist Uppercut original filtered target production; actual victim0E7D script/control consumption remains unfinished. Seven new related methods passed; cumulative26 selected follow-up methods passed (23 new,3 modified compatibility). Full client force/prediction/UI/model/effect adoption and shared Physics/MoveTo/minimum-Y/control remain open. No default-server change.
+
+- `soldier-delayed-packet`: original focused owner commit(s) `752340d89a09c685d3707cb78e820cf18ce40142`.
+- `zarya-graviton-pet-source`: original focused owner commit(s) `76617df129fd5b339849980c225d24ad78907504`.
+- `sigma-flux-origin-entry`: original focused owner commit(s) `['7021bf8741d83bc4548e2e6b1c29c98474025865', '200ec16c1e5c16214729fdc711fccdc398e841b3']`.
+- `ball-melee-clock`: original focused owner commit(s) `6a3893cdd9af67a5a83a4fb15bebfc49f7c5ef22`.
+- `doomfist-uppercut-filter`: original focused owner commit(s) `7ef38714b56225cd816086334ba86fef9e799a2c`.

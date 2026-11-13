@@ -67,7 +67,9 @@ class Gravitons:
         actor = self.fight.create_deployable(
             rocket.shooter, FIELD_ENTITY, "Graviton Surge", point,
             health=0, radius=0, height=0, seconds=duration, publish=False,
+            pet_owner=rocket.source_body,
         )
+        actor.source_body = rocket.source_body
         from ow174.game.match import TEAM_BIT
 
         actor.team = rocket.team

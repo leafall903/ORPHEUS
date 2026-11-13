@@ -4590,6 +4590,8 @@ class Combat:
                 mapped_view = ashe.view_world_tick(script, command, quanta)
                 if mapped_view is not None:
                     view_tick = mapped_view
+            if hero == ball.HERO and instance.graph.index == 0x0043:
+                view_tick = ball.view_world_tick(script, command, quanta)
             self._submit_attack(player, frame, MeleeContact(
                 HitDef(amount, loadout), origin, centre, radius, view_tick, charge_context,
                 health_tags(state, modify), state, ring, hero == mccree.HERO, direction,
@@ -4848,11 +4850,10 @@ class Combat:
             return
         anchor_tick, anchor_frame = script.world_frame_anchor
         elapsed_ms = max(0, self.tick - anchor_tick) * round(TICK * 1000)
-        # The acknowledged client predicts ahead and retains input for replay.
-        # Do not spend that input window on neutral world ticks: a small increase
-        # in packet delay would otherwise make every subsequent live command
-        # older than script.frame, freezing movement and releasing held fire.
-        input_window = MAX_COMMANDS if script.create_arrived else 0
+        # Retain a full packet plus one packet of delivery slack. Neutral
+        # catch-up must not consume its first fire/jump edge before admission.
+        # This is a bounded host window; owner command/pose labels stay intact.
+        input_window = 2 * MAX_COMMANDS if script.create_arrived else 0
         target = min(projectiles.MAX_LEASE_FRAME - 1,
                      anchor_frame + elapsed_ms // script.frame_ms - 1 - input_window)
         while target > script.frame:

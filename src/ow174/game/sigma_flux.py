@@ -131,6 +131,12 @@ def flux_effect_native(world, cfg, instance):
     """Bind 1DBC's source and maximum-health queries to the current Match bodies."""
     if instance.component.strict or instance.graph.index != FLUX_EFFECT or world.match is None:
         return NotImplemented
+    if cfg.get("$") == "STU_71A87E92":
+        origins = (instance.graph.node(pos).field("m_modifyHealth")["m_C0139FA6"]
+                   for pos in (12, 14))
+        if (any(cfg == origin for origin in origins)
+                and instance.evaluate(cfg.get("m_entity")) == expr.Entity(instance.component.entity)):
+            return world.match.script_body_position(instance.component.entity, instance.component.entity)
     if cfg.get("$") == "STU_E72F6348":
         condition = instance.graph.node(60).field("m_condition")
         if cfg == condition["m_configVars"][0]:
@@ -295,7 +301,9 @@ def flux_modify_health(world, state, elapsed_ms):
         amount = expr.to_float(instance.evaluate(config["m_amount"]))
         asset = instance.evaluate(config["m_loadout"])
         loadout = asset.guid if isinstance(asset, expr.Asset) else None
-        fight._damage(caster, target, amount, False, loadout, match.tick)
+        landed = fight._damage(caster, target, amount, False, loadout, match.tick)
+        if landed and not slam:
+            flux_entry_impulse(fight, state, caster, target)
         if fight.vitals_of(target).dead:
             instance.component.destroy(instance)
     if slam and state.active:
@@ -303,6 +311,47 @@ def flux_modify_health(world, state, elapsed_ms):
 
         state.request(FINISH)
     return True
+
+
+def flux_entry_impulse(fight, state, caster, target):
+    """Submit 1DBC/12's authored health force, apart from its lift velocity rows."""
+    from ow174.game import pharah
+    from ow174.game.combat import source_blast_geometry
+
+    if fight.vitals_of(target).dead or fight._control_immune(target):
+        return
+    instance = state.instance
+    config = state.node.field("m_modifyHealth")
+    origin = instance.evaluate(config.get("m_C0139FA6"))
+    source = instance.evaluate(config.get("m_instigator"))
+    if (not isinstance(origin, expr.Vec3) or source != expr.Entity(caster.body)
+            or instance.evaluate(config.get("m_724CBA57")) != expr.Entity(target.entity)
+            or instance.component.entity != target.entity):
+        return
+    # This caller's own-body origin lies below the upright capsule's segment.
+    # An overlapping/custom shape needs the original escape-vector service;
+    # do not substitute a zero normal for an unproved native input.
+    if (tuple(origin) != tuple(target.feet) or target.capsule is not None
+            or target.radius > target.height / 3.0):
+        return
+
+    def value(row, key):
+        return expr.to_float(instance.evaluate(row.get(key)))
+
+    rings = tuple(sorted(tuple(value(row, key) for key in
+                               ("m_radius", "m_579D7CFF", "m_10399AE7"))
+                         for row in config.get("m_knockbackRings") or ()))
+    horizontal, vertical = value(config, "m_E33EFEE1"), value(config, "m_10399AE7")
+    # D6D6C6 supplies the upright capsule direction; D6D87C applies the
+    # independent ring channels. This row has no explicit vector or Y floor.
+    distance, direction = source_blast_geometry(target.feet, target.height, target.radius, tuple(origin),
+                                                (0.0, 0.0, 0.0))
+    xz, up = pharah.RocketImpulse(horizontal, vertical, 1.0, rings).scales(distance)
+    dx, dy, dz = direction
+    length = math.hypot(dx, dz)
+    scale = horizontal * xz / length if length else 0.0
+    impulse = expr.Vec3(expr.f32(dx * scale), expr.f32(dy * vertical * up), expr.f32(dz * scale))
+    fight.knockbacks.apply(target, impulse, impact_tick=fight.match.tick, source_entity=source.id)
 
 
 def flux_targets(world, state):
