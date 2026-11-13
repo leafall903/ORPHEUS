@@ -767,6 +767,12 @@ def play_script(world, instance, node):
     queue.submit(request)
     if queue.pending:
         raise ValueError("ready barrier call left pending work")
+    if signature == (MEI, 0x05FE, 22):
+        # 0623's client-local color/attachment consumers need the original
+        # allocation source before init, not just the later var27 update.
+        child = next((i for i in component.instances.values() if i.graph is definition), None)
+        if child is not None:
+            child.set_source_entity(child.source_entity(), publish_source=True)
     component.run_now()
     _init_health(world.match.combat, barrier)
 
