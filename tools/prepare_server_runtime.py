@@ -28,7 +28,6 @@ from ow174.paths import (
     LOBBY_RUNTIME_DATA,
     MATCH_RUNTIME_DATA,
     ROOT,
-    ULT_CHARGE_OVERRIDE,
     VOICE_EFFECT_DATA,
     WHEEL_POSE_DATA,
 )
@@ -67,9 +66,6 @@ def prepare(
     inputs = {f"data/{name}": source / "data" / name for name in LOBBY_RUNTIME_DATA + MATCH_RUNTIME_DATA}
     if catalogs is not None:
         inputs.update({f"data/{name}": catalogs / name for name in CLIENT_CATALOGS})
-    charge_override = source / "data" / ULT_CHARGE_OVERRIDE
-    if charge_override.is_file():
-        inputs[f"data/{ULT_CHARGE_OVERRIDE}"] = charge_override
     for name in (EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_CLIP_DATA, EMOTE_DURATION_DATA,
                  EMOTE_SCALAR_DATA, EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, VOICE_EFFECT_DATA):
         metadata = source / "data" / name

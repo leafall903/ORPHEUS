@@ -1880,7 +1880,7 @@ class Combat:
             # The NPC death script owns its terminal health change and death event ordering.
             self._bot_died(
                 shooter, victim, critical, loadout, vitals.death_tick,
-                deadeye=deadeye, award_ult=award_ult and not sandbox_charge,
+                deadeye=deadeye,
             )
             return
         self._sync_body_health(victim, vitals)
@@ -1972,7 +1972,7 @@ class Combat:
                 self.deadeye_notices.append((killer, victim, script, root_id, shot_frame, deadline))
 
     def _bot_died(
-        self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye: bool, award_ult: bool,
+        self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye: bool,
     ) -> None:
         component = self._scene_component(bot)
         self.clear_pins(bot.entity)

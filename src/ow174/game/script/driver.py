@@ -27,7 +27,7 @@ from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from ow174.game import animation_pose, dva, pools, ult_charge
+from ow174.game import animation_pose, dva, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -1177,17 +1177,6 @@ class BodyScript(ReplicatedBody):
     def set_ult_charge(self, points: float) -> None:
         """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
-
-    def credit_ult(self, kind: str, amount: float) -> None:
-        """A combat event of this body (combat.py): dealt damage or done healing in HP, or an elimination
-        (amount unused). The hero's rule in ult_charge.py turns it into points of the meter's own scale;
-        a rule that does not charge gives nothing, and the meter never passes its cost."""
-        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
-        points = ult_charge.points(kind, self.hero, amount, cost)
-        if points <= 0.0:
-            return
-        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
-        self.set_ult_charge(max(0.0, min(cost, f32(charge + points))))
 
     def add_ult_charge(self, points: float) -> None:
         if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):

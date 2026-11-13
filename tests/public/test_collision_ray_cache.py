@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from ow174.game import collision, props
 from ow174.game.collision_fingerprint import world_fingerprint
-from ow174.paths import CLIENT_CATALOGS, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA, ULT_CHARGE_OVERRIDE
+from ow174.paths import CLIENT_CATALOGS, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA
 from tools.prepare_server_runtime import prepare
 
 MAP = 0x0800000000000688
@@ -175,7 +175,7 @@ class RayCacheTests(unittest.TestCase):
 
 
 class RuntimePreparationTests(unittest.TestCase):
-    def test_copies_selected_ray_caches_and_preserves_an_optional_charge_override(self):
+    def test_copies_selected_ray_caches_and_client_catalogs(self):
         selected = {
             "0688.col": b"selected mover cache",
             "0688.rays.col": b"selected ray cache",
@@ -213,25 +213,16 @@ class RuntimePreparationTests(unittest.TestCase):
             }
             self.assertEqual(collision_hashes, expected_hashes)
 
-            charge_path = f"data/{ULT_CHARGE_OVERRIDE}"
-            self.assertNotIn(charge_path, manifest)
-            self.assertFalse((destination / charge_path).exists())
-
-            override = b'{"defaults":{"damage_to_full":410}}'
-            (source / charge_path).write_bytes(override)
             catalogs = Path(folder) / "catalogs"
             catalogs.mkdir()
             for name in CLIENT_CATALOGS:
                 (data / name).unlink()
                 (catalogs / name).write_text('{"generated":true}', encoding="utf-8")
-            override_pack = Path(folder) / "runtime-with-charge"
-            prepare(source, override_pack, ["0688"], catalogs=catalogs)
+            catalog_pack = Path(folder) / "runtime-with-catalogs"
+            prepare(source, catalog_pack, ["0688"], catalogs=catalogs)
             for name in CLIENT_CATALOGS:
-                output = (override_pack / "data" / name).read_text(encoding="utf-8")
+                output = (catalog_pack / "data" / name).read_text(encoding="utf-8")
                 self.assertEqual(output, '{"generated":true}')
-            self.assertEqual((override_pack / charge_path).read_bytes(), override)
-            override_manifest = json.loads((override_pack / "manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(override_manifest["sha256"][charge_path], hashlib.sha256(override).hexdigest())
 
 
 if __name__ == "__main__":
