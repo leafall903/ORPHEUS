@@ -128,7 +128,21 @@ class Zenyatta:
 
     def ultimate_last_world_tick(self, player):
         state = self.ultimate_state(player)
-        return defense_filters.last_countdown_world_tick(state) if state is not None else None
+        if state is None:
+            return None
+        script = player.body_script
+        epoch = getattr(script, "world_frame_anchor", None)
+        if epoch is None:
+            return defense_filters.last_countdown_world_tick(state)
+        rate = expr.to_float(state.evaluate(state.node.field("m_9B0385B4"), watch=False))
+        if rate <= 0:
+            return math.inf
+        initial = expr.to_float(state.evaluate(state.node.field("m_EB0FC261"), watch=False))
+        world_birth, owner_birth = epoch
+        quantum = round(TICK * 1000)
+        # Project the exact countdown end instant before rounding to a physical tick.
+        start_ms = world_birth * quantum + state.start - owner_birth * script.frame_ms
+        return math.ceil((start_ms + initial / rate * 1000) / quantum) - 1
 
     def ultimate(self, player):
         end = self.ultimate_last_world_tick(player)

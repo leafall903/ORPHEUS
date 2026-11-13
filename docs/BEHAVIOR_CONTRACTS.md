@@ -531,3 +531,37 @@ is neither the caster nor a Shot transport alias. Same-flight and strict shared
 identity export are retained. Full factory, Physics receivers and rendered fire
 remain open. Exact latest-source twenty-hero timing is recorded separately;
 no16ms or current-cut Halloween/native acceptance is implied.
+
+## Original-owner live delivery, physical clocks and nested source context
+
+Ball grouped launch receipts advertise existing1/6/8 actor IDs under the original
+factory create/flight/retire authority. Partial retirement, delayed ACK and source
+retirement cannot restore IDs or duplicate the natural130 damage. Use only the
+formal43-context adapter671aa241, not its superseded conflicting9182 patch.
+
+Zen Q uses the existing owner/world clock pair to end protection at the physical
+world deadline while its owner command frame is frozen; the next real rifle hit
+is admitted. Recall's previously integrated Discord selection guard remains.
+Orisa publishes the already-resolved receiver source before Entry. This source
+is its actual existing controller entity, distinct from body and orb caller;
+there is no guessed replacement. Original source policy/params and0damage remain.
+
+Non-strict SubScript creation inherits the actual parent source before exactly
+one child initialization. Strict behavior, descriptor omission and parent/owner
+identity remain unchanged. This generic qualified constructor behavior replaces
+no hero source with an allowlist. Widow's exact typed current body-pitch query
+uses the same extracted Ball formula, retaining stale/retired rejection and
+preserving the normal Doom target query and all other driver methods.
+
+Echo late viewers reuse the original live ShotRecord, absolute deadline, flight
+and existing per-viewer create/launch ACK and retirement paths. Complete current
+volleys only: partial primary groups and older activations remain unqualified.
+Tests use immediate-ACK peers, not encrypted or native acceptance. Actual sticky
+contacts keep180 damage/12 HIT without repetition. Native owner3/6 rendering,
+model paths, precise trajectory, colors and all prior open presentation remain.
+
+Fourteen selected composed methods pass: thirteen new plus one retained Ball
+pitch regression. Twenty unique code/test/fixture postimages match the independent
+six-package composition. Exact latest twenty-hero performance is separate, with
+calling-thread CPU only diagnostic and the original16ms wall budget unchanged.
+No running35 change, client startup or Halloween/native acceptance is included.

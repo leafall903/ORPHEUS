@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "case_id": "echo-live-observer-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic viewer join during actual original19E5/1C36 command flights. Reuses native grouped shot events and existing independent CREATE/launch ACK and retirement path.",
+  "expected": {"primary_members": 3, "sticky_members": 6, "deliveries_per_member_per_viewer": 1, "sticky_total_damage": 180, "sticky_hit_notices": 12},
+  "limits": "Only complete live volleys with current activation and original deadline. No older-activation replay, partial primary replay or native model acceptance."
+}

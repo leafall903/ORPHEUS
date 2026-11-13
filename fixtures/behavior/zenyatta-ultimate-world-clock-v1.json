@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "provenance": {"kind": "synthetic", "target_build": "1.74.0.0.104319", "native_client_acceptance": "pending"},
+  "input": {"world_birth": 1000, "owner_birth": 9000, "owner_frame_ms": 16, "cast_offset": 1, "ultimate_seconds": 6},
+  "expected": {"last_world_tick": 1375, "protected_health": 200, "after_expiry_health": 180}
+}

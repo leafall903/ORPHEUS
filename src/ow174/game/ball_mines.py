@@ -1,9 +1,9 @@
 """Match host for the authored Minefield volley and mine lifecycle."""
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
-from ow174.game import ball, observers, scalar_math, sombra_control, world
+from ow174.game import ball, observers, projectiles, scalar_math, sombra_control, world
 from ow174.game.script import entity_queries, expr, graph, runtime
 from ow174.game.script.driver import ReplicatedBody, create_body_graphs
 
@@ -99,6 +99,9 @@ class Mine:
     reported_frame: int = 0
     body_script: object = None
     viewers: dict = field(default_factory=dict)
+    launch_record: projectiles.ShotRecord | None = None
+    presentations: dict = field(default_factory=dict)
+    pose_updates: dict = field(default_factory=dict)
 
     @property
     def entity(self):
@@ -346,6 +349,13 @@ class Mines:
         yaw = owner.mover.yaw * math.tau / 65536
         self.volleys[slot] = report
         self.seen.add(key)
+        length = math.sqrt(sum(axis * axis for axis in offset))
+        direction = tuple(axis / length for axis in offset) if length > 0 else tuple(offset)
+        launch_record = projectiles.ShotRecord(
+            reported_frame, state.instance.id, state.index, state.counter,
+            position, direction, (), shot=number, volleys=state.volleys & 0xFF,
+        )
+        launched_ids = []
         for index in range(count):
             owned = [mine for mine in self.devices.values() if mine.source == source]
             if len(owned) >= LIMIT:
@@ -359,6 +369,8 @@ class Mines:
             mine = Mine(owner, source, owner.team, body, position, velocity, gravity, lifetime,
                         reach, health, fight.tick)
             mine.filter_bits = owner.team_bit
+            mine.launch_record = launch_record
+            launched_ids.append(body)
             mine.born_tick = born_tick
             mine.last_tick = mine.born_tick
             mine.reported_frame = reported_frame
@@ -368,6 +380,11 @@ class Mines:
             fight.replacement_ticks[body] = mine.born_tick
             self.deliver(mine)
             self._update_mine(mine, fight.match.tick)
+        launch_record = replace(launch_record, ids=tuple(launched_ids))
+        for entity in launched_ids:
+            if entity in self.devices:
+                self.devices[entity].launch_record = launch_record
+        self.present(launch_record)
         return True
 
     def deliver(self, mine):
@@ -388,10 +405,36 @@ class Mines:
                 ),
             )])
 
+        self.present(mine.launch_record)
+
+    def present(self, record):
+        if record is None or not record.ids:
+            return
+        members = tuple(self.devices[entity] for entity in record.ids if entity in self.devices)
+        for viewer in self.fight.match.players:
+            client = viewer.client
+            if client is None or not viewer.spawned or not members:
+                continue
+            for mine in members:
+                delivery = mine.presentations.get(viewer.slot)
+                if delivery is not None and delivery.client is client:
+                    delivery.creation.received = client.bot_create_acked(mine.body)
+            if (any(mine.viewers.get(viewer.slot) is not client for mine in members)
+                    or any((delivery := mine.presentations.get(viewer.slot)) is not None
+                           and delivery.client is client for mine in members)):
+                continue
+            visible = replace(record, ids=tuple(mine.body for mine in members))
+            deliveries = self.fight.projectiles.observe_existing_volley(viewer, members[0].source, visible)
+            for mine, delivery in zip(members, deliveries, strict=False):
+                mine.presentations[viewer.slot] = delivery
+                delivery.creation.received = client.bot_create_acked(mine.body)
+
     def remove(self, mine):
         if self.devices.pop(mine.body, None) is None:
             return
         mine.removing = True
+        for delivery in mine.presentations.values():
+            self.fight.projectiles.retire_existing(delivery, self.fight.match.tick)
         self.fight.vitals.pop(mine.body, None)
         self.fight.history.pop(mine.body, None)
         self.fight.replacement_ticks.pop(mine.body, None)
@@ -487,8 +530,17 @@ class Mines:
         self.deliver(mine)
         for viewer in self.fight.match.players:
             if viewer.client is not None and mine.viewers.get(viewer.slot) is viewer.client:
-                viewer.client.queue_entities([world.EntityUpdate(
-                    mine.body, movement=world.Movement(mine.position, velocity=mine.velocity))])
+                delivery = mine.presentations.get(viewer.slot)
+                if delivery is not None and delivery.client is viewer.client and delivery.volley.queued:
+                    previous = mine.pose_updates.get(viewer.slot)
+                    cancel = getattr(viewer.client, 'cancel_entity_record', None)
+                    if previous is not None and previous[0] is viewer.client and cancel is not None:
+                        cancel(previous[1])
+                    update = world.EntityUpdate(
+                        mine.body, movement=world.Movement(mine.position, velocity=mine.velocity))
+                    update.resend = False
+                    viewer.client.queue_entities([update])
+                    mine.pose_updates[viewer.slot] = viewer.client, update
                 if snap is not None:
                     viewer.client.queue_bot_live(mine.body, snap)
 

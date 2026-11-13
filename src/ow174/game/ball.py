@@ -83,19 +83,9 @@ def body_pitch(world, cfg, instance):
             or instance.graph.index not in (0x1203, GRAPPLE)
             or world.match is None or instance.component.entity != world.body):
         return NotImplemented
-    entity = instance.evaluate(cfg.get('m_entity'))
-    if entity != expr.Entity(world.body):
-        return NotImplemented
-    player = world.match.script_player_body(world.body, world.body)
-    if (player is None or player.body_script is None
-            or player.body_script.component is not instance.component):
-        return NotImplemented
-    units = player.mover.pitch
-    if type(units) is not int or not -32768 <= units <= 32767:
-        return NotImplemented
-    # Native C61F70 and D1C972 round these two multiplications separately.
-    radians = expr.f32(units * 9.58738019107841e-05)
-    return expr.f32(radians * 57.295780181884766)
+    from ow174.game.script.body_pose import owned_pitch
+
+    return owned_pitch(world, cfg, instance)
 
 
 

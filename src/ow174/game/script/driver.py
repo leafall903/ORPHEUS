@@ -1148,6 +1148,12 @@ class BodyWorld(runtime.World):
                 facing = self.match.script_body_facing(expr.to_entity(instance.evaluate(cfg.get("m_entity"))), self.body, pitched=cls == "STU_2200A66D")
                 if facing is not None:
                     return f32(f32(math.atan2(facing.x, facing.z)) * 57.295780181884766) if cls == "STU_C8C4C20D" else facing
+        if self.hero == 0x02E000000000000A and instance is not None:
+            from ow174.game import widowmaker
+
+            pitch = widowmaker.body_pitch(self, cfg, instance)
+            if pitch is not NotImplemented:
+                return pitch
         if self.hero == 0x02E00000000001CA and instance is not None:
             from ow174.game import ball
             owner = ball.passive_owner(self, cfg, instance)

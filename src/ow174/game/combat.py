@@ -8033,6 +8033,10 @@ class Combat:
                 from ow174.game.projectile_clock import advance_accepted
 
                 advance_accepted(self, rocket)
+                if rocket in self.rockets and rocket.source_graph in (0x19E5, 0x1C36):
+                    from ow174.game import echo_projectiles
+
+                    echo_projectiles.observe_live(self, rocket)
             elif not (hanzo_projectiles.advance(self, rocket)
                       or reinhardt_projectiles.advance(self, rocket)
                       or lucio.advance_projectile(self, rocket)

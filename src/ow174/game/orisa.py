@@ -267,6 +267,9 @@ class Orisa:
                 self.halt_graph, source=request.context.caller, params=params,
                 overrides=request.resource.overrides, policy=request.policy, instigator=request.context.instigator,
             )
+            # Retain the already-resolved instigator on the receiver's wire
+            # descriptor; implicit SELF would initialize it from the victim.
+            instance.set_source_entity(instance.source_entity(), publish_source=True)
             body.component.run_now()
             seconds = sum(expr.to_float(instance.evaluate(instance.graph.node(pos).field("m_timeout")))
                           for pos in (13, 9, 30, 5))

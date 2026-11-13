@@ -343,6 +343,7 @@ class Shot:
     clock_origin: tuple[int, int, int] | None = None  # immutable world tick, owner frame, owner frame ms
     entity: int | None = None  # shared identity for Sigma's authored projectile output
     source_script: object | None = None  # launch VM retained only for turret alias retirement
+    echo_launch: 'ShotRecord | None' = None  # original Echo event, before any observer baseline ACK
 
 
 @dataclass
@@ -563,6 +564,13 @@ class Projectiles:
                                 and state.instance.graph.index == 0x0CF5
                                 and definition == 0x0400000000001CCB
                                 and shot.spawn == 0x040000000000174E)
+        if (origin is not None and direction is not None
+                and (state.instance.graph.index, definition) in (
+                    (0x19E5, 0x0400000000002CBF), (0x1C36, 0x0400000000002CBA))):
+            shot.echo_launch = ShotRecord(
+                frame, shot.instance, shot.state, activation[0], tuple(origin), tuple(direction), (),
+                shot=shot_index, volleys=state.volleys & 0xFF,
+            )
         if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative
                          or turret_carrier or supercharger_carrier)
                 and origin is not None and direction is not None):
@@ -654,6 +662,43 @@ class Projectiles:
                     delivery.pending_create = create
                 else:
                     viewer.client.queue_entities([create])
+
+    def observe_existing_volley(self, viewer, source: int, record: "ShotRecord"):
+        """Launch existing actor IDs; their factory retains create/flight/retire authority."""
+        stream = self.combat.observers.projectile_stream(viewer, source, npc=False)
+        if viewer.client is None or stream is None or not record.ids:
+            return ()
+        launch = EntityUpdate(source)
+        launch.ch2 = shot_events([record])
+        group = _ProjectileVolley(len(record.ids))
+        launch.stream = group.arrival
+        deliveries = []
+        for entity in record.ids:
+            delivery = _ObservedProjectile(
+                viewer, viewer.client, stream, record, launch, None,
+                entity=entity, volley=group, externally_managed=True,
+            )
+            delivery.launch_arrival = group.arrival
+            group.creations.append(delivery.creation)
+            deliveries.append(delivery)
+        self.observed.extend(deliveries)
+        return tuple(deliveries)
+
+
+    def retire_existing(self, delivery, tick: int):
+        """Close presentation when its sole actor factory retires that same ID."""
+        if not delivery.externally_managed or not any(item is delivery for item in self.observed):
+            return
+        delivery.finish(tick, False)
+        delivery.advance(tick)
+        self.observed[:] = [item for item in self.observed if item is not delivery]
+        remaining = [item for item in self.observed if item.launch is delivery.launch]
+        if remaining and not delivery.volley.queued:
+            record = replace(delivery.record, ids=tuple(item.entity for item in remaining))
+            delivery.launch.ch2 = shot_events([record])
+            for item in remaining:
+                item.record = record
+
 
     def absorbed(self, shot: Shot) -> None:
         """Retire an intercepted projectile without impact release or spawned field."""
@@ -1156,7 +1201,7 @@ class _ObservedProjectile:
     stream: object
     record: ShotRecord
     launch: EntityUpdate
-    deadline: int
+    deadline: int | None
     npc: bool = False
     entity: int | None = None
     volley: _ProjectileVolley | None = None
@@ -1170,13 +1215,16 @@ class _ObservedProjectile:
     explode: bool = False
     visual_ticks: int = 0
     clock_origin: tuple[int, int, int] | None = None
+    externally_managed: bool = False
 
     def finish(self, tick: int, explode: bool, *, drain: bool = False, visual_ticks: int = 0) -> None:
         self.finished = True
         self.explode = explode
         self.visual_ticks = visual_ticks
         grace = DELIVERY_GRACE_TICKS if explode or drain else 0
-        self.deadline = min(self.deadline, tick + grace)
+        self.deadline = tick + grace if self.deadline is None else min(self.deadline, tick + grace)
+        if self.externally_managed and self.volley is not None:
+            self.volley.creations[:] = [item for item in self.volley.creations if item is not self.creation]
 
     def advance(self, tick: int) -> bool:
         if self.viewer.client is not self.client:
@@ -1189,7 +1237,8 @@ class _ObservedProjectile:
         if launched and self.launch_ack_tick is None:
             self.launch_ack_tick = tick
         visual_done = self.launch_ack_tick is not None and tick >= self.launch_ack_tick + self.visual_ticks
-        if not source_live or tick >= self.deadline or (self.finished and visual_done):
+        expired = self.deadline is not None and tick >= self.deadline
+        if not source_live or expired or (self.finished and visual_done):
             if self.volley is not None:
                 self.volley.remaining -= 1
             last = self.volley is None or self.volley.remaining == 0
@@ -1197,6 +1246,8 @@ class _ObservedProjectile:
             if queued and not launched and last:
                 self.client.cancel_entity_record(self.launch)
             self._release_volley()
+            if self.externally_managed:
+                return False  # the actor factory owns its sole DESTROY
             if self.pending_create is not None:
                 return False  # nothing about this projectile reached the client
             update = EntityUpdate(self.record.ids[0] if self.entity is None else self.entity, OP_DESTROY)

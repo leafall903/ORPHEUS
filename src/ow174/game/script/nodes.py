@@ -4502,8 +4502,11 @@ class MysterySwapRosterState(State):
 
 @state_class("STU_37D754C8")
 class SubScript(State):
-    """Runs a child instance of another graph while active (OnBegin 0x7FF78AAB1F30): its variables from
-    m_89402D74 (evaluated here), destroyed at the end. The child gets the next free instance id."""
+    """Run a child graph while active (nativeD53D00 allocation helper).
+
+    Variables come from m_89402D74; cleanup1BA1F30 destroys the child. The child
+    gets the next free instance id, with its parent's instigator before init.
+    """
 
     family = "subscript"
 
@@ -4538,7 +4541,15 @@ class SubScript(State):
                         values[target] = play.evaluate_value(self.instance, cfg)
                     else:
                         values[target] = self.evaluate(cfg, watch=False)
-        self.child = component.create(found, parent=self.instance, parent_state=self.index, values=values)
+        inherit_source = not component.strict
+        source = self.instance.source_entity() if inherit_source else None
+        self.child = component.create(found, parent=self.instance, parent_state=self.index, values=values,
+                                      init=not inherit_source)
+        if inherit_source:
+            # NativeD53D00 forwards the parent's cached source to child allocation
+            # before init; exactly zero takes the allocator's actual-owner fallback.
+            self.child.set_source_entity(component.entity if source == 0 else source)
+            self.child.init()
 
     def on_end(self, finished: bool) -> None:
         if self.child is not None:

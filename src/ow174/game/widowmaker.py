@@ -140,6 +140,17 @@ def update(fight):
                 state.refresh()
 
 
+def body_pitch(world, cfg, instance):
+    """005A/node32 supplies node10's hook cosmetic pitch on the owned pose."""
+    if (cfg.get('$') != 'STU_40AC5AE4' or world.hero != HERO
+            or instance is None or instance.graph.index != 0x005A
+            or cfg != instance.graph.node(32).field('m_value')['m_configVars'][0]):
+        return NotImplemented
+    from ow174.game.script.body_pose import owned_pitch
+
+    return owned_pitch(world, cfg, instance, current_pose=True)
+
+
 def grapple_cast(self, state):
     """Reconstructed hook against static surfaces and selected Ice Wall pillars.
 

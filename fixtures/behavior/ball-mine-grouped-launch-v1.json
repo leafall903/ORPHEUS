@@ -1,0 +1,15 @@
+{
+  "targetBuild": "104319",
+  "provenance": "Synthetic actual Q commands and encrypted Journal peers using external original1517/2578/151A graphs. No game assets included.",
+  "cases": [
+    "Owner, ally and enemy: actor CREATE/source ACK precede three logical source records containing the existing1/6/8 IDs.",
+    "One member retired before CREATE/source ACK: unsent group references surviving1/5/8 IDs; source retirement before final launch ACK cannot restore actors or deliveries.",
+    "Existing viewer readiness gate opens after natural landing/arming: existing15 IDs arrive in1/6/8 records; one natural proximity hit remains130damage, then one retirement."
+  ],
+  "invariants": [
+    "No second mine pool, physics integrator, HP owner, damage producer, prediction lease or TTL.",
+    "Actor factory owns CREATE, flight/arming state and sole DESTROY. Existing canonical grouped projectile receipt handles launch ACK/cancel.",
+    "At most one unsent latest pose per mine/connection; do not let old poses block source launch or retransmit a stale pose."
+  ],
+  "limits": "Native rendered models, exact muzzle/origin/spread/trajectory and team-colour presentation remain unverified. Existing physical launch policy is retained."
+}
