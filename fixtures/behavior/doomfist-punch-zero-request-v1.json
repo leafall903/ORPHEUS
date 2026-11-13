@@ -1,0 +1,19 @@
+{
+  "build": 104319,
+  "inputs": {
+    "distance": 3,
+    "hold_frames": 18,
+    "caller_multiplier": 0,
+    "recipient_response": 1
+  },
+  "expected": {
+    "damage_positive": true,
+    "hit_count": 1,
+    "nonzero_velocity_count": 0,
+    "force_serial_delta": 0,
+    "braking_count": 2,
+    "braking_frames": 20,
+    "control_seconds": 0.5
+  },
+  "boundary": "Original graph sequencing plus actual command regression; existing Punch control remains reconstruction, not complete original helper or native client acceptance."
+}

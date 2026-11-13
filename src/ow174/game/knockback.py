@@ -101,8 +101,46 @@ class Knockbacks:
         if (not isinstance(impulse, expr.Vec3) or not all(map(math.isfinite, impulse))
                 or not any(impulse) or self.combat.vitals_of(target).dead):
             return False
+        resolved = self._launch_receiver(target, impact_frame, impact_tick, launch_modifiers)
+        if not resolved or self.serial >= 0xFFFFFFFF:
+            return False
+        owner, controller, mover, frame, controlled = resolved
+        match = self.combat.match
+        self.retire_whole_hog(target.entity, forget=False)
+        key = HOST_PREFIX | (self.serial + 1)
+        if isinstance(owner, bots.Bot) and not controlled:
+            if frame - 1 > match.tick:
+                if not hasattr(self, "pending_npc"):
+                    self.pending_npc = {}
+                events = self.pending_npc.setdefault(owner.entity, [])
+                events.append((frame - 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers))
+                events.sort()
+            else:
+                self._start_npc(owner, frame - 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
+        else:
+            expires = max(match.tick, impact_tick if impact_tick is not None else match.tick)
+            expires += (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
+            if not correction.request_motion(controller, first_frame=frame, body=target.entity,
+                                             expires_tick=expires):
+                return False
+            self._enqueue(target.entity, mover, frame, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
+            if not controlled:
+                self.record_launch(target, source_entity=source_entity)
+        self.serial += 1
+        if isinstance(owner, bots.Bot):
+            from ow174.game import body_script_requests
+
+            body_script_requests.activate_npc(match, owner)
+        return True
+
+    def _launch_receiver(self, target, impact_frame, impact_tick, launch_modifiers):
+        """One admission/clock policy shared by force and finite-only modifiers."""
+        from ow174.game import bots
+        from ow174.game.combat import TICK
+
         owner = target.owner
         match = self.combat.match
+        mover = None
         if impact_tick is not None and (type(impact_tick) is not int or impact_tick < 0):
             raise ValueError('impact_tick must be a nonnegative world tick')
         controller = self._controlled_receiver(owner) if isinstance(owner, bots.Bot) else owner
@@ -135,34 +173,43 @@ class Knockbacks:
                 current = (mover.last_command.frame if controlled and mover.last_command is not None
                            else script.component.frame)
                 frame = max(current + 1, mapped + 1)
-        if (not 0 <= frame <= 0xFFFFFFFF or self.serial >= 0xFFFFFFFF
+        if (not 0 <= frame <= 0xFFFFFFFF
                 or any(frame + math.ceil(row[3] / TICK) > 0xFFFFFFFF for row in launch_modifiers)):
             return False
-        self.retire_whole_hog(target.entity, forget=False)
-        key = HOST_PREFIX | (self.serial + 1)
-        if isinstance(owner, bots.Bot) and not controlled:
-            if frame - 1 > match.tick:
-                if not hasattr(self, "pending_npc"):
-                    self.pending_npc = {}
-                events = self.pending_npc.setdefault(owner.entity, [])
-                events.append((frame - 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers))
-                events.sort()
-            else:
-                self._start_npc(owner, frame - 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
-        else:
-            expires = max(match.tick, impact_tick if impact_tick is not None else match.tick)
-            expires += (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
-            if not correction.request_motion(controller, first_frame=frame, body=target.entity,
-                                             expires_tick=expires):
-                return False
-            self._enqueue(target.entity, mover, frame, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
-            if not controlled:
-                self.record_launch(target, source_entity=source_entity)
-        self.serial += 1
-        if isinstance(owner, bots.Bot):
-            from ow174.game import body_script_requests
+        return owner, controller, mover, frame, controlled
 
-            body_script_requests.activate_npc(match, owner)
+    def admit_modifiers(self, target, *, impact_tick, source_entity=None, launch_modifiers=()):
+        """Finite effects on an existing player/possessed body, without a force.
+
+        Ordinary NPC ownership/handback remains unsupported by this first
+        effect-only path; it never creates a mover or queues a zero velocity.
+        """
+        from ow174.game import bots, correction
+        from ow174.game.combat import TICK
+
+        launch_modifiers = tuple(tuple(row) for row in launch_modifiers)
+        if any(len(row) != 5 or not all(math.isfinite(v) for v in row)
+               or type(row[0]) is not int or not 0 <= row[0] <= 38
+               or type(row[1]) is not int or row[1] not in (ADD, MULTIPLY, SET)
+               or row[3] <= 0 for row in launch_modifiers):
+            raise ValueError('invalid finite launch modifier')
+        for row in launch_modifiers:
+            f32(row[2])
+            f32(row[4])
+        if not launch_modifiers or self.combat.vitals_of(target).dead:
+            return False
+        resolved = self._launch_receiver(target, None, impact_tick, launch_modifiers)
+        if not resolved:
+            return False
+        owner, controller, mover, frame, controlled = resolved
+        if isinstance(owner, bots.Bot) and not controlled:
+            return False
+        expires = max(self.combat.match.tick, impact_tick)
+        expires += (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
+        if not correction.request_motion(controller, first_frame=frame, body=target.entity,
+                                         expires_tick=expires):
+            return False
+        self._enqueue_launch_modifiers(mover, frame, launch_modifiers)
         return True
 
     def _controlled_receiver(self, bot):
@@ -472,16 +519,20 @@ class Knockbacks:
 
     def _enqueue(self, entity, mover, frame, key, impulse, velocity_mode=1,
                  velocity_priority=0.0, launch_modifiers=()):
-        from ow174.game.combat import TICK
-
         change = (velocity.projected(frame, tuple(impulse)) if velocity_mode == 4 else
                   velocity.vector(frame, ADD, tuple(impulse), mover.velocity))
         velocity.enqueue(mover.velocity_changes, replace(change, key=key, priority=velocity_priority))
+        self._enqueue_launch_modifiers(mover, frame, launch_modifiers)
+        self.active[entity] = mover
+        mover.external_impulse = True
+
+    @staticmethod
+    def _enqueue_launch_modifiers(mover, frame, launch_modifiers):
+        from ow174.game.combat import TICK
+
         for index, op, value, seconds, priority in launch_modifiers:
             mover.add_timed_mod(index, op, value, frame, frame + math.ceil(seconds / TICK),
                                 priority=priority, frame_clock=True)
-        self.active[entity] = mover
-        mover.external_impulse = True
 
     def _start_npc(self, bot, impact, key, impulse, velocity_mode=1,
                    velocity_priority=0.0, launch_modifiers=()):

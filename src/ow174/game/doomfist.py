@@ -361,17 +361,26 @@ class Punches:
                              expr.to_float(instance.evaluate(mod.get('m_priority'))))
                             for mod in helper.node(48).field('m_BC5E91CF')
                         )
-                        if self.combat.knockbacks.apply(
+                        moving = any(impulse)
+                        if moving:
+                            admitted = self.combat.knockbacks.apply(
                                 target, impulse, impact_tick=self.combat.match.tick,
                                 source_entity=player.body, velocity_mode=action['m_CFEC5F76'],
                                 velocity_priority=expr.to_float(instance.evaluate(action.get('m_priority'))),
-                                launch_modifiers=launch_modifiers):
+                                launch_modifiers=launch_modifiers)
+                        else:
+                            # Original action58 still follows47 when its requested vector is zero.
+                            admitted = self.combat.knockbacks.admit_modifiers(
+                                target, impact_tick=self.combat.match.tick, source_entity=player.body,
+                                launch_modifiers=launch_modifiers)
+                        if admitted:
                             until = self.combat.now + dash.control_seconds
                             self._control(target, until)
-                            self.impacts.append(
-                                Impact(player, player.body, target.entity, direction,
-                                       dash.wall_damage, until),
-                            )
+                            if moving:
+                                self.impacts.append(
+                                    Impact(player, player.body, target.entity, direction,
+                                           dash.wall_damage, until),
+                                )
             self._finish(player, instance, dash)
         elif dash.blocked or dash.arrived or not state.active:
             self._finish(player, instance, dash)
