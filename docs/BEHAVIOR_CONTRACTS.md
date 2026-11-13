@@ -757,3 +757,35 @@ These five previously omitted methods are newly included in formal coverage:
 No new20-hero scenario or profile was run for53 under the code-only instruction.
 Latest measured52 timing remains RED and is not inherited as53 acceptance.
 Running native49 and its limited Halloween entry/opening evidence stay separate.
+
+## Restore omitted live-orb, target-history and JumpPack adapters (batch54)
+
+Zen45855 admits only a still-live original0164/0236-or0261 orb with an existing
+immutable launch record, matching current volley activation, ACKed late-viewer
+baseline, original body/script/clock and original deadline. Reuse shared delivery
+without a second physical flight or extra HIT. Initially empty observers, older
+overlapping/multi-orb activations and reflection remain excluded and OPEN.
+
+Hanzo9eaff adapts originalc450: exact00B9/0144-or0149 delayed physical ticks
+with captured clock, retaining target construct metadata and excluding reflection.
+Ana8641 adapts originald9e: exact0B94/15B7 delayed physical recipient history.
+Ana timed-dose HIT slicing/independent-owner labels and other projectile families
+remain OPEN; its tests do not claim complete payload-list equivalence.
+Serial current53 composition preserves all existing Pharah/Orisa/Genji/Echo/Torb
+and Soldier hooks, then appends Hanzo and Ana exact owner insertions. Zen only
+adds its original two _fly lines. Removing each insertion restores that actual
+prior module byte-for-byte; no older whole Combat overlay is used.
+
+Winston1422474a adapts originalf1d using existing paired-bound CLAMP service:
+only010A/86 typed scalar channel2, authored bounds/priority, keyed next-frame
+request and one-frame lifetime. Existing mover module and shared math are not
+changed. Actual cleanup exercises Y=-150/0/100 while preserving X/Z, mover
+identity and enemy HP. Driver receives only scoped existing velocity dispatch.
+
+Five newly included methods plus one retained Helix sibling check pass in the
+composed source. Count316 selected =295 new +21 maintained compatibility.
+No new persistent fields/schema,20-hero run,profile or original-client acceptance
+is introduced in54. Latest52 timing remains16ms RED;53/54 are unmeasured.
+Running49 native Halloween evidence remains limited to scene/opening and is not
+inherited. Bastion volley schema/lifetime work and additional Hanzo/Ana late-flight
+packages remain pending separately; a latest child is not an entire lane merge.

@@ -490,3 +490,12 @@ Restore four omitted original-owner plans: Pharah e66095b1 then91acd50e, Junkrat
 - `pharah-concussive-retained-impact`: original focused owner commit(s) `91acd50e322217bb9ad4559e83e999eeaf76466b`.
 - `junkrat-landed-vm-registration`: original focused owner commit(s) `f6117cb8cd4279e3dfc3d3b470d6c766d5ca57c7`.
 - `soldier-helix-moving-target-rebase52`: original focused owner commit(s) `71b3a0d8d8717391a0905e9d811300a5d447e462`.
+
+## Restore omitted Zen Hanzo Ana and Winston owner adapters
+
+Restore four reviewed original-owner packages on actual53: Zen45855c9a, Hanzo9eaff191(originalc450), Ana8641bfa2(originald9e), and Winston1422474a(originalf1d). Adapt only original combat insertion context serially, retaining 53 Soldier and all prior sibling hooks; all other non-Markdown postimages equal original-owner Git. Each reverse patch restores its actual prior bytes; outside-repository reverse scratch CRLF setup failure is preserved and corrected with explicit autocrlf=false, not hidden as a production test failure. Qualified live Zen orbs enroll matching ACKed viewers without changing flight/deadline; Hanzo/Ana use scoped retained physical target poses; Winston restores authored cleanup scalar clamp via current service without modifying mover math/schema. Six composed focused checks include five newly integrated methods and retained Helix compatibility, with actual source/clock/HIT/retirement/typed cleanup boundaries. Count316selected (295new,21maintained), not full-hero completion. Empty/old/reflected Zen activations, broader arrows/rifle clocks/Physics and native presentation remain OPEN. No20/profile/client/backend or current49 change;54 timing and native acceptance UNMEASURED, last52 16msRED preserved. Bastion strict schema and later Hanzo/Ana observer packages remain queued separately.
+
+- `zen-qualified-live-orb-current53-v2`: original focused owner commit(s) `45855c9a473952c3db7e88f1a3905972dc3e3dd0`.
+- `hanzo-retained-impact-current53`: original focused owner commit(s) `9eaff19173911624947b414018690bd022826d39`.
+- `ana-retained-rifle-impact-current53`: original focused owner commit(s) `8641bfa225bb23e309aaaa3c983fc3202e68123f`.
+- `winston-authored-jump-clamp-current53`: original focused owner commit(s) `1422474ad82f616c5e45248d742887d9a279c3d5`.

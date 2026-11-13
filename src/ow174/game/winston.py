@@ -11,6 +11,31 @@ from dataclasses import dataclass
 from ow174.game.script import expr, nodes, runtime
 
 HERO = 0x02E0000000000009
+
+
+def jump_velocity_clamp(world, instance, node):
+    """010A/86: D35310 bounded scalar, one C32860 next-frame Y record."""
+    if (world.hero != HERO or world.match is None
+            or instance.graph.index != 0x010A or node.pos != 86):
+        return NotImplemented
+    rows = node.field('m_BC5E91CF')
+    if (not isinstance(rows, list) or len(rows) != 1
+            or rows[0].get('$') != 'STU_20E18047' or rows[0].get('m_A9561CA0') != 2):
+        return NotImplemented
+    row = rows[0]
+    low = instance.evaluate(row.get('m_8AD739CE'))
+    high = instance.evaluate(row.get('m_8213EB22'))
+    priority = instance.evaluate(row['m_priority']) if row.get('m_priority') is not None else 0.
+    if any(type(value) not in (int, float) or not math.isfinite(value)
+           or abs(value) > 3.4028234663852886e38 for value in (low, high, priority)):
+        return NotImplemented
+    from ow174.game.mover import CLAMP
+
+    world.queue_velocity_changes(instance.component.frame, (instance.id, node.rid),
+                                 ((0, 2, CLAMP, (low, high), priority),))
+    return True
+
+
 PRIMAL_GRAPH = 0x0109
 PRIMAL_HEALTH = 4
 CHARGE_GRAPH = 0x0B8B

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-moving-target-v1",
+  "target_build": "104319",
+  "source": {"provenance": "Synthetic real bow/Sonic input and actual recipient right127 movement. Both exact00B9/0144 and00B9/0149 have packet1/32 RED on the same world timeline. Original game data remains external."},
+  "input": {"distance": 5, "frames": 128, "draw_first": 4, "draw_last": 73, "target_right_from": 74, "target_right": 127, "packets": [1,32], "separate_owner_epoch": 9000},
+  "expected": {"damage": 125, "hit_notices": 1, "live": 0, "definitions": {"bow": "0x400000000000144", "sonic": "0x400000000000149"}, "sonic_target": "actual struck recipient body", "packet_agreement": "same launch metadata, health, complete existing HIT payload, physical end and Sonic attachment/selected target"},
+  "client_acceptance": "pending"
+}

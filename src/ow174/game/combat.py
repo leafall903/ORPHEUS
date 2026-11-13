@@ -8046,6 +8046,8 @@ class Combat:
                     from ow174.game import echo_projectiles
 
                     echo_projectiles.observe_live(self, rocket)
+                if rocket in self.rockets and rocket.source_graph == 0x0164:
+                    self.zenyatta.observe_live(rocket)
             elif not (soldier_projectile_history.advance(self, rocket)
                       or hanzo_projectiles.advance(self, rocket)
                       or reinhardt_projectiles.advance(self, rocket)
@@ -8474,6 +8476,12 @@ class Combat:
         from ow174.game import soldier_projectile_history
 
         candidates = soldier_projectile_history.targets(self, rocket, candidates)
+        from ow174.game import hanzo_projectiles
+
+        candidates = hanzo_projectiles.targets_at_impact(self, rocket, candidates)
+        from ow174.game import ana_projectiles
+
+        candidates = ana_projectiles.targets(self, rocket, candidates)
         best = None
         assisted_contact = (rocket.definition == 0x0400000000001000
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))

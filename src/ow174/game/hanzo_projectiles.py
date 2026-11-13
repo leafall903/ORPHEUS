@@ -1,5 +1,7 @@
 """Opt Hanzo's admitted arrows into physical event replay."""
 
+from dataclasses import replace
+
 from ow174.game import projectile_clock
 
 FLIGHTS = {
@@ -11,6 +13,17 @@ FLIGHTS = {
     (0x0101, 0x040000000000034F),
 }
 
+
+HISTORY_ARROWS = {(0x00B9, 0x0400000000000144), (0x00B9, 0x0400000000000149)}
+
+def targets_at_impact(fight, rocket, candidates):
+    """Use retained physical-tick poses for the proved delayed Hanzo direct hits."""
+    if ((rocket.source_graph, rocket.definition) not in HISTORY_ARROWS
+            or rocket.shot is None or rocket.shot.clock_origin is None
+            or rocket.reflected or fight.tick >= fight.match.tick):
+        return candidates
+    return [replace(shown, construct=target.construct) for target in candidates
+            if (shown := fight.seen(target, fight.tick)) is not None]
 
 def clock_origin(script):
     # Hanzo's anchor is fixed at this body's birth; capture it before a switch

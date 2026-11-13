@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "provenance": {"kind": "synthetic", "target_build": "1.74.0.0.104319", "native_client_acceptance": "pending"},
+  "input": {"owner_birth": 9000, "fire_offset": 3, "join_offset": 12},
+  "expected": {"late_copies": 1, "physical_flights": 1, "extra_hits": 0, "deadline_extended": false},
+  "boundary": "Only the original still-current volley already present in the acknowledged viewer baseline is qualified; historical overlapping activations and an initially empty observer set remain open."
+}

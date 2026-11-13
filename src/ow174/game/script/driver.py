@@ -1991,6 +1991,12 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        from ow174.game.winston import jump_velocity_clamp
+
+        result = jump_velocity_clamp(self, instance, node)
+        if result is not NotImplemented:
+            return result
+
         if (self.hero == regeneration.MERCY and self.match is not None
                 and instance.graph.index == 0x006E and node.pos == 73):
             mover = self.match._script_body_mover(self.body, self.body)

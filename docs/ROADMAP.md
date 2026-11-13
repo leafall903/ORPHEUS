@@ -663,3 +663,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Restore omitted Soldier Pharah and Junkrat owner fixes with5 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Restore omitted Zen Hanzo Ana and Winston owner adapters with6 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "ana-rifle-moving-target-v1",
+  "target_build": 104319,
+  "provenance": "Actual 0B94/15B7 primary commands against actual enemy right127 movement, identical world timeline. Base 9e00e90b: packet1=70 damage, packet32=0 damage. Synthetic host model only.",
+  "input": {"distance": 6, "source_packet_sizes": [1, 32], "target_right": 127, "sample_frames": 64},
+  "expected": {"damage": 70, "hit_identity_frame_flags_equal": true, "live_projectiles": 0},
+  "limits": "Only delayed hip-rifle target queries use retained body poses. Existing source/vitals/dose producer, collision dimensions and deadlines remain unchanged. Existing timed-dose HIT slices may coalesce on delayed admission: full payload/count equivalence and separate-owner HIT clock correction remain open. No Sleep/grenade historical splash, current-dead-target replay, native trajectory or client acceptance claim."
+}

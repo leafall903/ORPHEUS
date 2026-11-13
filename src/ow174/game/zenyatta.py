@@ -85,6 +85,47 @@ class Zenyatta:
                 if orb is not None and orb.target == body:
                     self.set_orb(owner, name, None)
 
+    def observe_live(self, rocket):
+        """Deliver a live orb only to a viewer holding its original volley baseline."""
+        shot = rocket.shot
+        if (rocket.source_graph != 0x0164
+                or rocket.definition not in (0x0400000000000236, 0x0400000000000261)
+                or shot is None or not shot.observers or shot.clock_origin is None
+                or shot.authoritative or shot.observer_only):
+            return
+        owner = shot.player
+        script = getattr(owner, "body_script", None)
+        if (rocket.shooter is not owner or getattr(getattr(owner, "hero", None), "guid", None) != HERO
+                or owner.body != shot.body or script is None or script.retired):
+            return
+        instance = script.component.instances.get(shot.instance)
+        state = (instance.states.get(shot.state)
+                 if instance is not None and instance.graph.index == 0x0164 else None)
+        if state is None:
+            return
+        original = shot.observers[0]
+        if (state.counter != original.record.activation
+                or state.volleys & 0xFF != original.record.volleys):
+            return  # Older overlapping activations need a separately qualified historical baseline.
+        deadline = min(delivery.deadline for delivery in shot.observers)
+        if self.combat.tick >= deadline:
+            return
+        viewers = []
+        for viewer in self.combat.match.players:
+            if (viewer is owner or viewer.client is None or not viewer.spawned or viewer.gone
+                    or any(delivery.viewer is viewer and delivery.client is viewer.client
+                           for delivery in shot.observers)):
+                continue
+            stream = self.combat.observers.projectile_stream(viewer, shot.body, npc=False)
+            if stream is not None and original.matching_volley(stream.base) is not None:
+                viewers.append(viewer)
+        if viewers:
+            record = original.record
+            self.combat.projectiles._show_others(
+                shot, state, record.origin, record.direction, None,
+                viewers=viewers, original_record=record, deadline=deadline,
+            )
+
     def interrupt(self, player):
         """Reconstructed control binding to0164's authored lost-priority exit.
 
