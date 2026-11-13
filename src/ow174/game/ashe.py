@@ -392,7 +392,7 @@ class Companions:
         return next((actor for actor in self.active.values() if actor.bot.entity == entity), None)
 
     def summon(self, owner, *, charge_seconds=4.0, gun_seconds=10.0, charge_instigator=None,
-               position=None, charge_yaw=None):
+               position=None, charge_yaw=None, pet_owner=None):
         from ow174.game import npc
         from ow174.game.mover import MOVERS_PATH, Mover, load_mover_bundle
         from ow174.game.script import graph
@@ -417,7 +417,8 @@ class Companions:
             x, y, z = owner.mover.position
             position = (x, y - 0.5, z)
         charge_yaw = owner.mover.yaw if charge_yaw is None else charge_yaw
-        bot = npc.spawn(fight.match, definition, tuple(position), team=owner.team, yaw=charge_yaw)
+        bot = npc.spawn(fight.match, definition, tuple(position), team=owner.team, yaw=charge_yaw,
+                        pet_owner=pet_owner)
         bot.spawner["manual_spawn"] = False
         bot.spawner["combat_companion"] = True
         bot.combat_owner = owner

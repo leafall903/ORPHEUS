@@ -2113,13 +2113,15 @@ class BodyWorld(runtime.World):
                 factory = instance.graph.node(11)
                 position = instance.evaluate(factory.field("m_position"))
                 direction = instance.evaluate(factory.field("m_AD8E614B"))
-                if not isinstance(position, Vec3) or not isinstance(direction, Vec3):
+                pet_source = instance.evaluate(factory.field("m_D749D7D8"))
+                if (not isinstance(position, Vec3) or not isinstance(direction, Vec3)
+                        or not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id)):
                     return False
                 charge_yaw = round(math.atan2(direction.x, direction.z) * 65536 / (2 * math.pi))
                 actor = self.match.combat.companions.summon(
                     player, charge_seconds=charge, gun_seconds=duration,
                     charge_instigator=inherited if expr.valid_entity(inherited) else self.body,
-                    position=tuple(position), charge_yaw=charge_yaw)
+                    position=tuple(position), charge_yaw=charge_yaw, pet_owner=pet_source.id)
                 if actor is not None:
                     resource = play.resolve_resource(instance, node)
                     request = (play.resolve_request(instance, node, resource,

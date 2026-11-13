@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-bob-authored-pet-affiliation-v1",
+  "target_build": 104319,
+  "source": "Original1536/node11 m_D749D7D8 DB742151(SELF) selects primary possessor;25C3 declares STUPetComponent; native MECPet wire component72 and MFilterBits26",
+  "input": {"ultimate_button": 32, "source_teams": [0, 1], "viewers": ["self", "ally", "enemy", "late"]},
+  "expected": {"pet_owner": "evaluated primary possessor controller, installed before VM and create publication", "instigator": "original Ashe source body", "filter_bits": "actual source team bit", "viewer_recolor": false},
+  "client_acceptance": "pending; authenticated encrypted packet checks do not prove native rendered colors",
+  "limits": ["No hardcoded blue/red or asset replacement", "Dynamite remains original predicted launch/confirmation; no new late projectile replay", "No native screenshot accepted"]
+}

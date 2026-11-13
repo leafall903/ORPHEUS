@@ -171,8 +171,8 @@ class Blizzard:
                     continue
                 viewer.client.queue_entities([world.EntityUpdate(
                     area.entity, world.OP_CREATE,
-                    lambda origin, p=area.position, t=area.owner.team: world.create(
-                        origin, DEFINITION, {26: [0x800000 << t]},
+                    lambda origin, p=area.position, bits=area.owner.team_bit: world.create(
+                        origin, DEFINITION, {26: [bits]},
                         flags=world.WITH_TRANSFORM | world.WITH_SCALE,
                         position=(p[0], p[1] + 2.0, p[2]),
                     ),

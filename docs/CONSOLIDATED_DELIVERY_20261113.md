@@ -195,3 +195,11 @@ Integrate reviewed source-only increments: Junkrat original landed09BB actor and
 - `symmetra-teleport-angle-docs`: original focused owner commit(s) `d2ed7802b3f5818e179aa2a7b04fc5e9de0f0fc8`.
 - `placement-u8-shared-codec`: original focused owner commit(s) `6f64e13c9d762824d42dcbd91e559c8cc80ad284`.
 - `symmetra-placement-byte-producer`: original focused owner commit(s) `2cc02ef6543df636a228dd08d28d447f90840883`.
+
+## Pending projectile source and authored summon affiliation
+
+Select the original64c pending-source stream registration without bypassing existing create/source ACK, generation or expiry gates; original3e7 Ashe1536/11 evaluated controller Pet affiliation installed before BOB VM startup; and original48d Mei Blizzard create using the actual current owner team_bit rather than player-slot shifting, retaining its existing reflection, retirement and viewer-create sampling policy. Eight composed executions pass:6 new distinct methods plus2 retained lifecycle methods. Cumulative105 selected follow-up methods pass (92 new,13 maintained compatibility), not a whole-hero or visual completion percentage. No common Pet serializer guess or fixed palette/material override is introduced. Reaper4aaf preview identity regression separately exposes a missing actual uint8 producer on this aggregate; it remains a recorded failed candidate and is excluded from this commit and passing count. The related Mei wall producer is likewise being repaired without weakening the strict byte codec. Soldier76 Field and Mei Cryo reported enemy-color issues, native Pet wire acceptance, final client palette selection, full force/MoveTo/Physics and all retained native issues remain open. These source changes do not modify the running immutablea3a server or inherit its unavailable Halloween visual acceptance.
+
+- `pending-projectile-source-stream`: original focused owner commit(s) `64c00652678376c66096ac95cee8ffde36779ab0`.
+- `ashe-bob-authored-pet-affiliation`: original focused owner commit(s) `3e7c54d61f35909da8cd0479ed7ed6103a0b023a`.
+- `mei-blizzard-actual-filter`: original focused owner commit(s) `48d3413d2c84e8d6d70d3eff56f2aba776608ae1`.

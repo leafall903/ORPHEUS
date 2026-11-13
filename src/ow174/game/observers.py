@@ -313,12 +313,13 @@ class Observers:
         return watch.stream if watch is not None and watch.stream.base is not None else None
 
     def projectile_stream(self, viewer, body: int, *, npc: bool) -> BodyStream | None:
-        """Accept a registered NPC lifetime while its initial frame is still in flight."""
+        """Accept a registered source lifetime while its initial frame is still in flight."""
         if viewer.body == body and viewer.body_script is not None:
             return viewer.body_script.stream
         if npc:
             return viewer.client.bot_stream(body) if viewer.client is not None else None
-        return self.acknowledged_stream(viewer, body)
+        watch = self.watches.get((viewer.slot, body))
+        return watch.stream if watch is not None and body in viewer.seen else None
 
     def update(self) -> None:
         match = self.match
