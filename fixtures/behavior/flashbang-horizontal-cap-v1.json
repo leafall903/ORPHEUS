@@ -1,0 +1,362 @@
+{
+  "case_id": "flashbang.horizontal-cap.v1",
+  "target_build": 104319,
+  "image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+  "provenance": "Synthetic host row/locomotion fixture; original D35310 typed-row check, D2BAC5..D2BB50 dispatch, C32860 enqueue and C31870 consumer replay supply row/velocity evidence with declared config, frame and mover inputs. NPC requested-velocity/collision integration is a host model; full native NPC motor parity and outer action context/timing remain unverified.",
+  "source_frame": 100,
+  "active_frame": 101,
+  "upper": 3,
+  "cases": [
+    {
+      "input": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ],
+      "frame": 100,
+      "actual": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ],
+      "expected": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ],
+      "frame": 101,
+      "actual": [
+        1.8000001907348633,
+        4.0,
+        2.4000003337860107,
+        0.0
+      ],
+      "expected": [
+        1.7999999999999998,
+        4.0,
+        2.4,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ],
+      "frame": 102,
+      "actual": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ],
+      "expected": [
+        6.0,
+        4.0,
+        8.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ],
+      "frame": 100,
+      "actual": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ],
+      "expected": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ],
+      "frame": 101,
+      "actual": [
+        -1.8000001907348633,
+        -4.0,
+        -2.4000003337860107,
+        0.0
+      ],
+      "expected": [
+        -1.7999999999999998,
+        -4.0,
+        -2.4,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ],
+      "frame": 102,
+      "actual": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ],
+      "expected": [
+        -6.0,
+        -4.0,
+        -8.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ],
+      "frame": 100,
+      "actual": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ],
+      "expected": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ],
+      "frame": 101,
+      "actual": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ],
+      "expected": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ],
+      "frame": 102,
+      "actual": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ],
+      "expected": [
+        1.0,
+        2.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ],
+      "frame": 100,
+      "actual": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ],
+      "expected": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ],
+      "frame": 101,
+      "actual": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ],
+      "expected": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "input": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ],
+      "frame": 102,
+      "actual": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ],
+      "expected": [
+        0.0,
+        9.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "graph": {
+    "index": 8782,
+    "items": 33,
+    "nodes": [
+      {
+        "pos": 0,
+        "class": "STUStatescriptEntry",
+        "uid": 0,
+        "rid": 0,
+        "remote": -1,
+        "state": null,
+        "fields": {
+          "m_outPlug": {
+            "links": [
+              [
+                31,
+                "m_inPlug"
+              ]
+            ],
+            "$": "STUStatescriptOutputPlug"
+          }
+        },
+        "client_only": false,
+        "server_only": false
+      },
+      {
+        "pos": 31,
+        "class": "STU_FF3471E9",
+        "uid": 31,
+        "rid": 31,
+        "remote": -1,
+        "state": null,
+        "fields": {
+          "m_ADEB6E05": 1,
+          "m_BC5E91CF": [
+            {
+              "$": "STU_20E18047",
+              "m_A9561CA0": 1,
+              "m_priority": null,
+              "m_8AD739CE": {
+                "$": "STUConfigVarFloat",
+                "m_value": 0.0
+              },
+              "m_8213EB22": {
+                "$": "STUConfigVarFloat",
+                "m_value": 3.0
+              }
+            }
+          ],
+          "m_outPlug": {
+            "links": [
+              [
+                32,
+                "m_inPlug"
+              ]
+            ],
+            "$": "STUStatescriptOutputPlug"
+          }
+        },
+        "client_only": false,
+        "server_only": false
+      },
+      {
+        "pos": 32,
+        "class": "STUStatescriptActionSetVar",
+        "uid": 32,
+        "rid": 32,
+        "remote": -1,
+        "state": null,
+        "fields": {
+          "m_out_Var": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 900,
+            "m_60DB8F99": 1
+          },
+          "m_value": true,
+          "m_ADEB6E05": 1
+        },
+        "client_only": false,
+        "server_only": false
+      }
+    ],
+    "states": [],
+    "entries": [
+      0
+    ],
+    "remote": [],
+    "sync_vars": [],
+    "containers": {},
+    "fields": {},
+    "unknown_nodes": [],
+    "header": {
+      "m_nodesBitCount": 6,
+      "m_statesBitCount": 4,
+      "m_remoteSyncNodesBitCount": 4,
+      "m_syncVarsBitCount": 4
+    }
+  },
+  "client_acceptance": "pending"
+}

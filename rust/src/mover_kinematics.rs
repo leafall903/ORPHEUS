@@ -7,7 +7,7 @@ use std::f64::consts::TAU;
 
 use crate::{
     commands::{Command, SUBFRAME, frame_distance},
-    mover_modifiers::CAP_TINY,
+    mover_modifiers::{ActiveModifiers, CAP_TINY},
     mover_settings::MoverSettings,
 };
 
@@ -96,6 +96,13 @@ pub struct MotionInput {
     pub throttles: [i8; 2],
     right: f64,
     forward: f64,
+}
+
+impl MotionInput {
+    pub(crate) fn with_modifiers(mut self, modifiers: &ActiveModifiers) -> Self {
+        (self.right, self.forward) = modifiers.throttles(self.right, self.forward);
+        self
+    }
 }
 
 impl From<&Command> for MotionInput {
@@ -434,7 +441,11 @@ mod tests {
         let movers = MoverCatalog::load(&path).unwrap();
         let raw: BTreeMap<String, serde_json::Value> =
             serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
-        assert_eq!(raw.len(), 38);
+        let expected = match raw.len() {
+            38 => "1cc8efee5023b28c77d6cfca201498c0c64e7706b0088fb4651cf6156d551347",
+            43 => "0d49f5c3fd7997de7cb51a12540af01d48faab5b145e77d85b326b550445efba",
+            count => panic!("no Python reference vector for the {count}-mover velocity corpus"),
+        };
         let indexes = [
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 20, 21, 22, 36, 38,
         ];
@@ -574,9 +585,6 @@ mod tests {
                 }
             }
         }
-        assert_eq!(
-            format!("{:x}", digest.finalize()),
-            "1cc8efee5023b28c77d6cfca201498c0c64e7706b0088fb4651cf6156d551347"
-        );
+        assert_eq!(format!("{:x}", digest.finalize()), expected);
     }
 }

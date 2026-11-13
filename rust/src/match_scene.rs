@@ -10,6 +10,7 @@ use crate::{
     game_instance::FREE_FOR_ALL_TEAM,
     game_stats::GMP_STATS,
     script_graph::GraphStore,
+    script_init::{Snapshot, StateKind},
     script_wire::{self, Instance, Layout, Variables},
     world::{
         Component, ComponentValue, Create, EntityUpdate, GAME_MODE_ENTITY, Operation, PLAYER_PATH,
@@ -174,6 +175,112 @@ pub fn initial_world<'a>(
 
 /// H=0 game mode graph with its client-only UI entry dependencies retained.
 pub fn mode_ui(graphs: &GraphStore, variables: &Variables) -> io::Result<BitWriter> {
+    mode_presentation(graphs, variables, None)
+}
+
+pub(crate) fn mode_presentation(
+    graphs: &GraphStore,
+    variables: &Variables,
+    encounter: Option<u32>,
+) -> io::Result<BitWriter> {
+    let instances = mode_instances(graphs, encounter)?;
+    script_wire::remote_full(&instances, variables).map_err(invalid)
+}
+
+pub(crate) fn junkenstein_presentation(
+    graphs: &GraphStore,
+    encounter: &Snapshot,
+) -> io::Result<BitWriter> {
+    let instances = junkenstein_presentation_instances(graphs, encounter)?;
+    script_wire::remote_full(&instances, &Variables::new()).map_err(invalid)
+}
+
+fn junkenstein_presentation_instances(
+    graphs: &GraphStore,
+    encounter: &Snapshot,
+) -> io::Result<Vec<Instance>> {
+    let root = encounter
+        .instances
+        .get(&2)
+        .filter(|instance| instance.parent.is_none())
+        .ok_or_else(|| invalid("missing Junkenstein presentation root"))?;
+    let mut instances = mode_instances(graphs, Some(root.graph))?;
+    // The outcome voice entries and the post-match screen manager are
+    // separate children of the common HUD in the authored mode tree.
+    let mut mount = |index, parent, listener| {
+        let (&id, instance) = encounter
+            .instances
+            .iter()
+            .find(|(_, instance)| instance.graph == index && instance.parent == Some(parent))
+            .ok_or_else(|| invalid(format!("missing Junkenstein HUD graph {index:04X}")))?;
+        let graph = graphs
+            .graph(index)
+            .ok_or_else(|| invalid(format!("missing graph {index:04X}")))?;
+        let mut wire = Instance::new(id, Layout::try_from(graph).map_err(invalid)?, Some(parent));
+        if let Some(raw) = listener {
+            let node = graph
+                .state(usize::from(raw))
+                .filter(|node| {
+                    node.class == "STUStatescriptStateGameMessageEntry"
+                        && node
+                            .field("m_gameMessage.m_gameMessage")
+                            .and_then(crate::script_graph::asset_guid)
+                            == Some(crate::junkenstein_messages::POST_MATCH_PHASE)
+                })
+                .ok_or_else(|| invalid("missing Junkenstein post-match listener"))?;
+            if !instance
+                .states
+                .get(&raw)
+                .is_some_and(|state| state.active && state.kind == StateKind::MessageIdle)
+            {
+                return Err(invalid("Junkenstein post-match listener is inactive"));
+            }
+            let slot = graph
+                .remote_positions()
+                .iter()
+                .position(|&pos| pos == node.pos)
+                .ok_or_else(|| invalid("Junkenstein post-match listener is local"))?;
+            // The verified remote-full message entry has X, A and stacked bits.
+            let mut bits = BitWriter::new();
+            bits.bits(3, 3).map_err(invalid)?;
+            wire.states.insert(slot, bits);
+        }
+        instances.push(wire);
+        Ok::<u16, io::Error>(id)
+    };
+    let hud = mount(0x0cbb, (2, 6), Some(0))?;
+    mount(0x03f2, (hud, 44), None)?;
+    mount(0x180a, (hud, 45), Some(2))?;
+    // This sibling owns the authored mission notifications. Its client-only
+    // presenters start locally, while the two server message entries must be
+    // present before they can drive those presenters.
+    let notifications = mount(0x1188, (2, 68), None)?;
+    let instance = &encounter.instances[&notifications];
+    let graph = graphs
+        .graph(instance.graph)
+        .expect("mounted notification graph");
+    let wire = instances.last_mut().expect("mounted notification instance");
+    for (&raw, state) in &instance.states {
+        if !(state.active && state.kind == StateKind::MessageIdle) {
+            continue;
+        }
+        let node = graph
+            .state(usize::from(raw))
+            .filter(|node| node.class == "STUStatescriptStateGameMessageEntry")
+            .ok_or_else(|| invalid("invalid Junkenstein notification listener"))?;
+        let slot = graph
+            .remote_positions()
+            .iter()
+            .position(|&pos| pos == node.pos)
+            .ok_or_else(|| invalid("Junkenstein notification listener is local"))?;
+        let mut bits = BitWriter::new();
+        bits.bits(3, 3).map_err(invalid)?;
+        wire.states.insert(slot, bits);
+    }
+    Ok(instances)
+}
+
+fn mode_instances(graphs: &GraphStore, encounter: Option<u32>) -> io::Result<Vec<Instance>> {
     let graph = graphs
         .graph(MODE_UI)
         .ok_or_else(|| invalid("missing game mode UI graph 0CB6"))?;
@@ -191,7 +298,31 @@ pub fn mode_ui(graphs: &GraphStore, variables: &Variables) -> io::Result<BitWrit
     // The verified 9D7BF987 remote-full layout has X/A bits and no payload.
     active.bits(3, 2).map_err(invalid)?;
     instance.states.insert(slot, active);
-    script_wire::remote_full(&[instance], variables).map_err(invalid)
+    let mut instances = vec![instance];
+    if let Some(encounter) = encounter {
+        // Keep the retail entrance's UI root and mount the authored mission root.
+        // The list scopes are owned by the server simulation, outside this bootstrap.
+        let encounter = graphs
+            .graph(encounter)
+            .ok_or_else(|| invalid("missing Junkenstein encounter graph"))?;
+        let ui = encounter.state(67).filter(|node| {
+            node.class == "STU_37D754C8"
+                && node
+                    .field("m_36F7B64C.m_36F7B64C.m_C974E369.m_graph")
+                    .and_then(serde_json::Value::as_str)
+                    .and_then(crate::accounts::parse_guid)
+                    == Some(0x0580_0000_0000_0cb6)
+        });
+        if ui.is_none() {
+            return Err(invalid("missing Junkenstein common UI SubScript"));
+        }
+        instances.push(Instance::new(
+            2,
+            Layout::try_from(encounter).map_err(invalid)?,
+            None,
+        ));
+    }
+    Ok(instances)
 }
 
 fn create(entity: u32, definition: Create) -> EntityUpdate {
@@ -311,6 +442,78 @@ mod tests {
             remaining = &remaining[selected.entities.len()..];
         }
         assert_eq!(transmitted, expected);
+    }
+
+    #[test]
+    #[ignore = "requires the separately prepared 104319 Junkenstein runtime"]
+    fn junkenstein_entrance_mounts_mission_notification_receivers() {
+        use crate::{
+            game_content::{JUNKENSTEIN_MAP, JunkensteinCard, MapCatalog},
+            scene_assets::SceneAssets,
+        };
+        let runtime = runtime().parent().unwrap().to_path_buf();
+        let assets = SceneAssets::load(&runtime).unwrap();
+        let maps = MapCatalog::load(runtime.join("data/game_maps_174.json")).unwrap();
+        for index in [
+            0x3c, 0x3d, 0x3e, 0x4a, 0x43, 0x44, 0x45, 0x49, 0x16b, 0x16c, 0x16d, 0x16e, 0x16f,
+            0x170,
+        ] {
+            let card = JunkensteinCard::from_index(index).unwrap();
+            let map = maps
+                .game_map(
+                    JUNKENSTEIN_MAP,
+                    card.mode,
+                    "Junkenstein's Revenge",
+                    false,
+                    &[card.players, 0],
+                )
+                .unwrap();
+            let scene = assets.prepare_junkenstein(map, card, 0).unwrap();
+            let snapshot = scene.encounter_snapshot().unwrap();
+            let instances = junkenstein_presentation_instances(assets.graphs(), snapshot).unwrap();
+            let notifications = instances.iter().find(|i| i.layout.graph == 0x1188).unwrap();
+            assert_eq!(notifications.parent, Some((2, 68)));
+            let graph = assets.graphs().graph(0x1188).unwrap();
+            let messages: Vec<_> = notifications
+                .states
+                .keys()
+                .map(|&slot| {
+                    let node = graph.node(graph.remote_positions()[slot]).unwrap();
+                    crate::script_graph::asset_guid(
+                        node.field("m_gameMessage.m_gameMessage").unwrap(),
+                    )
+                    .unwrap()
+                })
+                .collect();
+            assert!(messages.contains(&0x0240_0000_0000_0694));
+            assert!(messages.contains(&0x0240_0000_0000_06a8));
+            assert!(instances.iter().any(|i| i.layout.graph == 0x180a));
+            assert!(instances.iter().any(|i| i.layout.graph == 0x03f2));
+            assert!(
+                junkenstein_presentation(assets.graphs(), snapshot)
+                    .unwrap()
+                    .bit_len()
+                    > 112
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "requires the separately prepared 104319 graph bundle"]
+    fn junkenstein_mode_entrance_matches_reference_frame() {
+        let graphs = GraphStore::load(runtime().join("game_graphs_174.json.gz")).unwrap();
+        for mode in [
+            crate::game_content::JUNKENSTEIN_REVENGE,
+            crate::game_content::JUNKENSTEIN_ENDLESS,
+        ] {
+            let encounter = graphs.mode_scripts(mode).unwrap().graph.unwrap();
+            let frame = mode_presentation(&graphs, &Variables::new(), Some(encounter)).unwrap();
+            assert_eq!(frame.bit_len(), 112);
+            assert_eq!(
+                frame.as_bytes(),
+                [8, 91, 6, 16, 140, 12, 0, 24, 0, 0, 0, 0, 0, 0]
+            );
+        }
     }
 
     #[test]

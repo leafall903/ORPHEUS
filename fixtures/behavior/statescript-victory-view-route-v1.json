@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.victory-view-route.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/nodes.py::routed_game_message",
+      "ow174/game/script/game_message.py::execute",
+      "ow174/game/script/scene.py::SceneWorld.routed_game_message_targets",
+      "ow174/game/script/nodes.py::send_client_only_game_message"
+    ],
+    "scope": "Synthetic scalar 0CEC view messages, normal parameter collection and explicit 0CA5 route; not general array transport or native camera acceptance."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "subject": 2684354817,
+    "cases": [
+      {
+        "name": "enter",
+        "position": 2,
+        "fields": {
+          "m_ADEB6E05": true,
+          "m_gameMessage": {
+            "$": "STUConfigVarGameMessage",
+            "m_gameMessage": "0x02400000000006BB"
+          },
+          "m_params": [
+            {
+              "m_B5051BCE": "0x0A40000000000390",
+              "m_value": {
+                "$": "STUConfigVarBool",
+                "m_value": true
+              }
+            },
+            {
+              "m_B5051BCE": "0x0A40000000000008",
+              "m_value": {
+                "$": "STUConfigVarDynamic",
+                "m_60DB8F99": 0,
+                "m_identifier": 8602
+              }
+            }
+          ],
+          "m_8B34E9C3": null
+        },
+        "expected": {
+          "forwarded": true,
+          "parameters": {
+            "912": true,
+            "8": {
+              "entity": 2684354817
+            }
+          }
+        },
+        "class": "STU_57692020"
+      },
+      {
+        "name": "leave",
+        "position": 3,
+        "fields": {
+          "m_ADEB6E05": true,
+          "m_gameMessage": {
+            "$": "STUConfigVarGameMessage",
+            "m_gameMessage": "0x02400000000006BB"
+          },
+          "m_params": [
+            {
+              "m_B5051BCE": "0x0A40000000000390",
+              "m_value": {
+                "$": "STUConfigVarBool",
+                "m_value": false
+              }
+            }
+          ],
+          "m_8B34E9C3": null
+        },
+        "expected": {
+          "forwarded": true,
+          "parameters": {
+            "912": false
+          }
+        },
+        "class": "STU_57692020"
+      },
+      {
+        "name": "client-only-cue",
+        "class": "STU_100EF8C2",
+        "position": 11,
+        "fields": {
+          "m_ADEB6E05": true,
+          "m_gameMessage": {
+            "$": "STUConfigVarGameMessage",
+            "m_gameMessage": "0x02400000000006F2"
+          },
+          "m_targets": {
+            "$": "STU_B5A0CAF0"
+          },
+          "m_condition": null,
+          "m_params": null,
+          "m_8B34E9C3": null
+        },
+        "expected": {
+          "forwarded": true,
+          "parameters": null
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.combat-target.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::_first_bound_combat_target",
+      "ow174/game/script/scene.py::SceneWorld.native"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "empty-roster",
+        "bodies": [],
+        "roster_available": true
+      },
+      {
+        "name": "live-tagged-body",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "tag-absent",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": []
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "dead-tagged-body",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777233,
+            "tags": [
+              1
+            ]
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "ordered-first-match",
+        "bodies": [
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          },
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "skip-dead-before-live",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777233,
+            "tags": [
+              1
+            ]
+          },
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "skip-missing-tag",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": []
+          },
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "unknown-tags-error",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": null
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "dead-rejects-before-unknown-tags",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777233,
+            "tags": null
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "unavailable-roster",
+        "bodies": [],
+        "roster_available": false
+      },
+      {
+        "name": "match-short-circuits-unknown-later",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          },
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": null
+          }
+        ],
+        "roster_available": true
+      },
+      {
+        "name": "unknown-earlier-blocks-later-match",
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": null
+          },
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [
+              1
+            ]
+          }
+        ],
+        "roster_available": true
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "empty-roster",
+        "entity": 0
+      },
+      {
+        "name": "live-tagged-body",
+        "entity": 124
+      },
+      {
+        "name": "tag-absent",
+        "entity": 0
+      },
+      {
+        "name": "dead-tagged-body",
+        "entity": 0
+      },
+      {
+        "name": "ordered-first-match",
+        "entity": 125
+      },
+      {
+        "name": "skip-dead-before-live",
+        "entity": 125
+      },
+      {
+        "name": "skip-missing-tag",
+        "entity": 125
+      },
+      {
+        "name": "unknown-tags-error",
+        "error": "STU_B3E67A36"
+      },
+      {
+        "name": "dead-rejects-before-unknown-tags",
+        "entity": 0
+      },
+      {
+        "name": "unavailable-roster",
+        "error": "STU_B3E67A36"
+      },
+      {
+        "name": "match-short-circuits-unknown-later",
+        "entity": 124
+      },
+      {
+        "name": "unknown-earlier-blocks-later-match",
+        "error": "STU_B3E67A36"
+      }
+    ]
+  }
+}

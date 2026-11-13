@@ -1,0 +1,522 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.unkeyed-array-insert.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/array_actions.py",
+      "tests/test_script_array_insert.py"
+    ],
+    "native_references": [
+      "1B6B720",
+      "1B6BCB0",
+      "F65260",
+      "F672D0"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "output_scope": "entity",
+    "cases": [
+      {
+        "name": "merge_nested",
+        "current": [
+          1
+        ],
+        "source": [
+          2,
+          [
+            3,
+            null
+          ],
+          4
+        ],
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "single_nested",
+        "current": [
+          1,
+          5
+        ],
+        "source": [
+          2,
+          [
+            3,
+            null
+          ],
+          4
+        ],
+        "index_present": true,
+        "index": 1,
+        "unique": 0,
+        "single": true
+      },
+      {
+        "name": "ordered_insert",
+        "current": [
+          1,
+          2,
+          3
+        ],
+        "source": [
+          7,
+          8
+        ],
+        "index_present": true,
+        "index": 1,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "zero_gaps",
+        "current": [
+          1,
+          2
+        ],
+        "source": 7,
+        "index_present": true,
+        "index": 4,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "empty_source_coercion",
+        "current": 99,
+        "source": null,
+        "index_present": true,
+        "index": 3,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "unique_gaps",
+        "current": [
+          1
+        ],
+        "source": [
+          0,
+          2,
+          2,
+          3
+        ],
+        "index_present": true,
+        "index": 3,
+        "unique": 1,
+        "single": false
+      },
+      {
+        "name": "typed_unique",
+        "current": [
+          1
+        ],
+        "source": [
+          1.00001,
+          true,
+          {
+            "entity": 1
+          }
+        ],
+        "index_present": false,
+        "index": null,
+        "unique": 1,
+        "single": false
+      },
+      {
+        "name": "positive_half",
+        "current": [
+          1,
+          2,
+          3
+        ],
+        "source": 7,
+        "index_present": true,
+        "index": 1.5,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "negative_half",
+        "current": [
+          1,
+          2,
+          3
+        ],
+        "source": 7,
+        "index_present": true,
+        "index": -0.5,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "nan_index",
+        "current": [
+          1,
+          2,
+          3
+        ],
+        "source": 7,
+        "index_present": true,
+        "index": {
+          "float": "NaN"
+        },
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "infinite_index",
+        "current": [
+          1,
+          2,
+          3
+        ],
+        "source": 7,
+        "index_present": true,
+        "index": {
+          "float": "Infinity"
+        },
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "computed_null_single",
+        "current": [
+          1
+        ],
+        "source": null,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": true
+      },
+      {
+        "name": "computed_null_index",
+        "current": [
+          1,
+          2,
+          3
+        ],
+        "source": 7,
+        "index_present": true,
+        "index": null,
+        "unique": 0,
+        "single": false
+      },
+      {
+        "name": "failed_index",
+        "current": [
+          1
+        ],
+        "source": 7,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": false,
+        "index_config": {
+          "$": "STU_7BD2CA19",
+          "m_EE729DCB": 0,
+          "m_resourceKey": null
+        }
+      },
+      {
+        "name": "failed_key",
+        "current": [
+          1
+        ],
+        "source": 7,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": false,
+        "key_config": {
+          "$": "STU_7BD2CA19",
+          "m_EE729DCB": 0,
+          "m_resourceKey": null
+        }
+      },
+      {
+        "name": "failed_single",
+        "current": [
+          1
+        ],
+        "source": 7,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": true,
+        "source_config": {
+          "$": "STU_7BD2CA19",
+          "m_EE729DCB": 0,
+          "m_resourceKey": null
+        }
+      },
+      {
+        "name": "failed_merge",
+        "current": [
+          1
+        ],
+        "source": 7,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": false,
+        "source_config": {
+          "$": "STU_7BD2CA19",
+          "m_EE729DCB": 0,
+          "m_resourceKey": null
+        }
+      },
+      {
+        "name": "self_iterator_stops",
+        "current": 99,
+        "source": null,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": false,
+        "source_config": {
+          "$": "STU_06610EBC",
+          "m_configVars": [
+            7,
+            {
+              "$": "STUConfigVarDynamic",
+              "m_60DB8F99": 1,
+              "m_identifier": 100
+            },
+            {
+              "$": "MustNotEvaluate"
+            }
+          ]
+        }
+      },
+      {
+        "name": "incremental_provider_reads",
+        "current": 99,
+        "source": null,
+        "index_present": false,
+        "index": null,
+        "unique": 0,
+        "single": false,
+        "source_config": {
+          "$": "STU_06610EBC",
+          "m_configVars": [
+            7,
+            {
+              "$": "STU_919FD47C",
+              "m_configVars": null,
+              "m_expression": {
+                "m_D99EF254": null,
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_60DB8F99": 1,
+                    "m_identifier": 100
+                  }
+                ],
+                "m_fragments": null,
+                "m_opcodes": [
+                  8,
+                  0,
+                  0
+                ]
+              }
+            },
+            9
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "states": [
+      {
+        "name": "merge_nested",
+        "value": [
+          1,
+          2,
+          3,
+          null,
+          4
+        ],
+        "followed": true
+      },
+      {
+        "name": "single_nested",
+        "value": [
+          1,
+          [
+            2,
+            [
+              3,
+              null
+            ],
+            4
+          ],
+          5
+        ],
+        "followed": true
+      },
+      {
+        "name": "ordered_insert",
+        "value": [
+          1,
+          7,
+          8,
+          2,
+          3
+        ],
+        "followed": true
+      },
+      {
+        "name": "zero_gaps",
+        "value": [
+          1,
+          2,
+          0,
+          0,
+          7
+        ],
+        "followed": true
+      },
+      {
+        "name": "empty_source_coercion",
+        "value": [
+          0,
+          0,
+          0
+        ],
+        "followed": true
+      },
+      {
+        "name": "unique_gaps",
+        "value": [
+          1,
+          0,
+          0,
+          2,
+          3
+        ],
+        "followed": true
+      },
+      {
+        "name": "typed_unique",
+        "value": [
+          1,
+          {
+            "entity": 1
+          }
+        ],
+        "followed": true
+      },
+      {
+        "name": "positive_half",
+        "value": [
+          1,
+          2,
+          7,
+          3
+        ],
+        "followed": true
+      },
+      {
+        "name": "negative_half",
+        "value": [
+          1,
+          2,
+          3,
+          7
+        ],
+        "followed": true
+      },
+      {
+        "name": "nan_index",
+        "value": [
+          1,
+          2,
+          3,
+          7
+        ],
+        "followed": true
+      },
+      {
+        "name": "infinite_index",
+        "value": [
+          1,
+          2,
+          3,
+          7
+        ],
+        "followed": true
+      },
+      {
+        "name": "computed_null_single",
+        "value": [
+          1,
+          null
+        ],
+        "followed": true
+      },
+      {
+        "name": "computed_null_index",
+        "value": [
+          7,
+          1,
+          2,
+          3
+        ],
+        "followed": true
+      },
+      {
+        "name": "failed_index",
+        "value": [
+          1,
+          7
+        ],
+        "followed": true
+      },
+      {
+        "name": "failed_key",
+        "value": [
+          1
+        ],
+        "followed": true
+      },
+      {
+        "name": "failed_single",
+        "value": [
+          1,
+          0
+        ],
+        "followed": true
+      },
+      {
+        "name": "failed_merge",
+        "value": [
+          1
+        ],
+        "followed": true
+      },
+      {
+        "name": "self_iterator_stops",
+        "value": [
+          7
+        ],
+        "followed": true
+      },
+      {
+        "name": "incremental_provider_reads",
+        "value": [
+          7,
+          7,
+          9
+        ],
+        "followed": true
+      }
+    ]
+  }
+}

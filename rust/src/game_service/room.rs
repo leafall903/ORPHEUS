@@ -315,6 +315,8 @@ impl Room {
             };
             // Movement/input failure previously closes this member. Keep that
             // scope and report the cause; body-script failures are handled locally.
+            peer.world
+                .set_encounter_active(world.scene.encounter_active());
             let (used, leave) = match peer.world.advance_input(
                 &world.scene,
                 &viewer,
@@ -356,6 +358,163 @@ impl Room {
                 peer.loading = MapReadiness::default();
             }
             Ok((used, leave))
+        })
+    }
+}
+
+#[derive(Default)]
+pub(super) struct RoomUpdates {
+    pub(super) replacements: Vec<BotReplacement>,
+    pub(super) created: Vec<EntityUpdate>,
+    pub(super) health: Vec<EntityUpdate>,
+    pub(super) retired: Vec<u32>,
+}
+
+impl Room {
+    pub(super) fn finish_simulation(
+        &mut self,
+        tick: u32,
+        now: Duration,
+    ) -> Result<RoomUpdates, RoomError> {
+        let Some(world) = &mut self.world else {
+            return Ok(RoomUpdates::default());
+        };
+        let junkenstein = world.scene.map().is_junkenstein();
+        let active = world.scene.encounter_active();
+        for member in self.members.values_mut() {
+            if let Some(peer) = &mut member.peer {
+                peer.world.set_encounter_active(active);
+            }
+        }
+        let mut defenders = Vec::new();
+        let mut bodies = Vec::new();
+        let mut targets = Vec::new();
+        for (&connection, member) in &self.members {
+            let player = self
+                .players
+                .get(member.slot)
+                .ok_or(RoomError::Invariant("encounter member has invalid slot"))?;
+            let Some(peer) = &member.peer else {
+                continue;
+            };
+            if player.gone {
+                continue;
+            }
+            if peer.world.world_started() {
+                if let Some(target) = peer.world.enemy_target(player.info.team) {
+                    targets.push(target);
+                }
+            }
+            if junkenstein {
+                if let Some(body) = peer.world.junkenstein_defender(player.info.team) {
+                    defenders.push((member.slot, connection, body));
+                }
+                if let Some(body) = peer.world.spawned_body() {
+                    bodies.push((connection, body, player.info.team));
+                }
+            }
+        }
+        defenders.sort_unstable_by_key(|entry| entry.0);
+        let mut sightings = Vec::new();
+        if junkenstein {
+            let entities: Arc<[u32]> = defenders.iter().map(|entry| entry.2).collect();
+            world.scene.set_junkenstein_defenders(Arc::clone(&entities));
+            for &(_, connection, _) in &defenders {
+                let peer = self
+                    .members
+                    .get_mut(&connection)
+                    .and_then(|member| member.peer.as_mut())
+                    .ok_or(RoomError::Invariant("encounter defender disappeared"))?;
+                peer.world.set_junkenstein_defenders(Arc::clone(&entities));
+                sightings.extend(peer.world.take_defender_sightings());
+            }
+        }
+        let (replacements, health, retired, damage, messages, bot_sightings) = {
+            let (bots, queries) = world.scene.bot_simulation();
+            bots.set_external_targets(targets);
+            let replacements = bots.finish_tick(&queries, tick, now)?;
+            (
+                replacements,
+                bots.take_scripted_health(),
+                bots.take_retired_enemies(),
+                bots.take_external_enemy_damage(),
+                bots.take_defender_messages(),
+                bots.take_defender_sightings(),
+            )
+        };
+        if junkenstein {
+            for hit in damage {
+                let Some(&(connection, _, _)) = bodies.iter().find(|entry| entry.1 == hit.target)
+                else {
+                    continue;
+                };
+                let peer = self
+                    .members
+                    .get_mut(&connection)
+                    .and_then(|member| member.peer.as_mut())
+                    .ok_or(RoomError::Invariant("damage recipient disappeared"))?;
+                let source = hit.source;
+                if !world.scene.protects_cassidy(peer.world.encounter_hero())
+                    && peer.world.apply_enemy_damage(hit, now, tick)
+                {
+                    peer.queue_combat_notice(CombatNotice::Death {
+                        source,
+                        killed_by: true,
+                    });
+                }
+            }
+            for message in messages {
+                for &(connection, body, team) in &bodies {
+                    if team != 0 || !message.accepts_body(body) {
+                        continue;
+                    }
+                    self.members
+                        .get_mut(&connection)
+                        .and_then(|member| member.peer.as_mut())
+                        .ok_or(RoomError::Invariant(
+                            "defender message recipient disappeared",
+                        ))?
+                        .world
+                        .deliver_defender_message(&world.scene, body, message.clone());
+                }
+            }
+            for request in world.scene.take_encounter_voice_requests() {
+                for &(connection, listener, team) in &bodies {
+                    if team != 0 {
+                        continue;
+                    }
+                    self.members
+                        .get_mut(&connection)
+                        .and_then(|member| member.peer.as_mut())
+                        .ok_or(RoomError::Invariant("voice recipient disappeared"))?
+                        .queue_combat_notice(CombatNotice::Voice {
+                            anchor: request.anchor,
+                            speaker: request.speaker,
+                            listener,
+                            stimulus: request.stimulus,
+                            line: request.line,
+                        });
+                }
+            }
+            sightings.extend(bot_sightings);
+            for message in sightings {
+                if let Some(&(slot, connection, _)) =
+                    defenders.iter().find(|entry| entry.2 == message.target)
+                {
+                    self.members
+                        .get_mut(&connection)
+                        .and_then(|member| member.peer.as_mut())
+                        .ok_or(RoomError::Invariant("sighting recipient disappeared"))?
+                        .world
+                        .deliver_defender_sighting(self.players[slot].info.team, message);
+                }
+            }
+        }
+        Ok(RoomUpdates {
+            replacements,
+            created: world.scene.take_enemy_creates(),
+            health,
+            retired,
         })
     }
 }

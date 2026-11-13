@@ -1,0 +1,13 @@
+{
+  "case_id": "enemy.self-damage-clock.v1",
+  "provenance": "Synthetic host contract: scripted self-damage uses the authoritative room frame and time, independently of optional Movement wire fields. The existing common-corpse host policy is eight seconds; this fixture makes no new native timing claim.",
+  "cases": [
+    {"name": "absent-wire-frame", "room_frame": 4200, "wire_frame": null, "now_secs": 67.2},
+    {"name": "stale-wire-frame", "room_frame": 4700, "wire_frame": 0, "now_secs": 75.2},
+    {"name": "future-wire-frame", "room_frame": 5200, "wire_frame": 9999, "now_secs": 83.2}
+  ],
+  "health": 250,
+  "damage": 10000,
+  "corpse_before_due_frames": 499,
+  "corpse_due_frames": 500
+}

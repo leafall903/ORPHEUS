@@ -34,6 +34,15 @@ pub(crate) struct Room {
     pub map: String,
     pub name: String,
     pub actors: Vec<Actor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encounter: Option<Encounter>,
+}
+
+#[cfg(any(test, feature = "inspector"))]
+#[derive(Serialize)]
+pub(crate) struct Encounter {
+    pub elapsed_ms: u64,
+    pub countdown_started: bool,
 }
 
 #[cfg(any(test, feature = "inspector"))]

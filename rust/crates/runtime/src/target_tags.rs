@@ -1,4 +1,4 @@
-//! Import authored target tags from DataTool's local entity XML exports.
+//! Import authored entity metadata from DataTool's local XML exports.
 
 use std::{
     collections::BTreeSet,
@@ -48,9 +48,9 @@ pub(super) fn enrich(input: &Path, xml_dir: &Path) -> Result<Vec<u8>, RuntimeErr
         );
     }
 
-    for group in ["bodies", "entities"] {
-        let Some(records) = bundle.get_mut(group) else {
-            if group == "entities" {
+    for group in ["/bodies", "/entities", "/junkenstein/entities"] {
+        let Some(records) = bundle.pointer_mut(group) else {
+            if group != "/bodies" {
                 continue;
             }
             return at(input, Err(invalid("state graph bundle has no bodies")));
@@ -70,14 +70,18 @@ pub(super) fn enrich(input: &Path, xml_dir: &Path) -> Result<Vec<u8>, RuntimeErr
                     .ok_or_else(|| invalid(format!("invalid .003 entity GUID {key}"))),
             )?;
             let path = xml_dir.join(format!("{index:012X}.003.xml"));
-            if let Some(tags) = at(&path, read_tags(&path))? {
+            if let Some(metadata) = at(&path, read_metadata(&path))? {
                 let record = at(
                     input,
                     record
                         .as_object_mut()
                         .ok_or_else(|| invalid("expected an entity record")),
                 )?;
-                record.insert("target_tags".into(), Value::Array(tags));
+                record.insert("target_tags".into(), Value::Array(metadata.tags));
+                record.insert(
+                    "component92_present".into(),
+                    Value::Bool(metadata.component92_present),
+                );
             }
         }
     }
@@ -90,7 +94,12 @@ pub(super) fn enrich(input: &Path, xml_dir: &Path) -> Result<Vec<u8>, RuntimeErr
     at(input, encoder.finish())
 }
 
-fn read_tags(path: &Path) -> io::Result<Option<Vec<Value>>> {
+struct EntityMetadata {
+    tags: Vec<Value>,
+    component92_present: bool,
+}
+
+fn read_metadata(path: &Path) -> io::Result<Option<EntityMetadata>> {
     let input = match File::open(path) {
         Ok(file) => file,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -102,25 +111,38 @@ fn read_tags(path: &Path) -> io::Result<Option<Vec<Value>>> {
         return Err(invalid("entity XML exceeds the size limit"));
     }
     let document = Document::parse(&xml).map_err(invalid)?;
-    let tags = entity_tags(document.root_element())?;
-    Ok(Some(
-        tags.into_iter()
-            .map(|tag| Value::String(format!("0x{tag:016X}")))
-            .collect(),
-    ))
-}
-
-fn entity_tags(root: Node<'_, '_>) -> io::Result<BTreeSet<u64>> {
+    let root = document.root_element();
     if !root.has_tag_name("STUEntityDefinition") {
         return Err(invalid("expected a STUEntityDefinition root"));
     }
-    let mut tags = BTreeSet::new();
-    let Some(map) = named_field(root, "m_componentMap")? else {
-        return Ok(tags);
-    };
-    if !map.has_tag_name((DRAGONML, "map")) {
+    let map = named_field(root, "m_componentMap")?;
+    if map.is_some_and(|map| !map.has_tag_name((DRAGONML, "map"))) {
         return Err(invalid("expected a DragonML component map"));
     }
+    let component92 = map
+        .map(|map| only_child(map, |node| node.has_tag_name("STU_76AF64F0")))
+        .transpose()?
+        .flatten();
+    let component92_present = if let Some(entry) = component92 {
+        named_field(entry, "dragon:value")?
+            .filter(|node| node.has_tag_name("STU_76AF64F0"))
+            .ok_or_else(|| invalid("expected a component 92 value"))?;
+        true
+    } else {
+        false
+    };
+    let tags = map.map(entity_tags).transpose()?.unwrap_or_default();
+    Ok(Some(EntityMetadata {
+        tags: tags
+            .into_iter()
+            .map(|tag| Value::String(format!("0x{tag:016X}")))
+            .collect(),
+        component92_present,
+    }))
+}
+
+fn entity_tags(map: Node<'_, '_>) -> io::Result<BTreeSet<u64>> {
+    let mut tags = BTreeSet::new();
     let Some(entry) = only_child(map, |node| node.has_tag_name("STUTargetTagComponent"))? else {
         return Ok(tags);
     };
@@ -184,7 +206,7 @@ fn only_child<'a, 'input: 'a>(
         .filter(|node| node.is_element() && matches(*node));
     let result = children.next();
     if children.next().is_some() {
-        return Err(invalid("duplicate DragonML target tag field"));
+        return Err(invalid("duplicate DragonML field"));
     }
     Ok(result)
 }

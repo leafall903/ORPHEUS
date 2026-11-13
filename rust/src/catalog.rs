@@ -33,6 +33,7 @@ pub struct ItemDb {
     pub unlocks: IndexMap<u64, Unlock>,
     pub hero_names: IndexMap<u64, String>,
     pub hero_classes: IndexMap<u64, Option<String>>,
+    pub(crate) npc_heroes: Vec<u64>,
     team_skin_pairs: HashMap<u64, u64>,
 }
 
@@ -40,6 +41,7 @@ pub struct ItemDb {
 #[serde(rename_all = "PascalCase")]
 struct RawHero {
     name: Option<String>,
+    is_hero: Option<bool>,
     #[serde(default = "missing_class")]
     class: Option<String>,
 }
@@ -143,7 +145,12 @@ impl ItemDb {
             let id = HERO_BASE | index;
             catalog.hero_names.insert(id, name);
             catalog.hero_classes.insert(id, hero.class);
+            if hero.is_hero == Some(false) {
+                catalog.npc_heroes.push(id);
+            }
         }
+        catalog.npc_heroes.sort_unstable();
+        catalog.npc_heroes.dedup();
         for (hero, groups) in items {
             catalog.add_groups(groups, Some(&hero))?;
         }

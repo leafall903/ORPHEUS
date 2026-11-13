@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.ability-press-window.v1",
+  "target_build": 104319,
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "source": {"revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7", "paths": ["ow174/game/script/nodes.py::Ability.can_start", "ow174/game/script/nodes.py::Ability.take_press", "ow174/game/script/runtime.py::Component.run_frame"], "scope": "Keep the original early-press timestamp while a start gate rejects it; consume only after all gates pass."},
+  "input": {
+    "window_seconds": 0.1, "frames": 30, "sample_frames": [5, 10, 20, 30],
+    "cases": [
+      {"name": "expires-during-rejection", "ready_frame": 20, "press_frames": [1], "expected": [false, false, false, false]},
+      {"name": "gate-opens-inside-window", "ready_frame": 6, "press_frames": [1], "expected": [false, true, true, true]},
+      {"name": "fresh-press-after-expiry", "ready_frame": 20, "press_frames": [1, 22], "expected": [false, false, false, true]},
+      {"name": "held-button-recovers", "ready_frame": 20, "press_frames": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20], "expected": [false, false, true, true]}
+    ]
+  }
+}

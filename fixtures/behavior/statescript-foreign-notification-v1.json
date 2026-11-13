@@ -1,0 +1,390 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.foreign-notification.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::SceneWorld.entity_var_slot",
+      "ow174/game/script/runtime.py::InstanceContext.member",
+      "ow174/game/script/runtime.py::Instance.dispatch",
+      "ow174/game/script/nodes.py::SubScript"
+    ],
+    "scope": "Synthetic 0C8C/33 subscript with a foreign-slot transition; per-frame observable lifecycle, not full native callback timestamp parity."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 3489660944,
+    "target": 3489660960,
+    "graphs": [
+      {
+        "index": 3212,
+        "header": {
+          "m_nodesBitCount": 6,
+          "m_statesBitCount": 1,
+          "m_remoteSyncNodesBitCount": 1,
+          "m_syncVarsBitCount": 1
+        },
+        "fields": {},
+        "items": 36,
+        "containers": {},
+        "nodes": [
+          {
+            "pos": 0,
+            "uid": 0,
+            "rid": 0,
+            "remote": -1,
+            "state": null,
+            "client_only": false,
+            "server_only": false,
+            "class": "STUStatescriptEntry",
+            "fields": {
+              "m_2BBEEAB8": false,
+              "m_ADEB6E05": true,
+              "m_outPlug": {
+                "$": "STUStatescriptOutputPlug",
+                "links": [
+                  [
+                    33,
+                    "m_beginPlug"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "pos": 33,
+            "uid": 33,
+            "rid": 33,
+            "remote": -1,
+            "state": 0,
+            "client_only": false,
+            "server_only": false,
+            "class": "STU_37D754C8",
+            "fields": {
+              "m_2BBEEAB8": true,
+              "m_ADEB6E05": false,
+              "m_36F7B64C": {
+                "$": "STU_6DF07EE5",
+                "m_36F7B64C": {
+                  "$": "STU_29C4C486",
+                  "m_C974E369": {
+                    "$": "STU_105E1BCC",
+                    "m_graph": "0x0580000000007000"
+                  }
+                }
+              },
+              "m_transitionPlug": [
+                {
+                  "$": "STUStatescriptOutputPlug",
+                  "links": [
+                    [
+                      34,
+                      "m_inPlug"
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "pos": 34,
+            "uid": 34,
+            "rid": 34,
+            "remote": -1,
+            "state": null,
+            "client_only": false,
+            "server_only": false,
+            "class": "STU_3387AB5D",
+            "fields": {
+              "m_2BBEEAB8": false,
+              "m_ADEB6E05": false,
+              "m_condition": {
+                "$": "STU_919FD47C",
+                "m_configVars": [
+                  {
+                    "$": "STUConfigVarInt",
+                    "m_value": 6604
+                  }
+                ],
+                "m_expression": {
+                  "m_dynamicVars": [
+                    {
+                      "$": "STUConfigVarDynamic",
+                      "m_identifier": 1,
+                      "m_60DB8F99": 0
+                    }
+                  ],
+                  "m_opcodes": [
+                    8,
+                    0,
+                    14,
+                    0,
+                    15,
+                    0
+                  ]
+                }
+              },
+              "m_truePlug": {
+                "$": "STUStatescriptOutputPlug",
+                "links": [
+                  [
+                    35,
+                    "m_inPlug"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "pos": 35,
+            "uid": 35,
+            "rid": 35,
+            "remote": -1,
+            "state": null,
+            "client_only": false,
+            "server_only": false,
+            "class": "STUStatescriptActionSetVar",
+            "fields": {
+              "m_2BBEEAB8": false,
+              "m_ADEB6E05": true,
+              "m_out_Var": {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 9,
+                "m_60DB8F99": 1
+              },
+              "m_value": {
+                "$": "STUConfigVarBool",
+                "m_value": true
+              }
+            }
+          }
+        ],
+        "states": [
+          33
+        ],
+        "entries": [
+          0
+        ],
+        "remote": [],
+        "sync_vars": [],
+        "unknown_nodes": []
+      },
+      {
+        "index": 28672,
+        "header": {
+          "m_nodesBitCount": 6,
+          "m_statesBitCount": 1,
+          "m_remoteSyncNodesBitCount": 1,
+          "m_syncVarsBitCount": 1
+        },
+        "fields": {},
+        "items": 2,
+        "containers": {},
+        "nodes": [
+          {
+            "pos": 0,
+            "uid": 0,
+            "rid": 0,
+            "remote": -1,
+            "state": null,
+            "client_only": false,
+            "server_only": false,
+            "class": "STUStatescriptEntry",
+            "fields": {
+              "m_2BBEEAB8": false,
+              "m_ADEB6E05": true,
+              "m_outPlug": {
+                "$": "STUStatescriptOutputPlug",
+                "links": [
+                  [
+                    1,
+                    "m_beginPlug"
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "pos": 1,
+            "uid": 1,
+            "rid": 1,
+            "remote": -1,
+            "state": 0,
+            "client_only": false,
+            "server_only": false,
+            "class": "STUStatescriptState",
+            "fields": {
+              "m_2BBEEAB8": true,
+              "m_ADEB6E05": false
+            }
+          }
+        ],
+        "states": [
+          1
+        ],
+        "entries": [
+          0
+        ],
+        "remote": [],
+        "sync_vars": [],
+        "unknown_nodes": []
+      }
+    ],
+    "cases": [
+      {
+        "name": "slot-change-completes-parent",
+        "initial": false,
+        "steps": [
+          {
+            "op": "set",
+            "value": false,
+            "frame": 1
+          },
+          {
+            "op": "set",
+            "value": true,
+            "frame": 2
+          },
+          {
+            "op": "set",
+            "value": true,
+            "frame": 3
+          },
+          {
+            "op": "set",
+            "value": false,
+            "frame": 4
+          }
+        ]
+      },
+      {
+        "name": "abort-removes-dependency",
+        "initial": false,
+        "steps": [
+          {
+            "op": "abort",
+            "frame": 1
+          },
+          {
+            "op": "set",
+            "value": true,
+            "frame": 2
+          },
+          {
+            "op": "poll",
+            "frame": 3
+          }
+        ]
+      },
+      {
+        "name": "immediate-completion-does-not-rearm",
+        "initial": true,
+        "steps": [
+          {
+            "op": "set",
+            "value": false,
+            "frame": 1
+          },
+          {
+            "op": "set",
+            "value": true,
+            "frame": 2
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "slot-change-completes-parent",
+        "output": [
+          {
+            "active": true,
+            "complete": false,
+            "children": 1,
+            "subscriptions": 1
+          },
+          {
+            "active": true,
+            "complete": false,
+            "children": 1,
+            "subscriptions": 1
+          },
+          {
+            "active": false,
+            "complete": true,
+            "children": 0,
+            "subscriptions": 0
+          },
+          {
+            "active": false,
+            "complete": true,
+            "children": 0,
+            "subscriptions": 0
+          },
+          {
+            "active": false,
+            "complete": true,
+            "children": 0,
+            "subscriptions": 0
+          }
+        ]
+      },
+      {
+        "name": "abort-removes-dependency",
+        "output": [
+          {
+            "active": true,
+            "complete": false,
+            "children": 1,
+            "subscriptions": 1
+          },
+          {
+            "active": false,
+            "complete": false,
+            "children": 0,
+            "subscriptions": 0
+          },
+          {
+            "active": false,
+            "complete": false,
+            "children": 0,
+            "subscriptions": 0
+          },
+          {
+            "active": false,
+            "complete": false,
+            "children": 0,
+            "subscriptions": 0
+          }
+        ]
+      },
+      {
+        "name": "immediate-completion-does-not-rearm",
+        "output": [
+          {
+            "active": false,
+            "complete": true,
+            "children": 0,
+            "subscriptions": 0
+          },
+          {
+            "active": false,
+            "complete": true,
+            "children": 0,
+            "subscriptions": 0
+          },
+          {
+            "active": false,
+            "complete": true,
+            "children": 0,
+            "subscriptions": 0
+          }
+        ]
+      }
+    ]
+  }
+}

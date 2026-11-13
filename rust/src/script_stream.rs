@@ -149,6 +149,20 @@ impl Stream {
         Ok(result)
     }
 
+    pub(crate) fn reliable_delta(
+        &mut self,
+        payload: &BitWriter,
+    ) -> Result<ScriptChunk, StreamError> {
+        if self.delivered == 0 || self.data_in_flight() {
+            return Err(StreamError::BaselinePending);
+        }
+        let last = next(self.last)?;
+        let result = update(self.entity, payload, next(self.delivered)?, last, true)?;
+        self.last = last;
+        self.data_last = last;
+        Ok(result)
+    }
+
     /// Build an owner's full frame with a strictly increasing CmFD. A writer
     /// error leaves both frame counters available for the next attempt.
     pub fn full_owner(

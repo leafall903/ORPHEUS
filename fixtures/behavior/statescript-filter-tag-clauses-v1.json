@@ -1,0 +1,1092 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript-filter-tag-clauses-v1",
+  "build": 104319,
+  "source": {
+    "kind": "native-restricted-emulation",
+    "field_order": "D0EC70 +58/+60/+68 => STUConfigVarFilter m_9C7BD8B8/m_B486603E/m_8B2A4DF3",
+    "predicate": "DB2FD0 resolved component tail DB323B with DB5030(any)/DB4E70(all)",
+    "adapters": [
+      "explicit resolved tag component and immutable base tag storage",
+      "explicit request vectors and scratch stack; no actor construction"
+    ],
+    "limits": [
+      "tag clause only; no entity classification or lifecycle",
+      "no Python parity claim; previous generic Rust mapping is superseded",
+      "no original-client acceptance"
+    ]
+  },
+  "cases": [
+    {
+      "name": "clause-0-inventory-00",
+      "inventory": [],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-01",
+      "inventory": [
+        1
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-02",
+      "inventory": [
+        2
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-03",
+      "inventory": [
+        1,
+        2
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-04",
+      "inventory": [
+        3
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-05",
+      "inventory": [
+        1,
+        3
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-06",
+      "inventory": [
+        2,
+        3
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-07",
+      "inventory": [
+        1,
+        2,
+        3
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-08",
+      "inventory": [
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-09",
+      "inventory": [
+        1,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-0a",
+      "inventory": [
+        2,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-0b",
+      "inventory": [
+        1,
+        2,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-0c",
+      "inventory": [
+        3,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-0d",
+      "inventory": [
+        1,
+        3,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-0e",
+      "inventory": [
+        2,
+        3,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-0-inventory-0f",
+      "inventory": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [],
+      "accepted": true
+    },
+    {
+      "name": "clause-1-inventory-00",
+      "inventory": [],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-01",
+      "inventory": [
+        1
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-02",
+      "inventory": [
+        2
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": true
+    },
+    {
+      "name": "clause-1-inventory-03",
+      "inventory": [
+        1,
+        2
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": true
+    },
+    {
+      "name": "clause-1-inventory-04",
+      "inventory": [
+        3
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-05",
+      "inventory": [
+        1,
+        3
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-06",
+      "inventory": [
+        2,
+        3
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-07",
+      "inventory": [
+        1,
+        2,
+        3
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-08",
+      "inventory": [
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-09",
+      "inventory": [
+        1,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-0a",
+      "inventory": [
+        2,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": true
+    },
+    {
+      "name": "clause-1-inventory-0b",
+      "inventory": [
+        1,
+        2,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": true
+    },
+    {
+      "name": "clause-1-inventory-0c",
+      "inventory": [
+        3,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-0d",
+      "inventory": [
+        1,
+        3,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-0e",
+      "inventory": [
+        2,
+        3,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-1-inventory-0f",
+      "inventory": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "any": [
+        1,
+        2
+      ],
+      "all": [
+        2
+      ],
+      "excluded": [
+        3
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-00",
+      "inventory": [],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-01",
+      "inventory": [
+        1
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-02",
+      "inventory": [
+        2
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-03",
+      "inventory": [
+        1,
+        2
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": true
+    },
+    {
+      "name": "clause-2-inventory-04",
+      "inventory": [
+        3
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-05",
+      "inventory": [
+        1,
+        3
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-06",
+      "inventory": [
+        2,
+        3
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-07",
+      "inventory": [
+        1,
+        2,
+        3
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": true
+    },
+    {
+      "name": "clause-2-inventory-08",
+      "inventory": [
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-09",
+      "inventory": [
+        1,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-0a",
+      "inventory": [
+        2,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-0b",
+      "inventory": [
+        1,
+        2,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-0c",
+      "inventory": [
+        3,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-0d",
+      "inventory": [
+        1,
+        3,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-0e",
+      "inventory": [
+        2,
+        3,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-2-inventory-0f",
+      "inventory": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "any": [],
+      "all": [
+        1,
+        2
+      ],
+      "excluded": [
+        4
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-00",
+      "inventory": [],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-01",
+      "inventory": [
+        1
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-02",
+      "inventory": [
+        2
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-03",
+      "inventory": [
+        1,
+        2
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-04",
+      "inventory": [
+        3
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-05",
+      "inventory": [
+        1,
+        3
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-06",
+      "inventory": [
+        2,
+        3
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-07",
+      "inventory": [
+        1,
+        2,
+        3
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-08",
+      "inventory": [
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-09",
+      "inventory": [
+        1,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-0a",
+      "inventory": [
+        2,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-0b",
+      "inventory": [
+        1,
+        2,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-0c",
+      "inventory": [
+        3,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-0d",
+      "inventory": [
+        1,
+        3,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-0e",
+      "inventory": [
+        2,
+        3,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "clause-3-inventory-0f",
+      "inventory": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "any": [
+        1
+      ],
+      "all": [],
+      "excluded": [
+        1
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-0",
+      "inventory": [],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": true
+    },
+    {
+      "name": "flashbang-exclusions-1",
+      "inventory": [
+        715
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-2",
+      "inventory": [
+        58
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-3",
+      "inventory": [
+        715,
+        58
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-4",
+      "inventory": [
+        2365
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-5",
+      "inventory": [
+        715,
+        2365
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-6",
+      "inventory": [
+        58,
+        2365
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    },
+    {
+      "name": "flashbang-exclusions-7",
+      "inventory": [
+        715,
+        58,
+        2365
+      ],
+      "any": [],
+      "all": [],
+      "excluded": [
+        715,
+        58,
+        2365
+      ],
+      "accepted": false
+    }
+  ]
+}

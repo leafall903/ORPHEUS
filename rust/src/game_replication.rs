@@ -15,12 +15,13 @@ use crate::{
     game_bots::BOT_RECORD_DELAY,
     game_clock::{MAX_LEASE_FRAME, SEND_EVERY, TICK_PERIOD},
     game_combat::{
-        AdmittedFlight, BotReplacement, CombatError, FlightOutcome, PosedHitscan, PosedProjectile,
-        PosedShot,
+        AdmittedFlight, BIOTIC_CANISTER, BioticField, BotReplacement, CombatError, FlightOutcome,
+        HealingPulse, PosedBioticField, PosedHitscan, PosedProjectile, PosedShot,
     },
     game_controller::ControllerFrame,
     game_egress::{DeliveryReport, FrameRecords, GameEgress, RecordSource, SendError, SentFrame},
-    game_heroes::{Hero, SOLDIER},
+    game_heroes::{CASSIDY, Hero, SOLDIER},
+    game_hitscan::TargetPose,
     game_messages::Message,
     game_parameters::{ClientGameMessage, HeroSelectRequest},
     game_projectiles::{OwnerProjectiles, ProjectileDelivery, ProjectileLeases, ProjectileToken},
@@ -33,12 +34,13 @@ use crate::{
     scene_assets::PreparedScene,
     script_init::Snapshot,
     script_player::OwnerBodySpawn,
+    script_snapshot_wire::CountdownFrame,
     script_snapshot_wire::{ProjectedSnapshot, SnapshotEncoder, View},
     script_stream::{BodyStream, ChangeKey, DeltaKind, ScriptChunk, Stream},
-    vitals::Vitals,
+    vitals::{Death, Vitals},
     world::{
-        Component as WorldComponent, EntityUpdate, GAME_MODE_ENTITY, MAX_PAYLOAD, Operation,
-        SkinTheme, frame,
+        Component as WorldComponent, Create, EntityUpdate, GAME_MODE_ENTITY, MAX_PAYLOAD, Movement,
+        Operation, SkinTheme, frame,
     },
 };
 
@@ -55,6 +57,10 @@ const MAX_PENDING_INPUT: usize = 256;
 // BodyScript.command retains this many intermediate VM frames before its
 // requested frame. The first neutral release runs even across a larger gap.
 const MAX_SCRIPT_TAIL: u32 = 256;
+const FIRST_BIOTIC_VIEW: u32 = 0xa008_0000;
+const END_BIOTIC_VIEW: u32 = 0xa00c_0000;
+const BIOTIC_FIELD_ENTITY: u64 = 0x0400_0000_0000_03dc;
+const KEEP_MOVEMENT_ROTATION: u32 = 0x0100_0000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct BodyId {
@@ -73,13 +79,62 @@ struct Body {
 /// A supported modifier projection is required before the mover can correct
 /// the owner's prediction, even if the current set of modifiers is empty.
 pub(crate) trait OwnerBodyRuntime: Send {
+    fn set_encounter_active(&mut self, _active: bool) -> io::Result<()> {
+        Ok(())
+    }
+    fn receive_applied_damage(
+        &mut self,
+        _damage: crate::game_combat::AppliedDamage,
+    ) -> io::Result<()> {
+        Ok(())
+    }
+    fn take_velocity_changes(&mut self) -> Vec<(u32, crate::mover::VelocityChange)> {
+        Vec::new()
+    }
+    fn set_defenders(&mut self, _defenders: Arc<[u32]>) {}
+    fn take_sightings(&mut self) -> Vec<crate::junkenstein_messages::DefenderSighting> {
+        Vec::new()
+    }
+    fn receive_sighting(
+        &mut self,
+        _message: crate::junkenstein_messages::DefenderSighting,
+    ) -> io::Result<()> {
+        Ok(())
+    }
+    fn receive_defender_message(
+        &mut self,
+        _message: crate::junkenstein_messages::DefenderMessage,
+    ) -> io::Result<usize> {
+        Ok(0)
+    }
+    fn cinematic_aim(&self) -> Option<[i32; 2]> {
+        None
+    }
+
+    fn set_deadeye_scene(&mut self, _scene: &PreparedScene, _team: u8) -> io::Result<()> {
+        Ok(())
+    }
+
     fn snapshot(&self) -> Option<&Snapshot>;
     fn encoder(&self) -> SnapshotEncoder<'_>;
     fn advance(&mut self, command: Command, mover: &Mover, step: BodyStep) -> io::Result<()>;
     fn frame_ms(&self) -> u32;
 
+    fn target_tags(&self) -> crate::script_init::TargetTagSnapshot {
+        Default::default()
+    }
+    fn target_filter_flags(&self) -> Option<u64> {
+        None
+    }
+
     fn vitals(&self) -> Option<&Vitals> {
         None
+    }
+
+    fn heal(&mut self, _amount: f64) {}
+
+    fn receive_damage(&mut self, _amount: f64, _source: Death) -> bool {
+        false
     }
 
     /// New health revisions supersede older ones, including any slot clears.
@@ -115,6 +170,7 @@ struct BodyScript {
     unsent_delta: Option<(u32, DeltaKind)>,
     corrections: Option<CorrectionHistory>,
     projectiles: Option<OwnerProjectiles>,
+    fields: Vec<(ProjectileToken, BioticField)>,
     launches: Vec<AdmittedFlight>,
 }
 
@@ -130,8 +186,9 @@ impl BodyScript {
             .encoder()
             .project(snapshot, View::Owner)
             .map_err(invalid)?;
-        let corrections = (body.hero == SOLDIER && runtime.movement_modifiers().is_some())
-            .then(|| CorrectionHistory::new(body.id.entity, body.id.generation));
+        let corrections = (matches!(body.hero, SOLDIER | CASSIDY)
+            && runtime.movement_modifiers().is_some())
+        .then(|| CorrectionHistory::new(body.id.entity, body.id.generation));
         let projectiles = runtime
             .projectile_leases()
             .filter(|leases| !leases.blocks().is_empty())
@@ -144,6 +201,7 @@ impl BodyScript {
             unsent_delta: None,
             corrections,
             projectiles,
+            fields: Vec::new(),
             launches: Vec::new(),
         })
     }
@@ -181,6 +239,10 @@ impl BodyScript {
             }
             None => return Err(invalid("body VM has no snapshot")),
         }
+        mover.set_cinematic_aim(self.runtime.cinematic_aim());
+        for (frame, change) in self.runtime.take_velocity_changes() {
+            mover.queue_velocity_change(frame, change);
+        }
         if step == BodyStep::UnposedTimer {
             // Combat discards the neutral interval's reports at its boundary.
             // Drain interior reports early so a long gap cannot fill the VM queue.
@@ -205,11 +267,20 @@ impl BodyScript {
             .take_shots((step == BodyStep::Posed).then_some(command), mover)
         {
             match shot {
-                PosedShot::Hitscan(shot) => hitscan.push(shot),
-                PosedShot::Projectile(shot) => self.launch_projectile(shot),
+                PosedShot::Hitscan(shot) => hitscan.push(*shot),
+                PosedShot::Projectile(shot) => self.launch_projectile(*shot),
+                PosedShot::BioticField(shot) => self.launch_biotic_field(shot),
             }
         }
         Ok(hitscan)
+    }
+
+    fn launch_biotic_field(&mut self, field: PosedBioticField) {
+        if let Some(token) = self.projectiles.as_mut().and_then(|projectiles| {
+            projectiles.admit(field.shot, BIOTIC_CANISTER, BioticField::BOUND)
+        }) {
+            self.fields.push((token, BioticField::new(field.feet)));
+        }
     }
 
     fn launch_projectile(&mut self, projectile: PosedProjectile) {
@@ -229,8 +300,25 @@ impl BodyScript {
         ) else {
             return;
         };
+        let flight = if let Some(gravity) = projectile.gravity {
+            flight.with_gravity(gravity)
+        } else {
+            flight
+        };
+        let flight = flight.with_expiry_blast(projectile.expiry_blast);
         if let Some(token) = projectiles.admit(projectile.shot, definition, bound) {
-            self.launches.push(AdmittedFlight { token, flight });
+            self.launches.push(AdmittedFlight {
+                token,
+                flight,
+                stun: projectile.stun,
+                hit_effect: (projectile.stun.is_some() && projectile.shot.graph == 0x01e9)
+                    .then_some(crate::script_init::Site {
+                        entity: projectile.shot.entity,
+                        instance: projectile.shot.instance,
+                        graph: projectile.shot.graph,
+                        node: Some(7),
+                    }),
+            });
         }
     }
 
@@ -348,6 +436,9 @@ enum Delivery {
         last: u32,
         delta: bool,
     },
+    SceneScript {
+        last: u32,
+    },
     ProjectileConfirm {
         id: BodyId,
         token: ProjectileToken,
@@ -356,6 +447,11 @@ enum Delivery {
         id: BodyId,
         token: ProjectileToken,
     },
+    BioticCreate,
+    BioticFrame {
+        last: u32,
+    },
+    BioticDestroy,
     Script {
         last: u32,
         close: bool,
@@ -367,6 +463,7 @@ enum Delivery {
 enum BotLifetime {
     Live,
     Retiring,
+    RetiringEnemy,
 }
 
 pub(crate) struct Record {
@@ -536,6 +633,15 @@ impl InputQueue {
     }
 }
 
+struct BioticView {
+    token: ProjectileToken,
+    parent: u32,
+    created: bool,
+    faded: Option<bool>,
+    retiring: bool,
+    stream: Stream,
+}
+
 pub(crate) struct WorldDelivery {
     owner: u32,
     queued: Vec<Arc<Record>>,
@@ -547,6 +653,14 @@ pub(crate) struct WorldDelivery {
     pub(crate) presentation_due: bool,
     controller: Stream,
     mode: Stream,
+    countdown: Option<CountdownFrame>,
+    encounter_post_match_queued: bool,
+    encounter_screens: Option<ProjectedSnapshot>,
+    encounter_notifications: Option<ProjectedSnapshot>,
+    encounter_notification_turn: bool,
+    encounter_phases: BTreeMap<u16, u16>,
+    encounter_result_queued: bool,
+    encounter_outcome_queued: bool,
     select_open: bool,
     body: Option<Body>,
     bound: Option<BodyId>,
@@ -556,6 +670,10 @@ pub(crate) struct WorldDelivery {
     mover: Option<Mover>,
     body_script: Option<BodyScript>,
     projectile_destroys: HashMap<u32, (BodyId, ProjectileToken)>,
+    biotic_views: BTreeMap<u32, BioticView>,
+    scene_views: BTreeMap<u32, BodyStream<ProjectedSnapshot>>,
+    gate: Option<u32>,
+    next_biotic_view: u32,
     hitscan: Vec<PosedHitscan>,
 }
 
@@ -572,6 +690,14 @@ impl WorldDelivery {
             presentation_due: false,
             controller: Stream::new(owner),
             mode: Stream::new(GAME_MODE_ENTITY),
+            countdown: None,
+            encounter_post_match_queued: false,
+            encounter_screens: None,
+            encounter_notifications: None,
+            encounter_notification_turn: true,
+            encounter_phases: BTreeMap::new(),
+            encounter_result_queued: false,
+            encounter_outcome_queued: false,
             select_open: true,
             body: None,
             bound: None,
@@ -581,6 +707,10 @@ impl WorldDelivery {
             mover: None,
             body_script: None,
             projectile_destroys: HashMap::new(),
+            biotic_views: BTreeMap::new(),
+            scene_views: BTreeMap::new(),
+            gate: None,
+            next_biotic_view: FIRST_BIOTIC_VIEW,
             hitscan: Vec::new(),
         }
     }
@@ -592,9 +722,20 @@ impl WorldDelivery {
         self.health_updates.clear();
         self.started = None;
         self.presentation_due = false;
+        self.countdown = None;
+        self.encounter_post_match_queued = false;
+        self.encounter_screens = None;
+        self.encounter_notifications = None;
+        self.encounter_notification_turn = true;
+        self.encounter_phases.clear();
+        self.encounter_result_queued = false;
+        self.encounter_outcome_queued = false;
         self.mover = None;
         self.body_script = None;
         self.projectile_destroys.clear();
+        self.biotic_views.clear();
+        self.scene_views.clear();
+        self.gate = None;
         self.input.clear();
         self.hitscan.clear();
     }
@@ -605,6 +746,110 @@ impl WorldDelivery {
 
     pub(crate) fn world_started(&self) -> bool {
         self.started.is_some()
+    }
+
+    pub(crate) fn junkenstein_defender(&self, team: u8) -> Option<u32> {
+        let script = self.body_script.as_ref()?;
+        (team == 0
+            && self.world_started()
+            && self.body.is_some_and(|body| body.id == script.id)
+            && script
+                .runtime
+                .vitals()
+                .is_some_and(|vitals| vitals.death().is_none())
+            && script.runtime.snapshot().is_some_and(|snapshot| {
+                snapshot.initialization_complete()
+                    && snapshot
+                        .instances
+                        .values()
+                        .any(|instance| instance.graph == 0x0ca5)
+            }))
+        .then_some(script.id.entity)
+    }
+
+    pub(crate) fn set_junkenstein_defenders(&mut self, defenders: Arc<[u32]>) {
+        if let Some(script) = &mut self.body_script {
+            script.runtime.set_defenders(defenders);
+        }
+    }
+
+    pub(crate) fn take_defender_sightings(
+        &mut self,
+    ) -> Vec<crate::junkenstein_messages::DefenderSighting> {
+        self.body_script
+            .as_mut()
+            .map_or_else(Vec::new, |script| script.runtime.take_sightings())
+    }
+
+    pub(crate) fn deliver_defender_sighting(
+        &mut self,
+        team: u8,
+        message: crate::junkenstein_messages::DefenderSighting,
+    ) {
+        if self.junkenstein_defender(team) != Some(message.target) {
+            return;
+        }
+        if let Some(script) = &mut self.body_script {
+            if let Err(error) = script.runtime.receive_sighting(message) {
+                eprintln!(
+                    "Junkenstein defender message failed for {:08x}: {error}",
+                    script.id.entity
+                );
+            }
+        }
+    }
+
+    pub(crate) fn encounter_hero(&self) -> Option<u64> {
+        self.body.map(|body| body.hero)
+    }
+
+    pub(crate) fn deliver_applied_damage(&mut self, damage: crate::game_combat::AppliedDamage) {
+        if self.spawned_body() == Some(damage.source) {
+            if let Some(script) = &mut self.body_script {
+                if script.id.entity == damage.source {
+                    if let Err(error) = script.runtime.receive_applied_damage(damage) {
+                        eprintln!(
+                            "Owner damage event failed for {:08x}: {error}",
+                            script.id.entity
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    pub(crate) fn deliver_defender_message(
+        &mut self,
+        scene: &PreparedScene,
+        body: u32,
+        message: crate::junkenstein_messages::DefenderMessage,
+    ) {
+        if self.spawned_body() == Some(body) {
+            if let Some(script) = &mut self.body_script {
+                if script.id.entity == body {
+                    if let Err(error) = script.runtime.set_deadeye_scene(scene, 0) {
+                        eprintln!("Junkenstein view facts failed for {body:08x}: {error}");
+                        return;
+                    }
+                    match script.runtime.receive_defender_message(message) {
+                        Ok(_) => {
+                            if let Some(mover) = &mut self.mover {
+                                mover.set_cinematic_aim(script.runtime.cinematic_aim());
+                            }
+                        }
+                        Err(error) => {
+                            eprintln!("Junkenstein defender message failed for {body:08x}: {error}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub(crate) fn spawned_body(&self) -> Option<u32> {
+        self.body
+            .filter(|_| self.world_started())
+            .map(|body| body.id.entity)
     }
 
     #[cfg(any(test, feature = "inspector"))]
@@ -661,6 +906,17 @@ impl WorldDelivery {
         });
     }
 
+    pub(crate) fn create_bot(&mut self, update: EntityUpdate) {
+        if !self.world_started() || self.bots.contains_key(&update.entity) {
+            return;
+        }
+        self.bots.insert(update.entity, BotLifetime::Live);
+        self.push(Record {
+            update,
+            delivery: Delivery::BotCreate { after: None },
+        });
+    }
+
     pub(crate) fn replace_bot(&mut self, replacement: BotReplacement) {
         let old = replacement.retired;
         let new = replacement.created.entity;
@@ -686,12 +942,43 @@ impl WorldDelivery {
         });
     }
 
+    pub(crate) fn retire_enemy(&mut self, entity: u32) {
+        if self.bots.get(&entity) != Some(&BotLifetime::Live) {
+            return;
+        }
+        self.bots.insert(entity, BotLifetime::RetiringEnemy);
+        self.health_updates.remove(&entity);
+        self.scene_views.remove(&entity);
+        self.remove_stale();
+        self.push(Record {
+            update: EntityUpdate {
+                entity,
+                operation: Some(Operation::Destroy),
+                ..Default::default()
+            },
+            delivery: Delivery::BotDestroy,
+        });
+    }
+
     fn current(&self, record: &Record) -> bool {
         let entity = record.update.entity;
         match record.delivery {
             Delivery::Baseline | Delivery::Script { close: false, .. } => true,
-            Delivery::BotCreate { .. } => self.bots.get(&entity) == Some(&BotLifetime::Live),
-            Delivery::BotDestroy => self.bots.get(&entity) == Some(&BotLifetime::Retiring),
+            Delivery::BotCreate { .. } => {
+                self.bots.get(&entity) == Some(&BotLifetime::Live)
+                    || (self.bots.get(&entity) == Some(&BotLifetime::RetiringEnemy)
+                        && !self.created.contains(&entity))
+            }
+            Delivery::BotDestroy => matches!(
+                self.bots.get(&entity),
+                Some(BotLifetime::Retiring | BotLifetime::RetiringEnemy)
+            ),
+            Delivery::SceneScript { last } => {
+                (self.gate == Some(entity) || self.bots.get(&entity) == Some(&BotLifetime::Live))
+                    && self.scene_views.get(&entity).is_some_and(|stream| {
+                        stream.pending().any(|(pending, _, _)| pending == last)
+                    })
+            }
             Delivery::Health { revision } => self.health_updates.get(&entity) == Some(&revision),
             Delivery::Script {
                 last, close: true, ..
@@ -716,6 +1003,19 @@ impl WorldDelivery {
             Delivery::ProjectileDestroy { id, token } => {
                 self.projectile_destroys.get(&entity) == Some(&(id, token))
             }
+            Delivery::BioticCreate => self
+                .biotic_views
+                .get(&entity)
+                .is_some_and(|view| !view.retiring && !view.created),
+            Delivery::BioticFrame { last } => self.biotic_views.get(&entity).is_some_and(|view| {
+                !view.retiring
+                    && view.stream.latest_data() == last
+                    && view.stream.delivered() < last
+            }),
+            Delivery::BioticDestroy => self
+                .biotic_views
+                .get(&entity)
+                .is_some_and(|view| view.retiring),
         }
     }
 
@@ -730,6 +1030,20 @@ impl WorldDelivery {
                     continue;
                 }
                 match (packet.arrived, record.delivery) {
+                    (arrived, Delivery::SceneScript { last }) => {
+                        let stream = self
+                            .scene_views
+                            .get_mut(&record.update.entity)
+                            .expect("current scene stream");
+                        let delivery = if arrived {
+                            stream.arrived(last)
+                        } else {
+                            stream.lost(last)
+                        };
+                        if delivery.retry {
+                            retry.push(record);
+                        }
+                    }
                     (arrived, Delivery::BodyScript { last, .. }) => {
                         let script = self.body_script.as_mut().expect("current body stream");
                         let delivery = if arrived {
@@ -749,15 +1063,23 @@ impl WorldDelivery {
                     (false, Delivery::Script { resend: false, .. }) => {}
                     (false, _) => retry.push(record),
                     (true, Delivery::Baseline) => {
-                        if matches!(record.update.operation, Some(Operation::Create(_))) {
+                        if matches!(
+                            record.update.operation,
+                            Some(Operation::Create(_) | Operation::Placeable(_))
+                        ) {
                             self.created.insert(record.update.entity);
                         }
                     }
                     (true, Delivery::BotCreate { .. }) => {
                         self.created.insert(record.update.entity);
+                        if let Some(stream) = self.scene_views.get_mut(&record.update.entity) {
+                            stream.create_arrived();
+                        }
                     }
                     (true, Delivery::BotDestroy) => {
                         self.bots.remove(&record.update.entity);
+                        self.created.remove(&record.update.entity);
+                        self.scene_views.remove(&record.update.entity);
                     }
                     (true, Delivery::Health { .. }) => {
                         self.health_updates.remove(&record.update.entity);
@@ -789,6 +1111,22 @@ impl WorldDelivery {
                     }
                     (true, Delivery::ProjectileDestroy { .. }) => {
                         self.projectile_destroys.remove(&record.update.entity);
+                    }
+                    (true, Delivery::BioticCreate) => {
+                        self.biotic_views
+                            .get_mut(&record.update.entity)
+                            .expect("current field view")
+                            .created = true;
+                    }
+                    (true, Delivery::BioticFrame { last }) => {
+                        self.biotic_views
+                            .get_mut(&record.update.entity)
+                            .expect("current field view")
+                            .stream
+                            .arrived(last);
+                    }
+                    (true, Delivery::BioticDestroy) => {
+                        self.biotic_views.remove(&record.update.entity);
                     }
                     (true, Delivery::Script { last, .. }) if record.update.entity == self.owner => {
                         self.controller.arrived(last);
@@ -822,7 +1160,20 @@ impl WorldDelivery {
             .enumerate()
             .filter_map(|(index, record)| {
                 match record.delivery {
+                    Delivery::SceneScript { last }
+                        if !self
+                            .scene_views
+                            .get(&record.update.entity)
+                            .is_some_and(|stream| stream.ready_to_send(last)) =>
+                    {
+                        return None;
+                    }
                     Delivery::BotDestroy => {
+                        if self.bots.get(&record.update.entity) == Some(&BotLifetime::RetiringEnemy)
+                            && !self.identity_ready(record.update.entity)
+                        {
+                            return None;
+                        }
                         destroyed.insert(record.update.entity);
                     }
                     Delivery::BotCreate { after: Some(old) }
@@ -847,6 +1198,14 @@ impl WorldDelivery {
                     {
                         return None;
                     }
+                    Delivery::ProjectileDestroy { .. }
+                        if self
+                            .biotic_views
+                            .values()
+                            .any(|view| view.parent == record.update.entity) =>
+                    {
+                        return None;
+                    }
                     Delivery::ProjectileConfirm { id, .. }
                         if self.bound != Some(id) || !self.created.contains(&id.entity) =>
                     {
@@ -865,6 +1224,14 @@ impl WorldDelivery {
     pub(crate) fn sent(&mut self, indexes: &[usize]) {
         if indexes.is_empty() {
             return;
+        }
+        for &index in indexes {
+            let record = &self.queued[index];
+            if let Delivery::SceneScript { last } = record.delivery {
+                if let Some(stream) = self.scene_views.get_mut(&record.update.entity) {
+                    stream.sent(last);
+                }
+            }
         }
         if let Some(script) = &mut self.body_script {
             for &index in indexes {
@@ -1010,10 +1377,12 @@ impl WorldDelivery {
 
     fn cancel_body_script(&mut self) {
         if let Some(mut script) = self.body_script.take() {
+            self.retire_biotic_views(|_| false);
             script.stream.retire();
             if let Some(mover) = &mut self.mover {
                 let frame = mover.pose().frame.unwrap_or(script.frame);
                 mover.track_modifiers(frame, &BTreeMap::new());
+                mover.set_cinematic_aim(None);
             }
             if let Some(projectiles) = &mut script.projectiles {
                 self.queue_projectiles(script.id, projectiles.retire())
@@ -1030,6 +1399,7 @@ impl WorldDelivery {
         tick: u32,
     ) -> io::Result<()> {
         let records = scene.initial_world(viewer)?;
+        self.gate = scene.junkenstein_gate().map(|gate| gate.entity);
         self.bots.extend(
             scene
                 .bots()
@@ -1051,7 +1421,10 @@ impl WorldDelivery {
     }
 
     pub(crate) fn present(&mut self, scene: &PreparedScene, tick: u32) -> io::Result<()> {
-        if self.controller.latest_data() == 0 && self.created.contains(&self.owner) {
+        if self.controller.latest_data() == 0
+            && self.created.contains(&self.owner)
+            && (!scene.map().is_junkenstein() || self.mode_ready())
+        {
             self.queue_controller(scene, tick, true, None)?;
         }
         if self.mode.latest_data() == 0 && self.created.contains(&GAME_MODE_ENTITY) {
@@ -1060,6 +1433,176 @@ impl WorldDelivery {
         }
         self.presentation_due = self.controller.latest_data() == 0 || self.mode.latest_data() == 0;
         Ok(())
+    }
+
+    pub(crate) fn set_encounter_active(&mut self, active: bool) {
+        if let Some(script) = &mut self.body_script {
+            if script
+                .runtime
+                .snapshot()
+                .is_some_and(Snapshot::initialization_complete)
+            {
+                if let Err(error) = script.runtime.set_encounter_active(active) {
+                    // Preserve the existing owner-local VM fault policy. The next input
+                    // observes the unavailable runtime; this does not retire other seats.
+                    eprintln!(
+                        "Owner encounter admission failed for {:08x}: {error}",
+                        script.id.entity
+                    );
+                }
+            }
+        }
+    }
+
+    pub(crate) fn present_scene_scripts(&mut self, scene: &PreparedScene) -> io::Result<()> {
+        if let Some(projection) = scene.gate_projection() {
+            self.present_scene_script(projection)?;
+        }
+        for projection in scene.enemy_projections().map_err(io::Error::other)? {
+            self.present_scene_script(projection)?;
+        }
+        Ok(())
+    }
+
+    fn present_scene_script(
+        &mut self,
+        projection: crate::script_snapshot_wire::SceneProjection<'_>,
+    ) -> io::Result<()> {
+        let entity = projection.snapshot.entity;
+        if self.gate != Some(entity) && self.bots.get(&entity) != Some(&BotLifetime::Live) {
+            return Ok(());
+        }
+        let stream = self
+            .scene_views
+            .entry(entity)
+            .or_insert_with(|| BodyStream::new(entity));
+        if self.created.contains(&entity) {
+            stream.create_arrived();
+        }
+        if stream.pending().next().is_some() {
+            return Ok(());
+        }
+        let encoder = projection.encoder;
+        let chunk = if let Some((_, base)) = stream.base() {
+            let snapshot = encoder
+                .project_next(projection.snapshot, base)
+                .map_err(invalid)?;
+            encoder
+                .queue_delta(stream, &snapshot, DeltaKind::Observer { resend: true }, 16)
+                .map_err(invalid)?
+        } else {
+            let snapshot = encoder
+                .project(projection.snapshot, View::Observer)
+                .map_err(invalid)?;
+            Some(encoder.queue_full(stream, &snapshot).map_err(invalid)?)
+        };
+        if let Some(chunk) = chunk {
+            if frame(u32::MAX, u32::MAX, &[], &[], &[&chunk.update])
+                .map_err(invalid)?
+                .len()
+                > MAX_PAYLOAD
+            {
+                return Err(invalid("scene script chunk exceeds the datagram budget"));
+            }
+            self.push(Record {
+                update: chunk.update,
+                delivery: Delivery::SceneScript { last: chunk.last },
+            });
+        }
+        Ok(())
+    }
+
+    pub(crate) fn queue_encounter_presentation(&mut self, scene: &PreparedScene) -> io::Result<()> {
+        if !self.mode_ready() || self.mode.data_in_flight() {
+            return Ok(());
+        }
+        if !self.encounter_post_match_queued {
+            if let Some(payload) = scene.encounter_post_match_wire()? {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_post_match_queued = true;
+                return Ok(());
+            }
+        }
+        if !self.encounter_result_queued {
+            if let Some(payload) = scene.encounter_result_wire()? {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_result_queued = true;
+                return Ok(());
+            }
+        }
+        if !self.encounter_outcome_queued {
+            if let Some(stamp) = self.mode.latest_data().checked_add(1) {
+                if let Some(payload) = scene.encounter_outcome_wire(stamp)? {
+                    let mut chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                    if let Some(result) = scene.encounter_match_result() {
+                        chunk.update.operation = Some(Operation::Update(vec![result]));
+                    }
+                    self.push(Record::script(chunk, false));
+                    self.encounter_outcome_queued = true;
+                    return Ok(());
+                }
+            }
+        }
+        if self.encounter_post_match_queued {
+            if let Some((snapshot, payload)) =
+                scene.encounter_screen_delta(self.encounter_screens.as_ref())?
+            {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_screens = Some(snapshot);
+                return Ok(());
+            }
+        }
+        if self.encounter_result_queued || self.encounter_outcome_queued {
+            return Ok(());
+        }
+        if self.encounter_notifications.is_some() {
+            if let Some((raw, activation, payload)) =
+                scene.encounter_phase_wire(&self.encounter_phases)?
+            {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_phases.insert(raw, activation);
+                return Ok(());
+            }
+        }
+        let countdown = scene
+            .encounter_countdown()
+            .filter(|value| self.countdown.as_ref() != Some(value));
+        // Both projections can change every tick because they read the clock.
+        // Alternate when both are pending so either leaves room for the other.
+        if !self.encounter_post_match_queued
+            && (self.encounter_notification_turn || countdown.is_none())
+        {
+            if let Some((snapshot, payload)) =
+                scene.encounter_notification_delta(self.encounter_notifications.as_ref())?
+            {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_notifications = Some(snapshot);
+                self.encounter_notification_turn = false;
+                return Ok(());
+            }
+        }
+        if let Some(countdown) = countdown {
+            if let Some(payload) = scene.encounter_countdown_wire(&countdown)? {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.countdown = Some(countdown);
+                self.encounter_notification_turn = true;
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn encounter_screens_delivered(&self) -> bool {
+        // After cleanup the manager is the only instance in this projection.
+        self.encounter_screens
+            .as_ref()
+            .is_some_and(|screens| screens.instance_count() == 1)
+            && !self.mode.data_in_flight()
     }
 
     fn can_handle_game_message(&self) -> bool {
@@ -1191,8 +1734,204 @@ impl WorldDelivery {
         self.body_script.is_some()
     }
 
+    pub(crate) fn enemy_target(&self, team: u8) -> Option<crate::script_enemy::EnemyTarget> {
+        let body = self.body?;
+        let mover = self.mover.as_ref()?;
+        let (height, radius) = mover.capsule();
+        let vitals = self.body_script.as_ref()?.runtime.vitals()?;
+        let alive = vitals.death().is_none();
+        Some(crate::script_enemy::EnemyTarget {
+            hero: Some(body.hero),
+            filter_flags: self.body_script.as_ref()?.runtime.target_filter_flags(),
+            tags: self.body_script.as_ref()?.runtime.target_tags(),
+            health: Some(vitals.total()),
+            velocity: Some(mover.pose().velocity),
+            script_state: self
+                .body_script
+                .as_ref()
+                .and_then(|script| script.runtime.snapshot())
+                .map_or(
+                    crate::script_entity_state::EntityScriptState::Unavailable,
+                    |snapshot| {
+                        crate::script_entity_state::EntityScriptState::Running(Arc::new(
+                            snapshot.variables.clone(),
+                        ))
+                    },
+                ),
+            entity: body.id.entity,
+            team,
+            pose: TargetPose {
+                feet: mover.pose().position,
+                height,
+                radius,
+                eye: crate::game_combat::eye_height(body.hero, mover.crouched()),
+            },
+            alive,
+        })
+    }
+
+    pub(crate) fn apply_enemy_damage(
+        &mut self,
+        hit: crate::script_enemy::EnemyDamage,
+        now: Duration,
+        tick: u32,
+    ) -> bool {
+        self.body_script
+            .as_mut()
+            .filter(|script| script.id.entity == hit.target)
+            .is_some_and(|script| {
+                script.runtime.receive_damage(
+                    hit.amount,
+                    Death {
+                        time: now.as_secs_f64(),
+                        frame: tick,
+                        killer: hit.source,
+                    },
+                )
+            })
+    }
+
     pub(crate) fn take_hitscan(&mut self) -> Vec<PosedHitscan> {
         std::mem::take(&mut self.hitscan)
+    }
+
+    pub(crate) fn advance_fields(&mut self, tick: u32) -> io::Result<Vec<HealingPulse>> {
+        let Some(script) = &mut self.body_script else {
+            return Ok(Vec::new());
+        };
+        let Some(projectiles) = &mut script.projectiles else {
+            return Ok(Vec::new());
+        };
+        let id = script.id;
+        let mut deliveries = Vec::new();
+        let mut pulses = Vec::new();
+        script.fields.retain_mut(|(token, field)| {
+            let (pulse, expired) = field.advance(tick);
+            pulses.extend(pulse);
+            if expired {
+                projectiles.cancel(*token, &mut deliveries);
+            }
+            !expired
+        });
+        if let Some(mover) = &self.mover {
+            let (height, radius) = mover.capsule();
+            let pose = TargetPose {
+                feet: mover.pose().position,
+                height,
+                radius,
+                eye: 0.0,
+            };
+            let amount = pulses
+                .iter()
+                .filter(|pulse| pulse.reaches(pose))
+                .map(|pulse| pulse.amount)
+                .sum();
+            script.runtime.heal(amount);
+        }
+        self.queue_projectiles(id, deliveries)?;
+        Ok(pulses)
+    }
+
+    fn retire_biotic_views(&mut self, keep: impl Fn(&BioticView) -> bool) {
+        for (&entity, view) in &mut self.biotic_views {
+            if !view.retiring && !keep(view) {
+                view.retiring = true;
+                self.queued.push(Arc::new(Record {
+                    update: EntityUpdate {
+                        entity,
+                        operation: Some(Operation::Destroy),
+                        ..EntityUpdate::default()
+                    },
+                    delivery: Delivery::BioticDestroy,
+                }));
+            }
+        }
+    }
+
+    pub(crate) fn advance_biotic_views(&mut self, tick: u32) -> io::Result<()> {
+        let Some((body, script)) = self.body.zip(self.body_script.as_ref()) else {
+            return Ok(());
+        };
+        let Some(projectiles) = &script.projectiles else {
+            return Ok(());
+        };
+        if script.fields.is_empty() && self.biotic_views.is_empty() {
+            return Ok(());
+        }
+        let mut active = Vec::new();
+        for (token, field) in &script.fields {
+            if let Some(faded) = field.presentation(tick) {
+                active.extend(
+                    projectiles
+                        .confirmed_entities(*token)
+                        .map(|parent| (*token, parent, faded)),
+                );
+            }
+        }
+        // Retire the attached child before allowing its predicted parent to be destroyed.
+        self.retire_biotic_views(|view| {
+            active
+                .iter()
+                .any(|&(token, parent, _)| token == view.token && parent == view.parent)
+        });
+        for (token, parent, faded) in active {
+            let existing = self
+                .biotic_views
+                .iter_mut()
+                .find(|(_, view)| view.token == token && view.parent == parent);
+            if let Some((_, view)) = existing {
+                if view.created && !view.retiring && view.faded != Some(faded) {
+                    let payload = self
+                        .body_script
+                        .as_ref()
+                        .expect("current owner VM")
+                        .runtime
+                        .encoder()
+                        .biotic_field_frame(faded)
+                        .map_err(invalid)?;
+                    let chunk = view.stream.full(&payload).map_err(invalid)?;
+                    view.faded = Some(faded);
+                    self.push(Record {
+                        update: chunk.update,
+                        delivery: Delivery::BioticFrame { last: chunk.last },
+                    });
+                }
+                continue;
+            }
+            if self.next_biotic_view == END_BIOTIC_VIEW {
+                continue;
+            }
+            let entity = self.next_biotic_view;
+            self.next_biotic_view += 1;
+            let mut create = Create::new(BIOTIC_FIELD_ENTITY, Vec::new());
+            create.skin.guid = body.skin.guid;
+            create.movement_parent = Some(parent);
+            create.movement = Some(Movement {
+                flags: KEEP_MOVEMENT_ROTATION,
+                ..Movement::default()
+            });
+            self.biotic_views.insert(
+                entity,
+                BioticView {
+                    token,
+                    parent,
+                    created: false,
+                    faded: None,
+                    retiring: false,
+                    stream: Stream::new(entity),
+                },
+            );
+            self.push(Record {
+                update: EntityUpdate {
+                    entity,
+                    operation: Some(Operation::Create(Box::new(create))),
+                    ..EntityUpdate::default()
+                },
+                delivery: Delivery::BioticCreate,
+            });
+        }
+        self.remove_stale();
+        Ok(())
     }
 
     pub(crate) fn take_projectile_launches(&mut self) -> Option<(BodyId, Vec<AdmittedFlight>)> {
@@ -1291,6 +2030,9 @@ impl WorldDelivery {
                     command,
                     mut pending,
                 } => {
+                    if let Some(script) = &mut self.body_script {
+                        script.runtime.set_deadeye_scene(scene, viewer.team)?;
+                    }
                     let (used, complete) =
                         self.advance_command(scene, command, &mut pending, dt, remaining)?;
                     remaining -= used;
@@ -1506,8 +2248,8 @@ impl WorldDelivery {
                     cmfd,
                     ControllerFrame {
                         select_open: open,
-                        skins: open,
-                        hide_assemble: true,
+                        skins: open && !scene.map().is_junkenstein(),
+                        hide_assemble: !scene.map().is_junkenstein(),
                         hero,
                         ..ControllerFrame::default()
                     },
@@ -1731,6 +2473,236 @@ mod tests {
     }
 
     #[test]
+    fn enemy_observer_waits_for_identity_and_retries_the_exact_baseline() {
+        use crate::{
+            game_combat::RoomSimulation,
+            script_enemy::{EnemySpawn, fixture},
+            script_snapshot_wire::SceneProjection,
+            script_wire::Variables,
+        };
+        let (graphs, codecs, definition, request) = fixture(false);
+        let mut room = RoomSimulation::new(Vec::new()).unwrap();
+        let entity = room
+            .create_enemy(EnemySpawn {
+                graphs: Arc::clone(&graphs),
+                codecs: Arc::clone(&codecs),
+                definition: &definition,
+                request: &request,
+                mode: 0x0230_0000_0000_019f,
+                mode_variables: Arc::new(Variables::new()),
+                tick: 1000,
+                walk: crate::game_bots::BotWalk::default(),
+                gate: None,
+            })
+            .unwrap();
+        let mut script = Component::start(
+            Arc::clone(&graphs),
+            entity,
+            Variables::new(),
+            vec![Root::new(1, 42)],
+            1000,
+            &mut EmptyWorld,
+            MAX_INIT_WORK,
+        )
+        .unwrap();
+        let mut world = WorldDelivery::new(0xa000_0100);
+        world.started = Some(1000);
+        world.create_bot(room.take_created().pop().unwrap());
+        world
+            .present_scene_script(SceneProjection {
+                snapshot: script.snapshot().unwrap(),
+                encoder: SnapshotEncoder::new(&graphs, &codecs),
+            })
+            .unwrap();
+        assert_eq!(world.ready().len(), 1);
+        let create = world.ready()[0].tracked();
+        world.sent(&eligible(&world));
+        assert!(world.ready().is_empty());
+        world.acknowledge(outcome(create, true), Duration::ZERO);
+        assert_eq!(world.ready().len(), 1);
+        let baseline = world.ready()[0].tracked();
+        world.sent(&eligible(&world));
+        script
+            .set_entity_variable(
+                12345,
+                crate::script_wire::Value::Integer(5),
+                &mut EmptyWorld,
+            )
+            .unwrap();
+        world
+            .present_scene_script(SceneProjection {
+                snapshot: script.snapshot().unwrap(),
+                encoder: SnapshotEncoder::new(&graphs, &codecs),
+            })
+            .unwrap();
+        assert!(world.ready().is_empty());
+        world.acknowledge(outcome(Arc::clone(&baseline), false), Duration::ZERO);
+        assert!(Arc::ptr_eq(&baseline, &world.ready()[0].tracked()));
+        world.sent(&eligible(&world));
+        world.acknowledge(outcome(baseline, true), Duration::ZERO);
+        world
+            .present_scene_script(SceneProjection {
+                snapshot: script.snapshot().unwrap(),
+                encoder: SnapshotEncoder::new(&graphs, &codecs),
+            })
+            .unwrap();
+        let delta = world.ready()[0].tracked();
+        assert!(matches!(delta.delivery, Delivery::SceneScript { last: 2 }));
+        world.sent(&eligible(&world));
+        world.acknowledge(outcome(delta, true), Duration::ZERO);
+        world
+            .present_scene_script(SceneProjection {
+                snapshot: script.snapshot().unwrap(),
+                encoder: SnapshotEncoder::new(&graphs, &codecs),
+            })
+            .unwrap();
+        assert!(world.ready().is_empty());
+        assert!(world.scene_views[&entity].base().is_some());
+        world.clear();
+        assert!(world.scene_views.is_empty());
+    }
+
+    #[test]
+    fn gate_voice_anchor_waits_for_the_placeable_acknowledgment() {
+        let mut world = WorldDelivery::new(OWNER);
+        world.started = Some(1001);
+        let gate = 0x8000_0032;
+        let notice = crate::game_combat_messages::CombatNotice::Voice {
+            anchor: gate,
+            speaker: GAME_MODE_ENTITY,
+            listener: OWNER | 1,
+            stimulus: 0x0ee0_0000_0000_06c7,
+            line: 0x0760_0000_0000_8c71,
+        };
+        let identity = notice.required_identity().unwrap();
+        let placeable = Arc::new(Record::baseline(EntityUpdate {
+            entity: gate,
+            operation: Some(Operation::Placeable(0x32)),
+            ..EntityUpdate::default()
+        }));
+        world.acknowledge(outcome(Arc::clone(&placeable), false), Duration::ZERO);
+        assert!(!world.identity_ready(identity));
+        world.acknowledge(outcome(placeable, true), Duration::ZERO);
+        assert!(world.identity_ready(identity));
+    }
+
+    #[test]
+    #[ignore = "requires the separately prepared 104319 Junkenstein runtime"]
+    fn junkenstein_notifications_and_countdown_share_reliable_delivery() {
+        use crate::game_content::{JUNKENSTEIN_MAP, JunkensteinCard, MapCatalog};
+        let root = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let assets = SceneAssets::load(&root).unwrap();
+        let maps = MapCatalog::load(root.join("data/game_maps_174.json")).unwrap();
+        let card = JunkensteinCard::from_index(0x3c).unwrap();
+        let map = maps
+            .game_map(
+                JUNKENSTEIN_MAP,
+                card.mode,
+                "Junkenstein's Revenge",
+                false,
+                &[4, 0],
+            )
+            .unwrap();
+        let mut scene = assets.prepare_junkenstein(map, card, 0).unwrap();
+        let hero = scene.heroes().find_hero("Cassidy").unwrap().guid;
+        let mut world = WorldDelivery::new(OWNER);
+        world.started = Some(FIRST_TICK);
+        let bootstrap = world.mode.full(&crate::bits::BitWriter::new()).unwrap();
+        assert!(world.mode.arrived(bootstrap.last));
+        let mut countdowns = 0;
+        let mut notifications = 0;
+        let mut phases = 0;
+        for tick in 2700..2724 {
+            scene.step_encounter(tick, Some(hero));
+            let before = world.countdown.clone();
+            let phases_before = world.encounter_phases.clone();
+            world.queue_encounter_presentation(&scene).unwrap();
+            assert_eq!(world.ready().len(), 1);
+            if phases_before != world.encounter_phases {
+                phases += 1;
+            } else if before != world.countdown {
+                countdowns += 1;
+            } else {
+                notifications += 1;
+                assert!(world.encounter_notifications.is_some());
+            }
+            let record = world.ready()[0].tracked();
+            world.sent(&eligible(&world));
+            world.queue_encounter_presentation(&scene).unwrap();
+            assert!(world.ready().is_empty(), "wait for the in-flight chunk");
+            if tick == 2700 {
+                world.acknowledge(outcome(Arc::clone(&record), false), Duration::ZERO);
+                assert!(Arc::ptr_eq(&record, &world.ready()[0].tracked()));
+                world.sent(&eligible(&world));
+            }
+            world.acknowledge(outcome(record, true), Duration::ZERO);
+            assert!(!world.mode.data_in_flight());
+        }
+        assert!(countdowns >= 9, "countdown must not starve: {countdowns}");
+        assert!(
+            notifications >= 9,
+            "notifications must not starve: {notifications}"
+        );
+        // The first loop only covers hero readiness and its countdown. Advance
+        // through the authored opening rather than injecting a HUD message.
+        let mut battle_clock = None;
+        for tick in 2724..=8000 {
+            scene.step_encounter(tick, Some(hero));
+            let before = world.encounter_phases.clone();
+            world.queue_encounter_presentation(&scene).unwrap();
+            if before != world.encounter_phases {
+                phases += 1;
+                assert!(
+                    scene
+                        .encounter_phase_wire(&world.encounter_phases)
+                        .unwrap()
+                        .is_none()
+                );
+            }
+            if tick == 7000 {
+                battle_clock = world.countdown.as_ref().map(|frame| frame.value.clone());
+            }
+            assert!(world.ready().len() <= 1);
+            if let Some(record) = world.ready().first().map(|record| record.tracked()) {
+                world.sent(&eligible(&world));
+                if before != world.encounter_phases {
+                    world.acknowledge(outcome(Arc::clone(&record), false), Duration::ZERO);
+                    assert!(Arc::ptr_eq(&record, &world.ready()[0].tracked()));
+                    world.sent(&eligible(&world));
+                }
+                world.acknowledge(outcome(record, true), Duration::ZERO);
+            }
+        }
+        assert!(phases > 0, "authored HUD startup must reach the client");
+        let clock = world.countdown.as_ref().unwrap();
+        assert_ne!(
+            battle_clock.as_ref(),
+            Some(&clock.value),
+            "battle clock updates must continue after the authored HUD announcement"
+        );
+        assert!(
+            clock.states[2].is_some(),
+            "battle clock chase must reach the client"
+        );
+        assert!(clock.states[..2].iter().all(Option::is_none));
+        assert_eq!(phases, world.encounter_phases.len());
+        // The final boss objective uses the second client-only announcement.
+        // Keep projecting through that transition, not just the opening HUD.
+        for tick in 8001..=43000 {
+            scene.step_encounter(tick, Some(hero));
+            world.queue_encounter_presentation(&scene).unwrap();
+            if let Some(record) = world.ready().first().map(|record| record.tracked()) {
+                world.sent(&eligible(&world));
+                world.acknowledge(outcome(record, true), Duration::ZERO);
+            }
+        }
+        world.clear();
+        assert!(world.encounter_notifications.is_none());
+        assert!(world.encounter_notification_turn);
+        assert!(world.encounter_phases.is_empty());
+    }
+
+    #[test]
     fn native_command_window_keeps_duplicates_and_future_input_unacknowledged() {
         let (fresh, boundary) = command_prefix(
             Some(1000),
@@ -1915,9 +2887,7 @@ mod tests {
     fn native_world_resumes_a_gap_before_switching_the_body_and_acknowledging_input() {
         let runtime = std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap();
         let assets = SceneAssets::load(runtime).unwrap();
-        let mut scene = assets.prepare(GameMap::practice_range()).unwrap();
-        // The poses below are checked against a mover without VM modifiers.
-        scene.owner_body_factory = None;
+        let scene = assets.prepare(GameMap::practice_range()).unwrap();
         let owner = 0xa000_0100;
         let viewer = PlayerAppearance {
             entity: owner,
@@ -1952,7 +2922,7 @@ mod tests {
                 (hero, SkinTheme::default()),
             )
             .unwrap();
-        assert!(world.body_script.is_none());
+        assert!(world.body_script.is_some());
         let initial = world.mover.as_ref().unwrap().pose();
         let actual = Command {
             yaw: initial.yaw,
@@ -2260,6 +3230,96 @@ mod tests {
     }
 
     #[test]
+    fn admitted_owner_projectile_preserves_gravity_and_expiry_blast() {
+        use crate::{
+            game_hitscan::{HitDefinition, TargetPose},
+            projectile_flight::{Blast, ProjectileBallistics, lifted_direction},
+            script_init::ShotEvent,
+        };
+        const DEFINITION: u64 = 0x0400_0000_0000_037d;
+        let id = avatar(1, 2);
+        let mut world = WorldDelivery::new(OWNER);
+        activate_script(&mut world, id, CASSIDY, Arc::default());
+        let script = world.body_script.as_mut().unwrap();
+        script.projectiles = Some(OwnerProjectiles::new(
+            id.entity,
+            ProjectileLeases::new(0, 100, [DEFINITION]).unwrap(),
+        ));
+        script.launch_projectile(PosedProjectile {
+            stun: crate::game_combat::Stun::from_seconds(0.8),
+            shot: ShotEvent {
+                entity: id.entity,
+                instance: 1,
+                graph: 0x01e9,
+                raw_state: 1,
+                frame: 101,
+                time_ms: 101 * FRAME_MS,
+                activation: 1,
+                activation_ms: 101 * FRAME_MS,
+                ordinal: 0,
+            },
+            ballistics: ProjectileBallistics {
+                speed: 30.0,
+                lifetime: 7.0 / 30.0,
+                definition: Some(DEFINITION),
+                direct: None,
+                blast: Some(Blast {
+                    hit: HitDefinition {
+                        tags: crate::game_hitscan::DamageTags::EMPTY,
+                        amount: 25.0,
+                        loadout: None,
+                        critical: 1.0,
+                        falloff: None,
+                    },
+                    rings: vec![(3.0, 1.0)],
+                }),
+            },
+            origin: [0.0, 1.55, 0.0],
+            direction: lifted_direction([0.0, 0.0, 1.0], 0.05).unwrap(),
+            gravity: Some(20.0),
+            expiry_blast: true,
+        });
+        let (_, mut launches) = world.take_projectile_launches().unwrap();
+        let [launch] = launches.as_mut_slice() else {
+            panic!("one admitted flight")
+        };
+        assert_eq!(launch.stun.unwrap().ticks, 50);
+        let targets = [(
+            42,
+            TargetPose {
+                feet: [2.0, 0.0, 7.0],
+                height: 1.8,
+                radius: 0.35,
+                eye: 1.55,
+            },
+        )];
+        let mut headings = Vec::new();
+        let end = (1..=30)
+            .find_map(|tick| {
+                launch
+                    .flight
+                    .advance(tick, &targets, |_, direction, _| {
+                        headings.push(direction[1]);
+                        Ok(None)
+                    })
+                    .unwrap()
+            })
+            .expect("range-end blast");
+        assert!(end.expired);
+        assert!(
+            headings.iter().any(|y| *y < -0.05),
+            "gravity was lost at admission"
+        );
+        assert_eq!(
+            end.impacts
+                .iter()
+                .map(|hit| (hit.entity, hit.damage))
+                .collect::<Vec<_>>(),
+            [(42, 25.0)]
+        );
+    }
+
+    #[test]
     fn room_flight_outcomes_release_only_the_current_owner_alias() {
         use crate::{projectile_flight::ProjectileBallistics, script_init::ShotEvent};
 
@@ -2274,6 +3334,9 @@ mod tests {
             let script = world.body_script.as_mut().unwrap();
             script.projectiles = Some(OwnerProjectiles::new(id.entity, leases));
             script.launch_projectile(PosedProjectile {
+                stun: None,
+                gravity: None,
+                expiry_blast: false,
                 shot: ShotEvent {
                     entity: id.entity,
                     instance: 1,
@@ -2551,96 +3614,98 @@ mod tests {
 
     #[test]
     fn owner_correction_respects_create_budget_and_failed_transport() {
-        let mut world = WorldDelivery::new(OWNER);
-        let id = avatar(1, 1);
-        world.started = Some(100);
-        let failed = Arc::new(AtomicBool::new(false));
-        activate_script(&mut world, id, SOLDIER, Arc::clone(&failed));
-        world.input.processed = Some(125);
-        let history = world
-            .body_script
-            .as_mut()
-            .unwrap()
-            .corrections
-            .as_mut()
-            .unwrap();
-        history.record(Movement {
-            frame: Some(100),
-            ..Movement::default()
-        });
-        let mut egress = GameEgress::default();
-        let (blocked, sent) = transmit(&mut world, &mut egress, 100, 0);
-        assert_eq!(read_ack(&blocked), 102);
-        assert!(sent.records.is_empty());
-        world.acknowledge(
-            outcome(Arc::new(record(id.entity, Delivery::CreateBody(id))), true),
-            Duration::ZERO,
-        );
-        let (first, sent) = transmit(&mut world, &mut egress, 100, 1);
-        assert_eq!(read_ack(&first), 102);
-        assert!(sent.records.contains(&RecordSource::Movement(0)));
-        transport_outcome(&mut world, &mut egress, 1, true);
-        let history = world
-            .body_script
-            .as_mut()
-            .unwrap()
-            .corrections
-            .as_mut()
-            .unwrap();
-        assert_eq!(history.corrected(), Some(100));
-        history.record(Movement {
-            frame: Some(106),
-            ..Movement::default()
-        });
-        history.record(Movement {
-            frame: Some(112),
-            ..Movement::default()
-        });
-        for i in 0..MAX_ENTITY_RECORDS {
-            world.push(Record::baseline(EntityUpdate {
-                entity: 0x8000_0100 + i as u32,
-                operation: Some(Operation::Destroy),
-                ..EntityUpdate::default()
-            }));
-        }
-        let (crowded, sent) = transmit(&mut world, &mut egress, 107, 2);
-        assert_eq!(read_ack(&crowded), 102);
-        assert_eq!(sent.records.len(), MAX_ENTITY_RECORDS);
-        assert!(!sent.records.contains(&RecordSource::Movement(0)));
-        transport_outcome(&mut world, &mut egress, 2, true);
-        let rejected = world.send_frame(107, Vec::new(), false, &mut egress, |payload| {
-            assert_eq!(read_ack(&payload), 108);
-            Err(())
-        });
-        assert!(matches!(rejected, Err(SendError::Transport(()))));
-        assert_eq!(
-            world
+        for hero in [SOLDIER, CASSIDY] {
+            let mut world = WorldDelivery::new(OWNER);
+            let id = avatar(1, 1);
+            world.started = Some(100);
+            let failed = Arc::new(AtomicBool::new(false));
+            activate_script(&mut world, id, hero, Arc::clone(&failed));
+            world.input.processed = Some(125);
+            let history = world
                 .body_script
-                .as_ref()
+                .as_mut()
                 .unwrap()
                 .corrections
-                .as_ref()
+                .as_mut()
+                .unwrap();
+            history.record(Movement {
+                frame: Some(100),
+                ..Movement::default()
+            });
+            let mut egress = GameEgress::default();
+            let (blocked, sent) = transmit(&mut world, &mut egress, 100, 0);
+            assert_eq!(read_ack(&blocked), 102);
+            assert!(sent.records.is_empty());
+            world.acknowledge(
+                outcome(Arc::new(record(id.entity, Delivery::CreateBody(id))), true),
+                Duration::ZERO,
+            );
+            let (first, sent) = transmit(&mut world, &mut egress, 100, 1);
+            assert_eq!(read_ack(&first), 102);
+            assert!(sent.records.contains(&RecordSource::Movement(0)));
+            transport_outcome(&mut world, &mut egress, 1, true);
+            let history = world
+                .body_script
+                .as_mut()
                 .unwrap()
-                .corrected(),
-            Some(100)
-        );
-        let (selected, sent) = transmit(&mut world, &mut egress, 107, 3);
-        assert_eq!(read_ack(&selected), 108);
-        assert_eq!(sent.records, [RecordSource::Movement(0)]);
-        assert!(egress.acknowledge(4, 0).packets.is_empty());
-        assert!(
-            transmit(&mut world, &mut egress, 107, 4)
-                .1
-                .records
-                .is_empty()
-        );
+                .corrections
+                .as_mut()
+                .unwrap();
+            assert_eq!(history.corrected(), Some(100));
+            history.record(Movement {
+                frame: Some(106),
+                ..Movement::default()
+            });
+            history.record(Movement {
+                frame: Some(112),
+                ..Movement::default()
+            });
+            for i in 0..MAX_ENTITY_RECORDS {
+                world.push(Record::baseline(EntityUpdate {
+                    entity: 0x8000_0100 + i as u32,
+                    operation: Some(Operation::Destroy),
+                    ..EntityUpdate::default()
+                }));
+            }
+            let (crowded, sent) = transmit(&mut world, &mut egress, 107, 2);
+            assert_eq!(read_ack(&crowded), 102);
+            assert_eq!(sent.records.len(), MAX_ENTITY_RECORDS);
+            assert!(!sent.records.contains(&RecordSource::Movement(0)));
+            transport_outcome(&mut world, &mut egress, 2, true);
+            let rejected = world.send_frame(107, Vec::new(), false, &mut egress, |payload| {
+                assert_eq!(read_ack(&payload), 108);
+                Err(())
+            });
+            assert!(matches!(rejected, Err(SendError::Transport(()))));
+            assert_eq!(
+                world
+                    .body_script
+                    .as_ref()
+                    .unwrap()
+                    .corrections
+                    .as_ref()
+                    .unwrap()
+                    .corrected(),
+                Some(100)
+            );
+            let (selected, sent) = transmit(&mut world, &mut egress, 107, 3);
+            assert_eq!(read_ack(&selected), 108);
+            assert_eq!(sent.records, [RecordSource::Movement(0)]);
+            assert!(egress.acknowledge(4, 0).packets.is_empty());
+            assert!(
+                transmit(&mut world, &mut egress, 107, 4)
+                    .1
+                    .records
+                    .is_empty()
+            );
 
-        failed.store(true, Ordering::Relaxed);
-        let (payload, sent) = transmit(&mut world, &mut egress, 112, 5);
-        assert_eq!(read_ack(&payload), 125);
-        assert!(world.body_script.is_none());
-        assert!(sent.records.is_empty());
-        assert!(world.queued.is_empty());
+            failed.store(true, Ordering::Relaxed);
+            let (payload, sent) = transmit(&mut world, &mut egress, 112, 5);
+            assert_eq!(read_ack(&payload), 125);
+            assert!(world.body_script.is_none());
+            assert!(sent.records.is_empty());
+            assert!(world.queued.is_empty());
+        }
     }
 
     #[test]

@@ -1,0 +1,139 @@
+{
+  "case_id": "junkenstein.local-validation.v1",
+  "provenance": "Synthetic host startup policy for the user-requested invulnerable Normal Cassidy success/failure runs; not a native gameplay rule or client acceptance claim.",
+  "cases": [
+    {
+      "settings": {},
+      "card": 60,
+      "hero": "0x02E0000000000042",
+      "protected": false,
+      "gate_capacity": null
+    },
+    {
+      "settings": {
+        "invulnerable_cassidy": true,
+        "gate_capacity": 1000000000
+      },
+      "card": 60,
+      "hero": "0x02E0000000000042",
+      "protected": true,
+      "gate_capacity": 1000000000
+    },
+    {
+      "settings": {
+        "invulnerable_cassidy": true
+      },
+      "card": 60,
+      "hero": "0x02E0000000000042",
+      "protected": true,
+      "gate_capacity": null
+    },
+    {
+      "settings": {
+        "invulnerable_cassidy": true
+      },
+      "card": 60,
+      "hero": "0x02E000000000006E",
+      "protected": false,
+      "gate_capacity": null
+    },
+    {
+      "settings": {
+        "invulnerable_cassidy": true,
+        "gate_capacity": 1000000000
+      },
+      "card": 61,
+      "hero": "0x02E0000000000042",
+      "protected": false,
+      "gate_capacity": null
+    },
+    {
+      "settings": {
+        "invulnerable_cassidy": true,
+        "gate_capacity": 1000000000
+      },
+      "card": 67,
+      "hero": "0x02E0000000000042",
+      "protected": false,
+      "gate_capacity": null
+    },
+    {
+      "settings": {
+        "invulnerable_cassidy": true
+      },
+      "card": 60,
+      "hero": null,
+      "protected": false,
+      "gate_capacity": null
+    }
+  ],
+  "invalid_settings": [
+    {
+      "gate_capacity": 0
+    },
+    {
+      "gate_capacity": -1
+    },
+    {
+      "gate_capacity": 1e+300
+    },
+    {
+      "gate_capacity": "NaN"
+    },
+    {
+      "invulnerable_cassidy": "true"
+    },
+    {
+      "invulnerable_cassidy": true,
+      "unknown_override": 1
+    }
+  ],
+  "limits": [
+    "Configuration is loaded from a local file before listeners start; clients cannot change it.",
+    "Applies only to card 0x3C, Normal Revenge; other modes and heroes retain normal damage policy.",
+    "The success profile changes gate capacity through the existing authored VM notification path; it does not force an outcome or skip boss introductions."
+  ],
+  "room_damage": {
+    "provenance": "Synthetic post-AI enemy damage events; actual Room.finish_simulation dispatches into the prepared Cassidy owner pools. This tests host damage/death routing, not attack generation, UDP transport or client prediction.",
+    "initial_health": 225,
+    "source": 2952790033,
+    "amounts": [
+      70,
+      10000
+    ],
+    "cases": [
+      {
+        "settings": null,
+        "health": [
+          155,
+          0
+        ],
+        "alive": [
+          true,
+          false
+        ],
+        "death_notices": [
+          0,
+          1
+        ]
+      },
+      {
+        "settings": {
+          "invulnerable_cassidy": true
+        },
+        "health": [
+          225,
+          225
+        ],
+        "alive": [
+          true,
+          true
+        ],
+        "death_notices": [
+          0,
+          0
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.hostile-filter.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::SceneWorld._filter_entity",
+      "ow174/game/script/entity_team.py::index_from_filters"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "hostile",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0
+        },
+        "predicate": null
+      },
+      {
+        "name": "friendly",
+        "source_flags": 8388609,
+        "target_flags": 8388609,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0
+        },
+        "predicate": null
+      },
+      {
+        "name": "target-without-team",
+        "source_flags": 8388609,
+        "target_flags": 1,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0
+        },
+        "predicate": null
+      },
+      {
+        "name": "source-without-team",
+        "source_flags": 1,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0
+        },
+        "predicate": null
+      },
+      {
+        "name": "first-team-bit-wins",
+        "source_flags": 8388609,
+        "target_flags": 25165825,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0
+        },
+        "predicate": null
+      },
+      {
+        "name": "spectator-bit-ignored",
+        "source_flags": 8388609,
+        "target_flags": 285212673,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0
+        },
+        "predicate": null
+      },
+      {
+        "name": "dead-mask-rejects-before-unknown-tags",
+        "source_flags": 8388609,
+        "target_flags": 16777233,
+        "tags": null,
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_4EA686DB": 16,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "required-tag-present",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [
+          1
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "required-tag-absent",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "required-tag-unknown",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": null,
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "excluded-tag-present",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [
+          1
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_8B2A4DF3": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "excluded-tag-absent",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_8B2A4DF3": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "primary-tag-required",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_9C7BD8B8": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "zero-tag-ignored",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": null,
+            "m_resourceKey": null
+          }
+        },
+        "predicate": null
+      },
+      {
+        "name": "condition-true",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_condition": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": false
+          }
+        },
+        "predicate": true
+      },
+      {
+        "name": "condition-false",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_condition": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": false
+          }
+        },
+        "predicate": false
+      },
+      {
+        "name": "zero-unused-field",
+        "source_flags": 8388609,
+        "target_flags": 16777217,
+        "tags": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1073741823,
+          "m_66747E7D": 2,
+          "m_89831602": 0,
+          "m_C1903771": 0
+        },
+        "predicate": null
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "hostile",
+        "value": true
+      },
+      {
+        "name": "friendly",
+        "value": false
+      },
+      {
+        "name": "target-without-team",
+        "value": false
+      },
+      {
+        "name": "source-without-team",
+        "value": false
+      },
+      {
+        "name": "first-team-bit-wins",
+        "value": false
+      },
+      {
+        "name": "spectator-bit-ignored",
+        "value": true
+      },
+      {
+        "name": "dead-mask-rejects-before-unknown-tags",
+        "value": false
+      },
+      {
+        "name": "required-tag-present",
+        "value": true
+      },
+      {
+        "name": "required-tag-absent",
+        "value": false
+      },
+      {
+        "name": "required-tag-unknown",
+        "error": "STU_AC829876"
+      },
+      {
+        "name": "excluded-tag-present",
+        "value": false
+      },
+      {
+        "name": "excluded-tag-absent",
+        "value": true
+      },
+      {
+        "name": "primary-tag-required",
+        "value": false
+      },
+      {
+        "name": "zero-tag-ignored",
+        "value": true
+      },
+      {
+        "name": "condition-true",
+        "value": true
+      },
+      {
+        "name": "condition-false",
+        "value": false
+      },
+      {
+        "name": "zero-unused-field",
+        "value": true
+      }
+    ]
+  }
+}

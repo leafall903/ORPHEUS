@@ -12,6 +12,7 @@ use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::path::{Component, Path, PathBuf};
 
 pub mod format;
+mod npc_movers;
 mod target_tags;
 
 pub const LOBBY_RUNTIME_DATA: &[&str] = &[
@@ -39,6 +40,8 @@ pub const MATCH_RUNTIME_DATA: &[&str] = &[
     "statescript_codecs_174.json",
 ];
 pub const BNET_DESCRIPTORS: &str = "bnet/descriptors.pb";
+pub const JUNKENSTEIN_MAP_WORLD: &str = "data/junkenstein/junkenstein-map-world.json";
+pub const JUNKENSTEIN_NPCS: &str = "data/junkenstein/junkenstein-npcs.json";
 const PRACTICE_COLLISION: &str = "collision/0688.col";
 const SIGNING_INPUT: &str = "data/lobby_state_blob.key";
 const CONTENT_KEY_TABLE: &str = "data/resource_keys_174.json";
@@ -222,12 +225,19 @@ fn inputs(
     if let Some(graphs) = game_graphs {
         inputs.insert(GRAPH_BUNDLE.into(), graphs.to_owned());
     }
-    inputs.insert(
-        BNET_DESCRIPTORS.into(),
-        source.join("ow174").join(BNET_DESCRIPTORS),
-    );
+    // Use one source layout throughout. The flat layout is also the
+    // destination format, so prepared packs can be enriched directly.
+    let (descriptors, collision) = if source.join("collision").is_dir() {
+        (source.join(BNET_DESCRIPTORS), source.join("collision"))
+    } else {
+        (
+            source.join("ow174").join(BNET_DESCRIPTORS),
+            source.join("cache/collision"),
+        )
+    };
+    inputs.insert(BNET_DESCRIPTORS.into(), descriptors);
 
-    let caches = caches(&source.join("cache/collision"), maps)?;
+    let caches = caches(&collision, maps)?;
     if caches.is_empty() {
         return Err(RuntimeError::Input(
             "No prepared collision caches were found".into(),
@@ -242,6 +252,12 @@ fn inputs(
                 .and_then(|name| name.to_str())
                 .expect("ASCII cache name");
             inputs.insert(format!("collision/{filename}"), path);
+        }
+    }
+    for name in [JUNKENSTEIN_MAP_WORLD, JUNKENSTEIN_NPCS] {
+        let input = source.join(name);
+        if inputs.contains_key("collision/06C9.col") && input.is_file() {
+            inputs.insert(name.into(), input);
         }
     }
 
@@ -371,14 +387,31 @@ pub fn prepare_with_target_tags(
     let tagged_graphs = target_tags_xml
         .map(|xml| target_tags::enrich(&inputs[GRAPH_BUNDLE], xml))
         .transpose()?;
+    let npc_movers = target_tags_xml
+        .zip(inputs.get(JUNKENSTEIN_NPCS))
+        .map(|(xml, catalog)| {
+            npc_movers::enrich(&inputs["data/game_movers_174.json"], catalog, xml)
+        })
+        .transpose()?;
     let mut output = OutputDirectory::create(&destination)?;
     for directory in ["data", "bnet", "collision"] {
         output.mkdir(directory)?;
     }
+    if inputs.contains_key(JUNKENSTEIN_MAP_WORLD) || inputs.contains_key(JUNKENSTEIN_NPCS) {
+        output.mkdir("data/junkenstein")?;
+    }
     let mut hashes = BTreeMap::new();
     for (name, input) in inputs {
         let (path, mut file) = output.file(&name)?;
-        let hash = if let Some(graphs) = tagged_graphs.as_ref().filter(|_| name == GRAPH_BUNDLE) {
+        let generated = tagged_graphs
+            .as_ref()
+            .filter(|_| name == GRAPH_BUNDLE)
+            .or_else(|| {
+                npc_movers
+                    .as_ref()
+                    .filter(|_| name == "data/game_movers_174.json")
+            });
+        let hash = if let Some(graphs) = generated {
             at(&path, file.write_all(graphs))?;
             at(&path, file.flush())?;
             format!("{:x}", Sha256::digest(graphs))
@@ -452,6 +485,28 @@ mod tests {
     }
 
     #[test]
+    fn prepared_pack_can_be_used_as_a_source() {
+        let fixture = Fixture::new();
+        let source = fixture.source();
+        let maps = ["0688".to_owned()];
+        let pack = prepare(&source, &fixture.root.join("pack"), &maps, None).unwrap();
+        let output = prepare(&pack, &fixture.root.join("repacked"), &maps, None).unwrap();
+
+        for member in [
+            BNET_DESCRIPTORS,
+            "collision/0688.col",
+            "collision/0688.rays.col",
+            "manifest.json",
+        ] {
+            assert_eq!(
+                fs::read(output.join(member)).unwrap(),
+                fs::read(pack.join(member)).unwrap(),
+            );
+        }
+        assert!(!output.join("collision/ABCD.col").exists());
+    }
+
+    #[test]
     fn copies_selected_map_and_optional_rays_and_hashes_written_files() {
         let fixture = Fixture::new();
         let source = fixture.source();
@@ -503,7 +558,34 @@ mod tests {
     }
 
     #[test]
-    fn imports_target_tags_only_from_present_local_xml() {
+    fn junkenstein_pack_includes_and_hashes_the_external_placement_data() {
+        let fixture = Fixture::new();
+        let source = fixture.source();
+        fixture.write("source/cache/collision/06C9.col", b"castle");
+        fixture.write(
+            &format!("source/{JUNKENSTEIN_MAP_WORLD}"),
+            b"placement fixture",
+        );
+        fixture.write(&format!("source/{JUNKENSTEIN_NPCS}"), b"NPC fixture");
+        let output = prepare(&source, &fixture.root.join("pack"), &["06c9".into()], None).unwrap();
+        let copied = fs::read(output.join(JUNKENSTEIN_MAP_WORLD)).unwrap();
+        assert_eq!(copied, b"placement fixture");
+        let manifest: serde_json::Value =
+            serde_json::from_reader(File::open(output.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(
+            manifest["sha256"][JUNKENSTEIN_MAP_WORLD],
+            format!("{:x}", Sha256::digest(copied))
+        );
+        let npcs = fs::read(output.join(JUNKENSTEIN_NPCS)).unwrap();
+        assert_eq!(npcs, b"NPC fixture");
+        assert_eq!(
+            manifest["sha256"][JUNKENSTEIN_NPCS],
+            format!("{:x}", Sha256::digest(npcs))
+        );
+    }
+
+    #[test]
+    fn imports_entity_metadata_only_from_present_local_xml() {
         use flate2::{Compression, read::GzDecoder, write::GzEncoder};
         use serde_json::{Value, json};
 
@@ -518,7 +600,11 @@ mod tests {
                 "0x0400000000000001":body,"0x0400000000000002":body,
                 "0x0400000000000003":body,"0x0400000000000004":old
             },
-            "entities":{"0x0400000000000005":body}
+            "entities":{"0x0400000000000005":body},
+            "junkenstein":{"entities":{
+                "0x0400000000000001":body,"0x0400000000000002":body,
+                "0x0400000000000005":body
+            }}
         });
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
         serde_json::to_writer(&mut encoder, &bundle).unwrap();
@@ -540,6 +626,9 @@ mod tests {
                             </d:array>
                         </STUTargetTagComponent>
                     </STUTargetTagComponent>
+                    <STU_76AF64F0 d:key="1991206128">
+                        <STU_76AF64F0 d:name="dragon:value"/>
+                    </STU_76AF64F0>
                 </d:map>
             </STUEntityDefinition>"#,
         );
@@ -582,6 +671,14 @@ mod tests {
             enriched["entities"]["0x0400000000000005"]["target_tags"],
             json!([])
         );
+        let enemy = &enriched["junkenstein"]["entities"];
+        assert_eq!(enemy["0x0400000000000001"]["component92_present"], true);
+        assert!(
+            enemy["0x0400000000000002"]
+                .get("component92_present")
+                .is_none()
+        );
+        assert_eq!(enemy["0x0400000000000005"]["component92_present"], false);
         assert_eq!(fs::read(&selected).unwrap(), original);
         let manifest: Value =
             serde_json::from_reader(File::open(output.join("manifest.json")).unwrap()).unwrap();
@@ -593,6 +690,71 @@ mod tests {
         let failed = fixture.root.join("bad-pack");
         let error =
             prepare_with_target_tags(&source, &failed, &[], Some(&selected), Some(&xml_dir))
+                .unwrap_err();
+        assert!(error.to_string().contains("000000000001.003.xml"));
+        assert!(!failed.exists());
+    }
+
+    #[test]
+    fn imports_catalog_selected_npc_movers_and_hashes_generated_table() {
+        use flate2::{Compression, write::GzEncoder};
+        use serde_json::{Value, json};
+        let fixture = Fixture::new();
+        let source = fixture.source();
+        fixture.write("source/cache/collision/06C9.col", b"castle");
+        fixture.write(&format!("source/{JUNKENSTEIN_MAP_WORLD}"), b"placement");
+        let catalog = json!({"format_version":1,"definitions":[
+            {"body":"0x0400000000000001","name":"Selected NPC"}]});
+        fixture.write(
+            &format!("source/{JUNKENSTEIN_NPCS}"),
+            &serde_json::to_vec(&catalog).unwrap(),
+        );
+        let original = br#"{"0x0400000000000002":{"name":"existing","run_forward":5.5}}"#;
+        fixture.write("source/data/game_movers_174.json", original);
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        serde_json::to_writer(
+            &mut encoder,
+            &json!({"version":1,"graphs":[],"bodies":{},"entities":{}}),
+        )
+        .unwrap();
+        fixture.write(
+            "source/data/game_graphs_174.json.gz",
+            &encoder.finish().unwrap(),
+        );
+        let xml = npc_movers::tests::fixture();
+        fixture.write("003/000000000001.003.xml", xml.as_bytes());
+        // Unselected, malformed XML must never be inspected.
+        fixture.write("003/000000000002.003.xml", b"<broken");
+        let xml_dir = fixture.root.join("003");
+        let output = prepare_with_target_tags(
+            &source,
+            &fixture.root.join("pack"),
+            &["06C9".into()],
+            None,
+            Some(&xml_dir),
+        )
+        .unwrap();
+        let bytes = fs::read(output.join("data/game_movers_174.json")).unwrap();
+        let movers: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(movers.as_object().unwrap().len(), 2);
+        assert_eq!(movers["0x0400000000000001"]["run_forward"], 1.0);
+        assert_eq!(movers["0x0400000000000001"]["name"], "Selected NPC");
+        let old: Value = serde_json::from_slice(original).unwrap();
+        assert_eq!(movers["0x0400000000000002"], old["0x0400000000000002"]);
+        assert_eq!(
+            fs::read(source.join("data/game_movers_174.json")).unwrap(),
+            original
+        );
+        let manifest: Value =
+            serde_json::from_reader(File::open(output.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(
+            manifest["sha256"]["data/game_movers_174.json"],
+            format!("{:x}", Sha256::digest(&bytes))
+        );
+        fs::remove_file(xml_dir.join("000000000001.003.xml")).unwrap();
+        let failed = fixture.root.join("missing-npc");
+        let error =
+            prepare_with_target_tags(&source, &failed, &["06C9".into()], None, Some(&xml_dir))
                 .unwrap_err();
         assert!(error.to_string().contains("000000000001.003.xml"));
         assert!(!failed.exists());

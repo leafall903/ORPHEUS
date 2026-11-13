@@ -2,7 +2,7 @@
 
 use crate::{
     commands::{CROUCH, Command, JUMP, frame_distance},
-    mover_ground::{ProbeResult, capsule, pogo},
+    mover_ground::{ProbeResult, capsule, pogo, stance_height},
     mover_kinematics::{Ground, LAND_SPEED, WORLD_GRAVITY},
     mover_modifiers::{ActiveModifiers, CROUCH_INTENT, JUMP_INTENT, LAND_LIMIT},
     mover_settings::MoverSettings,
@@ -232,8 +232,8 @@ struct SpringAnchor {
 
 impl Spring {
     fn set_limits(&mut self, base: &MoverSettings) {
-        let stand = base.stand_height + base.stand_pogo;
-        let crouch = base.crouch_height + base.crouch_pogo;
+        let stand = f64::from(stance_height(base, false)) + base.stand_pogo;
+        let crouch = f64::from(stance_height(base, true)) + base.crouch_pogo;
         self.low = -stand.max(crouch) as f32;
         self.high = (2.0 * base.step_down) as f32;
     }
@@ -296,5 +296,46 @@ impl Spring {
         [self.primary, self.secondary] = self
             .encoded
             .map(|steps| span * (f32::from(steps) / SPRING_STEPS) + self.low);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spring_bounds_match_normalized_python_stances() {
+        // MoverData.spring_range(), Python cc620be; exact float32 encodings.
+        for (settings, low) in [
+            (MoverSettings::default(), 0xc020_0000),
+            (
+                MoverSettings {
+                    stand_height: 1.5,
+                    ..MoverSettings::default()
+                },
+                0xc003_3333,
+            ),
+            (
+                MoverSettings {
+                    stand_radius: 0.7,
+                    crouch_radius: 0.7,
+                    stand_pogo: 1.0,
+                    ..MoverSettings::default()
+                },
+                0xc05e_147b,
+            ),
+            (
+                MoverSettings {
+                    stand_height: 0.1,
+                    crouch_height: 3.0,
+                    ..MoverSettings::default()
+                },
+                0xc050_0000,
+            ),
+        ] {
+            let posture = Posture::new(&settings);
+            assert_eq!(posture.spring.low.to_bits(), low);
+            assert_eq!(posture.spring.high.to_bits(), 0x3f80_0000);
+        }
     }
 }

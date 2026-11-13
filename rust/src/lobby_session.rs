@@ -814,7 +814,15 @@ mod tests {
         let templates = RetailTemplates::load(runtime.join("retail_templates.json")).unwrap();
         let items = Arc::new(ItemDb::load(&runtime).unwrap());
         let reaper = items.hero_by_name("Reaper").unwrap();
-        let collection = Collection::new(&templates, items).unwrap();
+        let collection = Collection::new(&templates, Arc::clone(&items)).unwrap();
+        let gallery_npcs: Vec<_> = items
+            .npc_heroes
+            .iter()
+            .copied()
+            .filter(|hero| !collection.heroes().contains(hero))
+            .map(Value::Unsigned)
+            .collect();
+        assert_eq!(gallery_npcs.len(), 23);
         let presence = Presence::new(&templates).unwrap();
         let ranked = Ranked::new(&templates).unwrap();
         let arcade = Arcade::load(runtime.join("arcade_cards_174.json"), &templates).unwrap();
@@ -968,6 +976,25 @@ mod tests {
                 assert_eq!(card[&0x28], Value::Unsigned(frame));
                 assert_eq!(progression[&0x58], card[&0x28]);
                 assert_eq!(messages.len(), count);
+                // Verify the native Gallery extension at its login slot before
+                // comparing the original playable-only Python corpus.
+                let catalog = &mut messages[8].2;
+                for (array, guid) in [(0x80, 0x30), (0x98, 0x18)] {
+                    let Value::Array(rows) = catalog.get_mut(&array).unwrap() else {
+                        panic!("missing hero catalog rows");
+                    };
+                    let extra = rows.split_off(rows.len() - gallery_npcs.len());
+                    let ids: Vec<_> = extra
+                        .into_iter()
+                        .map(|row| {
+                            let Value::Struct(mut fields) = row else {
+                                panic!("missing NPC catalog row");
+                            };
+                            fields.remove(&guid).unwrap()
+                        })
+                        .collect();
+                    assert_eq!(ids, gallery_npcs);
+                }
                 let mut digest = Sha256::new();
                 for (crc, id, fields) in messages {
                     let mut wire = schemas.header(crc, 1, id).unwrap();

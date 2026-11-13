@@ -26,8 +26,10 @@ pub enum Value {
     },
     String(String),
     Array(Vec<Value>),
-    /// An ordered script map. Its wire representation has not been verified.
+    /// An ordered script map. Identifier keys use the compact keyed-array form.
     Map(Vec<(Value, Value)>),
+    /// A mutable native identifier map, including capacity and empty buckets.
+    IdentifierMap(crate::script_destination::IdentifierMap),
 }
 
 impl From<ModeValue> for Value {
@@ -98,6 +100,9 @@ pub fn write_value(
 ) -> Result<(), WireError> {
     let compact = encoding.compact();
     match value {
+        Value::IdentifierMap(map) => {
+            write_value(out, &Value::Map(map.pairs()), encoding)?;
+        }
         Value::Bool(value) => {
             out.bits(0, 4)?;
             out.bit(*value);
@@ -189,6 +194,46 @@ pub fn write_value(
                 out.bit(false);
                 for item in items {
                     write_value(out, item, encoding)?;
+                }
+            }
+        }
+        Value::Map(pairs)
+            if compact
+                && pairs
+                    .iter()
+                    .all(|(key, _)| matches!(key, Value::Integer(_))) =>
+        {
+            let length = u16::try_from(pairs.len()).map_err(|_| WireError::InvalidValue)?;
+            out.bits(15, 4)?;
+            out.bits(6, 3)?;
+            out.w_u16(length);
+            out.bit(true);
+            if !pairs.is_empty() {
+                out.bit(false); // Values have individual type tags.
+            }
+            for (index, (key, value)) in pairs.iter().enumerate() {
+                if index != 0 {
+                    out.bit(true);
+                }
+                let Value::Integer(key) = key else {
+                    unreachable!("checked map keys")
+                };
+                let key = u16::try_from(*key).map_err(|_| WireError::InvalidValue)?;
+                out.bits(u64::from(key), 16)?;
+                write_value(out, value, encoding)?;
+            }
+        }
+        Value::Map(pairs) if compact => {
+            let length = u16::try_from(pairs.len()).map_err(|_| WireError::InvalidValue)?;
+            out.bits(15, 4)?;
+            out.bits(7, 3)?;
+            out.w_u16(length);
+            out.bit(false); // Typed keys, rather than uint16 indexes.
+            if !pairs.is_empty() {
+                out.bit(false); // Each key and value carries its own tag.
+                for (key, value) in pairs {
+                    write_value(out, key, encoding)?;
+                    write_value(out, value, encoding)?;
                 }
             }
         }
@@ -550,6 +595,42 @@ mod tests {
             379,
             "50d263861080080002008aac1f0100807f32a0008ed603000040df86df4baa6e8e0e00f85050c4060000fc0500000002",
         );
+    }
+
+    #[test]
+    fn typed_pair_arrays_match_the_python_writer() {
+        let pairs = Value::Map(vec![
+            (
+                Value::Asset(0x0a90_0000_0000_0171),
+                Value::Asset(0x0240_0000_0000_05ad),
+            ),
+            (
+                Value::Asset(0x0a90_0000_0000_0172),
+                Value::Asset(0x0240_0000_0000_05c5),
+            ),
+        ]);
+        let mut bits = BitWriter::new();
+        write_value(&mut bits, &pairs, ValueEncoding::Compact).unwrap();
+        check(&bits, 170, "7f428654282e200309d45a902115920bc84002151700");
+    }
+
+    #[test]
+    fn identifier_maps_match_the_python_keyed_array_writer() {
+        for (value, count, bytes) in [
+            (Value::Map(Vec::new()), 13, "6f10"),
+            (
+                Value::Map(vec![
+                    (Value::Integer(9), Value::Integer(15)),
+                    (Value::Integer(215), Value::Bool(true)),
+                ]),
+                60,
+                "6f520240fc6b0008",
+            ),
+        ] {
+            let mut bits = BitWriter::new();
+            write_value(&mut bits, &value, ValueEncoding::Compact).unwrap();
+            check(&bits, count, bytes);
+        }
     }
 
     #[test]

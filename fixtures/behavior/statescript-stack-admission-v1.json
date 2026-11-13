@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.stack-admission.v1",
+  "target_build": 104319,
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "source": {"revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7", "paths": ["ow174/game/script/expr.py", "ow174/game/script/nodes.py::Stack", "ow174/game/script/runtime.py"], "scope": "Normal VM entity-stack admission and release. No numeric gameplay effect or native client acceptance claim."},
+  "input": {"candidate": "0x0C4000000000003D", "cases": [
+    {"name":"empty", "priorities":[], "values":[], "release":false, "expected":true},
+    {"name":"lower", "priorities":["0x0C40000000000002"], "values":[true], "release":false, "expected":true},
+    {"name":"equal-replaced", "priorities":["0x0C40000000000001"], "values":[true], "release":false, "expected":true},
+    {"name":"higher", "priorities":["0x0C40000000000015"], "values":[true], "release":false, "expected":false},
+    {"name":"higher-false-value", "priorities":["0x0C40000000000015"], "values":[false], "release":false, "expected":false},
+    {"name":"mixed-priorities", "priorities":["0x0C40000000000002","0x0C40000000000015"], "values":[true,true], "release":false, "expected":false},
+    {"name":"released-higher", "priorities":["0x0C40000000000015"], "values":[true], "release":true, "expected":true}
+  ]}
+}

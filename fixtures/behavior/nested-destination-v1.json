@@ -1,0 +1,1871 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.nested-destination.v1",
+  "target_build": 104319,
+  "source": {
+    "kind": "synthetic-native-restricted-emulation",
+    "path_entry": "1B81210 original destination parser",
+    "storage_entries": [
+      "F65340",
+      "F65410",
+      "F681A0",
+      "9E9600",
+      "688740",
+      "F683E0",
+      "F68480"
+    ],
+    "adapters": [
+      "owned scratch variants and stack",
+      "bump allocator, free for owned storage only",
+      "literal writes into returned value slots",
+      "bounded stack probe for already mapped scratch stack"
+    ],
+    "limits": [
+      "path construction only; no assignment, growth, COW/watchers or actual queue behavior",
+      "constant index declared; not actual context lookup of dynamic39",
+      "does not establish native Boss category",
+      "not full variable assignment, COW or watcher behavior",
+      "no shared native heap allocator claim",
+      "no Boss category or original-client acceptance",
+      "No normal pinned-Python parity: its complex destinations are silently unsupported.",
+      "Rust work/depth limits and mutation of maps without retained native layout remain host boundaries."
+    ],
+    "image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2"
+  },
+  "path_opcodes": [
+    8,
+    0,
+    6,
+    0,
+    17,
+    7,
+    1,
+    15,
+    0
+  ],
+  "path_root": 31528,
+  "path_field": 27606,
+  "path_cases": [
+    {
+      "index": 0.0,
+      "scope": 0,
+      "owner": 7,
+      "variable": 31528,
+      "path": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 0.0,
+      "scope": 1,
+      "owner": 0,
+      "variable": 31528,
+      "path": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 1.0,
+      "scope": 0,
+      "owner": 7,
+      "variable": 31528,
+      "path": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 1.0,
+      "scope": 1,
+      "owner": 0,
+      "variable": 31528,
+      "path": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 2.5,
+      "scope": 0,
+      "owner": 7,
+      "variable": 31528,
+      "path": [
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 2.5,
+      "scope": 1,
+      "owner": 0,
+      "variable": 31528,
+      "path": [
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": -1.0,
+      "scope": 0,
+      "owner": 7,
+      "variable": 31528,
+      "path": [
+        [
+          65535,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": -1.0,
+      "scope": 1,
+      "owner": 0,
+      "variable": 31528,
+      "path": [
+        [
+          65535,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 999.0,
+      "scope": 0,
+      "owner": 7,
+      "variable": 31528,
+      "path": [
+        [
+          999,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 999.0,
+      "scope": 1,
+      "owner": 0,
+      "variable": 31528,
+      "path": [
+        [
+          999,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 1000.0,
+      "scope": 0,
+      "owner": 7,
+      "variable": 31528,
+      "path": [
+        [
+          1000,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    },
+    {
+      "index": 1000.0,
+      "scope": 1,
+      "owner": 0,
+      "variable": 31528,
+      "path": [
+        [
+          1000,
+          0
+        ],
+        [
+          0,
+          27606
+        ]
+      ]
+    }
+  ],
+  "storage_cases": [
+    {
+      "initial_type": 255,
+      "index": 0,
+      "result": true,
+      "root_type": 12,
+      "array_count": 1,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 255,
+      "index": 2,
+      "result": true,
+      "root_type": 12,
+      "array_count": 3,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 255,
+      "index": 7,
+      "result": true,
+      "root_type": 12,
+      "array_count": 8,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 255,
+      "index": 8,
+      "result": true,
+      "root_type": 12,
+      "array_count": 9,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x1854900",
+          384
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 255,
+      "index": 999,
+      "result": true,
+      "root_type": 12,
+      "array_count": 1000,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x1854900",
+          32000
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 255,
+      "index": 1000,
+      "result": false,
+      "root_type": 12,
+      "array_count": 0,
+      "initial_elements": [],
+      "all_initial_zero": true,
+      "map_width": null,
+      "map_keys": null,
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 255,
+      "index": 65535,
+      "result": false,
+      "root_type": 12,
+      "array_count": 0,
+      "initial_elements": [],
+      "all_initial_zero": true,
+      "map_width": null,
+      "map_keys": null,
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 0,
+      "result": true,
+      "root_type": 12,
+      "array_count": 1,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 2,
+      "result": true,
+      "root_type": 12,
+      "array_count": 3,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 7,
+      "result": true,
+      "root_type": 12,
+      "array_count": 8,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 8,
+      "result": true,
+      "root_type": 12,
+      "array_count": 9,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x1854900",
+          384
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 999,
+      "result": true,
+      "root_type": 12,
+      "array_count": 1000,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x1854900",
+          32000
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 1000,
+      "result": false,
+      "root_type": 12,
+      "array_count": 0,
+      "initial_elements": [],
+      "all_initial_zero": true,
+      "map_width": null,
+      "map_keys": null,
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 2,
+      "index": 65535,
+      "result": false,
+      "root_type": 12,
+      "array_count": 0,
+      "initial_elements": [],
+      "all_initial_zero": true,
+      "map_width": null,
+      "map_keys": null,
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 0,
+      "result": true,
+      "root_type": 12,
+      "array_count": 1,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 2,
+      "result": true,
+      "root_type": 12,
+      "array_count": 3,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 7,
+      "result": true,
+      "root_type": 12,
+      "array_count": 8,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 8,
+      "result": true,
+      "root_type": 12,
+      "array_count": 9,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x1854900",
+          384
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 999,
+      "result": true,
+      "root_type": 12,
+      "array_count": 1000,
+      "initial_elements": [
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        },
+        {
+          "type": 2,
+          "value": 0
+        }
+      ],
+      "all_initial_zero": true,
+      "map_width": 8,
+      "map_keys": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27606,
+        0
+      ],
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ],
+        [
+          "0x1854900",
+          32000
+        ],
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 1000,
+      "result": false,
+      "root_type": 12,
+      "array_count": 0,
+      "initial_elements": [],
+      "all_initial_zero": true,
+      "map_width": null,
+      "map_keys": null,
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    },
+    {
+      "initial_type": 3,
+      "index": 65535,
+      "result": false,
+      "root_type": 12,
+      "array_count": 0,
+      "initial_elements": [],
+      "all_initial_zero": true,
+      "map_width": null,
+      "map_keys": null,
+      "allocations": [
+        [
+          "0x18512c0",
+          272
+        ]
+      ]
+    }
+  ],
+  "map_sequences": [
+    {
+      "keys": [
+        7,
+        15,
+        23,
+        31,
+        39,
+        47,
+        55,
+        63,
+        71,
+        15
+      ],
+      "steps": [
+        {
+          "key": 7,
+          "value": 100,
+          "capacity": 8,
+          "entries": [
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 15,
+          "value": 101,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 23,
+          "value": 102,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 31,
+          "value": 103,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              31,
+              103
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 39,
+          "value": 104,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              31,
+              103
+            ],
+            [
+              39,
+              104
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 47,
+          "value": 105,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              31,
+              103
+            ],
+            [
+              39,
+              104
+            ],
+            [
+              47,
+              105
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 55,
+          "value": 106,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              31,
+              103
+            ],
+            [
+              39,
+              104
+            ],
+            [
+              47,
+              105
+            ],
+            [
+              55,
+              106
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 63,
+          "value": 107,
+          "capacity": 8,
+          "entries": [
+            [
+              15,
+              101
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              31,
+              103
+            ],
+            [
+              39,
+              104
+            ],
+            [
+              47,
+              105
+            ],
+            [
+              55,
+              106
+            ],
+            [
+              63,
+              107
+            ],
+            [
+              7,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 71,
+          "value": 108,
+          "capacity": 16,
+          "entries": [
+            [
+              31,
+              103
+            ],
+            [
+              47,
+              105
+            ],
+            [
+              63,
+              107
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              39,
+              104
+            ],
+            [
+              55,
+              106
+            ],
+            [
+              7,
+              100
+            ],
+            [
+              71,
+              108
+            ],
+            [
+              15,
+              101
+            ]
+          ]
+        },
+        {
+          "key": 15,
+          "value": 109,
+          "capacity": 16,
+          "entries": [
+            [
+              31,
+              103
+            ],
+            [
+              47,
+              105
+            ],
+            [
+              63,
+              107
+            ],
+            [
+              23,
+              102
+            ],
+            [
+              39,
+              104
+            ],
+            [
+              55,
+              106
+            ],
+            [
+              7,
+              100
+            ],
+            [
+              71,
+              108
+            ],
+            [
+              15,
+              109
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "keys": [
+        27606,
+        1952,
+        28383,
+        215,
+        28379,
+        27222,
+        28385,
+        9292,
+        27,
+        41,
+        27606
+      ],
+      "steps": [
+        {
+          "key": 27606,
+          "value": 100,
+          "capacity": 8,
+          "entries": [
+            [
+              27606,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 1952,
+          "value": 101,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              27606,
+              100
+            ]
+          ]
+        },
+        {
+          "key": 28383,
+          "value": 102,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 215,
+          "value": 103,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 28379,
+          "value": 104,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 27222,
+          "value": 105,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27222,
+              105
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 28385,
+          "value": 106,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27222,
+              105
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              28385,
+              106
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 9292,
+          "value": 107,
+          "capacity": 8,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27222,
+              105
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              28385,
+              106
+            ],
+            [
+              9292,
+              107
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 27,
+          "value": 108,
+          "capacity": 16,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              28385,
+              106
+            ],
+            [
+              27222,
+              105
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              9292,
+              107
+            ],
+            [
+              27,
+              108
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 41,
+          "value": 109,
+          "capacity": 16,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              28385,
+              106
+            ],
+            [
+              27222,
+              105
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27606,
+              100
+            ],
+            [
+              41,
+              109
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              9292,
+              107
+            ],
+            [
+              27,
+              108
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        },
+        {
+          "key": 27606,
+          "value": 110,
+          "capacity": 16,
+          "entries": [
+            [
+              1952,
+              101
+            ],
+            [
+              28385,
+              106
+            ],
+            [
+              27222,
+              105
+            ],
+            [
+              215,
+              103
+            ],
+            [
+              27606,
+              110
+            ],
+            [
+              41,
+              109
+            ],
+            [
+              28379,
+              104
+            ],
+            [
+              9292,
+              107
+            ],
+            [
+              27,
+              108
+            ],
+            [
+              28383,
+              102
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "host_watcher_values": [
+    0,
+    123,
+    123,
+    0
+  ]
+}

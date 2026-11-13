@@ -1,0 +1,149 @@
+{
+  "case_id": "flashbang.targeted-message.v1",
+  "target_build": 104319,
+  "provenance": "Synthetic host transport fixture follows authored 224E/22 target local28714, parameter2B from local1903 and 01D8/54 receiver local215; no client or actor category acceptance.",
+  "source": 3221229568,
+  "target": 2684354817,
+  "other": 2684354819,
+  "parameter": 37.5,
+  "message": "0x0240000000000622",
+  "sender_graph": {
+    "index": 8782,
+    "items": 23,
+    "nodes": [
+      {
+        "pos": 0,
+        "class": "STUStatescriptEntry",
+        "uid": 0,
+        "rid": 0,
+        "remote": -1,
+        "state": null,
+        "client_only": false,
+        "server_only": false,
+        "fields": {
+          "m_outPlug": {
+            "$": "STUStatescriptOutputPlug",
+            "links": [
+              [
+                22,
+                "m_inPlug"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "pos": 22,
+        "class": "STUStatescriptActionSendGameMessage",
+        "uid": 22,
+        "rid": 22,
+        "remote": -1,
+        "state": null,
+        "client_only": false,
+        "server_only": false,
+        "fields": {
+          "m_gameMessage": {
+            "$": "STUConfigVarGameMessage",
+            "m_gameMessage": "0x0240000000000622"
+          },
+          "m_targets": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 28714,
+            "m_60DB8F99": 0,
+            "m_EE729DCB": 0
+          },
+          "m_params": [
+            {
+              "$": "STU_814D595E",
+              "m_B5051BCE": "0x0A4000000000002B",
+              "m_value": {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1903,
+                "m_60DB8F99": 0,
+                "m_EE729DCB": 0
+              }
+            }
+          ],
+          "m_outPlug": {
+            "$": "STUStatescriptOutputPlug",
+            "links": []
+          }
+        }
+      }
+    ],
+    "entries": [
+      0
+    ],
+    "states": [],
+    "remote": [],
+    "sync_vars": [],
+    "containers": {},
+    "unknown_nodes": [],
+    "fields": {},
+    "header": {
+      "m_nodesBitCount": 6,
+      "m_statesBitCount": 4,
+      "m_remoteSyncNodesBitCount": 4,
+      "m_syncVarsBitCount": 4
+    }
+  },
+  "receiver_graph": {
+    "index": 472,
+    "items": 55,
+    "nodes": [
+      {
+        "pos": 54,
+        "class": "STUStatescriptEntryGameMessage",
+        "uid": 54,
+        "rid": 54,
+        "remote": -1,
+        "state": null,
+        "client_only": false,
+        "server_only": false,
+        "fields": {
+          "m_gameMessage": {
+            "$": "STUConfigVarGameMessage",
+            "m_gameMessage": "0x0240000000000622"
+          },
+          "m_B60ABDA4": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 40,
+            "m_60DB8F99": 0,
+            "m_EE729DCB": 0
+          },
+          "m_params": [
+            {
+              "$": "STU_EF930FD7",
+              "m_B5051BCE": "0x0A4000000000002B",
+              "m_out_Var": {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 215,
+                "m_60DB8F99": 0,
+                "m_EE729DCB": 0
+              }
+            }
+          ],
+          "m_outPlug": {
+            "$": "STUStatescriptOutputPlug",
+            "links": []
+          }
+        }
+      }
+    ],
+    "entries": [
+      54
+    ],
+    "states": [],
+    "remote": [],
+    "sync_vars": [],
+    "containers": {},
+    "unknown_nodes": [],
+    "fields": {},
+    "header": {
+      "m_nodesBitCount": 6,
+      "m_statesBitCount": 4,
+      "m_remoteSyncNodesBitCount": 4,
+      "m_syncVarsBitCount": 4
+    }
+  }
+}

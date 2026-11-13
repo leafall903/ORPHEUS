@@ -305,6 +305,19 @@ pub fn capsule(settings: &MoverSettings, crouched: bool) -> (f32, f32) {
     (r, (r * 0.1).max(rest))
 }
 
+/// The stance used to bound spring offsets must fit the minimum capsule.
+/// Ported from MoverData._stance_height in the combined 104319 reference.
+pub(crate) fn stance_height(settings: &MoverSettings, crouched: bool) -> f32 {
+    let (radius, height) = if crouched {
+        (settings.crouch_radius as f32, settings.crouch_height as f32)
+    } else {
+        (settings.stand_radius as f32, settings.stand_height as f32)
+    };
+    let radius = radius.max(0.02);
+    let minimum = (pogo(settings, crouched) as f32 + (radius + radius)) + radius * 0.1;
+    height.max(minimum)
+}
+
 fn flat_unit(x: f32, z: f32) -> Option<[f32; 2]> {
     let length = x * x + z * z;
     if length < FLAT_TINY || length.is_nan() {

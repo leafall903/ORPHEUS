@@ -136,3 +136,17 @@ To serve the bot spawn and death graphs from a prepared pack, include the six Pr
 ```powershell
 cargo run --locked -p orpheus-runtime --bin prepare_server_runtime -- --source 'C:\path\to\local-research' --destination 'C:\path\to\orpheus-bot-runtime' --map 0688 --game-graphs 'C:\path\to\entity-graphs.json.gz'
 ```
+
+### Junkenstein NPC mover inputs
+
+For a Junkenstein runtime, include the explicit external
+`data/junkenstein/junkenstein-npcs.json` catalog and the authorized build
+104319 body `003` XML directory. Runtime preparation with
+`--target-tags-xml 'C:\path\to\xml\003'` enriches both entity metadata
+and the selected NPC character movers. It reads only catalog-selected bodies,
+preserves other mover records, validates required numeric fields and capsule
+sizes, and hashes the generated mover table in the output manifest. Missing
+or malformed selected XML fails before creating the output directory.
+Existing packs can be supplied as `--source`; always use a new destination.
+The source pack and XML remain unchanged. Junkenstein scene preparation
+requires authored common-NPC movers rather than the hero fallback.

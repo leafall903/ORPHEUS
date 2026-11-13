@@ -47,42 +47,18 @@ pub struct PoolCatalog {
 impl PoolCatalog {
     /// Read each hero's first common graph binding once, before serving bodies.
     pub fn from_graphs(graphs: &GraphStore) -> io::Result<Self> {
-        let Some(common) = graphs.graph(BODY_GRAPH) else {
+        let Some(defaults) = default_pools(graphs)? else {
             return Ok(Self::default());
         };
-        let entries = common
-            .fields
-            .get("m_publicSchema")
-            .and_then(|schema| schema.get("m_entries"))
-            .ok_or_else(|| invalid("graph 0033 has no public schema entries"))?;
-        let entries = match entries {
-            Value::Array(entries) => entries.as_slice(),
-            Value::Null => &[],
-            _ => return Err(invalid("invalid public schema entries in graph 0033")),
-        };
-        let mut defaults = HealthPools {
-            health: 0.0,
-            armour: 0.0,
-            shields: 0.0,
-        };
-        apply_numbers(&mut defaults, entries);
 
         let mut by_hero = HashMap::with_capacity(graphs.bodies().len());
         for body in graphs.bodies().values() {
             let Some(hero) = body.hero.as_deref().and_then(parse_guid) else {
                 continue;
             };
-            by_hero.entry(hero).or_insert_with(|| {
-                let binding = body
-                    .graphs
-                    .iter()
-                    .find(|binding| binding.graph == Some(BODY_GRAPH))?;
-                let mut pools = defaults;
-                if let Some(entries) = &binding.sync {
-                    apply_numbers(&mut pools, entries);
-                }
-                Some(pools)
-            });
+            by_hero
+                .entry(hero)
+                .or_insert_with(|| binding_pools(body, defaults));
         }
         Ok(Self { by_hero })
     }
@@ -94,6 +70,49 @@ impl PoolCatalog {
     pub fn body_pools(&self, hero: u64) -> HealthPools {
         self.hero_pools(hero).unwrap_or(FALLBACK_POOLS)
     }
+}
+
+/// Resolve this exact authored body, including encounter-only pool overrides.
+pub fn authored_pools(
+    graphs: &GraphStore,
+    body: &crate::script_graph::Body,
+) -> io::Result<Option<HealthPools>> {
+    Ok(default_pools(graphs)?.and_then(|defaults| binding_pools(body, defaults)))
+}
+
+fn binding_pools(body: &crate::script_graph::Body, defaults: HealthPools) -> Option<HealthPools> {
+    let binding = body
+        .graphs
+        .iter()
+        .find(|binding| binding.graph == Some(BODY_GRAPH))?;
+    let mut pools = defaults;
+    if let Some(entries) = &binding.sync {
+        apply_numbers(&mut pools, entries);
+    }
+    Some(pools)
+}
+
+fn default_pools(graphs: &GraphStore) -> io::Result<Option<HealthPools>> {
+    let Some(common) = graphs.graph(BODY_GRAPH) else {
+        return Ok(None);
+    };
+    let entries = common
+        .fields
+        .get("m_publicSchema")
+        .and_then(|schema| schema.get("m_entries"))
+        .ok_or_else(|| invalid("graph 0033 has no public schema entries"))?;
+    let entries = match entries {
+        Value::Array(entries) => entries.as_slice(),
+        Value::Null => &[],
+        _ => return Err(invalid("invalid public schema entries in graph 0033")),
+    };
+    let mut defaults = HealthPools {
+        health: 0.0,
+        armour: 0.0,
+        shields: 0.0,
+    };
+    apply_numbers(&mut defaults, entries);
+    Ok(Some(defaults))
 }
 
 fn apply_numbers(pools: &mut HealthPools, entries: &[Value]) {

@@ -201,11 +201,23 @@ impl Codec {
         payload: &StatePayload,
         mode: PayloadMode,
     ) -> Result<BitWriter, PayloadError> {
+        self.payload_with_link(payload, mode, |out, _| {
+            out.bit(false);
+            Ok(())
+        })
+    }
+
+    pub(crate) fn payload_with_link(
+        &self,
+        payload: &StatePayload,
+        mode: PayloadMode,
+        link: impl FnMut(&mut BitWriter, Option<&FieldValue<'static>>) -> Result<(), PayloadError>,
+    ) -> Result<BitWriter, PayloadError> {
         self.verified_layout()?;
         let family = self
             .family
             .ok_or_else(|| PayloadError::Unsupported(self.name.clone()))?;
-        self.encode_layout(&project(family, payload, mode)?, mode.layout())
+        self.encode_layout_with_link(&project(family, payload, mode)?, mode.layout(), link)
     }
 
     /// Write fields already expressed in the verified layout's names. Missing
@@ -502,6 +514,8 @@ enum Family {
     Hits,
     Flags13,
     Frames,
+    ValueSlot,
+    LinkedTarget,
     Counter2,
     Pulser,
 }
@@ -526,6 +540,8 @@ impl Family {
             "hits" => Self::Hits,
             "flags13" => Self::Flags13,
             "frames" => Self::Frames,
+            "value_slot" => Self::ValueSlot,
+            "linked_target" => Self::LinkedTarget,
             "counter2" => Self::Counter2,
             "pulser" => Self::Pulser,
             _ => return None,
@@ -608,6 +624,15 @@ fn project(
         Family::Stack | Family::Targets | Family::Subscript | Family::Flags13 => {}
         Family::Frames => {
             fields.insert("target", Value::Integer(vm.integer("target", 0)?).into());
+        }
+        Family::ValueSlot => {
+            fields.insert("which", Value::Bool(vm.flag("which")).into());
+            fields.insert("value", Value::Integer(vm.integer("value", 0)?).into());
+        }
+        Family::LinkedTarget => {
+            if owner && mode.layout().full {
+                fields.insert("values", FieldValue::Rows(vec![LayoutFields::new(); 7]));
+            }
         }
         Family::Pulser => {
             fields.insert("fresh", Value::Bool(vm.flag("fresh")).into());
@@ -997,10 +1022,12 @@ mod tests {
             595
         );
         assert_eq!(table.classes().filter(|codec| codec.stec()).count(), 4);
-        assert!(!table.sendable("STU_2F07848F", false));
+        assert!(table.sendable("STU_2F07848F", false));
         let mut projected: Vec<_> = table.classes().filter(|codec| codec.projected()).collect();
         projected.sort_by(|left, right| left.hash.cmp(&right.hash));
-        assert_eq!(projected.len(), 580);
+        assert_eq!(projected.len(), 582);
+        let time_scale = table.codec("STU_2F07848F").unwrap();
+        let aim_lock = table.codec("STU_9935FBC8").unwrap();
         let samples = samples();
         assert_eq!(samples.len(), 19);
         let modes = [
@@ -1012,9 +1039,29 @@ mod tests {
             PayloadMode::Remote { full: true },
             PayloadMode::Remote { full: false },
         ];
+        for mode in modes {
+            for (which, value, expected) in [
+                (true, 4005, [0x4b, 0x1f, 0, 0, 0]),
+                (false, i64::from(u32::MAX), [0xfe, 0xff, 0xff, 0xff, 1]),
+            ] {
+                let payload = StatePayload::from([
+                    ("which".into(), Value::Bool(which)),
+                    ("value".into(), Value::Integer(value)),
+                ]);
+                let out = time_scale.payload(&payload, mode).unwrap();
+                assert_eq!(out.bit_len(), 33);
+                assert_eq!(out.as_bytes(), &expected);
+            }
+            let out = aim_lock.payload(&StatePayload::new(), mode).unwrap();
+            assert_eq!(out.bit_len(), 1);
+            assert_eq!(out.as_bytes(), &[0]);
+        }
         let mut digest = Sha256::new();
         let mut count = 0;
         for codec in projected {
+            if matches!(codec.codec.as_deref(), Some("value_slot" | "linked_target")) {
+                continue;
+            }
             let cases = &samples[codec.codec.as_deref().unwrap()];
             for (mode, style) in modes.into_iter().enumerate() {
                 for (index, payload) in cases.iter().enumerate() {

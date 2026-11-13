@@ -8,12 +8,14 @@ use orpheus::{
 const USAGE: &str = "Usage: orpheus_server --data-dir <directory> [--runtime <directory>]
        [--account <name>] [--lobby-port <port>] [--game-port <port>]
        [--stall-port <port>] [--rpc-port <port>] [--debug-port <port>]
+       [--junkenstein-validation <local-json>]
        orpheus_server --check-runtime [--runtime <directory>]
 
 The native 1.74 server listens on loopback. Use an authorized base runtime
 directory or set ORPHEUS_RUNTIME_DIR. --check-runtime lists missing inputs
 without starting listeners. --debug-port enables the read-only inspector
 in a binary built with --features inspector (disabled by default).
+--junkenstein-validation loads explicit local Normal Cassidy acceptance settings.
 Press Enter in the terminal to stop.";
 
 fn main() -> ExitCode {
@@ -60,6 +62,9 @@ fn run() -> io::Result<()> {
             Some("--stall-port") => config.stall_port = port(value)?,
             Some("--rpc-port") => config.rpc_port = port(value)?,
             Some("--debug-port") => config.debug_port = Some(port(value)?),
+            Some("--junkenstein-validation") => {
+                config.junkenstein_validation = Some(PathBuf::from(value));
+            }
             _ => return Err(usage_error("unknown option")),
         }
     }

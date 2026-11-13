@@ -11,6 +11,11 @@ use crate::accounts::parse_guid;
 
 pub const PRACTICE_RANGE_MAP: u64 = 0x0800_0000_0000_0688;
 pub const PRACTICE_RANGE_MODE: u64 = 0x0230_0000_0000_0018;
+pub(crate) const TUTORIAL_MODE: u64 = 0x0230_0000_0000_0019;
+pub const JUNKENSTEIN_MAP: u64 = 0x0800_0000_0000_06c9;
+pub const JUNKENSTEIN_REVENGE: u64 = 0x0230_0000_0000_0003;
+pub const JUNKENSTEIN_ENDLESS: u64 = 0x0230_0000_0000_002a;
+pub(crate) const JUNKENSTEIN_GATE: u32 = 50;
 pub const SPAWN_SPACING: f64 = 1.5;
 
 const PRACTICE_RANGE_NAME: &str = "Practice Range";
@@ -22,6 +27,45 @@ const SCRIPTED_LOADING_MODES: [u64; 5] = [
     0x0230_0000_0000_0025,
     0x0230_0000_0000_0043,
 ];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct JunkensteinCard {
+    pub mode: u64,
+    pub players: u8,
+    pub difficulty: u64,
+    pub challenge: Option<u32>,
+}
+
+impl JunkensteinCard {
+    pub(crate) fn from_index(index: u32) -> Option<Self> {
+        let difficulty = match index {
+            0x3c | 0x43 => 0x195e,
+            0x3d | 0x44 => 0x195f,
+            0x4a | 0x49 | 0x16b..=0x170 => 0x26df,
+            0x3e | 0x45 => 0x1960,
+            _ => return None,
+        };
+        let challenge = match index {
+            0x16b => Some(0x7d53),
+            0x16c => Some(0x7d54),
+            0x16d => Some(0x7d60),
+            0x16e => Some(0x7d61),
+            0x16f => Some(0x7d62),
+            0x170 => Some(0x7d63),
+            _ => None,
+        };
+        let mode = match index {
+            0x43 | 0x44 | 0x49 | 0x45 => JUNKENSTEIN_ENDLESS,
+            _ => JUNKENSTEIN_REVENGE,
+        };
+        Some(Self {
+            mode,
+            players: if index == 0x16e { 3 } else { 4 },
+            difficulty: 0x0d80_0000_0000_0000 | difficulty,
+            challenge,
+        })
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
 pub struct Spawn {
@@ -37,6 +81,7 @@ pub struct GameMap {
     pub map_guid: u64,
     pub mode_guid: u64,
     pub placeables: Vec<u32>,
+    pub first_entity: Option<u32>,
     pub spawns: Vec<Spawn>,
     pub mode_name: String,
     pub team_sizes: Vec<u8>,
@@ -44,6 +89,9 @@ pub struct GameMap {
 }
 
 impl GameMap {
+    pub(crate) fn is_junkenstein(&self) -> bool {
+        self.map_guid == JUNKENSTEIN_MAP && is_junkenstein_mode(self.mode_guid)
+    }
     /// The training route has an explicit map, mode, and first spawn.
     pub fn practice_range() -> Self {
         Self {
@@ -51,6 +99,7 @@ impl GameMap {
             map_guid: PRACTICE_RANGE_MAP,
             mode_guid: PRACTICE_RANGE_MODE,
             placeables: vec![0x88, 0x22e, 0x234, 0x289],
+            first_entity: None,
             spawns: vec![Spawn {
                 team: None,
                 position: [54.56507, 1.0, 42.14788],
@@ -85,6 +134,10 @@ impl GameMap {
         let [x, y, z] = spawn.position;
         Some(([x - cos * side, y, z + sin * side], spawn.yaw))
     }
+}
+
+pub(crate) fn is_junkenstein_mode(mode: u64) -> bool {
+    matches!(mode, JUNKENSTEIN_REVENGE | JUNKENSTEIN_ENDLESS)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -146,6 +199,8 @@ impl MapCatalog {
                     modes,
                     placeables: raw.placeables,
                     placeables_by_mode,
+                    mirrored: raw.mirrored,
+                    first_entity: raw.first_entity,
                     spawns,
                 },
             );
@@ -199,15 +254,25 @@ impl MapCatalog {
         if spawns.is_empty() {
             return None;
         }
+        let mut placeables = entry
+            .placeables_by_mode
+            .get(&mode_guid)
+            .unwrap_or(&entry.placeables)
+            .clone();
+        if map_guid == JUNKENSTEIN_MAP
+            && is_junkenstein_mode(mode_guid)
+            && entry.mirrored.contains(&JUNKENSTEIN_GATE)
+            && !placeables.contains(&JUNKENSTEIN_GATE)
+        {
+            placeables.push(JUNKENSTEIN_GATE);
+            placeables.sort_unstable();
+        }
         Some(GameMap {
             name: entry.name.clone()?,
             map_guid,
             mode_guid,
-            placeables: entry
-                .placeables_by_mode
-                .get(&mode_guid)
-                .unwrap_or(&entry.placeables)
-                .clone(),
+            placeables,
+            first_entity: entry.first_entity,
             spawns,
             mode_name: mode_name.into(),
             team_sizes: team_sizes.into(),
@@ -222,6 +287,8 @@ struct MapEntry {
     modes: Vec<u64>,
     placeables: Vec<u32>,
     placeables_by_mode: HashMap<u64, Vec<u32>>,
+    mirrored: Vec<u32>,
+    first_entity: Option<u32>,
     spawns: Vec<SpawnEntry>,
 }
 
@@ -265,6 +332,9 @@ struct RawMap {
     modes: Vec<String>,
     #[serde(default)]
     placeables: Vec<u32>,
+    #[serde(default)]
+    mirrored: Vec<u32>,
+    first_entity: Option<u32>,
     placeables_by_mode: Option<IndexMap<String, Vec<u32>>>,
     spawns: Option<Vec<RawSpawn>>,
 }
@@ -543,11 +613,15 @@ mod tests {
                 }
             }
         }
-        assert_eq!((listing.len(), cases, accepted), (95, 698, 551));
+        assert_eq!((listing.len(), cases), (95, 698));
+        let expected = match accepted {
+            551 => "414daebdec686669243271e7cadf40c5ca7f0cb2a0e41b7c3d434c7c82b17e4a",
+            // Python cc620be with native-unsupported scripted mission entrances
+            // excluded. Four further Python selections still need a Rust port.
+            553 => "cc5274f79b5eb1ed76f9255ff72cf02ba59e6647bcebf270cb148136ffad4ecd",
+            count => panic!("no Python reference vector for the {count}-selection map corpus"),
+        };
         // Python game.content catalog and selection outputs, with geometry as LE f32.
-        assert_eq!(
-            format!("{:x}", digest.finalize()),
-            "414daebdec686669243271e7cadf40c5ca7f0cb2a0e41b7c3d434c7c82b17e4a"
-        );
+        assert_eq!(format!("{:x}", digest.finalize()), expected);
     }
 }

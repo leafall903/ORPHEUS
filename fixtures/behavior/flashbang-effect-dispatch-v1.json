@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "case_id": "flashbang.effect-dispatch.v1",
+  "target_build": 104319,
+  "evidence": "synthetic-rust-host-policy",
+  "client_acceptance": "pending",
+  "source": {
+    "scope": "Rust room adapter admission and ordered PlayScript/message delivery through its normal VM. Not Python or original-client equivalence.",
+    "restricted_followup": "The separate five-Boss prepared room replay checks the real 0228/224E schema and observer snapshots with authorized external inputs."
+  },
+  "input": {
+    "cases": [
+      {"name": "normal", "mode": "0x0230000000000003", "graph": 489, "node": 7, "source": 2684354817, "expected": {"marker": 1, "source": 2684354817, "wrappers": 1}},
+      {"name": "other-mode", "mode": "0x0230000000000001", "graph": 489, "node": 7, "source": 2684354817, "expected": {"marker": null, "source": null, "wrappers": 0}},
+      {"name": "other-graph", "mode": "0x0230000000000003", "graph": 490, "node": 7, "source": 2684354817, "expected": {"marker": null, "source": null, "wrappers": 0}},
+      {"name": "other-node", "mode": "0x0230000000000003", "graph": 489, "node": 8, "source": 2684354817, "expected": {"marker": null, "source": null, "wrappers": 0}},
+      {"name": "distinct-source", "mode": "0x0230000000000003", "graph": 489, "node": 7, "source": 2684355073, "expected": {"marker": 1, "source": 2684355073, "wrappers": 1}}
+    ],
+    "graph": {
+      "index": 552, "items": 3,
+      "header": {"m_nodesBitCount": 4, "m_statesBitCount": 4, "m_remoteSyncNodesBitCount": 4, "m_syncVarsBitCount": 4},
+      "entries": [0], "states": [], "remote": [], "sync_vars": [], "containers": {}, "unknown_nodes": [], "fields": {},
+      "nodes": [
+        {"pos": 0, "uid": 0, "rid": 0, "remote": -1, "state": null, "client_only": false, "server_only": false,
+         "class": "STUStatescriptEntryGameMessage", "fields": {
+           "m_gameMessage": {"$": "STUConfigVarGameMessage", "m_gameMessage": "0x024000000000000F"},
+           "m_FF703F20": {"$": "STUConfigVarDynamic", "m_60DB8F99": 0, "m_identifier": 41},
+           "m_outPlug": {"$": "Plug", "links": [[1, "m_inPlug"]]}}},
+        {"pos": 1, "uid": 1, "rid": 1, "remote": -1, "state": null, "client_only": false, "server_only": false,
+         "class": "STUStatescriptActionSetVar", "fields": {
+           "m_ADEB6E05": true,
+           "m_out_Var": {"$": "STUConfigVarDynamic", "m_60DB8F99": 1, "m_identifier": 901},
+           "m_value": {"$": "STUConfigVarDynamic", "m_60DB8F99": 0, "m_identifier": 41},
+           "m_outPlug": {"$": "Plug", "links": [[2, "m_inPlug"]]}}},
+        {"pos": 2, "uid": 2, "rid": 2, "remote": -1, "state": null, "client_only": false, "server_only": false,
+         "class": "STUStatescriptActionSetVar", "fields": {
+           "m_ADEB6E05": true,
+           "m_out_Var": {"$": "STUConfigVarDynamic", "m_60DB8F99": 1, "m_identifier": 900},
+           "m_value": {"$": "STUConfigVarInt", "m_value": 1}}}
+      ]
+    }
+  }
+}

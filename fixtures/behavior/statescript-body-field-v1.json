@@ -1,0 +1,518 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.body-field.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "46b22130f05f9fe1a17f11fe13106c9d3c06a5d8",
+    "paths": [
+      "ow174/game/script/entity_queries.py::evaluate"
+    ],
+    "native_references": [
+      "F64C20 scalar conversion and explicit component44 body-field lookup"
+    ],
+    "scope": "Known body-field/absence and unavailable field; query context retirement/watch subscription parity is separate."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 2684354817,
+    "graph": {
+      "index": 28672,
+      "header": {
+        "m_nodesBitCount": 4,
+        "m_statesBitCount": 1,
+        "m_remoteSyncNodesBitCount": 1,
+        "m_syncVarsBitCount": 1
+      },
+      "fields": {},
+      "items": 6,
+      "containers": {},
+      "nodes": [
+        {
+          "pos": 0,
+          "uid": 0,
+          "rid": 0,
+          "remote": -1,
+          "state": 0,
+          "client_only": false,
+          "server_only": false,
+          "class": "STUStatescriptState",
+          "fields": {}
+        }
+      ],
+      "unknown_nodes": [],
+      "states": [
+        0
+      ],
+      "entries": [],
+      "remote": [],
+      "sync_vars": []
+    },
+    "cases": [
+      {
+        "name": "current",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "zero",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": {
+            "body": 0
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "invalid",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": {
+            "body": 4294967295
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "component-absent",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": {
+            "body": null
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "unbound",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "unknown-field",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": "unavailable"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "unavailable-context",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        },
+        "available": false
+      },
+      {
+        "name": "nested",
+        "value": [
+          [
+            {
+              "entity": 2684354816
+            }
+          ],
+          {
+            "entity": 2684354817
+          }
+        ],
+        "targets": {
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "null",
+        "value": null,
+        "targets": {
+          "0": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "empty",
+        "value": [],
+        "targets": {
+          "0": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "empty-first",
+        "value": [
+          [],
+          {
+            "entity": 2684354816
+          }
+        ],
+        "targets": {
+          "0": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "scalar-number",
+        "value": 2684354816,
+        "targets": {
+          "0": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "asset",
+        "value": {
+          "asset": 2684354816
+        },
+        "targets": {
+          "0": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "boolean",
+        "value": true,
+        "targets": {
+          "0": "absent"
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STUConfigVarDynamic",
+            "m_identifier": 1,
+            "m_60DB8F99": 0
+          }
+        }
+      },
+      {
+        "name": "null-selector",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "0": "absent",
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": null
+        }
+      },
+      {
+        "name": "empty-group",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "0": "absent",
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STU_06610EBC",
+            "m_configVars": []
+          }
+        }
+      },
+      {
+        "name": "first-group",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "0": "absent",
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STU_06610EBC",
+            "m_configVars": [
+              {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1,
+                "m_60DB8F99": 0
+              },
+              {
+                "$": "STU_B5A0CAF0"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "group-null-first",
+        "value": {
+          "entity": 2684354816
+        },
+        "targets": {
+          "0": "absent",
+          "2684354816": {
+            "body": 2684354817
+          }
+        },
+        "config": {
+          "$": "STU_00707E1E",
+          "m_00903303": {
+            "$": "STU_06610EBC",
+            "m_configVars": [
+              null,
+              {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1,
+                "m_60DB8F99": 0
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "native_fallback": {
+    "class": "STU_E9485CAF",
+    "base_class": "STUStatescriptState",
+    "registration": 160,
+    "typeinfo": "0x7FF78BCE53F0",
+    "construct": "0x7FF78AA826B0",
+    "vtable": "0x7FF78B6BC800",
+    "evidence": "104319 runtime codec registration catalog: same winning parent registration as base State. extract_statescript_codecs.py follows AAA02B0 parent-typeinfo lookup.",
+    "expected_kind": "Plain"
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "current",
+        "output": {
+          "entity": 2684354817
+        }
+      },
+      {
+        "name": "zero",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "invalid",
+        "output": {
+          "entity": 4294967295
+        }
+      },
+      {
+        "name": "component-absent",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "unbound",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "unknown-field",
+        "output": {
+          "error": "STU_00707E1E"
+        }
+      },
+      {
+        "name": "unavailable-context",
+        "output": {
+          "error": "STU_00707E1E"
+        }
+      },
+      {
+        "name": "nested",
+        "output": {
+          "entity": 2684354817
+        }
+      },
+      {
+        "name": "null",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "empty",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "empty-first",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "scalar-number",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "asset",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "boolean",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "null-selector",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "empty-group",
+        "output": {
+          "entity": 0
+        }
+      },
+      {
+        "name": "first-group",
+        "output": {
+          "entity": 2684354817
+        }
+      },
+      {
+        "name": "group-null-first",
+        "output": {
+          "entity": 0
+        }
+      }
+    ]
+  }
+}

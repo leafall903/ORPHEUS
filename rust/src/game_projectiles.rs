@@ -350,6 +350,18 @@ impl OwnerProjectiles {
         }
     }
 
+    pub(crate) fn confirmed_entities(
+        &self,
+        token: ProjectileToken,
+    ) -> impl Iterator<Item = u32> + '_ {
+        self.pending
+            .iter()
+            .find(|pending| pending.token == token)
+            .into_iter()
+            .flat_map(|pending| pending.creates.iter())
+            .filter_map(|(&entity, &arrived)| arrived.then_some(entity))
+    }
+
     pub fn confirmation_current(&self, token: ProjectileToken, entity: u32) -> bool {
         self.pending
             .iter()

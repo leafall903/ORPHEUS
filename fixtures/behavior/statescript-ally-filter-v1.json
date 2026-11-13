@@ -1,0 +1,1295 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.ally-filter.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::_filter_entity",
+      "ow174/game/script/scene.py::_first_bound_combat_target",
+      "ow174/game/script/scene.py::SceneWorld.native",
+      "ow174/game/script/runtime.py::Component.parameter_scope"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "friendly-first",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "empty-roster-only-owner",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "enemy-rejected",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 8388609,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "team-unknown-rejected",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 1,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "source-team-unknown",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 1,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "first-team-bit-wins",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 25165825,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "owner-is-not-an-ally-target",
+        "graph": 113,
+        "kind": "direct",
+        "target": 123,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "friendly-direct",
+        "graph": 107,
+        "kind": "direct",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "ordered-first",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          },
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "required-tag",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [
+              1
+            ],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "missing-required-tag",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "primary-filter-tag",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [
+              1
+            ],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_9C7BD8B8": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "excluded-tag",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [
+              1
+            ],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_8B2A4DF3": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "unknown-tags-strict",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": null,
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_B486603E": {
+            "$": "STU_357DABBB",
+            "m_7D7C86A1": "0x0D60000000000001",
+            "m_resourceKey": null
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "dead-not-implicitly-removed",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777233,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "explicit-dead-mask",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777233,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_4EA686DB": 16
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "candidate-parameter",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_expression": {
+              "m_dynamicVars": [
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 8,
+                  "m_60DB8F99": false
+                },
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 9,
+                  "m_60DB8F99": false
+                }
+              ],
+              "m_opcodes": [
+                13,
+                0,
+                13,
+                1,
+                37,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "candidate-parameter-false",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_expression": {
+              "m_dynamicVars": [
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 8,
+                  "m_60DB8F99": false
+                },
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 9,
+                  "m_60DB8F99": false
+                }
+              ],
+              "m_opcodes": [
+                13,
+                0,
+                13,
+                1,
+                37,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 125
+      },
+      {
+        "name": "candidate-parameter-per-candidate",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          },
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_expression": {
+              "m_dynamicVars": [
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 8,
+                  "m_60DB8F99": false
+                },
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 9,
+                  "m_60DB8F99": false
+                }
+              ],
+              "m_opcodes": [
+                13,
+                0,
+                13,
+                1,
+                37,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 125
+      },
+      {
+        "name": "null-predicate",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": null
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "empty-predicate-preserves-true",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_06610EBC",
+            "m_configVars": []
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "predicate-error-unwinds",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_FADE0001"
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "within-range",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_configVars": [
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_919FD47C",
+                  "m_expression": {
+                    "m_dynamicVars": [
+                      {
+                        "$": "STUConfigVarDynamic",
+                        "m_identifier": 8,
+                        "m_60DB8F99": false
+                      }
+                    ],
+                    "m_opcodes": [
+                      13,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              },
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_B5A0CAF0"
+                }
+              }
+            ],
+            "m_expression": {
+              "m_D99EF254": [
+                20
+              ],
+              "m_opcodes": [
+                14,
+                0,
+                14,
+                1,
+                53,
+                6,
+                0,
+                33,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "at-range-boundary",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              20,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_configVars": [
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_919FD47C",
+                  "m_expression": {
+                    "m_dynamicVars": [
+                      {
+                        "$": "STUConfigVarDynamic",
+                        "m_identifier": 8,
+                        "m_60DB8F99": false
+                      }
+                    ],
+                    "m_opcodes": [
+                      13,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              },
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_B5A0CAF0"
+                }
+              }
+            ],
+            "m_expression": {
+              "m_D99EF254": [
+                20
+              ],
+              "m_opcodes": [
+                14,
+                0,
+                14,
+                1,
+                53,
+                6,
+                0,
+                33,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "beyond-range",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              20.1,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_configVars": [
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_919FD47C",
+                  "m_expression": {
+                    "m_dynamicVars": [
+                      {
+                        "$": "STUConfigVarDynamic",
+                        "m_identifier": 8,
+                        "m_60DB8F99": false
+                      }
+                    ],
+                    "m_opcodes": [
+                      13,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              },
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_B5A0CAF0"
+                }
+              }
+            ],
+            "m_expression": {
+              "m_D99EF254": [
+                20
+              ],
+              "m_opcodes": [
+                14,
+                0,
+                14,
+                1,
+                53,
+                6,
+                0,
+                33,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "range-unavailable-strict",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": null
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_configVars": [
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_919FD47C",
+                  "m_expression": {
+                    "m_dynamicVars": [
+                      {
+                        "$": "STUConfigVarDynamic",
+                        "m_identifier": 8,
+                        "m_60DB8F99": false
+                      }
+                    ],
+                    "m_opcodes": [
+                      13,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              },
+              {
+                "$": "STU_71A87E92",
+                "m_entity": {
+                  "$": "STU_B5A0CAF0"
+                }
+              }
+            ],
+            "m_expression": {
+              "m_D99EF254": [
+                20
+              ],
+              "m_opcodes": [
+                14,
+                0,
+                14,
+                1,
+                53,
+                6,
+                0,
+                33,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "nested-query-error-keeps-origin",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": null,
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_AC829876",
+            "m_entity": {
+              "$": "STU_919FD47C",
+              "m_expression": {
+                "m_dynamicVars": [
+                  {
+                    "$": "STUConfigVarDynamic",
+                    "m_identifier": 8,
+                    "m_60DB8F99": false
+                  }
+                ],
+                "m_opcodes": [
+                  13,
+                  0,
+                  0
+                ]
+              }
+            },
+            "m_filter": {
+              "$": "STUConfigVarFilter",
+              "m_84065FD1": 1,
+              "m_66747E7D": 1,
+              "m_89831602": 4,
+              "m_B486603E": {
+                "$": "STU_357DABBB",
+                "m_7D7C86A1": "0x0D60000000000001",
+                "m_resourceKey": null
+              }
+            }
+          }
+        },
+        "parameter9": 124
+      },
+      {
+        "name": "nested-predicate-restores-candidate",
+        "graph": 113,
+        "kind": "first",
+        "target": 124,
+        "source_flags": 16777217,
+        "bodies": [
+          {
+            "entity": 124,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          },
+          {
+            "entity": 125,
+            "flags": 16777217,
+            "tags": [],
+            "position": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "filter": {
+          "$": "STUConfigVarFilter",
+          "m_84065FD1": 1,
+          "m_66747E7D": 1,
+          "m_89831602": 4,
+          "m_condition": {
+            "$": "STU_919FD47C",
+            "m_configVars": [
+              {
+                "$": "STU_AC829876",
+                "m_entity": {
+                  "$": "STU_919FD47C",
+                  "m_expression": {
+                    "m_dynamicVars": [
+                      {
+                        "$": "STUConfigVarDynamic",
+                        "m_identifier": 9,
+                        "m_60DB8F99": false
+                      }
+                    ],
+                    "m_opcodes": [
+                      13,
+                      0,
+                      0
+                    ]
+                  }
+                },
+                "m_filter": {
+                  "$": "STUConfigVarFilter",
+                  "m_84065FD1": 1,
+                  "m_66747E7D": 1,
+                  "m_89831602": 4,
+                  "m_condition": {
+                    "$": "STU_919FD47C",
+                    "m_expression": {
+                      "m_dynamicVars": [
+                        {
+                          "$": "STUConfigVarDynamic",
+                          "m_identifier": 8,
+                          "m_60DB8F99": false
+                        },
+                        {
+                          "$": "STUConfigVarDynamic",
+                          "m_identifier": 9,
+                          "m_60DB8F99": false
+                        }
+                      ],
+                      "m_opcodes": [
+                        13,
+                        0,
+                        13,
+                        1,
+                        37,
+                        0
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "m_expression": {
+              "m_dynamicVars": [
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 8,
+                  "m_60DB8F99": false
+                },
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 10,
+                  "m_60DB8F99": false
+                }
+              ],
+              "m_opcodes": [
+                14,
+                0,
+                2,
+                7,
+                13,
+                0,
+                13,
+                1,
+                37,
+                0
+              ]
+            }
+          }
+        },
+        "parameter9": 125
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "friendly-first",
+        "value": 124
+      },
+      {
+        "name": "empty-roster-only-owner",
+        "value": 0
+      },
+      {
+        "name": "enemy-rejected",
+        "value": 0
+      },
+      {
+        "name": "team-unknown-rejected",
+        "value": 0
+      },
+      {
+        "name": "source-team-unknown",
+        "value": 0
+      },
+      {
+        "name": "first-team-bit-wins",
+        "value": 0
+      },
+      {
+        "name": "owner-is-not-an-ally-target",
+        "value": false
+      },
+      {
+        "name": "friendly-direct",
+        "value": true
+      },
+      {
+        "name": "ordered-first",
+        "value": 125
+      },
+      {
+        "name": "required-tag",
+        "value": 124
+      },
+      {
+        "name": "missing-required-tag",
+        "value": 0
+      },
+      {
+        "name": "primary-filter-tag",
+        "value": 124
+      },
+      {
+        "name": "excluded-tag",
+        "value": 0
+      },
+      {
+        "name": "unknown-tags-strict",
+        "error": "STU_B3E67A36"
+      },
+      {
+        "name": "dead-not-implicitly-removed",
+        "value": 124
+      },
+      {
+        "name": "explicit-dead-mask",
+        "value": 0
+      },
+      {
+        "name": "candidate-parameter",
+        "value": 124
+      },
+      {
+        "name": "candidate-parameter-false",
+        "value": 0
+      },
+      {
+        "name": "candidate-parameter-per-candidate",
+        "value": 125
+      },
+      {
+        "name": "null-predicate",
+        "value": 124
+      },
+      {
+        "name": "empty-predicate-preserves-true",
+        "value": 124
+      },
+      {
+        "name": "predicate-error-unwinds",
+        "error": "STU_FADE0001"
+      },
+      {
+        "name": "within-range",
+        "value": 124
+      },
+      {
+        "name": "at-range-boundary",
+        "value": 124
+      },
+      {
+        "name": "beyond-range",
+        "value": 0
+      },
+      {
+        "name": "range-unavailable-strict",
+        "error": "STU_71A87E92"
+      },
+      {
+        "name": "nested-query-error-keeps-origin",
+        "error": "STU_AC829876"
+      },
+      {
+        "name": "nested-predicate-restores-candidate",
+        "value": 124
+      }
+    ]
+  }
+}

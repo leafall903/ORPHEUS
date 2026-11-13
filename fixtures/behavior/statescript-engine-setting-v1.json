@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.engine-setting-read.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py",
+      "ow174/game/script/expr.py",
+      "ow174/game/script/runtime.py"
+    ],
+    "native_references": [
+      "CF4A60"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "false_is_a_value",
+        "settings": [
+          [
+            1,
+            false
+          ]
+        ],
+        "hash": 1,
+        "initial": 73
+      },
+      {
+        "name": "integer_keeps_type",
+        "settings": [
+          [
+            2,
+            128
+          ]
+        ],
+        "hash": 2,
+        "initial": false
+      },
+      {
+        "name": "float_keeps_type",
+        "settings": [
+          [
+            3,
+            1.0
+          ]
+        ],
+        "hash": 3,
+        "initial": 0
+      },
+      {
+        "name": "null_is_a_value",
+        "settings": [
+          [
+            4,
+            null
+          ]
+        ],
+        "hash": 4,
+        "initial": 73
+      },
+      {
+        "name": "missing_preserves_integer",
+        "settings": [],
+        "hash": 5,
+        "initial": 73
+      },
+      {
+        "name": "missing_preserves_float",
+        "settings": [],
+        "hash": 5,
+        "initial": 2.5
+      },
+      {
+        "name": "missing_preserves_array",
+        "settings": [],
+        "hash": 5,
+        "initial": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "signed_hash_wrap",
+        "settings": [
+          [
+            4294967295,
+            true
+          ]
+        ],
+        "hash": -1,
+        "initial": 0
+      },
+      {
+        "name": "unsigned_hash_wrap",
+        "settings": [
+          [
+            4294967295,
+            true
+          ]
+        ],
+        "hash": 4294967295,
+        "initial": 0
+      },
+      {
+        "name": "wide_hash_wrap",
+        "settings": [
+          [
+            1,
+            0.75
+          ]
+        ],
+        "hash": 4294967297,
+        "initial": 0
+      },
+      {
+        "name": "zero_hash",
+        "settings": [
+          [
+            0,
+            0.5
+          ]
+        ],
+        "hash": 0,
+        "initial": 73
+      },
+      {
+        "name": "unavailable_table",
+        "settings": null,
+        "hash": 1,
+        "initial": 73
+      },
+      {
+        "name": "boolean_hash_is_invalid",
+        "settings": [
+          [
+            1,
+            true
+          ]
+        ],
+        "hash": true,
+        "initial": 73
+      },
+      {
+        "name": "float_hash_is_invalid",
+        "settings": [
+          [
+            1,
+            true
+          ]
+        ],
+        "hash": 1.0,
+        "initial": 73
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "false_is_a_value",
+        "value": false
+      },
+      {
+        "name": "integer_keeps_type",
+        "value": 128
+      },
+      {
+        "name": "float_keeps_type",
+        "value": 1.0
+      },
+      {
+        "name": "null_is_a_value",
+        "value": null
+      },
+      {
+        "name": "missing_preserves_integer",
+        "value": 73
+      },
+      {
+        "name": "missing_preserves_float",
+        "value": 2.5
+      },
+      {
+        "name": "missing_preserves_array",
+        "value": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "signed_hash_wrap",
+        "value": true
+      },
+      {
+        "name": "unsigned_hash_wrap",
+        "value": true
+      },
+      {
+        "name": "wide_hash_wrap",
+        "value": 0.75
+      },
+      {
+        "name": "zero_hash",
+        "value": 0.5
+      },
+      {
+        "name": "unavailable_table",
+        "error": "STU_A753DC79"
+      },
+      {
+        "name": "boolean_hash_is_invalid",
+        "error": "STU_A753DC79"
+      },
+      {
+        "name": "float_hash_is_invalid",
+        "error": "STU_A753DC79"
+      }
+    ]
+  }
+}

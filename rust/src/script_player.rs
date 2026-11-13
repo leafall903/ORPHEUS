@@ -10,26 +10,37 @@ use serde_json::Value as Json;
 
 use crate::{
     accounts::parse_guid,
+    collision_scene::CollisionScene,
     commands::Command,
-    game_combat::{PosedHitscan, PosedProjectile, PosedShot, eye_height},
-    game_content::PRACTICE_RANGE_MODE,
-    game_heroes::{Hero, SOLDIER},
-    game_hitscan::{HitDefinition, aim_direction},
+    game_combat::{
+        BIOTIC_CANISTER, PosedBioticField, PosedHitscan, PosedProjectile, PosedShot, Stun,
+        eye_height,
+    },
+    game_content::{PRACTICE_RANGE_MODE, TUTORIAL_MODE, is_junkenstein_mode},
+    game_heroes::{CASSIDY, Hero, SOLDIER},
+    game_hitscan::{HitDefinition, TargetPose, aim_direction},
     game_instance::RETAIL_QUANTA,
     game_pools::{BODY_GRAPH, FALLBACK_POOLS, HealthPools},
     game_projectiles::{ProjectileLeases, authored_number, local_prediction, predicted_sync},
     game_replication::{BodyStep, OwnerBodyRuntime},
+    junkenstein_messages::{
+        self, DefenderMessage, DefenderSighting, SIGHTING, SIGHTING_TAGS, SightingSource,
+    },
     mover::{Mover, sample_movement_flags},
     mover_modifiers::{Modifier, ModifierKey},
-    projectile_flight::ProjectileBallistics,
+    projectile_flight::{ProjectileBallistics, authored_gravity, lifted_direction},
+    scene_assets::{MOVER_CATEGORY, PreparedScene},
     script_codecs::CodecTable,
-    script_expr::{EntityRelation, native_shape, to_float, valid_entity},
+    script_expr::{EntityRelation, OnFire, native_shape, to_float, valid_entity},
     script_graph::GraphStore,
-    script_init::{Component, MAX_INIT_WORK, Root, Site, Snapshot, TargetTagEffect, World},
+    script_init::{
+        Component, MAX_INIT_WORK, Root, Site, Snapshot, TargetTagEffect, TargetTagEffects, World,
+    },
     script_runtime::FRAME_MS,
     script_snapshot_wire::{SnapshotEncoder, View},
     script_wire::{Value, Variables},
-    vitals::{PoolKind, Vitals},
+    static_ray::{Vec3, capsule_entry_distance, norm},
+    vitals::{Death, PoolKind, Vitals},
     world::{Component as EntityComponent, GAME_MODE_ENTITY, Movement},
 };
 
@@ -73,7 +84,19 @@ impl PlayerBodyFactory {
             .ok_or_else(|| {
                 unsupported("the hero body definition is absent from the graph bundle")
             })?;
-        let roots = crate::script_init::player_roots(body, &graphs).map_err(unsupported)?;
+        let mut roots = crate::script_init::player_roots(body, &graphs).map_err(unsupported)?;
+        if is_junkenstein_mode(mode) {
+            const DEFENDER_BODY_GRAPH: u32 = 0x0ca5;
+            let id = roots
+                .last()
+                .map_or(0, |root| root.id)
+                .checked_add(1)
+                .ok_or_else(|| unsupported("defender body graph instance ID exhausted"))?;
+            if graphs.graph(DEFENDER_BODY_GRAPH).is_none() {
+                return Err(unsupported("Junkenstein defender body graph is absent"));
+            }
+            roots.push(Root::new(id, DEFENDER_BODY_GRAPH));
+        }
         let health = pools.unwrap_or(FALLBACK_POOLS).total();
         let variables = crate::script_init::player_entity_variables(body, health, health);
         let target_tags = body.target_tags.clone();
@@ -122,8 +145,15 @@ impl PlayerBodyFactory {
             },
             pool_types_known: self.pools.is_some() || has_authored_pools,
             target_tags: self.target_tags.clone(),
-            target_tag_effects: BTreeMap::new(),
+            target_tag_effects: TargetTagEffects::default(),
             controller_on_fire: self.controller_on_fire,
+            defenders: Arc::default(),
+            sightings: Vec::new(),
+            sighting_source: None,
+            cinematic_aim: None,
+            deadeye_scene: DeadeyeScene::default(),
+            velocity_changes: Vec::new(),
+            damage_credit: None,
         };
         let mut component = Component::start(
             Arc::clone(&self.graphs),
@@ -151,18 +181,22 @@ impl PlayerBodyFactory {
                 component.evaluate_state_config(instance, raw, config, &mut world)
             },
         )?;
-        Ok(PlayerBodyRuntime {
+        let mut runtime = PlayerBodyRuntime {
             component,
             world,
             codecs: Arc::clone(&self.codecs),
             modifiers,
             leases,
             frame: spawn.frame,
-        })
+            encounter_active: false,
+        };
+        runtime.sync_charge_admission(true)?;
+        Ok(runtime)
     }
 }
 
 pub(crate) struct PlayerBodyRuntime {
+    encounter_active: bool,
     component: Component,
     world: BodyWorld,
     codecs: Arc<CodecTable>,
@@ -171,9 +205,192 @@ pub(crate) struct PlayerBodyRuntime {
     frame: u32,
 }
 
+fn flashbang_duration(graphs: &GraphStore) -> Option<&Json> {
+    graphs
+        .graph(0x0228)?
+        .node(7)?
+        .field("m_69F4B52C.m_6525E98B.m_1EB5A024")?
+        .as_array()?
+        .iter()
+        .find(|row| {
+            row.get("m_0D09D2D9")
+                .and_then(crate::script_graph::asset_guid)
+                == Some(0x0d80_0000_0000_00d7)
+        })?
+        .get("m_value")
+}
+
+const DEADEYE_GRAPH: u32 = 0x022f;
+const DEADEYE_TARGET_EFFECT: u32 = 0x01ee;
+impl PlayerBodyRuntime {
+    fn sync_charge_admission(&mut self, active: bool) -> io::Result<()> {
+        if !self.world.has_deadeye() {
+            return Ok(());
+        }
+        self.encounter_active = active;
+        let enabled = active && self.world.vitals.death().is_none();
+        let variable = crate::script_expr::Variable {
+            scope: crate::script_expr::Scope::Entity,
+            id: 2426,
+        };
+        if self.component.resolved_variable(0, variable) != Some(Value::Bool(enabled)) {
+            // The room owns this live defender capability. The authored 0B8B
+            // graph owns the passive wait, amount, multipliers, damage gates
+            // and cap; the former 60-second host fill is intentionally removed.
+            self.component
+                .set_entity_variable(2426, Value::Bool(enabled), &mut self.world)
+                .map_err(unsupported)?;
+            self.component
+                .run_now(&mut self.world)
+                .map_err(unsupported)?;
+        }
+        Ok(())
+    }
+}
+
 impl OwnerBodyRuntime for PlayerBodyRuntime {
+    fn set_encounter_active(&mut self, active: bool) -> io::Result<()> {
+        self.sync_charge_admission(active)
+    }
+    fn receive_applied_damage(
+        &mut self,
+        damage: crate::game_combat::AppliedDamage,
+    ) -> io::Result<()> {
+        if !self.world.has_deadeye()
+            || !self.encounter_active
+            || damage.source != self.world.entity
+            || self.world.vitals.death().is_some()
+            || !damage.amount.is_finite()
+            || damage.amount <= 0.0
+        {
+            return Ok(());
+        }
+        if self.component.snapshot().is_some_and(|snapshot| {
+            snapshot.instances.values().any(|instance| {
+                instance.graph == DEADEYE_GRAPH
+                    && instance
+                        .states
+                        .get(&0)
+                        .is_some_and(crate::script_init::State::ability_running)
+            })
+        }) {
+            return Ok(());
+        }
+        let instance = self
+            .component
+            .snapshot()
+            .and_then(|snapshot| {
+                snapshot
+                    .instances
+                    .iter()
+                    .find(|(_, instance)| instance.graph == 0x0b8b)
+                    .map(|(&id, _)| id)
+            })
+            .ok_or_else(|| {
+                unsupported("damage credit requires the authored common charge graph")
+            })?;
+        let parameters = Variables::from([
+            (0x13, Value::Float(f64::from(damage.amount as f32))),
+            (0x15, Value::Entity(damage.target)),
+            (
+                0x3d,
+                Value::Array(
+                    damage
+                        .tags
+                        .as_slice()
+                        .iter()
+                        .copied()
+                        .map(Value::Asset)
+                        .collect(),
+                ),
+            ),
+            // AppliedDamage is net pool loss; no gross mitigation contributions
+            // remain to subtract in the authored detail fold.
+            (0x624, Value::Array(Vec::new())),
+        ]);
+        self.component
+            .queue_message(instance, 0x0240_0000_0000_0012, parameters)
+            .map_err(unsupported)?;
+        self.world.damage_credit = Some(damage);
+        let result = self.component.run_now(&mut self.world).map_err(unsupported);
+        self.world.damage_credit = None;
+        result
+    }
+    fn target_tags(&self) -> crate::script_init::TargetTagSnapshot {
+        self.world
+            .target_tag_effects
+            .snapshot(self.world.target_tags.as_ref())
+    }
+    fn target_filter_flags(&self) -> Option<u64> {
+        Some(self.world.own_filter_flags())
+    }
+
+    fn set_deadeye_scene(&mut self, scene: &PreparedScene, team: u8) -> io::Result<()> {
+        if self.world.has_deadeye() {
+            self.world.deadeye_scene = scene.deadeye_scene(team).map_err(io::Error::other)?;
+        }
+        Ok(())
+    }
+
+    fn set_defenders(&mut self, defenders: Arc<[u32]>) {
+        self.world.defenders = defenders;
+    }
+
+    fn take_sightings(&mut self) -> Vec<DefenderSighting> {
+        std::mem::take(&mut self.world.sightings)
+    }
+
+    fn receive_sighting(&mut self, message: DefenderSighting) -> io::Result<()> {
+        if !is_junkenstein_mode(self.world.mode)
+            || message.target != self.world.entity
+            || self.world.vitals.death().is_some()
+        {
+            return Ok(());
+        }
+        self.component
+            .queue_entity_message_from(message.source.entity, SIGHTING, message.parameters)
+            .map_err(unsupported)?;
+        self.world.sighting_source = Some(message.source);
+        let result = self.component.run_now(&mut self.world).map_err(unsupported);
+        self.world.sighting_source = None;
+        result
+    }
+
+    fn receive_defender_message(&mut self, message: DefenderMessage) -> io::Result<usize> {
+        if !is_junkenstein_mode(self.world.mode) || !message.accepts_body(self.world.entity) {
+            return Ok(0);
+        }
+        let queued = self
+            .component
+            .queue_entity_message_from(message.source, message.message, message.parameters)
+            .map_err(unsupported)?;
+        self.component
+            .run_now(&mut self.world)
+            .map_err(unsupported)?;
+        Ok(queued)
+    }
+
+    fn cinematic_aim(&self) -> Option<[i32; 2]> {
+        self.world.cinematic_aim.map(|(_, aim)| aim)
+    }
+
     fn vitals(&self) -> Option<&Vitals> {
         Some(&self.world.vitals)
+    }
+
+    fn heal(&mut self, amount: f64) {
+        self.world.vitals.heal(amount);
+    }
+
+    fn receive_damage(&mut self, amount: f64, source: Death) -> bool {
+        let result = self.world.vitals.damage(amount, source);
+        if result.killed {
+            self.component.set_owner_dead(true);
+            if let Err(error) = self.sync_charge_admission(self.encounter_active) {
+                eprintln!("Owner death charge cleanup failed: {error}");
+            }
+        }
+        result.killed
     }
 
     fn take_health_update(&mut self) -> Option<EntityComponent> {
@@ -229,6 +446,13 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
         FRAME_MS as u32
     }
 
+    fn take_velocity_changes(&mut self) -> Vec<(u32, crate::mover::VelocityChange)> {
+        if self.world.vitals.death().is_some() {
+            self.world.velocity_changes.clear();
+        }
+        std::mem::take(&mut self.world.velocity_changes)
+    }
+
     fn movement_modifiers(&self) -> Option<&BTreeMap<ModifierKey, Modifier>> {
         self.modifiers.as_ref()
     }
@@ -243,24 +467,60 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
             return Vec::new();
         };
         let [x, y, z] = mover.pose().position;
-        let origin = [x, y + eye_height(self.world.hero, mover.crouched()), z];
+        let hero = self.world.hero;
+        let origin = [x, y + eye_height(hero, mover.crouched()), z];
         shots
             .into_iter()
             .filter_map(|shot| {
                 let node = self.component.shot_node(&shot)?;
+                // 0228/7 supplies the duration override for the Flashbang effect,
+                // including the mode-dependent branch. Keep policy in authored data.
+                let stun_duration = (hero == CASSIDY && (shot.graph, node.pos) == (0x01e9, 7))
+                    .then(|| flashbang_duration(&self.world.graphs).cloned())
+                    .flatten();
+                // Python e1128509 declares this primary-only implicit policy;
+                // it is not a recovered global native critical default.
+                let default_critical = if (hero, shot.graph, node.pos) == (CASSIDY, 0x01d2, 31) {
+                    2.0
+                } else {
+                    1.0
+                };
                 let mut evaluate = |config: &Json| {
                     self.component
                         .evaluate_shot_config(&shot, config, &mut self.world)
                 };
+                if shot.graph == 0x0257
+                    && node.pos == 4
+                    && hero == SOLDIER
+                    && node
+                        .field("m_49CBA3BC.m_entityDefinition")
+                        .and_then(|config| evaluate(config).ok())
+                        == Some(Value::Asset(0x0400_0000_0000_03dc))
+                    && node
+                        .field("m_projectileEntity.m_entityDef")
+                        .and_then(|config| evaluate(config).ok())
+                        == Some(Value::Asset(BIOTIC_CANISTER))
+                    && self.leases.entity(BIOTIC_CANISTER, shot.frame, 0).is_some()
+                {
+                    return Some(PosedShot::BioticField(PosedBioticField {
+                        shot,
+                        feet: [x, y, z],
+                    }));
+                }
                 let speed = node.field("m_projectileSpeed").unwrap_or(&Json::Null);
                 if !speed.is_null() && to_float(&evaluate(speed).ok()?) != 0.0 {
-                    // The match flight handles one straight, owner-predicted projectile per shot.
+                    // Admit only the known unconditional gravity path for Flashbang;
+                    // other projectile motion/aim configurations remain unsupported.
+                    let flashbang = hero == CASSIDY && (shot.graph, node.pos) == (0x01e9, 7);
+                    let gravity = flashbang
+                        .then(|| authored_gravity(&node.fields, &mut evaluate))
+                        .flatten();
                     if !node.is_networked()
                         || !local_prediction(node)
                         || !predicted_sync(node, &mut evaluate).ok()?
                         || node
                             .field("m_projectileMotions")
-                            .is_some_and(|v| !v.is_null())
+                            .is_some_and(|v| !v.is_null() && gravity.is_none())
                         || node.field("m_aimID").is_some_and(|v| !v.is_null())
                         || authored_number(
                             node.field("m_numProjectilesPerShot"),
@@ -276,24 +536,63 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
                         ProjectileBallistics::from_authored(node, &mut evaluate).ok()??;
                     let definition = ballistics.definition?;
                     self.leases.entity(definition, shot.frame, 0)?;
-                    if (ballistics.direct.is_none() && ballistics.blast.is_none())
-                        || ballistics.direct.is_some_and(|hit| hit.amount <= 0.0)
-                        || ballistics
+                    if !ballistics.direct.is_some_and(|hit| hit.amount > 0.0)
+                        && !ballistics
                             .blast
                             .as_ref()
-                            .is_some_and(|blast| blast.hit.amount <= 0.0)
+                            .is_some_and(|blast| blast.hit.amount > 0.0)
                     {
                         return None;
                     }
-                    return Some(PosedShot::Projectile(PosedProjectile {
+                    // Preserve the existing rejection of unsupported mixed
+                    // payloads outside the verified Flashbang zero-direct case.
+                    if !flashbang
+                        && (ballistics.direct.is_some_and(|hit| hit.amount <= 0.0)
+                            || ballistics
+                                .blast
+                                .as_ref()
+                                .is_some_and(|blast| blast.hit.amount <= 0.0))
+                    {
+                        return None;
+                    }
+                    let mut direction = aim_direction(&command);
+                    if flashbang {
+                        let lift = authored_number(
+                            node.field("m_5EC1EB38.m_22CE7F30"),
+                            0.0,
+                            &mut evaluate,
+                        )
+                        .ok()?;
+                        direction = lifted_direction(direction, lift)?;
+                    }
+                    let stun = if flashbang {
+                        let effect = node.field("m_D2D11CE9.m_modifyHealth.m_277A4ECA")?;
+                        if evaluate(effect).ok()? != Value::Asset(0x04a0_0000_0000_0079) {
+                            return None;
+                        }
+                        Some(Stun::from_seconds(to_float(
+                            &evaluate(stun_duration.as_ref()?).ok()?,
+                        ))?)
+                    } else {
+                        None
+                    };
+                    return Some(PosedShot::Projectile(Box::new(PosedProjectile {
+                        stun,
                         shot,
                         ballistics,
                         origin,
-                        direction: aim_direction(&command),
-                    }));
+                        direction,
+                        gravity,
+                        // Scoped reconstruction shared with Python e1128509.
+                        expiry_blast: flashbang && gravity.is_some(),
+                    })));
                 }
-                let hit = HitDefinition::from_authored(node.field("m_6396149F")?, &mut evaluate)
-                    .ok()??;
+                let hit = HitDefinition::from_authored_with_critical(
+                    node.field("m_6396149F")?,
+                    default_critical,
+                    &mut evaluate,
+                )
+                .ok()??;
                 if hit.amount <= 0.0 {
                     return None;
                 }
@@ -303,20 +602,144 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
                 } else {
                     to_float(&evaluate(reach).ok()?)
                 };
-                Some(PosedShot::Hitscan(PosedHitscan {
+                let direction = if (shot.graph, node.pos) == (DEADEYE_TARGET_EFFECT, 14) {
+                    let snapshot = self.component.snapshot()?;
+                    let Value::Entity(entity) = *snapshot
+                        .instances
+                        .get(&shot.instance)?
+                        .variables
+                        .get(&536)?
+                    else {
+                        return None;
+                    };
+                    let Value::Array(visible) = snapshot.variables.get(&5874)? else {
+                        return None;
+                    };
+                    if !visible.contains(&Value::Entity(entity)) {
+                        return None;
+                    }
+                    self.world.deadeye_scene.shot_direction(origin, entity)?
+                } else {
+                    aim_direction(&command)
+                };
+                Some(PosedShot::Hitscan(Box::new(PosedHitscan {
                     source: shot.entity,
                     origin,
+                    direction,
                     command,
                     shot_frame: shot.frame,
                     reach,
                     hit,
-                }))
+                })))
             })
             .collect()
     }
 }
 
+#[derive(Default)]
+pub(crate) struct DeadeyeScene {
+    pub health: Option<std::collections::BTreeMap<u32, f64>>,
+    pub targets: Vec<DeadeyeTarget>,
+    pub collision: Option<Arc<CollisionScene>>,
+    pub view_subjects: BTreeMap<u32, ViewSubject>,
+}
+
+pub(crate) struct ViewSubject {
+    pub position: Vec3,
+    pub forward: Vec3,
+    pub tags: crate::script_init::TargetTagSnapshot,
+}
+
+pub(crate) struct DeadeyeTarget {
+    pub velocity: Option<[f64; 3]>,
+    pub script_state: crate::script_entity_state::EntityScriptState,
+    pub entity: u32,
+    pub pose: TargetPose,
+    pub health: f64,
+}
+
+impl DeadeyeScene {
+    fn shot_direction(&self, origin: Vec3, entity: u32) -> Option<Vec3> {
+        let target = self
+            .targets
+            .iter()
+            .find(|target| target.entity == entity)?
+            .pose;
+        let delta = target_delta(origin, target);
+        let distance = norm(delta);
+        (distance > 0.0 && self.aim_point_visible(origin, target))
+            .then(|| delta.map(|axis| axis / distance))
+    }
+
+    fn aim_point_visible(&self, origin: Vec3, target: TargetPose) -> bool {
+        let Some(collision) = &self.collision else {
+            return true;
+        };
+        let [bottom, top] = target.segment();
+        // Admission must use the same ray as the emitted auto-aim shot. The
+        // nearest capsule point can be hidden below a balcony while the actual
+        // aim point is exposed; it is not a valid proxy for this shot's path.
+        let delta = target_delta(origin, target);
+        let length = norm(delta);
+        if length <= 1e-9 {
+            return true;
+        }
+        let direction = delta.map(|axis| axis / length);
+        let Some(reach) =
+            capsule_entry_distance(origin, direction, length, bottom, top, target.radius)
+        else {
+            return false;
+        };
+        reach <= 1e-9
+            || collision
+                .cast_ray(origin, direction, reach, MOVER_CATEGORY)
+                .is_ok_and(|hit| hit.is_none_or(|hit| hit.distance + 1e-9 >= reach))
+    }
+
+    fn select(
+        &self,
+        origin: Vec3,
+        forward: Vec3,
+        radius: f64,
+        angle: f64,
+        visible: bool,
+    ) -> Vec<u32> {
+        let threshold = (angle * 0.5).to_radians().cos();
+        let mut matches = Vec::new();
+        for &DeadeyeTarget {
+            entity,
+            pose: target,
+            ..
+        } in &self.targets
+        {
+            let delta = target_delta(origin, target);
+            let distance = norm(delta);
+            let projection: f64 = delta.iter().zip(forward).map(|(a, b)| a * b).sum();
+            if distance == 0.0 || distance > radius || projection < threshold * distance {
+                continue;
+            }
+            if visible && !self.aim_point_visible(origin, target) {
+                continue;
+            }
+            matches.push((distance, entity));
+        }
+        matches.sort_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+        matches.into_iter().map(|(_, entity)| entity).collect()
+    }
+}
+
+fn target_delta(origin: Vec3, target: TargetPose) -> Vec3 {
+    let [x, y, z] = target.feet;
+    let [_, top] = target.segment();
+    [
+        x - origin[0],
+        (y + target.eye).min(top[1]) - origin[1],
+        z - origin[2],
+    ]
+}
+
 struct BodyWorld {
+    damage_credit: Option<crate::game_combat::AppliedDamage>,
     graphs: Arc<GraphStore>,
     controller: u32,
     entity: u32,
@@ -329,18 +752,119 @@ struct BodyWorld {
     vitals: Vitals,
     pool_types_known: bool,
     target_tags: Option<BTreeSet<u64>>,
-    target_tag_effects: BTreeMap<u64, TargetTagCounts>,
+    target_tag_effects: TargetTagEffects,
     controller_on_fire: bool,
-}
-
-#[derive(Default)]
-struct TargetTagCounts {
-    grants: u32,
-    suppressions: u32,
+    defenders: Arc<[u32]>,
+    sightings: Vec<DefenderSighting>,
+    sighting_source: Option<SightingSource>,
+    cinematic_aim: Option<(Site, [i32; 2])>,
+    deadeye_scene: DeadeyeScene,
+    velocity_changes: Vec<(u32, crate::mover::VelocityChange)>,
 }
 
 impl World for BodyWorld {
+    fn engine_setting(&self, _site: Site, key: u32) -> crate::script_expr::EngineSetting {
+        if is_junkenstein_mode(self.mode) {
+            crate::junkenstein_host::engine_setting(key)
+        } else {
+            crate::script_expr::EngineSetting::Unavailable
+        }
+    }
+
+    fn edit_velocity(&mut self, site: Site, frame: u32, value: Value, cap: bool) -> bool {
+        use crate::mover::VelocityChange;
+        if self.hero != CASSIDY
+            || !self.is_player_site(site)
+            || site.graph != 0x01f0
+            || !matches!((site.node, cap), (Some(8 | 11), false) | (Some(17), true))
+            || self.vitals.death().is_some()
+        {
+            return false;
+        }
+        let change = match (value, cap) {
+            (Value::Vector(desired), false) => VelocityChange::Delta(std::array::from_fn(|axis| {
+                f64::from(desired[axis] as f32 - self.movement.velocity[axis] as f32)
+            })),
+            (Value::Float(cap), true) => VelocityChange::HorizontalCap(cap),
+            _ => return false,
+        };
+        if !change.valid() {
+            return false;
+        }
+        self.velocity_changes
+            .push((frame.saturating_add(1), change));
+        true
+    }
+
+    fn deadeye_target_alive(&self, site: Site, entity: u32) -> bool {
+        self.has_deadeye()
+            && site.entity == self.entity
+            && self.vitals.death().is_none()
+            && self
+                .deadeye_scene
+                .targets
+                .iter()
+                .any(|target| target.entity == entity)
+    }
+
+    fn deadeye_targets(&self, site: Site, radius: f64, angle: f64) -> Option<Vec<u32>> {
+        if !self.has_deadeye() || site.entity != self.entity || site.graph != DEADEYE_GRAPH {
+            return None;
+        }
+        if self.vitals.death().is_some() || self.graphs.graph(DEADEYE_TARGET_EFFECT).is_none() {
+            return Some(Vec::new());
+        }
+        let [x, y, z] = self.position;
+        let crouched = self.movement.flags & crate::mover_posture::CROUCHED != 0;
+        let origin = [x, y + eye_height(self.hero, crouched), z];
+        let forward = aim_direction(&Command {
+            yaw: self.movement.yaw,
+            pitch: self.movement.pitch,
+            ..Command::default()
+        });
+        Some(
+            self.deadeye_scene
+                .select(origin, forward, radius, angle, site.node == Some(86)),
+        )
+    }
+
+    fn player_stats_available(&self, site: Site) -> Option<bool> {
+        (self.is_player_site(site) && is_junkenstein_mode(self.mode)).then_some(false)
+    }
+
+    fn spatial_binding_owner_available(&self, site: Site) -> Option<bool> {
+        // This authoritative body host has no local client-world auxiliary
+        // owner. Its remote native client still evaluates the view bindings.
+        (self.is_player_site(site)
+            && is_junkenstein_mode(self.mode)
+            && site.graph == 0x0ced
+            && matches!(site.node, Some(0 | 4 | 6)))
+        .then_some(false)
+    }
+
+    fn set_cinematic_aim_lock(&mut self, site: Site, active: bool) -> bool {
+        if site.entity != self.entity
+            || (site.graph, site.node) != (0x0ca5, Some(70))
+            || !is_junkenstein_mode(self.mode)
+        {
+            return false;
+        }
+        if active {
+            self.cinematic_aim = Some((site, [self.movement.yaw, self.movement.pitch]));
+        } else if self.cinematic_aim.is_some_and(|(owner, _)| owner == site) {
+            self.cinematic_aim = None;
+        }
+        true
+    }
     fn ruleset(&mut self, id: u32) -> Option<Value> {
+        if self.hero == CASSIDY && is_junkenstein_mode(self.mode) {
+            // 104319 Cassidy schemas 001B/0026, Python e1128509 rulesets.py.
+            match id {
+                0x2819 => return Some(Value::Float(1.0)),
+                0x290c => return Some(Value::Bool(true)),
+                _ => (),
+            }
+        }
         if (self.mode, self.hero) != (PRACTICE_RANGE_MODE, SOLDIER) {
             return None;
         }
@@ -354,16 +878,118 @@ impl World for BodyWorld {
     }
 
     fn entity_variable(&mut self, entity: u32, id: u32) -> Option<Value> {
+        if let Some(damage) = &self.damage_credit {
+            if damage.target == entity {
+                return damage.target_state.read(id);
+            }
+        }
         if entity != GAME_MODE_ENTITY {
-            return None;
+            return self
+                .deadeye_scene
+                .targets
+                .iter()
+                .find(|target| target.entity == entity)?
+                .script_state
+                .read(id);
         }
         self.graphs
             .mode_variables(self.mode)
             .map(|variables| variables.get(&id).copied().map_or(Value::Null, Value::from))
     }
 
+    fn body_angle(
+        &self,
+        entity: u32,
+        axis: crate::script_expr::BodyAngle,
+    ) -> crate::script_expr::AngleQuery {
+        use crate::script_expr::{AngleQuery, BodyAngle};
+        if !is_junkenstein_mode(self.mode) {
+            return AngleQuery::Unavailable;
+        }
+        if entity == 0 {
+            return AngleQuery::Unbound;
+        }
+        if entity != self.entity {
+            return AngleQuery::Unavailable;
+        }
+        AngleQuery::from_packed(match axis {
+            BodyAngle::Yaw => self.movement.yaw,
+            BodyAngle::Pitch => self.movement.pitch,
+        })
+    }
+
+    fn entity_velocity(&self, entity: u32) -> crate::script_expr::VelocityQuery {
+        use crate::script_expr::VelocityQuery;
+        if entity == 0 {
+            return VelocityQuery::Unbound;
+        }
+        if entity == self.entity {
+            return VelocityQuery::Present(self.movement.velocity);
+        }
+        self.deadeye_scene
+            .targets
+            .iter()
+            .find(|target| target.entity == entity)
+            .and_then(|target| target.velocity)
+            .map_or(VelocityQuery::Unavailable, VelocityQuery::Present)
+    }
+
     fn position(&mut self, entity: u32) -> Option<[f64; 3]> {
-        (entity == self.entity).then_some(self.position)
+        if entity == self.entity {
+            Some(self.position)
+        } else {
+            self.sighting_source
+                .filter(|source| source.entity == entity)
+                .map(|source| source.position)
+                .or_else(|| {
+                    self.deadeye_scene
+                        .view_subjects
+                        .get(&entity)
+                        .map(|subject| subject.position)
+                })
+        }
+    }
+
+    fn forward(&self, entity: u32) -> Option<[f64; 3]> {
+        if entity == self.entity && is_junkenstein_mode(self.mode) {
+            let yaw = f64::from(self.movement.yaw) * std::f64::consts::TAU / 65_536.0;
+            let (sin, cos) = yaw.sin_cos();
+            Some([sin, 0.0, cos])
+        } else {
+            self.deadeye_scene
+                .view_subjects
+                .get(&entity)
+                .map(|subject| subject.forward)
+        }
+    }
+
+    fn send_message(
+        &mut self,
+        site: Site,
+        target: u32,
+        message: u64,
+        parameters: &Variables,
+    ) -> bool {
+        if !self.is_player_site(site)
+            || !is_junkenstein_mode(self.mode)
+            || (site.graph, site.node) != (0x01ca, Some(127))
+            || message != SIGHTING
+            || !self.defenders.contains(&target)
+            || self.sightings.len() >= MAX_INIT_WORK
+        {
+            return false;
+        }
+        self.sightings.push(DefenderSighting {
+            target,
+            source: SightingSource {
+                entity: self.entity,
+                position: self.position,
+                tags: SIGHTING_TAGS.map(|tag| self.has_target_tag(site, self.entity, tag)),
+                filter_flags: Some(self.body_filter),
+            },
+            parameters: parameters.clone(),
+        });
+        true
     }
 
     fn movement_sample(&self, site: Site) -> Option<u16> {
@@ -390,6 +1016,58 @@ impl World for BodyWorld {
         }
         let amount = self.vitals.amount(kind, maximum);
         (amount.is_finite() && amount >= 0.0).then_some(amount)
+    }
+
+    fn total_health(&self, site: Site, entity: u32) -> crate::script_expr::HealthQuery {
+        use crate::script_expr::HealthQuery;
+        if !self.is_player_site(site) {
+            return HealthQuery::Unavailable;
+        }
+        if entity == 0 {
+            return HealthQuery::Unbound;
+        }
+        if entity == self.entity {
+            return HealthQuery::Present(self.vitals.total());
+        }
+        self.deadeye_scene
+            .health
+            .as_ref()
+            .and_then(|health| health.get(&entity).copied())
+            .or_else(|| {
+                self.deadeye_scene
+                    .targets
+                    .iter()
+                    .find(|target| target.entity == entity)
+                    .map(|target| target.health)
+            })
+            .map_or(HealthQuery::Unavailable, HealthQuery::Present)
+    }
+
+    fn entity_health(
+        &self,
+        site: Site,
+        entity: u32,
+        kind: Option<PoolKind>,
+        maximum: bool,
+    ) -> Option<f64> {
+        if entity == self.entity {
+            return self.body_health(site, kind, maximum);
+        }
+        if self.has_deadeye()
+            && self.is_player_site(site)
+            && site.graph == DEADEYE_TARGET_EFFECT
+            && kind.is_none()
+            && !maximum
+        {
+            return Some(
+                self.deadeye_scene
+                    .targets
+                    .iter()
+                    .find(|target| target.entity == entity)
+                    .map_or(0.0, |target| target.health),
+            );
+        }
+        None
     }
 
     fn add_health_pool(
@@ -420,11 +1098,31 @@ impl World for BodyWorld {
     }
 
     fn has_target_tag(&self, site: Site, entity: u32, tag: u64) -> Option<bool> {
-        if !self.is_player_site(site) || entity != self.entity {
+        if !self.is_player_site(site) {
             return None;
         }
-        if let Some(counts) = self.target_tag_effects.get(&tag) {
-            return Some(counts.suppressions == 0);
+        if entity != self.entity {
+            if let Some(damage) = &self.damage_credit {
+                if damage.target == entity {
+                    return damage.target_tags.presence(tag);
+                }
+            }
+            return self
+                .sighting_source
+                .filter(|source| source.entity == entity)
+                .and_then(|source| {
+                    let index = SIGHTING_TAGS.iter().position(|&known| known == tag)?;
+                    source.tags[index]
+                })
+                .or_else(|| {
+                    self.deadeye_scene
+                        .view_subjects
+                        .get(&entity)
+                        .and_then(|subject| subject.tags.presence(tag))
+                });
+        }
+        if let Some(present) = self.target_tag_effects.presence(tag) {
+            return Some(present);
         }
         Some(self.target_tags.as_ref()?.contains(&tag))
     }
@@ -433,46 +1131,60 @@ impl World for BodyWorld {
         if !self.is_player_site(site) || effect.entity != self.entity {
             return false;
         }
-        let counts = if active {
-            self.target_tag_effects.entry(effect.tag).or_default()
-        } else {
-            let Some(counts) = self.target_tag_effects.get_mut(&effect.tag) else {
-                return false;
-            };
-            counts
-        };
-        // The authored removal can mask existing grants. A later grant's
-        // precedence over an already-active suppression is still unknown.
-        if active && effect.present && counts.suppressions != 0 {
-            return false;
-        }
-        let count = if effect.present {
-            &mut counts.grants
-        } else {
-            &mut counts.suppressions
-        };
-        let next = if active {
-            count.checked_add(1)
-        } else {
-            count.checked_sub(1)
-        };
-        let Some(next) = next else {
-            return false;
-        };
-        *count = next;
-        if counts.grants == 0 && counts.suppressions == 0 {
-            self.target_tag_effects.remove(&effect.tag);
-        }
-        true
+        self.target_tag_effects.apply(effect, active)
     }
 
     fn entity_filter_flags(&self, site: Site, entity: u32) -> Option<u64> {
-        (self.is_player_site(site) && entity == self.entity).then_some(self.body_filter)
+        if !self.is_player_site(site) {
+            return None;
+        }
+        if entity == self.entity {
+            Some(self.own_filter_flags())
+        } else {
+            if let Some(damage) = &self.damage_credit {
+                if damage.target == entity {
+                    return damage.target_flags;
+                }
+            }
+            self.sighting_source
+                .filter(|source| source.entity == entity)?
+                .filter_flags
+        }
     }
 
-    fn body_on_fire(&mut self, site: Site, entity: u32) -> Option<bool> {
+    fn scene_filter_policy(
+        &self,
+        site: Site,
+        filter: &Json,
+    ) -> Option<crate::script_expr::SceneFilterPolicy> {
+        use crate::script_expr::{FilterPredicate, FilterRelation, SceneFilterPolicy};
+        (self.charge_site(site)
+            && self.damage_credit.is_some()
+            && filter["m_66747E7D"] == 2
+            && filter
+                .get("m_89831602")
+                .is_none_or(|v| v.is_null() || v == 0)
+            && filter.get("m_condition").is_none_or(Json::is_null))
+        .then_some(SceneFilterPolicy {
+            relation: FilterRelation::Hostile,
+            predicate: FilterPredicate::None,
+        })
+    }
+    fn entities_hostile(&self, site: Site, source: u32, target: u32, option: bool) -> Option<bool> {
+        if !self.charge_site(site) || source != self.entity || option {
+            return None;
+        }
+        let damage = self
+            .damage_credit
+            .as_ref()
+            .filter(|event| event.target == target)?;
+        let left = self.own_filter_flags();
+        let right = damage.target_flags?;
+        crate::junkenstein_host::ordinary_hostility(left, right)
+    }
+    fn body_on_fire(&mut self, site: Site, entity: u32) -> Option<OnFire> {
         self.related_entity(site, EntityRelation::CurrentPossessor, entity)
-            .map(|_| self.controller_on_fire)
+            .map(|_| OnFire::Active(self.controller_on_fire))
     }
 
     fn related_entity(&mut self, site: Site, relation: EntityRelation, entity: u32) -> Option<u32> {
@@ -490,6 +1202,12 @@ impl World for BodyWorld {
                 Some(self.controller)
             }
             EntityRelation::PossessedBody if entity == self.controller => Some(self.entity),
+            EntityRelation::ControllerBodyField if entity == self.controller => Some(self.entity),
+            EntityRelation::ControllerBodyField
+                if entity == self.entity || !valid_entity(entity) =>
+            {
+                Some(0)
+            }
             // The authenticated human body has no AI control entity in this world.
             EntityRelation::AiControlEntity if entity == self.entity => Some(0),
             _ => None,
@@ -497,6 +1215,83 @@ impl World for BodyWorld {
     }
 
     fn native(&mut self, site: Site, config: &Json) -> Option<Value> {
+        if self.hero == CASSIDY
+            && self.is_player_site(site)
+            && site.graph == 0x01f0
+            && matches!(site.node, Some(8 | 11 | 19))
+            && config
+                .get("m_entity")
+                .is_some_and(|entity| native_shape(entity, "STU_B5A0CAF0", None))
+        {
+            let yaw = f64::from(self.movement.yaw) * std::f64::consts::TAU / 65_536.0;
+            let (sin, cos) = yaw.sin_cos();
+            let vector = match config.get("$").and_then(Json::as_str) {
+                Some("STU_021D01CD") => Some([sin, 0.0, cos]),
+                Some("STU_66F3B89E") => Some([cos, 0.0, -sin]),
+                Some("STU_2200A66D") if site.node == Some(19) => Some(aim_direction(&Command {
+                    yaw: self.movement.yaw,
+                    pitch: self.movement.pitch,
+                    ..Command::default()
+                })),
+                _ => None,
+            };
+            if let Some(vector) = vector {
+                return Some(Value::Vector(vector.map(|v| f64::from(v as f32))));
+            }
+        }
+
+        if self.is_player_site(site) && self.has_deadeye() {
+            match (
+                site.graph,
+                site.node,
+                config.get("$").and_then(Json::as_str),
+            ) {
+                (DEADEYE_GRAPH, Some(84), Some("STU_ED45C5E8")) if is_owner_selector(config) => {
+                    return Some(Value::Null);
+                }
+                (DEADEYE_TARGET_EFFECT, Some(28), Some("STU_7C005F8F"))
+                    if crate::script_expr::native_fields(config, &["m_82B6345B", "m_entity"])
+                        && config
+                            .get("m_82B6345B")
+                            .is_some_and(|owner| native_shape(owner, "STU_B5A0CAF0", None))
+                        && config
+                            .pointer("/m_entity/m_identifier")
+                            .and_then(Json::as_u64)
+                            == Some(536) =>
+                {
+                    // The prepared Junkenstein roster has no Deadeye immunity overrides.
+                    return Some(Value::Bool(false));
+                }
+                _ => (),
+            }
+        }
+        if self.is_player_site(site) && is_junkenstein_mode(self.mode) {
+            if (site.graph, site.node) == (0x01ca, Some(179))
+                && native_shape(config, "STU_E72F6348", Some("m_entity"))
+                && config
+                    .get("m_entity")
+                    .is_some_and(|mode| native_shape(mode, "STU_A3DEF368", None))
+            {
+                return Some(Value::Bool(self.graphs.mode_variables(self.mode).is_some()));
+            }
+            if (site.graph, site.node) == (0x01ca, Some(126))
+                && junkenstein_messages::sighting_selector(config)
+            {
+                return Some(junkenstein_messages::recipients(&self.defenders));
+            }
+            if matches!(
+                (site.graph, site.node),
+                (0x01ca, Some(11 | 127)) | (0x0ca5, Some(77))
+            ) && junkenstein_messages::self_team_query(config)
+            {
+                let team = (self.body_filter >> 23) & 31;
+                return Some(Value::Integer(if team == 0 {
+                    -1
+                } else {
+                    i64::from(team.trailing_zeros())
+                }));
+            }
+        }
         match config.get("$")?.as_str()? {
             "STU_1FF67CA6" => Some(Value::Entity(self.entity)),
             "STU_310D6529" => {
@@ -511,14 +1306,44 @@ impl World for BodyWorld {
                 Some(Value::Entity(GAME_MODE_ENTITY))
             }
             "STU_4A101787" => Some(Value::Bool(false)),
-            // The normal human Practice Range reference takes the falsey
-            // branch for this parameterless query. Its native meaning is open.
-            "STU_A77AC2AC"
-                if self.is_player_site(site)
-                    && self.mode == PRACTICE_RANGE_MODE
-                    && native_shape(config, "STU_A77AC2AC", None) =>
+            "STU_ED45C5E8"
+                if (site.graph, site.node, self.mode)
+                    == (0x01ca, Some(126), PRACTICE_RANGE_MODE)
+                    && self.is_player_site(site)
+                    && config
+                        .get("m_B2ABF4FF")
+                        .is_some_and(|owner| native_shape(owner, "STU_B5A0CAF0", None))
+                    && config.pointer("/m_2BA6230F/m_value").and_then(Json::as_f64)
+                        == Some(0.0)
+                    && ["m_5912C8DF", "m_5A72EEF5", "m_C9E6F46B"]
+                        .iter()
+                        .all(|flag| {
+                            config
+                                .get(*flag)
+                                .and_then(|flag| flag.get("m_value"))
+                                .and_then(Json::as_u64)
+                                == Some(0)
+                        }) =>
+            {
+                // The solo Practice Range has no recipients for this voice route.
+                Some(Value::Array(Vec::new()))
+            }
+            "STU_65ABFCCC"
+                if (site.graph, site.node, self.mode)
+                    == (0x01ca, Some(127), PRACTICE_RANGE_MODE)
+                    && self.is_player_site(site)
+                    && config
+                        .get("m_target")
+                        .is_some_and(|owner| native_shape(owner, "STU_B5A0CAF0", None)) =>
             {
                 Some(Value::Null)
+            }
+            "STU_A77AC2AC"
+                if self.is_player_site(site)
+                    && self.mode != 0
+                    && native_shape(config, "STU_A77AC2AC", None) =>
+            {
+                Some(Value::Bool(self.mode == TUTORIAL_MODE))
             }
             // The reference has no model for this entity selector and
             // defaults it to None. It never reaches the 01CA site where the
@@ -561,6 +1386,24 @@ fn is_owner_selector(config: &Json) -> bool {
 }
 
 impl BodyWorld {
+    fn charge_site(&self, site: Site) -> bool {
+        self.is_player_site(site) && self.has_deadeye() && site.graph == 0x0b8b
+    }
+    fn has_deadeye(&self) -> bool {
+        self.hero == CASSIDY && is_junkenstein_mode(self.mode)
+    }
+
+    fn own_filter_flags(&self) -> u64 {
+        let mut flags = self.body_filter;
+        if is_junkenstein_mode(self.mode) {
+            flags |= 1;
+            if self.vitals.death().is_some() {
+                flags |= 0x10;
+            }
+        }
+        flags
+    }
+
     fn is_player_site(&self, site: Site) -> bool {
         site.entity == self.entity && valid_entity(self.entity)
     }
@@ -695,10 +1538,283 @@ fn fixture_volley_factory(button: u8, networked: bool, mut volley: Json) -> Play
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires separately prepared 104319 Junkenstein runtime"]
+    fn castle_summoner_deadeye_sightlines_follow_real_collision() {
+        use crate::game_bots::{BotCatalog, BotWalk};
+        use crate::game_content::{JUNKENSTEIN_MAP, JunkensteinCard, MapCatalog};
+        let runtime = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let assets = crate::scene_assets::SceneAssets::load(&runtime).unwrap();
+        let card = JunkensteinCard::from_index(0x3c).unwrap();
+        let map = MapCatalog::load(runtime.join("data/game_maps_174.json"))
+            .unwrap()
+            .game_map(
+                JUNKENSTEIN_MAP,
+                card.mode,
+                "Junkenstein's Revenge",
+                false,
+                &[4, 0],
+            )
+            .unwrap();
+        let mut scene = assets.prepare_junkenstein(map, card, 0).unwrap();
+        let hero = scene.heroes().find_hero("Symmetra").unwrap();
+        let catalog=BotCatalog::from_json(&serde_json::json!({
+            "heroes":{"0x02E0000000000016":{"name":"Sightline target","body":format!("0x{:016X}",hero.body),"health":1000}},
+            "maps":{"0x03":{"hints":{},"spawners":[{"hero":"0x02E0000000000016","team":1,
+                "position":[61.984676361083984,18.126224517822266,-103.21149444580078],
+                "rotation":[0,0,0,1],"graphs":[]}]}}
+        }).to_string()).unwrap();
+        let bots = catalog.make(3, |_| BotWalk::default());
+        let pose = scene.bot_simulation().1.target(&bots[0]);
+        let mut selection = scene.deadeye_scene(0).unwrap();
+        selection.targets.push(DeadeyeTarget {
+            velocity: Some([0.0; 3]),
+            script_state: Default::default(),
+            entity: bots[0].entity,
+            pose,
+            health: 1000.0,
+        });
+        for [x, y, z] in [
+            [87.013671875, 12.6474609375, -64.34765625],
+            [79.775390625, 13.0693359375, -78.779296875],
+        ] {
+            let origin = [x, y + eye_height(CASSIDY, false), z];
+            let direction = selection
+                .shot_direction(origin, bots[0].entity)
+                .expect("the actual auto-aim point is exposed above the balcony");
+            let [a, b] = pose.segment();
+            let reach = capsule_entry_distance(
+                origin,
+                direction,
+                norm(target_delta(origin, pose)),
+                a,
+                b,
+                pose.radius,
+            )
+            .unwrap();
+            assert!(
+                selection
+                    .collision
+                    .as_ref()
+                    .unwrap()
+                    .cast_ray(origin, direction, reach, MOVER_CATEGORY)
+                    .unwrap()
+                    .is_none()
+            );
+        }
+    }
+
+    #[test]
+    fn shared_deadeye_aim_ray_visibility_contract() {
+        use crate::collision_cache::{CollisionCache, Mesh, Triangle};
+        let contract: Json = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/deadeye-aim-ray-visibility-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(contract["schema_version"], 1);
+        assert_eq!(contract["case_id"], "deadeye.aim-ray-visibility.v1");
+        assert_eq!(contract["target_build"], 104319);
+        let origin: Vec3 = serde_json::from_value(contract["input"]["origin"].clone()).unwrap();
+        let raw = &contract["input"]["target"];
+        let pose = TargetPose {
+            feet: serde_json::from_value(raw["feet"].clone()).unwrap(),
+            height: raw["height"].as_f64().unwrap(),
+            radius: raw["radius"].as_f64().unwrap(),
+            eye: raw["eye"].as_f64().unwrap(),
+        };
+        for case in contract["input"]["cases"].as_array().unwrap() {
+            let triangles: Vec<[[f32; 3]; 3]> =
+                serde_json::from_value(case["triangles"].clone()).unwrap();
+            let cache=CollisionCache {
+                header:serde_json::from_value(serde_json::json!({"meshes":[[triangles.len()*3,triangles.len()]],"hulls":0,"models":0,"placements":0,"identifiers":[]})).unwrap(),
+                meshes:vec![Mesh {vertices:triangles.iter().flatten().copied().collect(),
+                    triangles:(0..triangles.len()).map(|index|Triangle {corners:[index as i32*3,index as i32*3+1,index as i32*3+2],wings:[-1;3],mask:MOVER_CATEGORY,surface:0}).collect()}],
+                hulls:vec![],models:vec![],placements:vec![],
+            };
+            let selection = DeadeyeScene {
+                health: None,
+                collision: Some(Arc::new(
+                    CollisionScene::movement_probe(&cache, &BTreeSet::new()).unwrap(),
+                )),
+                targets: vec![DeadeyeTarget {
+                    entity: 0xc000_1000,
+                    pose,
+                    health: 1000.0,
+                    velocity: None,
+                    script_state: Default::default(),
+                }],
+                view_subjects: BTreeMap::new(),
+            };
+            let expected = case["expected"]["visible"].as_bool().unwrap();
+            assert_eq!(
+                selection.aim_point_visible(origin, pose),
+                expected,
+                "{}",
+                case["name"]
+            );
+            assert_eq!(
+                selection.shot_direction(origin, 0xc000_1000).is_some(),
+                expected,
+                "{}",
+                case["name"]
+            );
+            assert_eq!(
+                selection.select(origin, [0.0, 0.0, 1.0], 200.0, 180.0, true),
+                if expected { vec![0xc000_1000] } else { vec![] },
+                "{}",
+                case["name"]
+            );
+        }
+    }
     use crate::{
         collision_index::TriangleIndex, contact_world::ContactWorld,
         game_instance::TOURNAMENT_QUANTA, mover_settings::MoverSettings,
     };
+
+    #[test]
+    fn engine_table_is_available_only_on_the_encounter_owner_host() {
+        use crate::script_expr::EngineSetting;
+        let (factory, spawn) = fixture_body_factory();
+        let mut runtime = factory.start(spawn).unwrap();
+        let site = Site {
+            entity: spawn.entity,
+            instance: 1,
+            graph: 42,
+            node: Some(0),
+        };
+        assert_eq!(
+            runtime.world.engine_setting(site, 0xe1c1_e402),
+            EngineSetting::Unavailable
+        );
+        for mode in [
+            crate::game_content::JUNKENSTEIN_REVENGE,
+            crate::game_content::JUNKENSTEIN_ENDLESS,
+        ] {
+            runtime.world.mode = mode;
+            assert_eq!(
+                runtime.world.engine_setting(site, 0xe1c1_e402),
+                EngineSetting::Present(Value::Integer(128))
+            );
+            assert_eq!(
+                runtime.world.engine_setting(site, 0),
+                EngineSetting::Missing
+            );
+        }
+        runtime.world.mode = TUTORIAL_MODE;
+        assert_eq!(
+            runtime.world.engine_setting(site, 0xe1c1_e402),
+            EngineSetting::Unavailable
+        );
+    }
+
+    #[test]
+    fn cassidy_junkenstein_rules_enable_fan_without_changing_other_hero_defaults() {
+        let (factory, spawn) = fixture_body_factory();
+        let mut runtime = factory.start(spawn).unwrap();
+        let world = &mut runtime.world;
+        world.hero = CASSIDY;
+        world.mode = crate::game_content::JUNKENSTEIN_REVENGE;
+        assert_eq!(world.ruleset(0x2819), Some(Value::Float(1.0)));
+        assert_eq!(world.ruleset(0x290c), Some(Value::Bool(true)));
+        assert_eq!(world.ruleset(0x290b), None);
+        world.hero = SOLDIER;
+        assert_eq!(world.ruleset(0x290c), None);
+        world.hero = CASSIDY;
+        world.mode = PRACTICE_RANGE_MODE;
+        assert_eq!(world.ruleset(0x290c), None);
+    }
+
+    #[test]
+    fn encounter_body_angles_follow_the_live_owner_pose() {
+        use crate::script_expr::{AngleQuery, BodyAngle};
+        let (factory, spawn) = fixture_body_factory();
+        let mut runtime = factory.start(spawn).unwrap();
+        let world = &mut runtime.world;
+        world.mode = crate::game_content::JUNKENSTEIN_REVENGE;
+        world.movement.yaw = 8192;
+        world.movement.pitch = -8192;
+        assert_eq!(
+            world.body_angle(world.entity, BodyAngle::Yaw),
+            AngleQuery::Present(45.0)
+        );
+        assert_eq!(
+            world.body_angle(world.entity, BodyAngle::Pitch),
+            AngleQuery::Present(-45.0)
+        );
+        assert_eq!(world.body_angle(0, BodyAngle::Yaw), AngleQuery::Unbound);
+        assert_eq!(
+            world.body_angle(world.entity + 1, BodyAngle::Yaw),
+            AngleQuery::Unavailable
+        );
+        world.movement.yaw = 32768;
+        assert_eq!(
+            world.body_angle(world.entity, BodyAngle::Yaw),
+            AngleQuery::Unavailable
+        );
+        world.mode = PRACTICE_RANGE_MODE;
+        assert_eq!(
+            world.body_angle(world.entity, BodyAngle::Pitch),
+            AngleQuery::Unavailable
+        );
+    }
+
+    #[test]
+    fn roll_velocity_bridge_preserves_sampled_delta_and_rejects_foreign_owners() {
+        use crate::mover::VelocityChange;
+        let (factory, spawn) = fixture_body_factory();
+        let mut runtime = factory.start(spawn).unwrap();
+        runtime.world.hero = CASSIDY;
+        runtime.world.movement.velocity = [3.0, 2.0, 4.0];
+        let site = Site {
+            entity: spawn.entity,
+            instance: 6,
+            graph: 0x01f0,
+            node: Some(8),
+        };
+        assert!(
+            runtime
+                .world
+                .edit_velocity(site, 10, Value::Vector([0.0, 2.0, 15.0]), false)
+        );
+        assert_eq!(
+            runtime.take_velocity_changes(),
+            vec![(11, VelocityChange::Delta([-3.0, 0.0, 11.0]))]
+        );
+        assert!(runtime.take_velocity_changes().is_empty());
+        assert!(!runtime.world.edit_velocity(
+            Site {
+                entity: spawn.entity + 1,
+                ..site
+            },
+            10,
+            Value::Vector([0.0; 3]),
+            false
+        ));
+        assert!(
+            !runtime
+                .world
+                .edit_velocity(site, 10, Value::Vector([f64::INFINITY; 3]), false)
+        );
+        assert!(
+            !runtime
+                .world
+                .edit_velocity(site, 10, Value::Float(5.5), true)
+        );
+        let cap = Site {
+            node: Some(17),
+            ..site
+        };
+        assert!(
+            runtime
+                .world
+                .edit_velocity(cap, 11, Value::Float(5.5), true)
+        );
+        assert_eq!(
+            runtime.take_velocity_changes(),
+            vec![(12, VelocityChange::HorizontalCap(5.5))]
+        );
+    }
 
     #[test]
     fn player_natives_follow_the_verified_owner_and_override_shapes() {
@@ -758,7 +1874,10 @@ mod tests {
             Err(EvalError::UnsupportedConfig("STU_DB742151".into()))
         );
         let branch = json!({"$":"STU_A77AC2AC","m_EE729DCB":0});
-        assert_eq!(evaluate(&mut runtime, &branch), Ok(Value::Null));
+        assert_eq!(evaluate(&mut runtime, &branch), Ok(Value::Bool(false)));
+        runtime.world.mode = TUTORIAL_MODE;
+        assert_eq!(evaluate(&mut runtime, &branch), Ok(Value::Bool(true)));
+        runtime.world.mode = PRACTICE_RANGE_MODE;
         let flag = |value| json!({"$":"STUConfigVarBool","m_EE729DCB":0,"m_value":value});
         let selector = json!({
             "$":"STU_ED45C5E8","m_EE729DCB":0,"m_range":{"$":"STUConfigVarFloat","m_value":0},
@@ -900,14 +2019,14 @@ mod tests {
         let maximum = json!({"$": "STU_7D7D2470", "m_entity": owner});
         assert_eq!(evaluate(&mut runtime, &current), Ok(Value::Float(200.0)));
         assert_eq!(evaluate(&mut runtime, &maximum), Ok(Value::Float(200.0)));
-        runtime.world.vitals.damage(
+        assert!(!runtime.receive_damage(
             75.0,
             crate::vitals::Death {
                 time: 0.0,
                 frame: spawn.frame,
                 killer: spawn.entity + 1,
             },
-        );
+        ));
         assert_eq!(evaluate(&mut runtime, &current), Ok(Value::Float(125.0)));
         assert_eq!(evaluate(&mut runtime, &maximum), Ok(Value::Float(200.0)));
 
@@ -1386,6 +2505,40 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires separately prepared 104319 Flashbang effect graphs"]
+    fn authored_flashbang_duration_follows_both_mode_branches() {
+        use serde_json::json;
+        let root = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let graphs = GraphStore::load(root.join("data/game_graphs_174.json.gz")).unwrap();
+        let config = flashbang_duration(&graphs).unwrap();
+        for (flag, ticks) in [(false, 50), (true, 107)] {
+            let (_, spawn) = fixture_body_factory();
+            let mut runtime = fixture_volley_factory(29, true, fixture_projectile_fields(40.0))
+                .start(spawn)
+                .unwrap();
+            let mode = format!("0x{:016X}", runtime.world.mode);
+            runtime.world.graphs = Arc::new(
+                GraphStore::from_json(
+                    &serde_json::to_vec(&json!({
+                        "version":1,"graphs":[],"bodies":{},"missing":[],
+                        "mode_variables":{mode:{"13408":flag}}
+                    }))
+                    .unwrap(),
+                )
+                .unwrap(),
+            );
+            let duration = runtime
+                .component
+                .evaluate_state_config(1, 1, config, &mut runtime.world)
+                .unwrap();
+            assert_eq!(
+                Stun::from_seconds(to_float(&duration)).unwrap().ticks,
+                ticks
+            );
+        }
+    }
+
+    #[test]
     fn unsupported_projectile_modes_do_not_become_hitscan_or_straight_damage() {
         use serde_json::json;
 
@@ -1451,8 +2604,15 @@ mod tests {
             vitals: Vitals::empty(),
             pool_types_known: true,
             target_tags: body.target_tags.clone(),
-            target_tag_effects: BTreeMap::new(),
+            target_tag_effects: TargetTagEffects::default(),
             controller_on_fire: false,
+            defenders: Arc::default(),
+            sightings: Vec::new(),
+            sighting_source: None,
+            cinematic_aim: None,
+            deadeye_scene: DeadeyeScene::default(),
+            velocity_changes: Vec::new(),
+            damage_credit: None,
         };
         let mut component = Component::start(
             graphs,
@@ -1623,7 +2783,7 @@ mod tests {
             assert_eq!((node.pos, node.class.as_str()), (position, "STU_CD46AF93"));
             let state = &instance.states[&raw];
             assert!(state.active);
-            assert_eq!(state.kind, StateKind::Plain);
+            assert_eq!(state.kind, StateKind::ForCode);
         }
         for (instance, raw) in [(1, 4), (10, 41)] {
             let child = &snapshot.instances[&instance].states[&raw];
@@ -1770,7 +2930,7 @@ mod tests {
         for condition in rifle_conditions {
             assert_eq!(
                 component.evaluate_state_config(11, 10, &condition, &mut world),
-                Ok(Value::Null)
+                Ok(Value::Bool(false))
             );
         }
         world.vitals.damage(
@@ -1826,8 +2986,15 @@ mod tests {
                 vitals: Vitals::empty(),
                 pool_types_known: true,
                 target_tags: body.target_tags.clone(),
-                target_tag_effects: BTreeMap::new(),
+                target_tag_effects: TargetTagEffects::default(),
                 controller_on_fire: false,
+                defenders: Arc::default(),
+                sightings: Vec::new(),
+                sighting_source: None,
+                cinematic_aim: None,
+                deadeye_scene: DeadeyeScene::default(),
+                velocity_changes: Vec::new(),
+                damage_credit: None,
             };
             let component = Component::start(
                 Arc::clone(&graphs),

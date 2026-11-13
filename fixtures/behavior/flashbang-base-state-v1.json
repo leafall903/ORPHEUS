@@ -1,0 +1,41 @@
+{
+  "case_id": "flashbang.base-state.v1",
+  "target_build": 104319,
+  "placement": [
+    8782,
+    25
+  ],
+  "class": "STU_0DB9E66B",
+  "image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+  "native": {
+    "registered_records": 1735,
+    "exact_binding": false,
+    "parent_record_rva": "0x3294268",
+    "constructor_rva": "0x1B726B0",
+    "constructed_vtable_rva": "0x27AC800",
+    "reader_rva": "0x1CE5640"
+  },
+  "steps": [
+    {
+      "message": null,
+      "active": true,
+      "activation": 1,
+      "ended": false
+    },
+    {
+      "message": 162129586585337858,
+      "active": false,
+      "activation": 1,
+      "ended": true
+    },
+    {
+      "message": 162129586585337859,
+      "active": true,
+      "activation": 2,
+      "ended": true
+    }
+  ],
+  "evidence": "Captured PC registry parent lookup and original bounded base constructor/empty-reader execution; lifecycle trace is a synthetic host integration check.",
+  "limits": "No new health/tag multiplier, dedicated-server state semantics, complete Flashbang reaction or original-client acceptance is established.",
+  "client_acceptance": "pending"
+}

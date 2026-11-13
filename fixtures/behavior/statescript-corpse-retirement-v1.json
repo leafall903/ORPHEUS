@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.corpse-retirement-action.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/nodes.py::retire_junkenstein_corpse"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 3221229568,
+    "cases": [
+      {
+        "name": "accepted-0c89-43",
+        "graph": 3209,
+        "position": 43,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      },
+      {
+        "name": "accepted-0c93-11",
+        "graph": 3219,
+        "position": 11,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      },
+      {
+        "name": "accepted-0cbc-36",
+        "graph": 3260,
+        "position": 36,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      },
+      {
+        "name": "accepted-0cbc-38",
+        "graph": 3260,
+        "position": 38,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      },
+      {
+        "name": "accepted-0cbc-57",
+        "graph": 3260,
+        "position": 57,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      },
+      {
+        "name": "accepted-0cbc-58",
+        "graph": 3260,
+        "position": 58,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      },
+      {
+        "name": "controller-target",
+        "graph": 3219,
+        "position": 11,
+        "target": {
+          "entity": 3221229569
+        },
+        "accept": true
+      },
+      {
+        "name": "host-refuses-corpse",
+        "graph": 3219,
+        "position": 11,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": false
+      },
+      {
+        "name": "host-refuses-phase-exit",
+        "graph": 3260,
+        "position": 57,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": false
+      },
+      {
+        "name": "null-target",
+        "graph": 3219,
+        "position": 11,
+        "target": null,
+        "accept": true
+      },
+      {
+        "name": "integer-target",
+        "graph": 3219,
+        "position": 11,
+        "target": 3221229568,
+        "accept": true
+      },
+      {
+        "name": "unknown-entry",
+        "graph": 3219,
+        "position": 12,
+        "target": {
+          "entity": 3221229568
+        },
+        "accept": true
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "accepted-0c89-43",
+        "requests": [
+          [
+            3221229568,
+            false
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "accepted-0c93-11",
+        "requests": [
+          [
+            3221229568,
+            false
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "accepted-0cbc-36",
+        "requests": [
+          [
+            3221229568,
+            false
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "accepted-0cbc-38",
+        "requests": [
+          [
+            3221229568,
+            false
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "accepted-0cbc-57",
+        "requests": [
+          [
+            3221229568,
+            true
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "accepted-0cbc-58",
+        "requests": [
+          [
+            3221229568,
+            true
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "controller-target",
+        "requests": [
+          [
+            3221229569,
+            false
+          ]
+        ],
+        "followed": true,
+        "failed": false
+      },
+      {
+        "name": "host-refuses-corpse",
+        "requests": [
+          [
+            3221229568,
+            false
+          ]
+        ],
+        "followed": false,
+        "failed": true
+      },
+      {
+        "name": "host-refuses-phase-exit",
+        "requests": [
+          [
+            3221229568,
+            true
+          ]
+        ],
+        "followed": false,
+        "failed": true
+      },
+      {
+        "name": "null-target",
+        "requests": [],
+        "followed": false,
+        "failed": true
+      },
+      {
+        "name": "integer-target",
+        "requests": [],
+        "followed": false,
+        "failed": true
+      },
+      {
+        "name": "unknown-entry",
+        "requests": [],
+        "followed": false,
+        "failed": true
+      }
+    ]
+  }
+}

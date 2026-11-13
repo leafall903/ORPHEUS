@@ -17,12 +17,40 @@ use crate::{
 };
 
 pub const DEFAULT_REACH: f64 = 200.0;
+// Server admission bound, not a native tag-count limit. Prepared 104319 graphs
+// currently use at most eight tags per modify-health payload.
+const MAX_DAMAGE_TAGS: usize = 16;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DamageTags {
+    values: [u64; MAX_DAMAGE_TAGS],
+    len: usize,
+}
+
+impl DamageTags {
+    pub const EMPTY: Self = Self {
+        values: [0; MAX_DAMAGE_TAGS],
+        len: 0,
+    };
+    pub fn as_slice(&self) -> &[u64] {
+        &self.values[..self.len]
+    }
+    fn push(&mut self, guid: u64) -> bool {
+        if self.len == MAX_DAMAGE_TAGS {
+            return false;
+        }
+        self.values[self.len] = guid;
+        self.len += 1;
+        true
+    }
+}
 const HISTORY: usize = 64;
 const HEAD_BELOW_EYE: f64 = 0.2;
 const ANGLE_STEP: f64 = std::f64::consts::TAU / 65536.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct HitDefinition {
+    pub tags: DamageTags,
     pub amount: f64,
     pub loadout: Option<u64>,
     pub critical: f64,
@@ -39,6 +67,14 @@ pub struct DamageFalloff {
 impl HitDefinition {
     pub fn from_authored(
         config: &Json,
+        evaluate: impl FnMut(&Json) -> Result<Value, EvalError>,
+    ) -> Result<Option<Self>, EvalError> {
+        Self::from_authored_with_critical(config, 1.0, evaluate)
+    }
+
+    pub(crate) fn from_authored_with_critical(
+        config: &Json,
+        default_critical: f64,
         mut evaluate: impl FnMut(&Json) -> Result<Value, EvalError>,
     ) -> Result<Option<Self>, EvalError> {
         if !config.is_object() {
@@ -61,6 +97,22 @@ impl HitDefinition {
             Some(Value::Asset(guid)) => Some(guid),
             _ => None,
         };
+        let mut tags = DamageTags::EMPTY;
+        if let Some(rows) = config
+            .pointer("/m_modifyHealth/m_148F3152")
+            .filter(|value| !value.is_null())
+        {
+            let Some(rows) = rows.as_array() else {
+                return Ok(None);
+            };
+            for row in rows.iter().filter(|row| row.is_object()) {
+                if let Some(Value::Asset(guid)) = field(row, "m_EE3055BD")? {
+                    if !tags.push(guid) {
+                        return Ok(None);
+                    }
+                }
+            }
+        }
         let falloff = match (
             number(field(config, "m_EAD7F104")?),
             number(field(config, "m_157E5BC5")?),
@@ -72,9 +124,10 @@ impl HitDefinition {
             _ => None,
         };
         Ok(Some(Self {
+            tags,
             amount,
             loadout,
-            critical: number(field(config, "m_A872C70E")?).unwrap_or(1.0),
+            critical: number(field(config, "m_A872C70E")?).unwrap_or(default_critical),
             falloff,
         }))
     }
@@ -210,6 +263,7 @@ pub struct HitscanShot {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Impact {
+    pub tags: DamageTags,
     pub entity: u32,
     pub distance: f64,
     pub damage: f64,
@@ -219,9 +273,18 @@ pub struct Impact {
 
 impl HitscanShot {
     pub fn from_command(origin: Vec3, command: &Command, reach: f64, hit: HitDefinition) -> Self {
+        Self::with_direction(origin, aim_direction(command), reach, hit)
+    }
+
+    pub(crate) fn with_direction(
+        origin: Vec3,
+        direction: Vec3,
+        reach: f64,
+        hit: HitDefinition,
+    ) -> Self {
         Self {
             origin,
-            direction: aim_direction(command),
+            direction,
             reach: if reach == 0.0 { DEFAULT_REACH } else { reach },
             hit,
         }
@@ -264,6 +327,7 @@ impl HitscanShot {
         let impact_y = self.origin[1] + self.direction[1] * distance;
         let head = impact_y >= pose.feet[1] + pose.eye - HEAD_BELOW_EYE;
         Ok(Some(Impact {
+            tags: self.hit.tags,
             entity,
             distance,
             damage: self.hit.damage_at(distance, head),
@@ -292,6 +356,7 @@ mod tests {
 
     const MOVER: u16 = 0x18;
     const RIFLE: HitDefinition = HitDefinition {
+        tags: crate::game_hitscan::DamageTags::EMPTY,
         amount: 20.0,
         loadout: Some(0x0b90_0000_0000_008d),
         critical: 2.0,
@@ -345,6 +410,20 @@ mod tests {
             ),
             (0.0, None, 1.0, None)
         );
+        for (config, expected) in [
+            (json!({}), 2.0),
+            (json!({"m_A872C70E":null}), 2.0),
+            (json!({"m_A872C70E":int(0)}), 0.0),
+            (json!({"m_A872C70E":int(1)}), 1.0),
+            (json!({"m_A872C70E":int(3)}), 3.0),
+        ] {
+            let hit = HitDefinition::from_authored_with_critical(&config, 2.0, |value| {
+                evaluate(value, &mut EmptyContext)
+            })
+            .unwrap()
+            .unwrap();
+            assert_eq!(hit.critical, expected);
+        }
     }
 
     #[test]
@@ -380,6 +459,7 @@ mod tests {
         assert_eq!(
             hit,
             Impact {
+                tags: crate::game_hitscan::DamageTags::EMPTY,
                 entity: 2,
                 distance: 9.5,
                 damage: 20.0,

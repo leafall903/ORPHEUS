@@ -1,0 +1,451 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.mover-velocity-read.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e1128509458882a325c743f67ebed4a5c0c2f1a7",
+    "paths": [
+      "ow174/game/script/scene.py::SceneWorld.native",
+      "ow174/game/script/scene.py::_position",
+      "ow174/game/script/play.py::_scalar"
+    ],
+    "native_references": [
+      "CF28B0",
+      "D1FD80"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "name": "moving",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              3.0,
+              -2.0,
+              0.5
+            ]
+          ]
+        ],
+        "initial": 73
+      },
+      {
+        "name": "stationary-overwrites-initial",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        ],
+        "initial": 73
+      },
+      {
+        "name": "float32-conversion",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              1.1,
+              -2.3,
+              0.016
+            ]
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "unbound-keeps-integer",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": 73
+      },
+      {
+        "name": "unbound-keeps-vector",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": {
+          "vector": [
+            9,
+            8,
+            7
+          ]
+        }
+      },
+      {
+        "name": "unbound-keeps-array",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": [
+          1,
+          2,
+          null
+        ]
+      },
+      {
+        "name": "bound-without-mover",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            null
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "unavailable-service",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": null,
+        "initial": null
+      },
+      {
+        "name": "nan",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              {
+                "float": "NaN"
+              },
+              0,
+              0
+            ]
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "infinity",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              {
+                "float": "Infinity"
+              },
+              0,
+              0
+            ]
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "float32-overflow",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              1e+40,
+              0,
+              0
+            ]
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "nested-first-entity",
+        "target": [
+          [
+            {
+              "entity": 2684354816
+            }
+          ],
+          {
+            "entity": 2684354817
+          }
+        ],
+        "table": [
+          [
+            2684354816,
+            [
+              0,
+              0,
+              4
+            ]
+          ],
+          [
+            2684354817,
+            [
+              9,
+              9,
+              9
+            ]
+          ]
+        ],
+        "initial": null
+      },
+      {
+        "name": "nonentity-scalar",
+        "target": 2684354816,
+        "table": [
+          [
+            2684354816,
+            [
+              9,
+              9,
+              9
+            ]
+          ]
+        ],
+        "initial": 73
+      },
+      {
+        "name": "null-target",
+        "target": null,
+        "table": [],
+        "initial": 73
+      },
+      {
+        "name": "empty-target-array",
+        "target": [],
+        "table": [],
+        "initial": 73
+      },
+      {
+        "name": "group-reads-first-only",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              1,
+              1,
+              1
+            ]
+          ]
+        ],
+        "initial": 73,
+        "selector": {
+          "$": "STU_06610EBC",
+          "m_configVars": [
+            null,
+            {
+              "$": "UnsupportedMustNotRun"
+            }
+          ]
+        }
+      },
+      {
+        "name": "empty-selector-group",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [],
+        "initial": 73,
+        "selector": {
+          "$": "STU_06610EBC",
+          "m_configVars": []
+        }
+      },
+      {
+        "name": "nested-selector-group",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              5,
+              0,
+              0
+            ]
+          ]
+        ],
+        "initial": 73,
+        "selector": {
+          "$": "STU_06610EBC",
+          "m_configVars": [
+            {
+              "$": "STU_06610EBC",
+              "m_configVars": [
+                {
+                  "$": "STUConfigVarDynamic",
+                  "m_identifier": 1,
+                  "m_60DB8F99": false
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "unsupported-mover-variant",
+        "target": {
+          "entity": 2684354816
+        },
+        "table": [
+          [
+            2684354816,
+            [
+              1,
+              2,
+              3
+            ]
+          ]
+        ],
+        "initial": null,
+        "mover": 1
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "name": "moving",
+        "value": {
+          "vector": [
+            3.0,
+            -2.0,
+            0.5
+          ]
+        }
+      },
+      {
+        "name": "stationary-overwrites-initial",
+        "value": {
+          "vector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "name": "float32-conversion",
+        "value": {
+          "vector": [
+            1.100000023841858,
+            -2.299999952316284,
+            0.01600000075995922
+          ]
+        }
+      },
+      {
+        "name": "unbound-keeps-integer",
+        "value": 73
+      },
+      {
+        "name": "unbound-keeps-vector",
+        "value": {
+          "vector": [
+            9,
+            8,
+            7
+          ]
+        }
+      },
+      {
+        "name": "unbound-keeps-array",
+        "value": [
+          1,
+          2,
+          null
+        ]
+      },
+      {
+        "name": "bound-without-mover",
+        "error": "STU_309B0570"
+      },
+      {
+        "name": "unavailable-service",
+        "error": "STU_309B0570"
+      },
+      {
+        "name": "nan",
+        "error": "STU_309B0570"
+      },
+      {
+        "name": "infinity",
+        "error": "STU_309B0570"
+      },
+      {
+        "name": "float32-overflow",
+        "error": "STU_309B0570"
+      },
+      {
+        "name": "nested-first-entity",
+        "value": {
+          "vector": [
+            0.0,
+            0.0,
+            4.0
+          ]
+        }
+      },
+      {
+        "name": "nonentity-scalar",
+        "value": 73
+      },
+      {
+        "name": "null-target",
+        "value": 73
+      },
+      {
+        "name": "empty-target-array",
+        "value": 73
+      },
+      {
+        "name": "group-reads-first-only",
+        "value": 73
+      },
+      {
+        "name": "empty-selector-group",
+        "value": 73
+      },
+      {
+        "name": "nested-selector-group",
+        "value": {
+          "vector": [
+            5.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "name": "unsupported-mover-variant",
+        "error": "STU_309B0570"
+      }
+    ]
+  }
+}

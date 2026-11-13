@@ -5,8 +5,8 @@ use std::process::ExitCode;
 
 const USAGE: &str = "Usage: prepare_server_runtime --source DIR --destination DIR [--map INDEX]...\n\
     [--game-graphs FILE] [--target-tags-xml DIR]\n\
-    \nCopy runtime inputs from a prepared local checkout into a new external directory.\n\
-    The optional target tags directory contains local DataTool .003 XML exports.";
+    \nCopy runtime inputs from a prepared local checkout or runtime pack into a new directory.\n\
+    The optional XML directory supplies target tags, component 92 metadata and catalog-selected NPC movers from local DataTool .003 exports.";
 
 struct Arguments {
     source: PathBuf,

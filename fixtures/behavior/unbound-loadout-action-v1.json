@@ -1,0 +1,27 @@
+{
+  "case_id": "statescript.unbound-loadout-action.v1",
+  "target_build": 104319,
+  "class": "STU_545AB3B8",
+  "evidence": "Original dispatch/resolver/base-Action execution with a registry rebuilt from the captured type keys; graph context, notifications and output traversal are adapters.",
+  "image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+  "native": {
+    "dispatch_rva": "0x1B74220",
+    "resolver_rva": "0x1B92DA0",
+    "base_action_rva": "0x1B6EBA0",
+    "typeinfo_rva": "0x2DEDFE8",
+    "registered_type_records": 1735,
+    "exact_type_registered": false,
+    "base_action_registered": true
+  },
+  "cases": [
+    {"invocation": 1, "out_plug_present": true, "return": 1},
+    {"invocation": 2, "out_plug_present": false, "return": 1}
+  ],
+  "host_assertions": "The dedicated Rust action returns true even with no output and never evaluates loadout, target or output-variable configs. Repeated host invocations are checked without claiming a native runtime cache implementation.",
+  "limits": [
+    "Synthetic exact-binding native controls establish a boundary, not an implemented host override API.",
+    "No loadout application, NPC category initialization, complete reaction animation or original-client acceptance is established.",
+    "Pinned to the captured default registry; alternate patched registrations are not covered."
+  ],
+  "client_acceptance": "pending"
+}
