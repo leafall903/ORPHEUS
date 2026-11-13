@@ -549,3 +549,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Actual zero-Punch stationary Trooper regression with1 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Trap actor, shield source clock and typed placement preview with15 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

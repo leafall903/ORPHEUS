@@ -185,3 +185,13 @@ Deliver the original235 actual zero-multiplier Punch regression together with it
 
 - `doomfist-zero-npc-regression`: original focused owner commit(s) `235065cfbf9962e15130bb282601526e7c291810`.
 - `doomfist-zero-npc-lazy-vm-fixture`: original focused owner commit(s) `eaf2520b995458b70eb86100531f7ce06bba8cdb`.
+
+## Trap actor, shield source clock and typed placement preview
+
+Integrate reviewed source-only increments: Junkrat original landed09BB actor and delayed/late-viewer component delivery, both stored-export schemas, strict identity-pitch support and authoritative particle-pool proxy mirroring; Sigma independent16ms world-clock barrier birth and original1B55 body-source descriptor (Pet72 remains controller); and Symmetra angle documentation plus separately reviewed shared raw-uint8 owner/observer codec and unique1571/156B preview begin0-confirm1-rebegin0 producer. Missing byte payload stays omitted; boolean/coercion is rejected. Preserve all earlier shared and hero changes using pinned patches and reverse-preimage checks. Fifteen selected composed executions pass:9 new distinct methods,5 maintained compatibility methods and1 already-counted teleport regression. Cumulative99 follow-up methods pass (86 new,13 modified compatibility), without implying full hero acceptance. Trap nonidentity rotation/component72 factory/native filters, shield native model/material, preview camera/model interactions, full shared receiver/control behavior and original-client acceptance remain open. Native instruction evidence and synthetic tests do not establish screen behavior. No current server/client change; latest consolidated Halloween scene-entry and story acceptance remain pending. Junkrat owner mapping covers19ce6cd2,cc7018aa,860bdfde and6ae92812; the combined patch uses reviewed current root context, never the private f5baa anchor.
+
+- `junkrat-landed-trap`: original focused owner commit(s) `19ce6cd22654503076a240b993018afd0367579e`.
+- `sigma-barrier-source-clock`: original focused owner commit(s) `6f572f29fdf29c47f3df917d5e149efe1bdb486b`.
+- `symmetra-teleport-angle-docs`: original focused owner commit(s) `d2ed7802b3f5818e179aa2a7b04fc5e9de0f0fc8`.
+- `placement-u8-shared-codec`: original focused owner commit(s) `6f64e13c9d762824d42dcbd91e559c8cc80ad284`.
+- `symmetra-placement-byte-producer`: original focused owner commit(s) `2cc02ef6543df636a228dd08d28d447f90840883`.

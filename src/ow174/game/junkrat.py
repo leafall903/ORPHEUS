@@ -8,7 +8,7 @@ the engine query mapping below are reconstructed; native presentation is open.
 import math
 from dataclasses import dataclass, replace
 
-from ow174.game import actors, barriers, bots, defenses, immunity, world
+from ow174.game import actors, barriers, bots, defenses, immunity, junkrat_actor, world
 from ow174.game.junkrat_charge import ChargeSystem
 from ow174.game.junkrat_tire import FIRST as TIRE_FIRST
 from ow174.game.junkrat_tire import Tire, TireSystem
@@ -105,6 +105,9 @@ class Trap(Mine):
     release_tick: int | None = None
     release_flag_seen: bool = False
     victim_status: runtime.Instance | None = None
+    actor_component: runtime.Component | None = None
+    actor_script: runtime.Instance | None = None
+    actor_projection: object = None
 
 
 class Junkrat:
@@ -257,6 +260,7 @@ class Junkrat:
                     self.combat.projectiles.flown(rocket.shot, rocket.flown)
                     rocket.shot = None
                 self.sync_pose(trap)
+                junkrat_actor.landed(self, trap)
                 from ow174.game.match import TEAM_BIT
 
                 trap.filter_bits = getattr(trap.creator, "team_bit", TEAM_BIT << trap.team)
@@ -356,6 +360,7 @@ class Junkrat:
                 self.retire(mine)
         self.drain_messages()
         self.update_traps()
+        junkrat_actor.sync(self)
         self.tire.update()
         self.charge.update()
 
@@ -486,6 +491,7 @@ class Junkrat:
             if fight.vitals_of(target).dead:
                 self.retire(trap)
                 continue
+            junkrat_actor.captured(self, trap)
             duration = trap.short_duration if self.target_flag(target, TRAP_SHORT_VAR) else trap.duration
             trap.release_tick = fight.tick + math.ceil(duration / TICK)
             status_graph = graph.graph(0x09BC)
@@ -564,6 +570,8 @@ class Junkrat:
         storage = self.traps if isinstance(mine, Trap) else self.mines
         if storage.pop(mine.entity, None) is not mine:
             return
+        if isinstance(mine, Trap):
+            junkrat_actor.retire(mine)
         if isinstance(mine, Trap) and mine.parked:
             for viewer in self.combat.match.players:
                 if viewer.spawned and viewer.client is not None:

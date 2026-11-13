@@ -87,7 +87,7 @@ from ow174.game import (
     zarya_barriers,
 )
 from ow174.game.script import healing_status, entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
-from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
+from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier, junkrat_actor
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LayeredWorld, LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
@@ -205,6 +205,7 @@ FIELDS = {
     ashe.Companions: _names("combat active unavailable_reason"),
     ashe.Impulses: _names("combat"),
     ashe.Dynamite: _names("combat grenades burns last_tick"),
+    junkrat_actor.TrapWorld: _names("hero mode manager trap damage_receipt"),
     junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
     junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
     junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "case_id": "placement-u8-codec-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "native_payload_reader": "1B72060 -> 1B71930",
+    "native_delta_gate": "A0C8A5..A0C9A7",
+    "registry_priority": 2,
+    "property": "B4802CE3 u8 at block+120, flags0",
+    "reader_adapters": "Synthetic TLS/CRT initialization and declared state lookup/dirty notification boundaries; original property visitor and primitive reader execute"
+  },
+  "evidence": "synthetic vectors verified by original instruction execution",
+  "client_acceptance": "pending",
+  "input": {
+    "classes": ["STU_4C96470A", "STU_43DB06B1"],
+    "bytes": [0, 1, 165, 255],
+    "owner_modes": [false, true],
+    "full_modes": [false, true]
+  },
+  "expected": {
+    "payload_bits": 8,
+    "inactive_delta_bits": 1,
+    "active_delta_bits": 9,
+    "field": "m_B4802CE3",
+    "missing_or_invalid": "reject; no default, clamp or bool coercion"
+  },
+  "boundary": "Codec layout only. A runtime producer must explicitly provide the uint8. Unmodeled empty payloads remain omitted. Original client camera/model/interaction acceptance is separate."
+}

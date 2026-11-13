@@ -1013,6 +1013,14 @@ def damage(fight, barrier, amount, *, attacker=0):
     barrier.component.set(253, remaining)
     owner_script = barrier.source.instances[barrier.instance]
     if barrier.component.world.hero == ZARYA:
+        # The compatibility collision proxy is another view of this same Pet
+        # pool. Body-directed impacts enter here without Barriers.damage(), so
+        # update the matching source/activation before callbacks or retirement.
+        for proxy in fight.barriers.live.values():
+            if (proxy.phase.instance.component is barrier.source
+                    and proxy.phase.instance.id == barrier.instance
+                    and proxy.phase.index == barrier.state and proxy.counter == barrier.activation):
+                proxy.health = remaining
         child = next((i for i in barrier.component.instances.values() if i.graph.index == 0x0256), None)
         if child is not None and dealt > 0 and attacker:
             params = {0x13: expr.f32(dealt), 0x12: expr.Entity(attacker)}

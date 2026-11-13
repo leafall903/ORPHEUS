@@ -3437,7 +3437,8 @@ class BodyScript(ReplicatedBody):
             return
         codec = family(cls)
         payload = state.payload() if codec != "none" else {}
-        if codec in ("value_slot", "linked_target", spray_placement.CODEC) and not payload:
+        if (codec in ("value_slot", "linked_target", "none+u8", spray_placement.CODEC)
+                and not payload):
             return
         snap.states[(owner, index)] = (cls, state.active, tuple(sorted(payload.items())))
 

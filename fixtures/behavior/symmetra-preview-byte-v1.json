@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-preview-byte-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "native_reader": "1B72060 / 1B71930",
+    "native_begin_reset": ["8E886C..8E888D", "8E9891..8E98B2"],
+    "native_typed_confirm": ["8E8AC0", "8E9990"],
+    "input_type": "STU_A1AAB8C4 m_6647ED22"
+  },
+  "evidence": "synthetic lifecycle contract checked against executed original instructions",
+  "client_acceptance": "pending",
+  "input": {
+    "initial_state": "living Symmetra with placement charge on a static flat scene",
+    "preview_frames": 4,
+    "photon_preview_frames": 10,
+    "post_break_idle_frames": 80,
+    "portal_button": 16,
+    "photon_button": 32,
+    "confirm_button": 1,
+    "seed": null,
+    "packet_loss_schedule": "separate wire probe uses immediate ACKs"
+  },
+  "expected": {
+    "payload_field": "m_B4802CE3",
+    "payload_bits": 8,
+    "begin_byte": 0,
+    "typed_confirm_byte": 1,
+    "native_byte_samples_preserved": [0, 1, 165, 255],
+    "portal_nodes": [69, 72],
+    "photon_nodes": [57]
+  },
+  "boundary": "This contract describes a uint8 lifecycle, not a bool codec. Prepared original graph and collision inputs are required by the actual-input tests and are not included. Native camera, model and interaction acceptance remains open."
+}

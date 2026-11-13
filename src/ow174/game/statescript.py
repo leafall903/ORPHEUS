@@ -359,7 +359,7 @@ class Stream:
 # writers below cover these codecs. tests/runtime/test_statescript_codecs.py reads each back with the table.
 WRITERS = {
     spray_placement.CODEC,
-    "linked_target",
+    "linked_target", "none+u8",
     "start",
     "none", "switch", "stack", "anim", "chase", "button", "ability", "targets", "volley", "subscript",
     "message", "send", "link", "hits", "flags13", "frames", "counter2", "pulser", "two_bits", "value_slot",
@@ -630,6 +630,11 @@ def write_payload(
     kind = family(cls)
     if kind == "start":
         signed_var(out, frame_time - payload["start"])
+    elif kind == "none+u8":
+        value = payload["m_B4802CE3"]
+        if type(value) is not int or not 0 <= value <= 255:
+            raise ValueError("m_B4802CE3 requires an explicit uint8")
+        out.bits(value, 8)
     elif kind == "switch":
         out.bit(payload.get("current", False))
     elif kind == "value_slot":
@@ -1084,6 +1089,11 @@ def remote_fields(cls: str, payload: dict) -> dict:
         return {"low": value & 63, "more": value >> 6 != 0, "high": value >> 6 & 127}
     if kind in ("link", "linked_target"):
         return {"link": get("link")}
+    if kind == "none+u8":
+        value = payload["m_B4802CE3"]
+        if type(value) is not int or not 0 <= value <= 255:
+            raise ValueError("m_B4802CE3 requires an explicit uint8")
+        return {"m_B4802CE3": value}
     if kind in ("frames", "value_slot"):
         return dict(payload)
     if kind in ("none", "stack", "send", "subscript", "targets", "start"):

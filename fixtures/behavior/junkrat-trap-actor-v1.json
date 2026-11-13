@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-trap-actor-v1",
+  "target_build": "104319",
+  "evidence": "authored-resource-reconstruction-and-encrypted-runtime",
+  "client_acceptance": "pending",
+  "source": {
+    "reference_revision": "f5baa2614b61f8f8793f7c677fe72212eb3ee094",
+    "definition": "103A initial0033 override199=100, then25B4",
+    "constructor": "09BA WeaponVolley7,11A9 projectile nested103A/09BB",
+    "entry": "09BB BB4AC733 node0, empty parameters, source body bound to40",
+    "boundary": "Compatibility combat owns damage/root; component72 relation remains unbound",
+    "pitch": "09BB node19/m_value id973=40AC5AE4(SELF); native CC8200 -> D1C220 -> C61F70 is scalar degrees; only transmitted identity pose is supported"
+  },
+  "input": {
+    "button": 16,
+    "pitch": 8192,
+    "step_ms": 16,
+    "steps": 370
+  },
+  "expected": {
+    "graphs": [
+      51,
+      9652,
+      2491
+    ],
+    "initial_health": 100,
+    "duration_seconds": 3,
+    "target_health": 120,
+    "creates_per_viewer": 1,
+    "destroys_per_viewer": 1,
+    "launches_per_viewer": 1,
+    "pitch_degrees": 0.0
+  }
+}

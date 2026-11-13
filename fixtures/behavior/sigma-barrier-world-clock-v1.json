@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-barrier-world-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/sigma_barrier.py"],
+    "reference": "Original1A2A/node45 timeout2 seconds; independent actor advanced at world ticks"
+  },
+  "evidence": "synthetic-runtime-regression",
+  "client_acceptance": "pending; no native model, sound or transform claim",
+  "input": {
+    "world_birth_frame": 1000,
+    "combat_frame_before_first_update": 0,
+    "owner_birth_frame": 9000,
+    "owner_command_step_ms": 32,
+    "world_step_ms": 16,
+    "frames": 130,
+    "input_order": "world update, owner command on even steps, victim command",
+    "seed": "no random timing operation",
+    "packet_loss": "none; no client"
+  },
+  "expected": {"wait_active_at_world_steps": {"90": true, "130": false}}
+}

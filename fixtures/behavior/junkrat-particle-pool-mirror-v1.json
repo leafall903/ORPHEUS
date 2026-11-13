@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-particle-pool-mirror-v1",
+  "target_build": "104319",
+  "evidence": "authored-pool-and-runtime-contact",
+  "client_acceptance": "pending",
+  "source": {
+    "reference_revision": "cc7018aaebdad8c5fcfd748ea7e39544f371460f",
+    "pool": "0256 StateHealthPool; actual component51 authoritative pool",
+    "consumer": "test_junkrat_traps personal/projected actual trap contacts",
+    "boundary": "Existing body-to-shield contact routing retained; this establishes pool/mirror consistency, not complete native target-filter or collision parity"
+  },
+  "input": {
+    "trap_damage": 80,
+    "personal_pool": 200,
+    "projected_pools": [
+      200,
+      50
+    ]
+  },
+  "expected": {
+    "personal_remaining": 120,
+    "projected_remaining": [
+      120,
+      0
+    ],
+    "protected_body_damage": 0,
+    "rooted": false,
+    "owner_hit_notice": false,
+    "broken_child_coverage": "retired on contact",
+    "idle_source_phase": "ended within two following world ticks under existing clock host"
+  }
+}

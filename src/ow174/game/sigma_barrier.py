@@ -297,9 +297,14 @@ def play_barrier_request(combat, body, instance, node):
         play.InvocationContext(body, body, instance.source_entity()))
     if request is None or request.targets != (barrier.entity,):
         return False
-    child = runtime.Component(barrier.entity, instance.component.frame_ms,
+    from ow174.game.combat import TICK
+
+    # This independent actor advances once per world tick, including when its
+    # owner sends32ms commands. Body construction can precede Combat's first
+    # update, so its stale tick must not become the actor's birth epoch.
+    child = runtime.Component(barrier.entity, round(TICK * 1000),
                               BarrierWorld(instance.component.world.mode, barrier))
-    child.frame, child.now = combat.tick, combat.tick * child.frame_ms
+    child.frame, child.now = combat.match.tick, combat.match.tick * child.frame_ms
     queue = play_queue.Queue(child, lambda _: play_queue.Load("ready", definition))
     queue.submit(request)
     barrier.component = child
@@ -307,6 +312,7 @@ def play_barrier_request(combat, body, instance, node):
     barrier.sync_pool()
     child.run_now()
     if barrier.child is not None:
+        barrier.child.set_source_entity(barrier.child.source_entity(), publish_source=True)
         barrier.child.write((expr.INSTANCE, 59), barrier.phase)
         child.run_now()
     return True

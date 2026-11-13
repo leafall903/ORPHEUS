@@ -204,13 +204,26 @@ _COMMON_CONTROLLER_BASE_STATES = (
 class BodyPlacement(State):
     """Explicit host placement; authoritative routing is reconstructed, not native preview."""
 
+    def on_begin(self):
+        from ow174.game import symmetra
+
+        symmetra.placement_wire_begin(self)
+
+    def payload(self):
+        from ow174.game import symmetra
+
+        value = symmetra.placement_wire_payload(self)
+        return super().payload() if value is None else value
+
     def plug_enter(self, input_path):
         if input_path != "m_6647ED22":
             return super().plug_enter(input_path)
         if not self.active or self.ending or self.instance.component.owner_dead:
             return True
+        from ow174.game import symmetra
         from ow174.game.script import placement
 
+        symmetra.placement_wire_confirm(self)
         component = self.instance.component
         world = component.world
         result = world.body_placement(self)
@@ -5851,6 +5864,9 @@ class PlacementPreview(Placement):
         return owns is not None and owns(self)
 
     def on_begin(self):
+        from ow174.game import symmetra
+
+        symmetra.placement_wire_begin(self)
         if self._delivered():
             return super().on_begin()
         refresh = getattr(self.instance.component.world, "refresh_compatible_placement", None)
@@ -5862,7 +5878,17 @@ class PlacementPreview(Placement):
             return super().tick()
         self.instance.component.world.refresh_compatible_placement(self, confirm=False)
 
+    def payload(self):
+        from ow174.game import symmetra
+
+        value = symmetra.placement_wire_payload(self)
+        return super().payload() if value is None else value
+
     def plug_enter(self, input_path):
+        if input_path == 'm_6647ED22' and self.active and not self.ending:
+            from ow174.game import symmetra
+
+            symmetra.placement_wire_confirm(self)
         if self._delivered():
             return super().plug_enter(input_path)
         if input_path == "m_6647ED22" and self.active:

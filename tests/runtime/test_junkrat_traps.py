@@ -68,7 +68,7 @@ class JunkratTrapTests(unittest.TestCase):
                     self.assertNotIn(rocket, self.fight.rockets)
                     self.assertFalse(deployables)
                     if button == 8:
-                        explode.assert_called_once_with(rocket, rocket.position)
+                        explode.assert_called_once_with(rocket, rocket.position, protected_out=set())
                         self.assertEqual((rocket.blast.amount, rocket.blast.rings), (120, ((3.0, 1.0),)))
                     else:
                         explode.assert_not_called()
@@ -272,7 +272,16 @@ class JunkratTrapTests(unittest.TestCase):
                     self.step(forward=127)
                 self.assertNotIn(trap.entity, self.fight.junkrat.traps)
                 self.assertEqual(bubble.health, max(0, pool - 80))
-                self.assertEqual(bubble.phase.active, pool > 80)
+                if pool > 80:
+                    self.assertTrue(bubble.phase.active)
+                else:
+                    # Child Pet coverage ends at the hit. The idle caster's
+                    # owner-frame phase completes at the mapped neutral gap.
+                    self.assertIsNone(self.fight.barriers.authored_for(zarya.body, bubble.phase))
+                    self.assertFalse(self.fight.barriers.live_source(bubble))
+                    self.step()
+                    self.step()
+                    self.assertFalse(bubble.phase.active)
                 self.assertEqual(self.health(self.run, self.enemy).total, 200)
                 self.assertFalse(self.fight.junkrat.rooted(self.enemy.body, self.run.frame))
                 self.assertFalse(self.player.client.messages(combat.HIT))
@@ -398,7 +407,9 @@ class JunkratTrapTests(unittest.TestCase):
                     self.assertTrue(self.fight.junkrat.rooted(self.enemy.body, self.run.frame))
                 self.assertEqual(tuple(self.enemy.mover.position), feet)
                 self.assertEqual(trap.release_tick, release)
-                self.assertEqual(health.total, 170)
+                # Original05FE supplies200 healing over4 seconds. Its existing
+                # host keeps healing while the separate trap root remains.
+                self.assertEqual(health.total, 250 if hero == "Mei" else 170)
                 self.step()
                 self.assertEqual(self.run.frame, release)
                 self.assertFalse(self.fight.junkrat.rooted(self.enemy.body, self.run.frame))
@@ -464,7 +475,10 @@ class JunkratTrapTests(unittest.TestCase):
         self.assertEqual(trap.release_tick - self.run.frame, 1)
         self.assertTrue(self.fight.junkrat.rooted(self.enemy.body, self.run.frame))
         expected = max(80 * scale - 5, 80 * scale / 2)
-        self.assertAlmostEqual(before - self.health(self.run, self.enemy).total, expected)
+        # Component51 totals are float32; at this pool size their rounding
+        # exceeds the old default seven-decimal comparison by a few micro-HP.
+        quantum = math.ldexp(1.0, math.frexp(before)[1] - 24)
+        self.assertAlmostEqual(before - self.health(self.run, self.enemy).total, expected, delta=quantum)
         self.step(forward=127)
         self.assertFalse(self.fight.junkrat.rooted(self.enemy.body, self.run.frame))
         self.assertNotIn(trap.entity, self.fight.junkrat.traps)

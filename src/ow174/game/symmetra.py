@@ -17,6 +17,32 @@ ORB_PROJECTILE = 0x04000000000026F1
 ORB_LIFETIME = 25.0  # 104319 projectile lifetime in seconds
 
 
+def _owns_placement_wire(state):
+    component = state.instance.component
+    return (not component.strict and component.world.hero == HERO
+            and (state.instance.graph.index, state.node.pos) in
+            ((0x1571, 69), (0x1571, 72), (0x156B, 57)))
+
+
+def placement_wire_begin(state):
+    if _owns_placement_wire(state):
+        # Priority2 8E886C/8E9891 reset the original uint8 on each begin.
+        state.symmetra_placement_byte = 0
+
+
+def placement_wire_confirm(state):
+    if _owns_placement_wire(state):
+        # Original A1AAB8C4 input (m_6647ED22), 8E8AC0/8E9990.
+        state.symmetra_placement_byte = 1
+
+
+def placement_wire_payload(state):
+    if not _owns_placement_wire(state):
+        return None
+    value = getattr(state, 'symmetra_placement_byte', None)
+    return {'m_B4802CE3': value} if type(value) is int and 0 <= value <= 255 else {}
+
+
 def view_world_tick(script, command, quanta):
     """Query world history through this body's actual owner/world epoch pair."""
     from ow174.game.combat import TICK
@@ -299,19 +325,21 @@ def teleport_body(world, instance, node):
     """Execute 1647's own-body relocation with explicit graph entry inputs.
 
     The portal's placement, pair membership and transit admission are separate
-    services. Preserve current orientation/velocity as this authored action asks.
-    Discontinuity/history handling is a reconstructed server policy.
+    services. The authored E3779CD0/C0EDD7EC providers read current scalar yaw
+    and pitch; neither is velocity. This narrow host preserves the current
+    orientation and velocity. Velocity preservation and discontinuity/history
+    handling are server policies, not a decoded native velocity parameter.
     """
     if world.match is None or instance.graph.index != 0x1647 or node.pos != 1:
         return NotImplemented
     if world.match.ended:
         return False
     target = node.field("m_target")
-    rotation, velocity = node.field("m_E3779CD0"), node.field("m_C0EDD7EC")
+    yaw, pitch = node.field("m_E3779CD0"), node.field("m_C0EDD7EC")
     if (not isinstance(target, dict) or target.get("$") != "STU_B5A0CAF0"
-            or not isinstance(rotation, dict) or rotation.get("$") != "STU_C8C4C20D"
-            or not isinstance(velocity, dict) or velocity.get("$") != "STU_40AC5AE4"
-            or rotation.get("m_entity") != target or velocity.get("m_entity") != target):
+            or not isinstance(yaw, dict) or yaw.get("$") != "STU_C8C4C20D"
+            or not isinstance(pitch, dict) or pitch.get("$") != "STU_40AC5AE4"
+            or yaw.get("m_entity") != target or pitch.get("m_entity") != target):
         return NotImplemented
     destination = instance.evaluate(node.field("m_AF774F7D"))
     if (not isinstance(destination, expr.Vec3)
