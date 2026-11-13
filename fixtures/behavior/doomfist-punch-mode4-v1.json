@@ -1,0 +1,54 @@
+{
+  "build": 104319,
+  "inputs": {
+    "distance": 3,
+    "hold_frames": 18,
+    "settle_frames": 70
+  },
+  "cases": [
+    {
+      "name": "default",
+      "caller_r": null,
+      "recipient_r": 7,
+      "k": 1,
+      "vertical": 1
+    },
+    {
+      "name": "caller_scaled",
+      "caller_r": 2,
+      "recipient_r": 7,
+      "k": 0.5,
+      "vertical": 2,
+      "retained_forward": [
+        0,
+        0.6,
+        0.8
+      ]
+    },
+    {
+      "name": "fortify",
+      "caller_r": null,
+      "recipient_r": 7,
+      "k": 0,
+      "queue_count": 0
+    }
+  ],
+  "expected": {
+    "mode": 4,
+    "vector_priority": 1,
+    "ground_braking": {
+      "index": 4,
+      "op": "MULTIPLY",
+      "value": 0.01,
+      "priority": 0
+    },
+    "air_braking": {
+      "index": 7,
+      "op": "MULTIPLY",
+      "value": 0,
+      "priority": 1
+    },
+    "braking_seconds": 0.32
+  },
+  "boundary": "Actual command fixtures bind r/response explicitly for nondefault admission. Original client acceptance remains pending."
+}

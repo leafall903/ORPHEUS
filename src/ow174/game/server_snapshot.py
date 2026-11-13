@@ -272,7 +272,8 @@ FIELDS = {
     observers.SceneBody: _names("component actions server_only latest_live terminal_snapshot"),
     photon_barrier.Geometry: _names("world triangles source"),
     photon_barrier.BarrierWorld: _names("hero mode actor"),
-    projectiles.Projectiles: _names("combat match shots observed next_field next_seen sigma_scripts"),
+    projectiles.Projectiles: _names(
+        "combat match shots retired_turrets observed next_field next_seen sigma_scripts"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
     observers.SceneBody: _names("component actions server_only latest_live terminal_snapshot"),
@@ -395,7 +396,7 @@ DATACLASSES = (
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile,
-    projectiles._ProjectileArrival, projectiles._ProjectileVolley,
+    projectiles._ProjectileArrival, projectiles._ProjectileVolley, projectiles._RetiredTurretThrow,
     RetainedFlight, scopes.History, scopes.Edge,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

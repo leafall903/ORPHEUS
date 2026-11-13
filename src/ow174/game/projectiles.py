@@ -342,6 +342,14 @@ class Shot:
     filter_bits: int | None = None  # source body's team/FFA bits captured with the volley
     clock_origin: tuple[int, int, int] | None = None  # immutable world tick, owner frame, owner frame ms
     entity: int | None = None  # shared identity for Sigma's authored projectile output
+    source_script: object | None = None  # launch VM retained only for turret alias retirement
+
+
+@dataclass
+class _RetiredTurretThrow:
+    shot: Shot
+    until: int
+    aliases: set[int]
 
 
 @dataclass(frozen=True)
@@ -396,6 +404,7 @@ class Projectiles:
         self.combat = combat
         self.match = combat.match
         self.shots: list[Shot] = []
+        self.retired_turrets: list[_RetiredTurretThrow] = []
         self.observed: list[_ObservedProjectile] = []
         self.next_field = 0
         self.next_seen = 0
@@ -543,6 +552,8 @@ class Projectiles:
         turret_carrier = (not npc and player.hero.guid == 0x02E0000000000006
                           and definition == 0x0400000000002931
                           and shot.spawn == 0x04000000000028B7)
+        if turret_carrier:
+            shot.source_script = player.body_script
         if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative or turret_carrier)
                 and origin is not None and direction is not None):
             self._show_others(shot, state, origin, direction, snapshot)
@@ -635,6 +646,10 @@ class Projectiles:
             # The landed actor owns construction and firing. Retire every
             # prediction alias without asking the carrier to spawn another one.
             self._end(shot, self.match.tick, explode=False)
+            if shot.source_script is not None and not any(item.shot is shot for item in self.retired_turrets):
+                until = max(self.match.tick, owner_to_world(shot.clock_origin, shot.frame + REPORT_WINDOW))
+                self.retired_turrets.append(_RetiredTurretThrow(
+                    shot, until + DELIVERY_GRACE_TICKS, set(shot.created)))
             return
         if shot.authoritative or shot.observer_only:
             for delivery in shot.observers:
@@ -685,15 +700,27 @@ class Projectiles:
                     delivery.finish(tick, False)
                 if shot in self.shots:
                     self.shots.remove(shot)
+        self.retired_turrets[:] = [item for item in self.retired_turrets if self._retired_turret(item, tick)]
         self.observed = [delivery for delivery in self.observed if delivery.advance(tick)]
 
-    def _step(self, shot: Shot, tick: int, first_tick: int) -> None:
-        player = shot.player
-        script = player.body_script
-        alive = player.client is not None and player.has_body and player.body == shot.body
-        if not alive or script is None:
-            self._end(shot, tick, explode=alive)
-            return
+    def _retired_turret(self, item: _RetiredTurretThrow, tick: int) -> bool:
+        shot, player = item.shot, item.shot.player
+        if (tick > item.until or player not in self.match.players or player.client is None
+                or not player.has_body or player.body != shot.body
+                or player.body_script is not shot.source_script):
+            return False
+        self._collect_reports(shot, shot.source_script)
+        updates = []
+        for entity in self._confirmation_ids(shot, tick):
+            if entity not in item.aliases:
+                item.aliases.add(entity)
+                updates.append(EntityUpdate(entity, OP_DESTROY))
+        if updates:
+            player.client.queue_entities(updates)
+        return tick < item.until
+
+    @staticmethod
+    def _collect_reports(shot: Shot, script) -> None:
         shot.reports[:] = [report for report in shot.reports if report.received is not False]
         key = (shot.instance, shot.state)
         for report in script.reports:
@@ -704,6 +731,15 @@ class Projectiles:
             ):
                 shot.reports.append(report)
         shot.seen_reports = script.report_count
+
+    def _step(self, shot: Shot, tick: int, first_tick: int) -> None:
+        player = shot.player
+        script = player.body_script
+        alive = player.client is not None and player.has_body and player.body == shot.body
+        if not alive or script is None:
+            self._end(shot, tick, explode=alive)
+            return
+        self._collect_reports(shot, script)
         if shot.spawn == FIELD_ENTITY:
             self._field(shot, tick, first_tick)
             return
@@ -720,7 +756,7 @@ class Projectiles:
                 and all(arrival.received for arrival in shot.created.values())):
             self._end(shot, tick, explode=True)
 
-    def _confirm(self, shot: Shot, tick: int) -> None:
+    def _confirmation_ids(self, shot: Shot, tick: int) -> list[int]:
         ready = [report for report in shot.reports if report.received is True]
         if ready:
             # A stop or repeat of an already acknowledged activation still
@@ -731,7 +767,7 @@ class Projectiles:
               and not shot.created):
             frames = [shot.frame]
         else:
-            return
+            return []
         new = []
         for frame in frames:
             entity = self.lease_id(shot.player, shot.definition, frame)
@@ -742,6 +778,10 @@ class Projectiles:
                     pellet = entity + offset
                     if pellet not in shot.created and pellet not in new:
                         new.append(pellet)
+        return new
+
+    def _confirm(self, shot: Shot, tick: int) -> None:
+        new = self._confirmation_ids(shot, tick)
         if not new:
             return
         if shot.created_tick is None:
@@ -760,7 +800,7 @@ class Projectiles:
             shot.player.name,
             shot.definition & 0xFFFF,
             shot.frame,
-            [report.cmfd for report in ready],
+            [report.cmfd for report in shot.reports if report.received is True],
             " ".join(f"{entity:08X}" for entity in new),
         )
 

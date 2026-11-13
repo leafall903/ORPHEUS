@@ -49,12 +49,24 @@ class ForceProducerTests(DoomfistFixture, unittest.TestCase):
             for _ in range(160):
                 self.run.step({})
         enemy = [e for e in events if e[0] == self.b.body]
-        self.assertEqual(len(enemy), 1)
-        entity, vector, kwargs, tick, accepted = enemy[0]
-        self.assertEqual(kwargs, {"impact_tick": tick, "source_entity": self.a.body})
         self.assertLess(self.vitals().total, before)
         self.assertEqual(len(self.a.client.messages(combat.HIT)), 1)
         self.assertEqual(self.fight.knockbacks.serial - serial, 0 if fortify else 1)
+        if skill == "punch" and fortify:
+            self.assertEqual(enemy, [])  # original helper66 gates action58 before submission
+            self.assertEqual(tuple(self.b.mover.position), start)
+            self.assertNotIn(self.b.body, self.fight.punches.controls)
+            return
+        self.assertEqual(len(enemy), 1)
+        entity, vector, kwargs, tick, accepted = enemy[0]
+        expected = {"impact_tick": tick, "source_entity": self.a.body}
+        if skill == "punch":
+            self.assertEqual(kwargs["velocity_mode"], 4)
+            self.assertEqual(kwargs["velocity_priority"], 1)
+            self.assertEqual(len(kwargs["launch_modifiers"]), 2)
+            expected.update({key: kwargs[key] for key in
+                             ("velocity_mode", "velocity_priority", "launch_modifiers")})
+        self.assertEqual(kwargs, expected)
         self.assertEqual(accepted, not fortify)
         if fortify:
             self.assertEqual(vector, (0, 0, 0))
@@ -65,7 +77,7 @@ class ForceProducerTests(DoomfistFixture, unittest.TestCase):
             if skill == "punch":
                 self.assertGreaterEqual(math.hypot(vector[0], vector[2]), 15)
                 self.assertLessEqual(math.hypot(vector[0], vector[2]), 30)
-                self.assertEqual(vector[1], 0)
+                self.assertEqual(vector[1], 1)
                 self.assertNotIn(entity, self.fight.punches.controls)
             elif skill == "slam":
                 self.assertAlmostEqual(math.hypot(vector[0], vector[2]), 3)

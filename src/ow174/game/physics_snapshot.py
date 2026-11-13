@@ -49,7 +49,7 @@ OBJECT_FIELDS = {
     Mover: MOVER_FIELDS,
     MoverData: DATA_FIELDS,
     Mod: ("index", "op", "value", "start", "end", "priority", "key"),
-    Change: ("frame", "index", "op", "value", "key", "priority"),
+    Change: ("frame", "index", "op", "value", "key", "priority", "mode"),
     Command: ("frame", "forward", "right", "yaw", "pitch", "buttons", "action", "extra", "subframe",
               "click_yaw", "click_pitch"),
     Snapshot: ("frame", "position", "velocity", "yaw", "pitch", "flags", "air_ticks", "gravity",

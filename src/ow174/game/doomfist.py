@@ -341,14 +341,37 @@ class Punches:
                     flat = math.hypot(dx, dz) or 1.0
                     direction = (dx / flat, 0.0, dz / flat)
                     scale = Slams._target_impulse_scale(target)
-                    impulse = expr.Vec3(*(v * dash.knockback * scale for v in direction))
-                    if self.combat.knockbacks.apply(
-                            target, impulse, impact_tick=self.combat.match.tick, source_entity=player.body):
-                        until = self.combat.now + dash.control_seconds
-                        self._control(target, until)
-                        self.impacts.append(
-                            Impact(player, player.body, target.entity, direction, dash.wall_damage, until),
+                    forward = instance.vars[2083].value()  # 0D06/87, retained PlayScript parameter111
+                    if scale > 0 and isinstance(forward, expr.Vec3):  # original0D07/66
+                        slot = instance.component.entity_var(10959, create=False)
+                        value = slot.value() if slot is not None else None
+                        # Helper entry40 is the caller; its entity10959 defaults only when null.
+                        response = 1.0 if value is None else expr.to_float(value)
+                        strength = expr.f32(expr.f32(dash.knockback * response) * scale)
+                        impulse = expr.Vec3(*(
+                            expr.f32(expr.f32(strength * axis) + vertical)
+                            for axis, vertical in zip(forward, (0, response, 0), strict=True)
+                        ))
+                        helper = graph.graph(0x0D07)
+                        action = helper.node(58).field('m_BC5E91CF')[0]
+                        seconds = expr.to_float(instance.evaluate(helper.node(47).field('m_timeout')))
+                        launch_modifiers = tuple(
+                            (mod['m_A9561CA0'], MULTIPLY,
+                             expr.to_float(instance.evaluate(mod['m_9B7A63EA'])), seconds,
+                             expr.to_float(instance.evaluate(mod.get('m_priority'))))
+                            for mod in helper.node(48).field('m_BC5E91CF')
                         )
+                        if self.combat.knockbacks.apply(
+                                target, impulse, impact_tick=self.combat.match.tick,
+                                source_entity=player.body, velocity_mode=action['m_CFEC5F76'],
+                                velocity_priority=expr.to_float(instance.evaluate(action.get('m_priority'))),
+                                launch_modifiers=launch_modifiers):
+                            until = self.combat.now + dash.control_seconds
+                            self._control(target, until)
+                            self.impacts.append(
+                                Impact(player, player.body, target.entity, direction,
+                                       dash.wall_damage, until),
+                            )
             self._finish(player, instance, dash)
         elif dash.blocked or dash.arrived or not state.active:
             self._finish(player, instance, dash)

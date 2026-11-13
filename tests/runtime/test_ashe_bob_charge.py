@@ -591,15 +591,26 @@ class BobChargeNpcTests(unittest.TestCase):
             run, owner, enemy = self.spawn(definition, 10)
             fight = run.match.combat
             owner.body_script.set_ult_charge(2240)
-            self.press(run, owner, 32, frames=1)
-            actor, = fight.companions.active.values()
-            while actor.phase == "charge" and run.frame <= actor.charge_until:
-                run.step({})
+            with patch.object(fight.knockbacks, "apply", wraps=fight.knockbacks.apply) as forces:
+                self.press(run, owner, 32, frames=1)
+                actor, = fight.companions.active.values()
+                while actor.phase == "charge" and run.frame <= actor.charge_until:
+                    run.step({})
+            forces.assert_called_once()
+            self.assertIs(forces.call_args.args[0].owner, enemy)
+            self.assertEqual(forces.call_args.kwargs["source_entity"], actor.bot.entity)
             self.assertEqual(actor.uppercut_target, enemy.entity)
-            impulse, = fight.impulses.pending[enemy.entity]
-            self.assertEqual(impulse.due_tick, run.frame + 1)
+            entity = enemy.entity
+            physical = fight.knockbacks.active[entity]
+            self.assertIs(physical, enemy.impulse_mover)
+            impulse, = (change for change in physical.velocity_changes if change.index == -1)
+            self.assertEqual(impulse.frame, run.frame + 1)
+            self.assertGreater(impulse.value[1], 0)
+            before = tuple(enemy.position)
             fight.companions.retire(owner.body)
             self.assertNotIn(actor.bot, run.match.bots)
+            self.assertIs(fight.knockbacks.active[entity], physical)
+            self.assertIn(impulse, physical.velocity_changes)
 
             component = enemy.body_script.component
             poses = []
@@ -613,7 +624,11 @@ class BobChargeNpcTests(unittest.TestCase):
                         run.step({})
                 movement = enemy.movement(run.frame)
                 self.assertEqual(bool(movement.flags & IN_AIR), airborne)
-                self.assertNotIn(enemy.entity, fight.impulses.pending)
+                self.assertEqual(enemy.entity, entity)
+                self.assertFalse(fight.knockbacks.has_pending(entity))
+                self.assertNotIn(impulse, physical.velocity_changes)
+                if airborne:
+                    self.assertGreater(enemy.position[1], before[1])
                 active = any(item.graph.index == 0x17F6 for item in component.instances.values())
                 self.assertEqual(active, airborne)
                 flag = component.entity_var(17932, create=False)

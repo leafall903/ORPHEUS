@@ -12,7 +12,7 @@ from dataclasses import replace
 from ow174.game import velocity
 from ow174.game.commands import Command
 from ow174.game.collision import MOVER, TEAM0, TEAM1
-from ow174.game.mover import ADD, Mover, mover_data
+from ow174.game.mover import ADD, MULTIPLY, SET, Mover, f32, mover_data
 from ow174.game.script import expr, nodes
 
 # Host event namespace, not the key construction of native FF3471E9.
@@ -71,15 +71,33 @@ class Knockbacks:
         self.whole_hog_motion = {}
 
     def apply(self, target, impulse, *, impact_frame: int | None = None,
-              impact_tick: int | None = None, source_entity: int | None = None):
+              impact_tick: int | None = None, source_entity: int | None = None,
+              velocity_mode: int = 1, velocity_priority: float = 0.0,
+              launch_modifiers: tuple = ()):
         """One force entry. impact_tick is world time; no source-clock conversion.
 
         impact_frame retains the old ambiguous contract for unmigrated callers.
         New producers must supply impact_tick and preserve HIT owner labels apart.
+        Optional finite modifiers share the actual recipient launch frame,
+        including delayed NPC admission; producers must not guess that clock.
         """
         from ow174.game import bots, correction
         from ow174.game.combat import TICK
 
+        if type(velocity_mode) is not int or velocity_mode not in (1, 4):
+            raise ValueError('unsupported external velocity mode')
+        if not math.isfinite(velocity_priority):
+            raise ValueError('finite velocity priority required')
+        velocity_priority = f32(velocity_priority)
+        launch_modifiers = tuple(tuple(row) for row in launch_modifiers)
+        if any(len(row) != 5 or not all(math.isfinite(v) for v in row)
+               or type(row[0]) is not int or not 0 <= row[0] <= 38
+               or type(row[1]) is not int or row[1] not in (ADD, MULTIPLY, SET)
+               or row[3] <= 0 for row in launch_modifiers):
+            raise ValueError('invalid finite launch modifier')
+        for row in launch_modifiers:
+            f32(row[2])
+            f32(row[4])
         if (not isinstance(impulse, expr.Vec3) or not all(map(math.isfinite, impulse))
                 or not any(impulse) or self.combat.vitals_of(target).dead):
             return False
@@ -117,7 +135,8 @@ class Knockbacks:
                 current = (mover.last_command.frame if controlled and mover.last_command is not None
                            else script.component.frame)
                 frame = max(current + 1, mapped + 1)
-        if not 0 <= frame <= 0xFFFFFFFF or self.serial >= 0xFFFFFFFF:
+        if (not 0 <= frame <= 0xFFFFFFFF or self.serial >= 0xFFFFFFFF
+                or any(frame + math.ceil(row[3] / TICK) > 0xFFFFFFFF for row in launch_modifiers)):
             return False
         self.retire_whole_hog(target.entity, forget=False)
         key = HOST_PREFIX | (self.serial + 1)
@@ -126,17 +145,17 @@ class Knockbacks:
                 if not hasattr(self, "pending_npc"):
                     self.pending_npc = {}
                 events = self.pending_npc.setdefault(owner.entity, [])
-                events.append((frame - 1, key, impulse))
+                events.append((frame - 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers))
                 events.sort()
             else:
-                self._start_npc(owner, frame - 1, key, impulse)
+                self._start_npc(owner, frame - 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
         else:
             expires = max(match.tick, impact_tick if impact_tick is not None else match.tick)
             expires += (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
             if not correction.request_motion(controller, first_frame=frame, body=target.entity,
                                              expires_tick=expires):
                 return False
-            self._enqueue(target.entity, mover, frame, key, impulse)
+            self._enqueue(target.entity, mover, frame, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
             if not controlled:
                 self.record_launch(target, source_entity=source_entity)
         self.serial += 1
@@ -408,8 +427,8 @@ class Knockbacks:
         key = HOST_PREFIX | self.serial
         frame = next((row.frame for row in mover.velocity_changes if row.key == key), None) if mover else None
         if frame is None:
-            frame = next((impact + 1 for impact, event_key, _impulse in getattr(self, "pending_npc", {}).get(entity, ())
-                          if event_key == key), None)
+            frame = next((event[0] + 1 for event in getattr(self, "pending_npc", {}).get(entity, ())
+                          if event[1] == key), None)
         if frame is None:
             # Fully resisted source launch still delivers its authored victim graph.
             if self.serial >= 0xFFFFFFFF:
@@ -451,13 +470,20 @@ class Knockbacks:
             script = owner.body_script
             mover.track_mods(self.combat.movement_mods(owner, statescript_mods(script.component)), script.component.frame)
 
-    def _enqueue(self, entity, mover, frame, key, impulse):
-        change = velocity.vector(frame, ADD, tuple(impulse), mover.velocity)
-        velocity.enqueue(mover.velocity_changes, replace(change, key=key))
+    def _enqueue(self, entity, mover, frame, key, impulse, velocity_mode=1,
+                 velocity_priority=0.0, launch_modifiers=()):
+        from ow174.game.combat import TICK
+
+        change = (velocity.projected(frame, tuple(impulse)) if velocity_mode == 4 else
+                  velocity.vector(frame, ADD, tuple(impulse), mover.velocity))
+        velocity.enqueue(mover.velocity_changes, replace(change, key=key, priority=velocity_priority))
+        for index, op, value, seconds, priority in launch_modifiers:
+            mover.add_timed_mod(index, op, value, frame, frame + math.ceil(seconds / TICK), priority=priority)
         self.active[entity] = mover
         mover.external_impulse = True
 
-    def _start_npc(self, bot, impact, key, impulse):
+    def _start_npc(self, bot, impact, key, impulse, velocity_mode=1,
+                   velocity_priority=0.0, launch_modifiers=()):
         mover = bot.impulse_mover
         if mover is None:
             from ow174.game import npc_navigation
@@ -470,7 +496,7 @@ class Knockbacks:
                           mover_data(bot.body), category=category)
             mover.velocity = tuple(bot.velocity)
             mover.last_command = Command(impact, yaw=mover.yaw)
-        self._enqueue(bot.entity, mover, impact + 1, key, impulse)
+        self._enqueue(bot.entity, mover, impact + 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
         bot.impulse_mover = mover
         bot.last_tick = impact
 
@@ -484,10 +510,10 @@ class Knockbacks:
             return
         if events:
             while events and events[0][0] <= tick:
-                impact, key, impulse = events.pop(0)
+                impact, key, impulse, velocity_mode, velocity_priority, launch_modifiers = events.pop(0)
                 if last_impact != impact:
                     bot.step(impact, seconds, collision, **movement)
-                self._start_npc(bot, impact, key, impulse)
+                self._start_npc(bot, impact, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
                 self.prepare_victim(bot, tick)
                 last_impact = impact
             if not events:

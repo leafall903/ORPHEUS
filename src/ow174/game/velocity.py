@@ -12,16 +12,18 @@ from ow174.game.mover import ADD, MULTIPLY, SET, f32
 from ow174.game.script.modifiers import insertion_index
 
 TINY = 1.1920928955078125e-5
+PROJECTED_MIN_SQUARE = 1.1754943508222875e-36  # original RVA25E1860, compared at C31FA6
 
 
 @dataclass(frozen=True)
 class Change:
     frame: int
-    index: int  # numeric0..3, or vector delta with index-1 (host tag, not a native slot)
+    index: int  # numeric0..3, or vector request index-1 (host tag, not a native slot)
     op: int
     value: float | tuple
     key: int | None = None
     priority: float = 0.0
+    mode: int = 1  # native vector mode1 delta; mode4 deferred projection floor
 
     @property
     def start(self):
@@ -37,6 +39,8 @@ def enqueue(changes, change):
     if (type(change) is not Change or type(change.key) is not int
             or not 0 <= change.key < 1 << 64 or not math.isfinite(change.priority)):
         raise ValueError("velocity queue requires a uint64 key and finite priority")
+    if (change.mode not in (1, 4) or change.mode == 4 and (change.index != -1 or change.op != SET)):
+        raise ValueError("unsupported velocity queue mode or projected operation")
     try:
         change = replace(change, priority=f32(change.priority))
     except OverflowError as error:
@@ -69,11 +73,12 @@ def scalar(current, operand, operation):
 
 
 def consume(velocity, jump_speed, changes, frame):
-    """Numeric slots32..35 in index order, then enqueue-time vector deltas.
+    """Numeric slots32..35 in index order, then stored vector requests.
 
 Input sequence is already ordered; only [frame, frame+1) rows act. Scalar3
 operates on vertical/jump_speed, not on jump height. Vector index1 requests
-have already been converted into full-vector deltas at enqueue time.
+have already been converted into full-vector deltas at enqueue time. Mode4
+SET2 instead raises the requested projection using this consumption velocity.
 """
     value = tuple(map(f32, velocity))
     active = [change for change in changes if change.frame == frame]
@@ -102,7 +107,21 @@ have already been converted into full-vector deltas at enqueue time.
             value = value[0], vertical, value[2]
     for change in active:
         if change.index == -1:
-            value = tuple(f32(axis + delta) for axis, delta in zip(value, change.value, strict=True))
+            if change.mode == 4:
+                requested = change.value
+                square = f32(sum(f32(axis * axis) for axis in requested))
+                if square < PROJECTED_MIN_SQUARE:
+                    continue
+                length = f32(math.sqrt(square))
+                if length <= 0.0:
+                    continue
+                direction = tuple(f32(axis / length) for axis in requested)
+                projection = f32(sum(f32(axis * unit) for axis, unit in zip(value, direction, strict=True)))
+                gap = f32(length - projection)
+                if gap > 0.0:
+                    value = tuple(f32(axis + f32(unit * gap)) for axis, unit in zip(value, direction, strict=True))
+            else:
+                value = tuple(f32(axis + delta) for axis, delta in zip(value, change.value, strict=True))
     return value
 
 
@@ -125,3 +144,10 @@ def vector(frame, operation, requested, current):
         target = scalar(previous, operand, operation)
         delta.append(f32(target - previous))
     return Change(frame, -1, ADD, tuple(delta))
+
+
+def projected(frame, requested):
+    """Mode4 SET2 retains the requested vector until C31F57-style consumption."""
+    if type(frame) is not int or frame < 0 or len(requested) != 3 or not all(map(math.isfinite, requested)):
+        raise ValueError("invalid projected velocity frame or vector")
+    return Change(frame, -1, SET, tuple(map(f32, requested)), mode=4)

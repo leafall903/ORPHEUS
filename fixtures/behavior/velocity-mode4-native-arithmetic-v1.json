@@ -1,0 +1,151 @@
+{
+  "build": 104319,
+  "consumerRVA": "C31F57-C32033",
+  "boundary": "Numeric input/output oracle from original104319 arithmetic; no native body eligibility or client acceptance.",
+  "cases": [
+    {
+      "case": "stationary",
+      "current": [
+        0,
+        0,
+        0
+      ],
+      "requested": [
+        0,
+        1,
+        15
+      ],
+      "resolved": [
+        0.0,
+        0.9999998807907104,
+        14.999998092651367
+      ]
+    },
+    {
+      "case": "already_faster",
+      "current": [
+        0,
+        2,
+        30
+      ],
+      "requested": [
+        0,
+        1,
+        15
+      ],
+      "resolved": [
+        0,
+        2,
+        30
+      ]
+    },
+    {
+      "case": "opposite",
+      "current": [
+        0,
+        -1,
+        -15
+      ],
+      "requested": [
+        0,
+        1,
+        15
+      ],
+      "resolved": [
+        0.0,
+        0.9999996423721313,
+        14.999994277954102
+      ]
+    },
+    {
+      "case": "orthogonal",
+      "current": [
+        4,
+        0,
+        0
+      ],
+      "requested": [
+        0,
+        1,
+        15
+      ],
+      "resolved": [
+        4.0,
+        0.9999998807907104,
+        14.999998092651367
+      ]
+    },
+    {
+      "case": "partway",
+      "current": [
+        0,
+        0.5,
+        7.5
+      ],
+      "requested": [
+        0,
+        1,
+        15
+      ],
+      "resolved": [
+        0.0,
+        1.0,
+        15.0
+      ]
+    },
+    {
+      "case": "mixed",
+      "current": [
+        5,
+        4,
+        0
+      ],
+      "requested": [
+        0,
+        1,
+        15
+      ],
+      "resolved": [
+        5.0,
+        4.982300758361816,
+        14.734511375427246
+      ]
+    },
+    {
+      "case": "zero_request",
+      "current": [
+        1,
+        2,
+        3
+      ],
+      "requested": [
+        0,
+        0,
+        0
+      ],
+      "resolved": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "case": "off_axis",
+      "current": [
+        2,
+        3,
+        -1
+      ],
+      "requested": [
+        9,
+        1,
+        12
+      ],
+      "resolved": [
+        10.641592025756836,
+        3.960176944732666,
+        10.522122383117676
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn-retired-throw-aliases-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "038c814e91d1760d38da5416a5066af0710b70f2",
+    "paths": ["src/ow174/game/projectiles.py"]
+  },
+  "evidence": "synthetic-delivery-schedule-with-prepared-actual-input-flight",
+  "client_acceptance": "pending",
+  "provenance": "A real host throw and landing followed by synthetic delayed OwnerReport outcomes. This establishes owner alias cleanup, not native duplicate-model, upgrade, weapon or lava acceptance.",
+  "input": {
+    "late_introduction_frame_offset": 2,
+    "second_introduction_frame_offset": 3,
+    "pending_report_received_at_landing": null,
+    "pending_report_received_after_landing": true,
+    "repeated_report_count": 2,
+    "destroy_loss_schedule": "drop first destroy datagram, acknowledge next datagram, retry destroy",
+    "identity": "original player, body and BodyScript",
+    "expiry": "max(landing_world_tick, world(shot_frame + REPORT_WINDOW)) + DELIVERY_GRACE_TICKS"
+  },
+  "expected": {
+    "new_actor_count_after_reports": 0,
+    "new_create_count_for_late_alias": 0,
+    "destroy_count_per_late_alias": 1,
+    "destroy_has_projectile_release": false,
+    "wrong_activation_destroy_count": 0,
+    "out_of_window_destroy_count": 0,
+    "replaced_script_destroy_count": 0,
+    "pending_reports_do_not_extend_expiry": true,
+    "lost_destroy_retried_without_create_or_release": true,
+    "retained_throw_count_after_expiry": 0
+  }
+}

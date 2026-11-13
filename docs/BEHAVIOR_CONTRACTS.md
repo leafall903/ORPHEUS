@@ -129,3 +129,15 @@ from their combat/PlayScript body source. Capture it once at allocation and do
 not infer it from a later owner body. The decoded owner/observer create and
 destroy regressions establish protocol inputs only; native model visibility
 and the original frozen-effect chain remain unaccepted.
+
+## Torbjorn retired throw aliases
+
+`fixtures/behavior/torbjorn-retired-throw-aliases-v1.json` specifies delayed owner
+report outcomes following an actual host throw and landing. The runtime consumer
+`tests/runtime/test_torbjorn_retired_aliases.py` verifies one non-explosive destroy
+per late alias, no subsequent create or actor spawn, a fixed report/grace deadline,
+and rejection after source-VM replacement. It also exports the stored terminal
+record with its original VM identity and verifies a lost destroy is retried through
+the production encrypted delivery queue. Prepared runtime data stays external.
+This contract does not establish native duplicate-model, upgrade, weapon or lava
+acceptance, or the unresolved original Pet source and VM initialization order.

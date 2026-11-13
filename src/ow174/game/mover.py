@@ -1027,13 +1027,17 @@ class Mover:
         self.spring_steps = (0, 0)
         self.landed = False
 
-    def add_timed_mod(self, index: int, op: int, value: float, start: int, end: int) -> None:
+    def add_timed_mod(self, index: int, op: int, value: float, start: int, end: int,
+                      *, priority: float = 0.0) -> None:
         """Publish the delivered finite modifier on the server tick clock."""
         # -1 already identifies scheduled impulse records in this unified mover.
+        if not math.isfinite(priority):
+            raise ValueError('finite movement modifier priority required')
+        priority = f32(priority)
         prefix = (-2, start)
         slot = max((key[2] for key in self.mods if key[:2] == prefix), default=-1) + 1
         key = (*prefix, slot)
-        self.mods[key] = Mod(index, op, f32(value), start, end, key=key)
+        self.mods[key] = Mod(index, op, f32(value), start, end, priority, key=key)
 
     def track_mods(self, active: dict, frame: int, *, posed: bool = True) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from test_ashe_knockback_r2 import AsheKnockbackR2Tests
+import test_ashe_knockback_r2 as ashe_fixture
 
 from ow174.game import combat, immunity
 from ow174.game.commands import Command
@@ -16,7 +16,7 @@ CONTRACT = json.loads(CONTRACT_PATH.read_text())
 
 class AsheOriginalRules735Tests(unittest.TestCase):
     def scene(self, hero):
-        stepper, run, owner, enemy, npcs = AsheKnockbackR2Tests().scene()
+        stepper, run, owner, enemy, npcs = ashe_fixture.AsheKnockbackR2Tests().scene()
         position = list(enemy.mover.position)
         run.match.switch_hero(enemy, heroes()[hero])
         enemy.mover.position = position
