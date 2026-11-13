@@ -484,17 +484,27 @@ class Companions:
 
         fight = self.combat
         for body, actor in list(self.active.items()):
-            if (actor.bot not in fight.match.bots or actor.bot.dead or tick >= actor.until
+            if (actor.bot not in fight.match.bots or actor.bot.dead or actor.bot.body_script is None
                     or actor.owner.body != body or actor.owner.gone):
                 self.retire(body)
+                continue
+            if tick >= actor.until:
+                component = actor.bot.body_script.component
+                phase = next((i for i in component.instances.values() if i.graph.index == 0x1537), None)
+                if phase is not None:
+                    component.run_frame(tick, [(20, False)])
+                if phase is None or not phase.node_state(phase.graph.node(39)).active:
+                    self.retire(body)
+                else:
+                    actor.phase = "retire"
         if not self.active:
             return
 
         # Unexpired actors must retain their whole charge path across update gaps.
         # Dropping early poses changes contact and the eventual gun position.
         actors = tuple(self.active.values())
-        # Expired actors were removed above; each actor replays at most its
-        # remaining authored lifetime, never the match's entire skipped history.
+        # Actors past their authored retirement were removed above; replay is
+        # bounded by the retained actor's lifetime rather than match history.
         first = min(max(actor.born, actor.last_tick) for actor in actors) + 1
         for at in range(first, tick + 1):
             for actor in actors:
@@ -504,6 +514,10 @@ class Companions:
 
         for actor in actors:
             bot = actor.bot
+            if actor.phase == "retire":
+                bot.firing = False
+                bot.body_script.component.shots.clear()
+                continue
             if bot.dead:
                 self.retire(actor.owner_body)
                 continue
@@ -518,7 +532,16 @@ class Companions:
                 continue
             if tick < actor.ready:
                 continue
-            actor.phase = "gun"
+            if actor.phase != "gun":
+                actor.phase = "gun"
+                component = bot.body_script.component
+                phase = next((i for i in component.instances.values() if i.graph.index == 0x1537), None)
+                if phase is not None:
+                    # The existing physical host has completed charge/settle.
+                    # Enter the authored gun stack; Wait35 owns retirement.
+                    component.run_frame(tick)
+                    phase.node_state(phase.graph.node(30)).begin()
+                    component.run_now()
             script = bot.body_script
             if script is None:
                 self.retire(actor.owner_body)

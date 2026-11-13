@@ -172,3 +172,9 @@ Extend finite-only admission to qualified current-tick stationary ordinary NPCs 
 - `descriptor-source-shared`: original focused owner commit(s) `924c17c35acfde7e1b4004f422855b5a9abe3649`.
 - `torbjorn-pool-descriptor-source`: original focused owner commit(s) `b7db3b6219edc31c2cd58e85129c9cc6c0ecb4a1`.
 - `widowmaker-mine-presentation`: original focused owner commit(s) `f616150d7ceb96e59847c447ef2bd71f6ba61b08`.
+
+## Original B.O.B. retirement phase lifecycle
+
+Integrate only Ashe198d original1536/node3 PlayScript request startup into the existing B.O.B. component, retaining caller, instigator, parameters and overrides. Align the VM to the physical phase before entering original Stack30; Wait35 naturally enters retirement Anim39 and Stack150/148, scopes entity6601 for the final half-second, unwinds and removes the actor once. Null6601 during Q, charge, settle and ordinary gun is correct and was never evidence for a blanket immunity flag. Preserve original first contact damage, gun damage, position, long-gap replay and owner duration scaling; no extra retirement-tail damage is added. Five related composed methods pass: one new, one modified compatibility and three retained. Cumulative84 selected follow-up methods pass (76 new,8 modified compatibility). Prior source-descriptor opt-in and Reaper delta behavior remain preserved; B.O.B. is not newly opted into descriptor publication. Original-client animation/path/receiver and Dynamite Physics/body association remain unaccepted. The separately applied zero-Punch NPC test currently has a fixture identity failure when previously absent other NPC scripts initialize normally; it is withheld from this delivery and is not counted as passing. Running735, prepared611 and the pending fresh Halloween acceptance remain unchanged.
+
+- `ashe-bob-original-retirement`: original focused owner commit(s) `198d07ef2232a9b6c5a28a0ad1861be0d41b249a`.

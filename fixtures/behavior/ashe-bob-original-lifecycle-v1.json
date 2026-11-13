@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-bob-original1537-retirement-lifecycle-v1",
+  "target_build": 104319,
+  "source": "Original1536/3 PlayScript1537 startup0, original phase30/1735, Wait35 ->156 ->Anim39 ->Stack150 ->148",
+  "evidence": "Actual ultimate offline production commands; original graph fields and ownership; no native-client acceptance",
+  "client_acceptance": "pending",
+  "input": {"ultimate_button": 32, "enemy_distance": 12, "step_seconds": 0.016},
+  "expected": {"contact_damage": 120, "contact_z": 10.9453125, "normal_q_6601": null,
+               "retire_anim_seconds": 0.5, "retire_steps": 32,
+               "retire_publisher_graph": 5431, "retire_publisher_node": 148,
+               "spawn_count": 1, "retire_count": 1, "retire_extra_damage": 0},
+  "limits": ["6601 is not a blanket Q/charge flag or blanket knockback immunity", "Native animation/path/receiver adoption remains pending"]
+}

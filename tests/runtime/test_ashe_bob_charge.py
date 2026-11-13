@@ -364,6 +364,10 @@ class BobChargeTests(unittest.TestCase):
             run.step({})
         self.assertIn(actor.bot, run.match.bots)
         run.step({})
+        self.assertEqual(actor.phase, "retire")
+        self.assertTrue(actor.bot.body_script.component.entity_var(6601).value())
+        for _ in range(math.ceil(0.5 / combat.TICK)):
+            run.step({})
         self.assertNotIn(actor.bot, run.match.bots)
         self.assertFalse(run.match.combat.companions.active)
 

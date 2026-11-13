@@ -2116,9 +2116,21 @@ class BodyWorld(runtime.World):
                 if not isinstance(position, Vec3) or not isinstance(direction, Vec3):
                     return False
                 charge_yaw = round(math.atan2(direction.x, direction.z) * 65536 / (2 * math.pi))
-                self.match.combat.companions.summon(player, charge_seconds=charge, gun_seconds=duration,
+                actor = self.match.combat.companions.summon(
+                    player, charge_seconds=charge, gun_seconds=duration,
                     charge_instigator=inherited if expr.valid_entity(inherited) else self.body,
                     position=tuple(position), charge_yaw=charge_yaw)
+                if actor is not None:
+                    resource = play.resolve_resource(instance, node)
+                    request = (play.resolve_request(instance, node, resource,
+                        context_provider=lambda: play.InvocationContext(self.body, self.body, inherited))
+                        if resource is not None else None)
+                    if request is not None and request.targets == (actor.bot.entity,):
+                        component = actor.bot.body_script.component
+                        component.play_loaded_graph(graph.graph(resource.guid & 0xFFFFFFFFFFFF),
+                            source=request.context.caller, instigator=request.context.instigator,
+                            policy=request.policy, params=request.params, overrides=resource.overrides)
+                        component.run_now()
             return True
 
         if self.match is not None and self.hero == photon_barrier.HERO:
