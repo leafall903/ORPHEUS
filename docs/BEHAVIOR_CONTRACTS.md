@@ -425,3 +425,7 @@ fifteen new methods (including two test-only protocol regressions) and four
 retained checks. These counts do not establish whole-hero or native acceptance.
 All summon colors, Soldier76 E, Mei Cryo and Halloween current-cut entry/story
 acceptance remain open. The user selected code merges only; no runtime restart.
+
+## Managed projectile source lifetime
+
+`fixtures/behavior/managed-projectile-source-v1.json` covers actual accepted E, the same moving flight, pending original0033/1502 allocation, independent physical birth and owner clocks, unique fuse/owner-shot dispatch and exact retirement. The strict full-server export retains one shared source/flight/component identity graph. A component-only observation excludes its enclosing source domain, following the existing world boundary policy. Source registration does not imply native +AC association, mass, receiver eligibility or Entry execution. Deflection/absorption source hooks have no new runtime acceptance in this change; their original motion/attribution branches stay intact. Native factory/context/clock/Physics/visual behavior and restoration remain open.

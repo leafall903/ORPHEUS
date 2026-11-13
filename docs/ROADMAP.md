@@ -618,3 +618,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Compose focused original source, viewer and force follow-ups with19 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Retain one managed projectile source lifetime with8 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

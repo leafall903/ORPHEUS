@@ -185,3 +185,5 @@ protocol-only regressions. Exact original commit mappings are recorded in
 CONSOLIDATED_DELIVERY_20261113.md. Synthetic fixtures accompany each contract;
 external game catalogs, research captures and private comparison assets remain
 outside published Git history. No native visual pass is implied.
+
+Managed projectile source research uses original104319 entity2533/component47 metadata (0033 with its authored health override, and1502), the native987140 source-directory request evidence, and the existing BE8E10 ComponentStartup implementation. Original Ashe lane0200 supplied the resource/producer qualification and narrow accepted-flight hooks. Model query geometry and source identity are separate from dynamic receiver mass; raw game assets and native execution logs remain external.

@@ -51,6 +51,7 @@ from ow174.game import (
     contacts,
     correction,
     dynamic_spheres,
+    managed_projectiles,
     echo_duplicate,
     genji,
     deflection,
@@ -138,6 +139,7 @@ FIELDS = {
     volskaya.Lift: _names("match base origin position scale rotation models offsets route_length "
                          "segment velocity blocked_riders attached_walls collider"),
     startup.ComponentStartup: _names("component definition instance_data graph_loader created"),
+    managed_projectiles.SourceWorld: _names("hero mode match body_definition source"),
     component86.Registry: _names("descriptors accepted_selections entries selection_entries"),
     possession_requests.Registry: _names("inputs accepted_selections _requests _selections"),
     distance_constraints.Registry: _names("_entries _sequence"),
@@ -186,7 +188,7 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "hooks zarya_charge_tick zarya_charge_ready zarya_melee_ready zarya_secondary_ready ball_mines sombra_charge translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns early_projectile_respawns pharah_airborne next_bot now tick melee_seen hammer_hits tesla_frames "
-        "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
+        "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns managed_source_generation "
         "pulse_bombs junkrat dynamite impulses companions venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers sigma_barrier_wire charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen beam_seen zarya_beam_world_ms reaper_blossoms reaper_shadows echo_duplicates barriers "
@@ -362,6 +364,7 @@ DATACLASSES = (
     ball_mines.Mine,
     assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,
+    managed_projectiles.Source,
     Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
     entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
     scene.SceneEntity, scene.Placement,

@@ -1802,6 +1802,11 @@ class Match:
         for bot in self.bots:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
+        from ow174.game import managed_projectiles
+
+        point = managed_projectiles.position(self, entity)
+        if point is not None:
+            return point
         actor = self.combat.barriers.world.actors.get(entity)
         if actor is not None:
             return expr.Vec3(*actor.point)

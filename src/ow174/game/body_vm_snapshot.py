@@ -29,6 +29,7 @@ from ow174.game.junkrat_actor import TrapWorld
 from ow174.game.venom_presentation import MineWorld as VenomMineWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
 from ow174.game.accretion import RockWorld
+from ow174.game.managed_projectiles import SourceWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
 from ow174.game.orisa_supercharger import DeviceWorld
@@ -665,7 +666,7 @@ class _Export:
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
                     PackWorld, ExperimentalBarrierWorld, RockWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld, TrapWorld,
                     VenomMineWorld, enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
-                    assassin_controller.Phase2World):
+                    assassin_controller.Phase2World, SourceWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -690,6 +691,8 @@ class _Export:
                 fields.add("barrier")
             if kind is RockWorld:
                 fields.add("rocket")
+            if kind is SourceWorld:
+                fields.update(("match", "body_definition", "source"))
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
             if kind in (SupportWorld, StatusWorld):
@@ -722,8 +725,12 @@ class _Export:
                 fields.update(npc_controller_storage.SCENE_WORLD_FIELDS)
                 fields.update(("fight", "body"))
                 optional = ("auto_scene", "auto_target", "sample")
+            excluded = {"match", "fight", "explosion_sink", "controller", "mover", "manager",
+                        "actor", "barrier", "mine", "rocket", "trap"}
+            if kind is SourceWorld:
+                excluded.add("source")  # The enclosing server owns the same flight/source record.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier", "mine", "rocket", "trap"})}
+                    "fields": self.fields(obj, fields, optional, exclude=excluded)}
         if kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
             return {"class": "builtins.dict.get", "identity": self.identity(obj),
                     "owner": self.value(obj.__self__)}

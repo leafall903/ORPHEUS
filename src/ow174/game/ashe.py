@@ -152,6 +152,8 @@ class Grenade:
     absorb_damage: float = 0.0
     matrix_absorbable: bool | None = None
     poses: dict[int, tuple] = field(default_factory=dict)
+    managed_source: object | None = None
+    detonating: bool = False
 
 
 @dataclass
@@ -755,6 +757,8 @@ class Dynamite:
 
     def fired(self, shooter, origin, direction, speed, shot=None, *, fuse_seconds, absorb_damage=0.0,
               launch_tick=None):
+        from ow174.game import managed_projectiles
+
         tick = self.combat.tick
         self.last_tick = max(self.last_tick, tick)
         born = tick if launch_tick is None else min(tick, launch_tick)
@@ -765,6 +769,8 @@ class Dynamite:
         grenade.matrix_absorbable = (definition in self.combat.matrix_definitions
             if self.combat.matrix_definitions is not None else self.combat.projectile_tags.admitted(definition))
         self.grenades.append(grenade)
+        managed_projectiles.register(fight=self.combat, manager=self, flight=grenade,
+                                    definition=definition, born_world_tick=born)
         grenade.poses[born] = grenade.position
         # Owner prediction starts at the volley command, not packet reception or
         # confirmation ACK. Catch up a delayed throw before later commands aim at it.
@@ -782,12 +788,16 @@ class Dynamite:
         return grenade
 
     def retire(self, body):
+        from ow174.game import managed_projectiles
+
         active = self.grenades[:]
-        self.grenades[:] = [item for item in self.grenades if item.body != body]
+        self.grenades[:] = [item for item in self.grenades if item.body != body or item.detonating]
         for key, burn in tuple(self.burns.items()):
             if burn.source == body or burn.target == body:
                 self._end_burn(key)
         for item in active:
+            if item.body == body and not item.detonating:
+                managed_projectiles.retire(item)
             shot = item.shot
             # Deflect changes the combat body while the delivery keeps the launch body.
             if shot is not None and (item.body == body or shot.body == body):
@@ -850,7 +860,7 @@ class Dynamite:
             item.poses[self.combat.tick] = item.position
 
     def _move_step(self, item):
-        from ow174.game import contacts
+        from ow174.game import contacts, managed_projectiles
         from ow174.game.collision import MOVER
         from ow174.game.combat import aim, ray_capsule
 
@@ -904,6 +914,7 @@ class Dynamite:
             defender = target.owner
             if absorbed:
                 self.grenades.remove(item)
+                managed_projectiles.retire(item)
                 if guard is not None and guard.instance.graph.index == absorption.GRASP:
                     fight.absorption.absorbed(guard, HitDef(item.absorb_damage, None), None, item.body)
                 elif guard is not None and guard.instance.graph.index == 0x02CC:
@@ -932,38 +943,45 @@ class Dynamite:
         return BLAST_MAX + (BLAST_MIN - BLAST_MAX) * fraction
 
     def detonate(self, item):
+        from ow174.game import managed_projectiles
         from ow174.game.combat import HitDef, Rocket
 
-        if item not in self.grenades:
+        if item.detonating or not any(active is item for active in self.grenades):
             return False
-        blast_tags = _dynamite_tags(0x1502, 15)
-        burn_tags = _dynamite_tags(0x150F, 1)
-        self.grenades.remove(item)
-        fight = self.combat
-        if item.shot is not None:
-            fight.projectiles.flown(item.shot, (fight.tick - item.born) * TICK)
-        blast = HitDef(BLAST_MAX, LOADOUT, rings=((INNER_RADIUS, 1.0), (BLAST_RADIUS, BLAST_MIN / BLAST_MAX)),
-                       self_scale=0.5, tags=blast_tags)
-        rocket = Rocket(item.shooter, item.team, item.position, (0, 0, 1), 0, 0, None, blast,
-                        source_body=item.body)
-        affected = set()
-        fight._explode(rocket, item.position, victims_out=affected)
-        for target in fight._targets():
-            if target.entity not in affected or fight.vitals_of(target).dead or self._burn_ends(target):
-                continue
-            own = target.owner is item.shooter and target.entity == item.body
-            for key in tuple(self.burns):
-                if key[1] == target.entity:
-                    self._end_burn(key)
-            burn = Burn(
-                item.shooter, item.body, target.entity, fight.tick,
-                fight.tick + math.ceil(BURN_SECONDS / TICK),
-                fight.tick + math.ceil(BURN_STEP / TICK), BURN_TOTAL * (0.5 if own else 1.0) / 20,
-                tags=burn_tags,
-            )
-            self.burns[item.body, target.entity] = burn
-            self._start_burn_effect(burn, target)
-        return True
+        item.detonating = True
+        try:
+            blast_tags = _dynamite_tags(0x1502, 15)
+            burn_tags = _dynamite_tags(0x150F, 1)
+            fight = self.combat
+            if item.shot is not None:
+                fight.projectiles.flown(item.shot, (fight.tick - item.born) * TICK)
+            blast = HitDef(BLAST_MAX, LOADOUT,
+                           rings=((INNER_RADIUS, 1.0), (BLAST_RADIUS, BLAST_MIN / BLAST_MAX)),
+                           self_scale=0.5, tags=blast_tags)
+            rocket = Rocket(item.shooter, item.team, item.position, (0, 0, 1), 0, 0, None, blast,
+                            source_body=item.body)
+            affected = set()
+            fight._explode(rocket, item.position, victims_out=affected)
+            for target in fight._targets():
+                if target.entity not in affected or fight.vitals_of(target).dead or self._burn_ends(target):
+                    continue
+                own = target.owner is item.shooter and target.entity == item.body
+                for key in tuple(self.burns):
+                    if key[1] == target.entity:
+                        self._end_burn(key)
+                burn = Burn(
+                    item.shooter, item.body, target.entity, fight.tick,
+                    fight.tick + math.ceil(BURN_SECONDS / TICK),
+                    fight.tick + math.ceil(BURN_STEP / TICK), BURN_TOTAL * (0.5 if own else 1.0) / 20,
+                    tags=burn_tags,
+                )
+                self.burns[item.body, target.entity] = burn
+                self._start_burn_effect(burn, target)
+            return True
+        finally:
+            self.grenades[:] = [active for active in self.grenades if active is not item]
+            item.detonating = False
+            managed_projectiles.retire(item)
 
     @staticmethod
     def _start_burn_effect(burn, target):

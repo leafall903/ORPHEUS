@@ -2320,6 +2320,7 @@ class Combat:
         self.pharah_airborne: set[int] = set()
         self.deadeye_notices = []  # (killer, victim, script, root, shot frame, deadline)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
+        self.managed_source_generation = 0
         self.next_barrier = barriers.FIRST_ENTITY
         self.now = 0.0
         self.tick = 0
@@ -2386,6 +2387,7 @@ class Combat:
     def allocate_combat_entity(self):
         entity = self.next_bot
         if (not bots.BOT_ENTITY <= entity < 0xD0000000 or entity in self.deployables
+                or entity in self.match.body_components
                 or any(bot.entity == entity for bot in self.match.bots)):
             raise ValueError("deployable entity allocator collided or exhausted")
         self.next_bot += 1

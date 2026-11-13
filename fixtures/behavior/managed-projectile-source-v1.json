@@ -1,0 +1,14 @@
+{
+  "targetBuild": 104319,
+  "provenance": "Synthetic lifecycle contract using actual accepted E, existing flight, owner shot/fuse and original external2533/component47 metadata. No game assets included.",
+  "definition": "0x0400000000002533",
+  "pendingGraphs": [51, 5378],
+  "source": "One managed identity and opaque server generation for the same authoritative Grenade object",
+  "clock": "Capture physical birth tick; original component Entry clock remains unqualified and pending",
+  "associationKnown": false,
+  "associatedComponent": null,
+  "massKnown": false,
+  "dispatchLifetime": "Live through the existing unique explosion/burn dispatch, retired afterward even on failure",
+  "nativeFactoryAccepted": false,
+  "physicsReceiverAccepted": false
+}
