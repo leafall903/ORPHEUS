@@ -8,7 +8,7 @@ query lifecycle, separate PhysicsExplosion and full status dispatch remain open.
 
 import math
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ow174.game import bots, correction, orisa_charge, orisa_clock, orisa_halt, projectiles, wraith
 from ow174.game.commands import Command
@@ -37,6 +37,7 @@ class Orb:
     pulled: bool = False
     query: orisa_halt.PullQuery | None = None
     origin: tuple | None = None
+    actor_generations: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -353,6 +354,9 @@ class Orisa:
                 self._finish(orb, "detonated")
             elif orb.query is not None:
                 orb.query.instance.component.run_frame(tick)
+        from ow174.game import orisa_presentation
+
+        orisa_presentation.sync_orbs(self.fight)
         for entity, pull in tuple(self.pulls.items()):
             if not self._valid(pull, tick):
                 self._drop(entity)

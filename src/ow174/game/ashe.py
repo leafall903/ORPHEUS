@@ -490,9 +490,12 @@ class Companions:
         if not self.active:
             return
 
-        # Complete each retained pose tick before testing contact at the next.
+        # Unexpired actors must retain their whole charge path across update gaps.
+        # Dropping early poses changes contact and the eventual gun position.
         actors = tuple(self.active.values())
-        first = max(min(actor.last_tick for actor in actors) + 1, tick - 624)
+        # Expired actors were removed above; each actor replays at most its
+        # remaining authored lifetime, never the match's entire skipped history.
+        first = min(max(actor.born, actor.last_tick) for actor in actors) + 1
         for at in range(first, tick + 1):
             for actor in actors:
                 if at > actor.last_tick and not actor.bot.dead:

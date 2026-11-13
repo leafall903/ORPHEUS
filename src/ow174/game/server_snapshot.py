@@ -342,7 +342,8 @@ OPTIONAL_FIELDS = {
     driver.BodyWorld: _names("healing_tick passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
     driver.BodyScript: _names("charge_clock passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending grapple_interrupt_frame ball_birth cryo_birth ana_birth soldier_birth mercy_birth winston_birth symmetra_birth genji_birth roadhog_birth junkrat_birth dva_birth orisa_birth brigitte_birth moira_birth moira_neutral_window ashe_birth echo_birth sigma_birth mccree_birth torbjorn_birth"),
     knockback.Knockbacks: _names("pending_npc pending_victims"),
-    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning "
+                   "_last_hit_notice_frame _actor_create_acks"),
     Player: _names("impulse_correction motion_correction_target motion_correction_deadline motion_correction_floor valkyrie_pose"),
     npc_navigation.Navigator: _names("charge_contact"),
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),

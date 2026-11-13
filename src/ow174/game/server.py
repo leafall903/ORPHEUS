@@ -195,6 +195,7 @@ class Client:
         self._combat_notice_tail: dict[int, int] = {}  # last promoted reliable ordinal per body
         self._last_hit_notice_frame: int
         self._bot_scripts: dict[int, _BotScriptDelivery] = {}
+        self._actor_create_acks: dict[int, int] = {}
         self._npc_idle: dict[int, world.EntityUpdate] = {}  # last sent idle pose, pending or ACKed
         self._body_destroy_wait: dict[int, tuple[world.EntityUpdate, int]] = {}
         self._player_body_reuse_after: dict[int, float | None] = {}  # None until destroy ACK
@@ -272,6 +273,34 @@ class Client:
         """The current bot lifetime's registered stream, even before its baseline ACK."""
         script = self._bot_scripts.get(entity)
         return script.stream if script is not None and entity not in self._body_destroy_wait else None
+
+    def actor_generation(self, entity: int) -> int | None:
+        """The currently queued live create generation, without claiming its ACK."""
+        generation, alive = getattr(self, "_entity_lifecycles", {}).get(entity, (0, False))
+        return generation if alive and entity not in self._body_destroy_wait else None
+
+    def bind_actor_component(self, entity: int, projection, *, generation: int) -> bool:
+        """Attach a late component to this existing actor; never create its model again."""
+        if (self.closed or self.leaving_since is not None or self.player.client is not self
+                or type(generation) is not int or self.actor_generation(entity) != generation
+                or not isinstance(projection, observers.SceneBody)
+                or projection.component.entity != entity):
+            return False
+        existing = self._bot_scripts.get(entity)
+        if existing is not None:
+            return getattr(existing.source, "component", None) is projection.component
+        stream = BodyStream(entity)
+        initial = projection.latest_live
+        snapshot = self._project_bot_snapshot(initial, initial=True)
+        frame = projection.initial[0] if snapshot is initial else observers.full_frame(projection, snapshot)
+        stream.full(frame, snapshot)
+        self._bot_scripts[entity] = _BotScriptDelivery(stream, projection)
+        if self._actor_create_acks.get(entity) == generation:
+            self._combat_notices.setdefault(entity, None)
+            self.queue_entities([stream.full_update])
+        else:
+            self._combat_notices.setdefault(entity, deque(maxlen=MAX_PENDING_COMBAT_NOTICES))
+        return True
 
     def queue_mode_frame(self, frame: BitWriter) -> None:
         """Send the mode UI only once its entity exists on the client."""
@@ -572,6 +601,9 @@ class Client:
         return True
 
     def _ack_entity_create(self, entity: int) -> None:
+        generation = self.actor_generation(entity)
+        if generation is not None:
+            self._actor_create_acks[entity] = generation
         if entity == self.player.entity and not self._own_controller_acked:
             self._own_controller_acked = True
             possession = self._pending_possessions.get(entity)
@@ -653,6 +685,7 @@ class Client:
             self.queue_entities(ready)
 
     def _forget_body(self, entity: int) -> None:
+        self._actor_create_acks.pop(entity, None)
         self._npc_idle.pop(entity, None)
         self._combat_notices.pop(entity, None)
         self._discard_display_notices(entity)

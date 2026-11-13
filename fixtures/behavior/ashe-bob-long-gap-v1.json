@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-bob-retained-charge-long-gap-v1",
+  "target_build": 104319,
+  "source": {
+    "baseline_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "original": "1536 factory and1537 authored charge/idle profiles; current physical mover host"
+  },
+  "evidence": "synthetic command-to-physical-path server regression; no native-client path acceptance",
+  "client_acceptance": "pending",
+  "input": {
+    "ultimate_button": 32,
+    "enemy_distance": 150,
+    "step_seconds": 0.016,
+    "update_batches": [[1], [350, 350], [700]],
+    "dense_step_count": 700
+  },
+  "expected": {
+    "position": [0, 1, 60.474609375],
+    "phase": "gun",
+    "stop": "timeout",
+    "ready_offset": 313,
+    "until_offset": 938,
+    "duplicate_endpoint_update_moves": false
+  },
+  "predecessor": {"single_update_z": 57.591796875, "lost_path_metres": 2.8828125},
+  "scope": "Physical path and phase deadlines only. Gun shot cadence, moving-target replay and native visibility/adoption remain separate."
+}

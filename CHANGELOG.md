@@ -1,5 +1,11 @@
 # Changelog
 
+## Orisa late actor stream and B.O.B. long-gap path
+
+Select the reviewed Orisa shared late-component API proposal and its original0CCC caller. Reuse the existing actor create generation, create ACK and BodyStream to publish the same existing orb component once; reject stale generations and foreign components, preserve pre-ACK silence and normal destroy cleanup. Two actual encrypted peer tests pass with no second actor creation. Integrate Ashe a66ef322 long-gap companion catch-up bounded by each existing actor lifetime: dense, split and single700-frame actual ultimate paths now agree, including wall-contact readiness/expiry and single create/retire. One new composed actual-input method covers those schedules; the owner also retains an existing42-frame opposing-charge check. Three new composed methods pass; cumulative49 distinct selected follow-up methods pass (46 new,3 modified compatibility). Native orb effects and B.O.B. adoption are unverified. The legacy B.O.B. pending test has an obsolete Impulses.pending interface error and is not counted as passing; its owner is adapting the actual canonical path. Mode4 remains isolated infrastructure awaiting its actual Punch producer. All earlier native/shared gaps remain open; frozen cuts and running735 are unchanged.
+
+Owner commit mapping: docs/CONSOLIDATED_DELIVERY_20261113.md. External runtime inputs and native evidence remain outside Git.
+
 ## Pharah primary physical-impact target history
 
 Integrate the focused Pharah75da5d9 target-history patch without its private baseline. Delayed original0033 primary contact, splash and force selection use retained physical-impact body poses, preserving replacement guards and all other projectile policies. Two new actual-input regressions pass on the composed source; cumulative46 distinct selected follow-up methods pass (43 new,3 modified compatibility). The existing outgoing HIT frame1036 is retained only as a no-regression observation, not native clock-domain acceptance. Native force adoption and intermittent wall passage remain open, as do all earlier hero and shared receiver gaps. The d059/409219 cut and running735 remain unchanged; latest source needs a separate freeze and fresh Halloween entry/story acceptance.

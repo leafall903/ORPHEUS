@@ -19,6 +19,9 @@ def projection(fight, entity):
     barrier = fight.orisa_barriers.active.get(entity) or fight.orisa_barriers.retiring.get(entity)
     actor = barrier or fight.orisa.superchargers.active.get(entity)
     if actor is None or actor.component is None:
+        orb = fight.orisa.orbs.get(entity)
+        if orb is not None and orb.query is not None:
+            return observers.SceneBody(orb.query.instance.component)
         return None
     body = observers.SceneBody(actor.component)
     if barrier is not None:
@@ -27,6 +30,28 @@ def projection(fight, entity):
         # the declared VM value; keep that exception local to Orisa barriers.
         body.latest_live.vars[(0, 253)] = (barrier.component.entity_var(253).value(), ())
     return body
+
+
+def sync_orbs(fight):
+    """Publish original0CCC on its already-created projectile, under one actor lifetime."""
+    for orb in fight.orisa.orbs.values():
+        if orb.query is None or orb.rocket.shot is None:
+            continue
+        body = projection(fight, orb.entity)
+        for delivery in orb.rocket.shot.observers:
+            client = delivery.viewer.client
+            bind = getattr(client, "bind_actor_component", None)
+            if client is not delivery.client or bind is None:
+                continue
+            binding = orb.actor_generations.get(delivery.viewer.slot)
+            if binding is None:
+                generation = client.actor_generation(orb.entity)
+                if generation is None:
+                    continue
+                binding = client, generation
+                orb.actor_generations[delivery.viewer.slot] = binding
+            if binding[0] is client and bind(orb.entity, body, generation=binding[1]):
+                client.queue_bot_live(orb.entity, body.latest_live)
 
 
 def sync(manager):
