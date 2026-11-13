@@ -372,3 +372,14 @@ exports are covered. Cleanup preserves original output12105 while removing the
 cached actor. Original descriptor/instruction qualification is distinct from
 live native factory/renderer acceptance; neither new connections nor camera,
 effect/model visibility or team colors are accepted by these offline tests.
+
+## Lucio effect caster source
+
+`fixtures/behavior/lucio-effect-source-identity-v1.json` records actual Crossfade
+and Sound Barrier inputs with synthetic protocol fixtures. Receiver descriptors
+and the persistent Crossfade controller publish the actual caster body as
+source, while caller/owner remain the recipient. Owner baseline/H1, friendly
+and enemy H0 and the existing late create-ACK path retain this source. Caster
+and recipient team bits remain unchanged. These are source-identity transport
+checks; rendered friend/enemy palette selection remains unverified. Soldier76 E,
+Mei Cryo and other heroes are outside this evidence.

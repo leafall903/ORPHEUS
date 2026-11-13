@@ -306,8 +306,8 @@ class Auras:
         """Bridge actual0267's self PlayScript to persistent, policy0 actual07C7.
 
         Legacy permissive actions otherwise skip PlayScript. Keep this bounded
-        to the known self-targeted status action; arbitrary world routing and
-        native inherited invocation/transport context remain unimplemented.
+        to the known self-targeted status action and inherit its instigator.
+        Arbitrary world routing remains outside this host.
         """
         from ow174.game.script import play
 
@@ -325,10 +325,13 @@ class Auras:
         definition = graph.graph(resource.guid & 0xFFFF)
         if definition is None:
             raise ValueError("Crossfade requires actual07C7 movement controller")
+        instigator = instance.source_entity()
         controller = component.play_loaded_graph(
             definition, source=component.entity, overrides=resource.overrides, policy=0,
+            instigator=instigator,
         )
         if controller is not None:
+            controller.set_source_entity(instigator, publish_source=True)
             controller.update()
 
     def refresh(self, command_frame=None):
@@ -385,6 +388,7 @@ class Auras:
                     instance = component.create(
                         child, values={(graph.INSTANCE, 27): expr.Entity(source.entity)},
                     )
+                    instance.set_source_entity(source.entity, publish_source=True)
                     lease = self.leases[key] = Lease(instance, fight.tick)
                 recipients.setdefault(component, []).append((key, lease, script.component.now))
         for key in list(self.leases):

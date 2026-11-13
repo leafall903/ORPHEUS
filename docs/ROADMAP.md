@@ -609,3 +609,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Reaper Shadow Step healthless destination actor lifetime and delivery with3 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Publish the original caster source for Lucio receiver effects with2 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

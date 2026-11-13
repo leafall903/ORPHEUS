@@ -306,6 +306,7 @@ class SoundBarriers:
             receiver = component.create(
                 definition, values={(graph.INSTANCE, 27): expr.Entity(player.body)},
             )
+            receiver.set_source_entity(player.body, publish_source=True)
             runtime.send_instance_message(receiver, 0x024000000000000F,
                                           {0x2B: wave.duration}, player.body)
             receiver.update()

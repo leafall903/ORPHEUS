@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "lucio-effect-source-identity-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "paths": ["src/ow174/game/lucio.py", "src/ow174/game/sound_barrier.py"]
+  },
+  "evidence": "synthetic-protocol",
+  "client_acceptance": "pending",
+  "input": {
+    "caster_team": 1,
+    "enemy_team": 0,
+    "warmup_commands": 30,
+    "cast_button": 32,
+    "held_commands": 5,
+    "cast_commands": 80,
+    "initial_charge": 2940
+  },
+  "expected": {
+    "source_identity": "caster-body",
+    "caller_and_owner": "recipient-body",
+    "descriptor_source": "caster-body",
+    "recipient_team_changed": false,
+    "observer_paths": ["owner-baseline-and-H1", "friendly-H0", "enemy-H0", "late-enemy-create-ACK-H0"]
+  },
+  "scope": "Actual Crossfade and Sound Barrier inputs retain their real instigator in native instance descriptors. Source-body team bits remain unchanged; rendered color and palette selection need a trusted original client."
+}
