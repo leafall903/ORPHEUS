@@ -1028,13 +1028,13 @@ class Mover:
         self.landed = False
 
     def add_timed_mod(self, index: int, op: int, value: float, start: int, end: int,
-                      *, priority: float = 0.0) -> None:
-        """Publish the delivered finite modifier on the server tick clock."""
+                      *, priority: float = 0.0, frame_clock: bool = False) -> None:
+        """Publish a finite modifier on the explicit world or recipient-frame clock."""
         # -1 already identifies scheduled impulse records in this unified mover.
         if not math.isfinite(priority):
             raise ValueError('finite movement modifier priority required')
         priority = f32(priority)
-        prefix = (-2, start)
+        prefix = (-3 if frame_clock else -2, start)
         slot = max((key[2] for key in self.mods if key[:2] == prefix), default=-1) + 1
         key = (*prefix, slot)
         self.mods[key] = Mod(index, op, f32(value), start, end, priority, key=key)
@@ -1052,7 +1052,7 @@ class Mover:
             else:
                 mod.value, mod.priority = value, priority
         for key, mod in list(self.mods.items()):
-            if key[0] == -2:
+            if key[0] in (-2, -3):
                 continue
             if key not in active and mod.end is None:
                 mod.end = frame + 1
@@ -1225,10 +1225,11 @@ class Mover:
         frame = command.frame
         active = []
         for key, mod in list(self.mods.items()):
-            if key[0] == -2:
-                if tick >= mod.end:
+            if key[0] in (-2, -3):
+                at = frame if key[0] == -3 else tick
+                if at >= mod.end:
                     del self.mods[key]
-                elif mod.acts(tick):
+                elif mod.acts(at):
                     active.append(mod)
             elif mod.acts(frame):
                 active.append(mod)

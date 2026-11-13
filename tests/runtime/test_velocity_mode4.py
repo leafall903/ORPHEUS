@@ -109,4 +109,11 @@ class ProjectedVelocityTests(unittest.TestCase):
             self.assertFalse(mod.acts(row.frame+20))
         fixture.step(run, 0, 9000)
         self.assertGreater(victim.mover.velocity[2], 14.)
+        self.assertGreater(victim.mover.data.decel_ground_base, 0.)
+        self.assertAlmostEqual(victim.mover.values.decel_ground_base,
+                               victim.mover.data.decel_ground_base * .01, delta=1e-6)
         self.assertEqual(fight.knockbacks.serial, 1)
+        for _ in range(20):
+            fixture.step(run, 0, 9000)
+        self.assertEqual(victim.mover.values.decel_ground_base, victim.mover.data.decel_ground_base)
+        self.assertFalse(any(m.index in (4, 7) for m in victim.mover.mods.values()))

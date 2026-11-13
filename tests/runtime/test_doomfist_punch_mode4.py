@@ -35,7 +35,7 @@ class PunchMode4Tests(DoomfistFixture, unittest.TestCase):
             dash = self.fight.punches.dashes[self.a.body]
             accepted = original(target, vector, **kwargs)
             mover = self.fight.knockbacks.active.get(target.entity)
-            mods = tuple(mod for key, mod in mover.mods.items() if key[0] == -2) if mover else ()
+            mods = tuple(mod for key, mod in mover.mods.items() if key[0] == -3) if mover else ()
             events.append((tuple(vector), kwargs, instance.vars[2083].value(), dash.knockback, mods))
             return accepted
 

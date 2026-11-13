@@ -3507,11 +3507,15 @@ class BodyScript(ReplicatedBody):
                 continue
             previous = dict(was[2]) if was is not None else {}
             counter = state.payload["counter"]
-            if (counter, state.payload["start"]) != (previous.get("counter"), previous.get("start")):
+            introduced = (counter, state.payload["start"]) != (previous.get("counter"), previous.get("start"))
+            if introduced:
                 # A single-shot volley can finish in the frame that introduces it.
                 keys.add((_VOLLEY_INTRODUCTION, *key))
+            ended_reaper_shell = (introduced and not state.active and self.hero == 0x02E0000000000002
+                                  and (graphs[owner].index, index) == (0x0019, 6))
             # The last acknowledged frame can still show a previous activation as on.
-            if state.active and (was is None or not was[1] or previous["counter"] != counter):
+            if (ended_reaper_shell
+                    or (state.active and (was is None or not was[1] or previous["counter"] != counter))):
                 self._volley_start(snap, owner, index, wire, entity_vars, keys)
         for item in snap.instances:
             wire(item).events = [EventWire(*event) for event in snap.events.get(item, ())]

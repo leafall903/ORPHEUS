@@ -478,7 +478,8 @@ class Knockbacks:
                   velocity.vector(frame, ADD, tuple(impulse), mover.velocity))
         velocity.enqueue(mover.velocity_changes, replace(change, key=key, priority=velocity_priority))
         for index, op, value, seconds, priority in launch_modifiers:
-            mover.add_timed_mod(index, op, value, frame, frame + math.ceil(seconds / TICK), priority=priority)
+            mover.add_timed_mod(index, op, value, frame, frame + math.ceil(seconds / TICK),
+                                priority=priority, frame_clock=True)
         self.active[entity] = mover
         mover.external_impulse = True
 

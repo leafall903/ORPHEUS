@@ -554,7 +554,12 @@ class Projectiles:
                           and shot.spawn == 0x04000000000028B7)
         if turret_carrier:
             shot.source_script = player.body_script
-        if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative or turret_carrier)
+        supercharger_carrier = (not npc and player.hero.guid == 0x02E000000000013E
+                                and state.instance.graph.index == 0x0CF5
+                                and definition == 0x0400000000001CCB
+                                and shot.spawn == 0x040000000000174E)
+        if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative
+                         or turret_carrier or supercharger_carrier)
                 and origin is not None and direction is not None):
             self._show_others(shot, state, origin, direction, snapshot)
         return shot
@@ -642,6 +647,13 @@ class Projectiles:
 
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
+        if shot.definition == 0x0400000000001CCB and shot.spawn == 0x040000000000174E:
+            # The original carrier has a model, while the server separately
+            # creates174E. Let a late observer launch finish its brief flight;
+            # retire the carrier without a second impact/deployable release.
+            self._end(shot, self.match.tick, explode=False, drain=True,
+                      visual_ticks=math.ceil(seconds * 1000 / FRAME_MS))
+            return
         if shot.definition == 0x0400000000002931 and shot.spawn == 0x04000000000028B7:
             # The landed actor owns construction and firing. Retire every
             # prediction alias without asking the carrier to spawn another one.
@@ -808,12 +820,12 @@ class Projectiles:
         """Retire the original prediction without an explosion release."""
         self._end(shot, tick, explode=False)
 
-    def _end(self, shot: Shot, tick: int, explode: bool) -> None:
+    def _end(self, shot: Shot, tick: int, explode: bool, *, drain=False, visual_ticks=0) -> None:
         """End the shot, release its owner copies and field entities, and retire observer deliveries."""
         if shot in self.shots:
             self.shots.remove(shot)
         for delivery in shot.observers:
-            delivery.finish(tick, explode)
+            delivery.finish(tick, explode, drain=drain, visual_ticks=visual_ticks)
         for (slot, _), entity in shot.field_ids.items():
             viewer = next((player for player in self.match.players if player.slot == slot), None)
             if viewer is not None and viewer.client is not None:

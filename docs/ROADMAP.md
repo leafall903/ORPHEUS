@@ -531,3 +531,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Deferred Punch projection and terminal projectile cleanup with20 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Recipient modifier clock and original owner projections with6 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

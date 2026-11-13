@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "case_id": "reaper-ended-shell-projection-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "Formal inherited source digest e1da76b6e8026cd06e5907b360176e4ac6bff812575e02f488a1e8df96cf9974",
+    "provenance": "Actual Reaper0019 input and production BodyStream queued chunks with immediate ACK in FakeClient. Original counter branch under supplied flags, ammo sampling and planned-shot arithmetic are separately executed from104319 image. Native flag/actor/lifecycle binding and rendered animation remain unverified; this is a bounded owner projection repair.",
+    "paths": ["src/ow174/game/script/driver.py", "src/ow174/game/script/nodes.py"]
+  },
+  "client_acceptance": "pending",
+  "input": {"shells": 8, "spacing_frames": 32, "tail_frames": 12, "victim_health": 2000},
+  "expected": {"introduction_ammo": [8, 7, 6, 5, 4, 3, 2, 1], "settled_ammo": 0}
+}
