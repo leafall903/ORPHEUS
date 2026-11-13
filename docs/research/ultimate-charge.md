@@ -11,7 +11,8 @@ by a game message, each scaled by ruleset keys. The cost is in the same points.
 
 ORPHEUS does not play those nodes. It charges by its own code, which filled every meter in 60 s.
 The passive now adds 5 points a second, as the graph does. The charge from combat is still a
-placeholder, and what the graph's messages carry is not decoded yet.
+placeholder. The graph gives a point for a point of damage dealt and of healing done, and has no
+entry for an elimination.
 
 An earlier version of this note said no graph adds charge. That was wrong: the scan behind it
 looked at a truncated list and at an XML dump that leaves expressions out.
@@ -61,21 +62,40 @@ is held on by graph `01C7` while one of the mode's standing messages reaches the
 
 ### What the hero does
 
-Three message entries add an amount the message carries:
+Read from data. Four message entries add an amount the message carries:
 
-| Entry | Path | What the node sets |
-|---|---|---|
-| `00EB.025` | nodes 11, 18 | node 19: `clamp(#342e + #499 * valueOr(#9532e, 1), 0, #338e)` |
-| `0044.025` | nodes 34, 80, 85, 35, 21 | node 32: `min(#338e, #342e + #499 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
-| `0148.025` | nodes 54, 12, 5, 65, 28, 22, 17 and on | node 23: `min(#338e, #342e + #336 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
+| Message | Who posts it | What it carries | What `0B8B` sets |
+|---|---|---|---|
+| `0012.025` | no graph: the engine. 124 entries in 109 graphs take it | damage dealt: the amount (`0013.0A4`), the body hit (`0015.0A4`), the hit's tags (`003D.0A4`) | node 23: `min(#338e, #342e + #336 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
+| `0148.025` | no graph. Only `0B8B` takes it | the same three parameters | node 23 too, and only when the tags hold identifier `090D` |
+| `0044.025` | no graph: the engine. 16 graphs take it | healing done: the amount (`0040.0A4`), the body healed (`003F.0A4`), a kind (`0041.0A4`) | node 32: `min(#338e, #342e + #499 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
+| `00EB.025` | eight SendGameMessage nodes: `006B` 189, `0B9E` 80, `0CBC` 28 and 135, `0D1D` 5, `0F9D` 106, `157F` 14, `22F0` 3 | an amount (`002A.0A4`) | node 19: `clamp(#342e + #499 * valueOr(#9532e, 1), 0, #338e)` |
 
-On the way to node 23 the amount `#336` is reduced: node 84 takes `STU_A6B80C63()` off it down
-to zero, node 60 halves it and node 98 takes a quarter off, each under a condition. Every path
-also tests `#2426e`, and all three test `!#842e`.
+What the two engine messages are is read from their other listeners and from ORPHEUS's own code.
+Reaper's graphs `0016` and `0019` take `0012` and add its amount to a counter. Graph `0071` takes
+`0044`, keeps a sum by the body named in `003F.0A4` and tests that this body is not the owner.
+And `junkenstein_ai.summoner_damage_event` already feeds applied damage to the Summoner's `0B8B`
+as `0012` with exactly these parameters.
 
-So at the default scales one point of the amount is one point of charge. What each message
-means and what its amount is are not established: who posts them is not decoded. Damage dealt and
-healing done are the likely amounts, and a bonus for an elimination could arrive the same way.
+The damage path, from `0012` to node 23:
+
+1. Node 53: the body hit must pass one of four tests. It carries filter bit 0, or target tag
+   `02ED`, or it is hostile and carries one more tag, or it is hostile and passes a condition.
+   Bit 0 is what the server gives a hero's body (see [TrackTargets](track-targets.md)).
+2. Nodes 30 and 36: the hit's tags must not hold identifier `01FD` or `025A`.
+3. Node 5: the body hit must not have its variable 6442 set. Node 65: `#12321e` must be off.
+4. Node 28: `STU_A58C1E63` of the body hit and the owner, the body hit without its variable 602,
+   and `!#842e`. Node 22: `#2426e`.
+5. Node 84 takes `STU_A6B80C63()` off the amount, down to zero. Then node 60 halves it or node
+   98 takes a quarter off, each under a `STU_25ECB55F` test, or neither.
+6. Node 23 adds what is left.
+
+The healing path, from `0044` to node 32: the kind must not be identifier `0292` or `025A`, the
+body healed must not have its variable 17625 set, then `!#842e` and `#2426e`.
+
+So at the default scales a point of damage dealt to a hero's body, or of healing done, is a point
+of charge, before the reductions of step 5. No entry of `0B8B` takes an elimination, and none of
+the eight senders of `00EB` was read for what it grants.
 
 ### Full, empty and the HUD
 
@@ -142,8 +162,11 @@ Differences from the graph that remain:
 - The ruleset keys are not applied. ORPHEUS loads schema defaults only, so each would read 1.0.
 - A graph that changes the cost later keeps the time resolved at spawn.
 - The charge from combat is a placeholder in `ult_charge.py`: 380 damage fills any meter and an
-  elimination adds 20%. The graph adds a point for a point of a message's amount; until the
-  senders are decoded it is not shown what damage, healing or an elimination give.
+  elimination adds 20%. The graph gives a point for a point of damage dealt to a hero's body and
+  of healing done, with the tests above, and nothing for an elimination.
+- Feeding a player's `0B8B` the damage message, as the Summoner's is fed, adds nothing yet: with
+  the gate held on, one `0012` of 100 damage left the charge where it was. Node 53's filters are
+  the likely stop, since `STU_AC829876` is answered only in Hack's graph on a player's body.
 - Reaper, Hanzo, Pharah and Winston have no ultimate state the server finds, so their passive
   never pauses while their ultimate runs. That is older than this change.
 
@@ -159,6 +182,8 @@ rounded down. Not checked: another hero, another mode, and the meter in a fight.
 
 ## Not decoded
 
-Who posts the messages `0012`, `00EB`, `0044`, `0148`, `0011`, `0013`, `0067`, `0610` and `14F2`
-and what each means, why the server's instance of the loop stays off, and the evaluators
-`STU_A3DEF368`, `STU_A58C1E63`, `STU_25ECB55F` and `STU_A6B80C63`.
+What `0148` is and who posts it, what each of the eight senders of `00EB` grants, the native
+code that posts `0012`, `0044`, `0011` and `0013`, why the server's instance of the loop stays
+off, and the evaluators `STU_A3DEF368`, `STU_A58C1E63`, `STU_25ECB55F` and `STU_A6B80C63`. By
+their use here, `STU_A58C1E63` reads as "hostile to" and `STU_25ECB55F` as "carries this target
+tag"; neither was read in code.
