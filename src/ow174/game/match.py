@@ -51,6 +51,7 @@ from ow174.game import (
     notices,
     orisa_charge,
     pools,
+    pve,
     sigma_barrier,
     stats,
     world,
@@ -877,6 +878,7 @@ class Match:
         self.tick = 0  # the server's frame number, set every tick
         self._npc_planning_turn = 0
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
+        self.mission_ends: float | None = None  # Uprising: when its defend phase ends (pve.director)
         self.assembled = False
         self.players: list[Player] = []
         self._body_messages: list[tuple] = []
@@ -1642,6 +1644,8 @@ class Match:
                 self._body_frames(player, client)
             if self.assembling() and player.steps_done >= 4 and now >= player.next_countdown:
                 self._send_countdown(player, now)
+            if self.mission_ends is not None and player.steps_done >= 4 and now >= player.next_countdown:
+                self._send_mission(player, now)
             if player.steps_done >= 4:
                 self._send_board(player, now)
                 if (player.hero.guid if player.has_body else None) != player.controller_hero:
@@ -1680,6 +1684,7 @@ class Match:
                     and self.assemble_ends is None):
                 self.assemble_ends = now + ASSEMBLE_SECONDS
                 log.info("[game] %s: assemble your team, %d s", self.label(), ASSEMBLE_SECONDS)
+            self._start_mission(now)
         if player.steps_done == 3 and waited >= SEND_CONTROLLER:
             if scene_ready and not player.mode_script.delivered:
                 return
@@ -1710,6 +1715,29 @@ class Match:
         )
         player.client.queue_mode_frame(frame)
 
+    def _start_mission(self, now: float) -> None:
+        """Uprising's defend phase starts once heroes are assembled: the hero select counts down on the
+        same variable. A mode that assembles none starts it with its first spawn."""
+        if self.mission_ends is not None or self.assembling():
+            return
+        seconds = pve.defend_seconds(self.game_map.mode_guid, self.game_map.map_guid)
+        if seconds is not None:
+            self.mission_ends = now + seconds
+            log.info("[game] %s: defend phase shown, %d s", self.label(), seconds)
+
+    def mission_left(self, now: float) -> float | None:
+        """Seconds of Uprising's defend phase left, 0 once it is over; None when no mission is shown."""
+        return None if self.mission_ends is None else max(0.0, self.mission_ends - now)
+
+    def _send_mission(self, player: Player, now: float) -> None:
+        """The mission's phase on the game mode entity. The defend clock is sent as it runs; the escort
+        frame goes once, as nothing in it changes yet."""
+        left = self.mission_left(now)
+        player.next_countdown = now + COUNTDOWN_EVERY if left else math.inf
+        player.client.queue_mode_frame(combat.mode_frame(
+            {}, self.game_map.mode_guid, self.game_map.map_guid, mission=left,
+        ))
+
     def _end_assemble(self, now: float) -> None:
         """The countdown is over: the screens of the players who have a hero close, and the skin
         selector goes."""
@@ -1722,6 +1750,7 @@ class Match:
             if player.has_body:
                 player.select_open = False
             self.send_controller(player)
+        self._start_mission(now)
 
     # --- the player's statescript --------------------------------------------------------------
 

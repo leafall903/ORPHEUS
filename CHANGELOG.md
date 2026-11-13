@@ -1,5 +1,25 @@
 # Changelog
 
+## Uprising shows its defend and escort phases
+
+- An Uprising match puts the phase's director graph on the game mode entity: `0D4A` once the
+  heroes are assembled, with the mode entity's `#1303` counting 240 s down once a second, then
+  `0D4B` under the next instance index when the clock reaches zero. The client draws "DEFEND THE
+  PAYLOAD" with the time remaining, then "ESCORT THE PAYLOAD" with its progress bar.
+- This is a presentation driven by hand, not the mission: the directors' server states do not
+  run. There is no payload, the escort bar stays empty and the mission does not end.
+- Other modes are unchanged: the director is sent only under Uprising's mode script `0D28`, and
+  only when the pack holds both directors.
+- Runtime tests: the frames with and without a director, the escort director's new index, other
+  modes and a pack without the directors, the clock waiting for the hero select, and the escort
+  frame going once.
+- Evidence gap: no retail capture of these frames exists. The graphs and the layout come from
+  the client's data and from what the original client drew.
+- This is a port of work first done on another branch, where the original client showed both
+  phases. Original-client acceptance on this source is pending.
+- The stock map data gives King's Row (Uprising) no spawn point. A pack needs the map's four start
+  rows before the server can host it; the map extractor's start-marker rule gives them.
+
 ## Isolate Zarya relay private Entity field dictionaries (batch72)
 
 Integrate direct71 original Zarya01017eb5 guarded relay private-Entity storage repair. Only barriers.relay_bubble_energy changes: shallow-copy incoming params and, only when exact type of attacker value0x12 is expr.Entity, rebox the same numeric entity id before the existing send_instance_message. This isolates the two private VM record field dictionaries while keeping sender,2A,other values, order and original energy behavior; no generic sender/schema/checker/driver/server_snapshot/clock change. All438tracked src entries define the canonical inventory:436 under src/ow174 plus2 outside; only barriers differs, so437other src and435other ow174 entries remain71. Mei/Rein/Zarya clock branches and nodes/H0 remain unchanged. Legal encrypted personal bubble plus actual enemy M1 produced two original0256/10 to0242/5 energy messages, same attacker numericid with distinct private wrappers/dicts,20plus20 energy, pool200to160/body400 protected and same-phase strict export in one original narrow sample. Strict export only: full restore/native EntityABI/HIT/FX/projected bubble/knockback/Q/model/allhero/performance remain OPEN. The executed owner test was pre-Ruff61b6 while committed is a125; non-import AST/import set equality does not establish import-order effects. Executed fixture CRLF10597 versus committed LF568da differs only EOL. Do not claim all3committed byteposts were executed together; original runtimepost/runner/profile/actual sample bindings and raw artifacts remain distinct. Owner pre-import root ERROR handler captures propagated records only. Exact formal72 later must run only the new committed method once with actual3committed posts/HEAD/runner/env/profile/log/ERROR before publication; no owner/AGG/clock or historical-suite replay. One additional method prospectively gives365selected=344new+21maintained, a cumulative selection inventory rather than all365executed now. The composition-stage record is static; exact formal checks and publication are recorded separately. Candidate isolated headless/outgoing and root final review are separate. No client/GUI/deployment/new20/performance/profile; running60 and51inputs remain unchanged, latest performance unmeasured and last actual16ms budget RED separate.
