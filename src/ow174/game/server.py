@@ -880,8 +880,11 @@ class Client:
         return True
 
     def _ready_entity_records(self) -> list[world.EntityUpdate]:
+        from ow174.game import reaper_shadow_actor
+
+        entities = [item for item in self.entities if reaper_shadow_actor.record_ready(self, item)]
         if not self.player.has_body:
-            return self.entities
+            return entities
         controller, body = self.player.entity, self.player.body
         pending = self._pending_possessions.get(controller)
         created = self.bot_create_acked(body)
@@ -893,7 +896,7 @@ class Client:
         target_created = self.bot_create_acked(target)
         bound = pending is None and self.controller_ready
         if created and bound:
-            return self.entities
+            return entities
 
         possession = pending[1] if pending is not None else None
         script = getattr(self.player, "body_script", None)
@@ -904,7 +907,7 @@ class Client:
             if delivery is not None:
                 owner_streams += (delivery.stream,)
         records = []
-        for item in self.entities:
+        for item in entities:
             if item is possession:
                 if not created or not target_created:
                     continue

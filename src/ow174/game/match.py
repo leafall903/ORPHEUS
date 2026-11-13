@@ -1086,6 +1086,9 @@ class Match:
             updates.extend(self.scene_host.spawned_entity_updates())
         from ow174.game import ice_wall
 
+        from ow174.game import reaper_shadow_actor
+
+        updates.extend(reaper_shadow_actor.spawn_updates(self))
         for actor in self.combat.deployables.values():
             if actor.definition == ice_wall.PILLAR:
                 viewer.seen[actor.entity] = False
@@ -1802,6 +1805,11 @@ class Match:
         actor = self.combat.barriers.world.actors.get(entity)
         if actor is not None:
             return expr.Vec3(*actor.point)
+        from ow174.game import reaper_shadow_actor
+
+        shadow = reaper_shadow_actor.lookup(self, entity)
+        if shadow is not None:
+            return expr.Vec3(*shadow.actor_point)
         position = self.combat.orisa.position(entity)
         if position is not None:
             return expr.Vec3(*position)

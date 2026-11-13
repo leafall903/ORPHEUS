@@ -1,0 +1,7 @@
+{
+  "schema": "reaper-shadow-actor-v1",
+  "input": {"hero": "Reaper0002", "context": [242, 74, 43, -1], "definition": "0x0400000000001F0E", "positionVariable": 985, "outputVariable": 12105, "clientOnly": false, "serverOnly": false},
+  "expected": {"independentAllocatedIdentity": true, "overlayComponents": [], "damageTarget": false, "createGenerationAckBeforeScriptReference": true, "currentAndExistingLateIdentityAgree": true, "cleanupRemovesLookup": true, "cleanupClearsOutput": false, "sourceRetirementRemovesCache": true, "snapshotFields": ["actor_entity", "actor_point"]},
+  "provenance": "Original104319 e7 reflection BB1054F4/E95B313B+188 and C2DC60F6/E1B0C07F+7A; original component2611F68 root+78 64C940 sets arg5=1, 977F20 calls1B95230 to set mirror bit3.8EAC30 skips non-clientOnly creation on mirror, calls8F9ED0 in authority path.8EACF0 cleanup destroys cache without clearing output. Native namespace handles are represented by existing server allocator/wire aliases; no original game assets embedded.",
+  "nativeVisualAccepted": false
+}

@@ -359,3 +359,16 @@ preserving priority/key ordering within each pass. Internal4 mathematics and
 the scalar prefix remain unchanged. Typed queue rows, storage, eligible role
 and native getters/setter are explicit probe adapters. Mode3, scalar/vector
 interaction, body discovery and original-client acceptance remain unqualified.
+
+## Reaper Shadow Step destination actor
+
+`fixtures/behavior/reaper-shadow-actor-v1.json` pins the selected nonstrict
+Reaper00F2/74 authority-side1F0E actor cache/output and cleanup. This healthless
+actor uses its own allocated identity and point, without HP/Pet/filter/model,
+mover or damage-target overlays. Existing create-generation ACK must arrive
+before source script chunks can reference it. Lost create, existing receiver
+bootstrap, exact identity, cleanup, source retirement and causal bodyVM/server
+exports are covered. Cleanup preserves original output12105 while removing the
+cached actor. Original descriptor/instruction qualification is distinct from
+live native factory/renderer acceptance; neither new connections nor camera,
+effect/model visibility or team colors are accepted by these offline tests.

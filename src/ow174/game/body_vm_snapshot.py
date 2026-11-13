@@ -94,7 +94,10 @@ _GRAPH = frozenset((
 ))
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
+from ow174.game import reaper_shadow_actor
+
 _STATE_LAYOUTS = {
+    reaper_shadow_actor.ShadowActor: (("actor_entity", "actor_point"), ()),
     nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
     nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),

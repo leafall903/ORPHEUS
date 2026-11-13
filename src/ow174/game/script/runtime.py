@@ -125,6 +125,11 @@ def state_class(*names: str, strict_only: bool = False):
 
 
 def state_type(name: str, strict: bool, graph_index=None, position=None, *, hero=None):
+    if (not strict and hero == 0x02E0000000000002
+            and (name, graph_index, position) == ('STUStatescriptStateCreateEntity', 0x00F2, 74)):
+        from ow174.game.reaper_shadow_actor import ShadowActor
+
+        return ShadowActor
     if (not strict and hero == 0x02E00000000000DD
             and (name, graph_index, position) == ('STU_4C96470A', 0x0622, 3)):
         from ow174.game.mei_placement import MeiPlacementPreview

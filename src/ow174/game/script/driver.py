@@ -397,9 +397,10 @@ class BodyWorld(runtime.World):
         ability = getattr(match.combat, "orisa", None)
         if ability is not None and (entity in ability.orbs or entity in ability.superchargers.active):
             return entity_queries.Target(entity, None)
-        from ow174.game import accretion
+        from ow174.game import accretion, reaper_shadow_actor
 
-        if accretion.lookup(match.combat, entity) is not None:
+        if (accretion.lookup(match.combat, entity) is not None
+                or reaper_shadow_actor.lookup(match, entity) is not None):
             return entity_queries.Target(entity, None)
         return None
 
@@ -3583,6 +3584,9 @@ class BodyScript(ReplicatedBody):
         from ow174.game import body_script_requests
 
         body_script_requests.retire(self.component)
+        from ow174.game import reaper_shadow_actor
+
+        reaper_shadow_actor.retire_source(self)
         self.retired = True
         if self.hero == 0x02E00000000001CA and self.world.match is not None:
             self.world.match.combat.clear_temporary_shields(self.entity)
