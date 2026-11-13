@@ -782,8 +782,7 @@ class Client:
                 generations[item] = generation
             if generations[item] == generation and (alive or item.op == world.OP_DESTROY):
                 self._queue_current_entity(item)
-        pending_close = any(item.controller_close for item in self.entities)
-        if lifecycle_changed or pending_close:
+        if lifecycle_changed:
             self.entities = [
                 item
                 for item in self.entities
@@ -791,13 +790,15 @@ class Client:
                     generations.get(item, 0) == lifecycles.get(item.entity, (0, True))[0]
                     and (lifecycles.get(item.entity, (0, True))[1] or item.op == world.OP_DESTROY)
                 ))
-                and (not pending_close or self._current_controller_close(item))
+                and (not item.controller_close or self._current_controller_close(item))
             ]
         else:
-            # Admission checked new records; only changed lifetimes can retire
-            # old generations. Preserve the existing fresh-list boundary even
-            # when there are no controller closes to validate.
-            self.entities = self.entities.copy()
+            # Keep the fresh-list boundary and validate queued closes against
+            # the current full frame in the same stable pass.
+            self.entities = [
+                item for item in self.entities
+                if not item.controller_close or self._current_controller_close(item)
+            ]
 
     def _current_controller_close(self, item: world.EntityUpdate) -> bool:
         # A newer full frame replaces a deferred close, including an explicit reopen.

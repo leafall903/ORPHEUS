@@ -1,0 +1,14 @@
+{
+  "schema": "reaper-shadow-scan-v1",
+  "provenance": "Synthetic scan-count/ACK inputs over actual command-created Reaper actor and actual switch_hero transition. Extra declared00F2 instance invokes real factory with explicit point input; no actor cache injected.",
+  "actorCount": 2,
+  "extraPointOffset": [
+    1,
+    0,
+    0
+  ],
+  "generation": 17,
+  "staleGeneration": 16,
+  "unrelatedInstanceScans": 0,
+  "nativeAcceptance": false
+}

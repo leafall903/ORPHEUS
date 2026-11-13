@@ -73,7 +73,9 @@ class ShadowActor(runtime.State):
 def live_actors(match, *, source_entity=None):
     for player in match.players:
         script = player.body_script
-        if script is None or script.retired:
+        # _source binds the player's BodyScript; its construction hero selects
+        # ShadowActor. Current player hero/body can change before that VM retires.
+        if script is None or script.retired or script.hero != reaper.HERO:
             continue
         if source_entity is not None and script.component.entity != source_entity:
             continue

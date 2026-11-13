@@ -643,3 +643,31 @@ actual summon prerequisites before rerunning that retained method. Source and
 data checks do not establish all-hero models, colors, hit/idle animation, audio,
 health bar or hit-UI correctness. Current-cut natural Halloween scene/story and
 the unchanged16ms wall budget require separate exact-cut verification.
+
+## Private-source performance corrections composed in batch50
+
+Reaper live_actors excludes only source VMs whose existing immutable construction
+hero is non-Reaper. Recipient/current player hero is not the qualification. The
+original ordered actor identity, ACK/missing/stale/current generation behavior
+and source replacement-before-retirement window remain valid. No actor cache,
+registry, stored field or snapshot-schema change is introduced.
+
+Client.queue_entities removes its preliminary any(controller_close) pass. Its
+existing generation/alive filter remains; close records are checked against
+the current full frame in the same stable fresh-list filter. Non-close records
+short-circuit the pure close predicate. Preserve FIFO, identity, arbitrary
+entity admission invalidating stale closes, incoming update processing,
+cumulative replacement and ACK/loss behavior. No persistent flag or cache.
+
+All four non-Markdown composed postimages match independent serial review.
+Four selected methods pass: two existing queue cases, one new Reaper ordered
+scan/ACK/source-replacement case and its retained source-retirement case.
+The actual49 profiled diagnostic identified185531 pending-close generator calls
+and2536 live_actors calls in T+1, but profiled time is not acceptance or speedup.
+The bounded queue197 paired diagnostic is synthetic and isolated; it cannot
+establish aggregate20-hero savings. Exact50 needs its own single unprofiled
+20-skill/20-status run under the unchanged16ms wall budget.
+
+The running49 server, its frozen inputs/shortcuts and limited Halloween native
+acceptance remain unchanged. No source50 native result is inherited. Full hero
+presentation/combat/Physics/MoveTo and all existing open boundaries remain open.
