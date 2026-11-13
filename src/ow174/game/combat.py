@@ -8434,6 +8434,7 @@ class Combat:
         team = rocket.team if zarya_flight else None
         candidates = (() if rocket.mine is not None else self._targets() if biotic else
                       self._shot_targets(rocket.shooter, rocket.direct, team=team))
+        candidates = pharah.primary_targets(self, rocket, candidates)
         best = None
         assisted_contact = (rocket.definition == 0x0400000000001000
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
@@ -9390,6 +9391,10 @@ class Combat:
                 and rocket.source_entity == _source_entity(rocket.shooter)):
             candidates = list(candidates)
             candidates.extend(t for t in self._targets() if t.entity == rocket.source_entity)
+        if pharah:
+            from ow174.game import pharah as pharah_rules
+
+            candidates = pharah_rules.primary_targets(self, rocket, candidates)
         ice_damage = rocket.direct.amount if ice is not None and rocket.direct is not None else 0.0
         shield_damage = [(shield[1], rocket.direct.amount)] if shield and rocket.direct else []
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
@@ -9562,6 +9567,7 @@ class Combat:
         heading = rocket.direction if heading is None else heading
         candidates = self._enemies(rocket.shooter)
         candidates.extend(t for t in self._targets() if t.owner is rocket.shooter)
+        candidates = pharah.primary_targets(self, rocket, candidates)
         for target in candidates:
             own = target.owner is rocket.shooter
             if not isinstance(target.owner, bots.Bot) and not hasattr(target.owner, "mover"):

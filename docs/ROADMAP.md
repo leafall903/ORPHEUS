@@ -522,3 +522,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Sixth focused recipient and owner-stream follow-ups with11 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Pharah primary physical-impact target history with2 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

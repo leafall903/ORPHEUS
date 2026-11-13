@@ -119,3 +119,9 @@ Run the original Uppercut helper on the existing ordinary NPC component and sole
 - `junkrat-original-self-contact`: original focused owner commit(s) `903be76d32610fefa38eef8f69dc2ac5766f185e`.
 - `soldier-original-force-absence`: original focused owner commit(s) `aeaa9c6cf1a6ea2f3e18291e3eaa3c74f77f01c8`.
 - `baptiste-original-melee`: original focused owner commit(s) `807b4690e50aa164c2f81deec023079971011525`.
+
+## Pharah primary physical-impact target history
+
+Integrate the focused Pharah75da5d9 target-history patch without its private baseline. Delayed original0033 primary contact, splash and force selection use retained physical-impact body poses, preserving replacement guards and all other projectile policies. Two new actual-input regressions pass on the composed source; cumulative46 distinct selected follow-up methods pass (43 new,3 modified compatibility). The existing outgoing HIT frame1036 is retained only as a no-regression observation, not native clock-domain acceptance. Native force adoption and intermittent wall passage remain open, as do all earlier hero and shared receiver gaps. The d059/409219 cut and running735 remain unchanged; latest source needs a separate freeze and fresh Halloween entry/story acceptance.
+
+- `pharah-primary-target-time`: original focused owner commit(s) `75da5d907588a0ba8f58efd400cf220c5dbec47c`.

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "pharah-primary-target-time-v1",
+  "target_build": 104319,
+  "evidence": "real-command-causal-world-time-target-identity-regression",
+  "client_acceptance": "pending",
+  "source": {
+    "revision": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "provenance": "Synthetic target identity exchange; real delayed command ingestion, original0033 launch, physical sweep, damage and force. Existing HIT notice labels are pinned only against regression; their native owner-domain correctness is a separate open contract. No helper or flight-time bypass."
+  },
+  "input": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "shot_world": 1031,
+    "receipt_world": 1050,
+    "swap_after": 1040,
+    "replacement_world": 1045,
+    "source_position": [1000, 0, 1000],
+    "near_position": [1000, 0, 1003],
+    "far_position": [1006, 0, 1003]
+  },
+  "expected": {
+    "shot_owner_frame": 9031,
+    "physical_impact_tick": 1036,
+    "existing_notice_frame": 1036,
+    "health_a": 80,
+    "health_b": 200,
+    "damage": [40, 80],
+    "retained_original_npcs": 15,
+    "force_events_per_hit_body": 1
+  }
+}

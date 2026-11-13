@@ -1,7 +1,7 @@
 """Static combat adapters for Pharah's authored ability graphs."""
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import pairwise
 
 from ow174.game.commands import Command
@@ -52,6 +52,19 @@ def view_world_tick(script, command, quanta):
     world, owner = script.world_frame_anchor
     elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
     return world + elapsed_ms / round(TICK * 1000)
+
+
+def primary_targets(fight, rocket, targets):
+    """Sample bodies at a delayed primary's physical sweep, not receipt time.
+
+    Reuse retained world poses without changing live movers or owner/HIT clocks.
+    Current-tick flights and every other projectile keep their existing policy.
+    """
+    if ((rocket.source_graph, rocket.definition) != (0x0023, 0x0400000000000033)
+            or fight.tick >= fight.match.tick):
+        return targets
+    return [replace(shown, construct=target.construct) for target in targets
+            if (shown := fight.seen(target, fight.tick)) is not None]
 
 
 def projectile_clock_origin(player, state, definition):
