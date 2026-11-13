@@ -6,6 +6,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Passive ultimate charge at 5 points a second
+
+- The passive filled every hero's meter in 60 s, whatever the ultimate cost and in every mode: a
+  placeholder (`ULT_SECONDS`) so that a server with no combat rule still charged. In the client
+  the meter climbed about 2% a second with nobody to fight, in the Practice Range and in Uprising.
+- It now adds `ULT_PASSIVE`, 5 points a second, against the cost the hero's own graphs set. A
+  body's time to a full meter is its cost over 5, resolved when it spawns: 462 s for Soldier: 76,
+  308 s for D.Va's mech, 64 s for her pilot. An explicit `ult_seconds` still means what it did,
+  0 still turns the passive off, and recorded replays keep the value in their header.
+- Evidence: the rate is server code and no client data carries it. 5 a second is the community's
+  figure for Overwatch 1; `docs/research/ultimate-charge.md` cites it and records what the data
+  does hold: the costs, a ruleset key that reads as the ultimate generation scale (1.5 in the two
+  Total Mayhem rulesets, default 1.0), and nothing that speeds the Practice Range.
+- Shortcut: the time to full is resolved once, so a graph that changes the cost later keeps it.
+- Not changed: the charge from combat is still the placeholder of 380 damage to a full meter and
+  20% for an elimination.
+- Added two runtime tests: the default rate, and D.Va's two bodies each by its own cost. The
+  replay manifest's constant list names `ULT_PASSIVE` where it named `ULT_SECONDS`.
+- No shared fixture: the cost comes from graphs in the runtime pack.
+- Passed Ruff and 931 public Python tests. The runtime suite ran 1721 tests with the same 27
+  failures as before the change.
+- Original-client check, Practice Range, Soldier: 76 standing still: the meter read 12% one minute
+  after the pick and 25% after two, where it used to be full in one. Not checked: another hero,
+  another mode, and the meter in a fight.
+
 #### Uprising note: the directors come from the mode script's sequencer
 
 - Corrected `docs/research/uprising-mission.md`. It said nothing but the server could create the

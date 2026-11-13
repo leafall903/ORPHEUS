@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[0]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ow174.game.script.driver import ULT_SECONDS, BodyScript
+from ow174.game.script.driver import ULT_PASSIVE, BodyScript
 from ow174.game.script.expr import f32
 from tests.runtime.test_script_driver import ClientModel, server_on
 
@@ -24,7 +24,7 @@ RUNNING, PUSHED, HELD = 1, 2, 4
 class Session:
     """A body whose frames go to a client model, every one acknowledged."""
 
-    def __init__(self, ult_seconds: float = ULT_SECONDS) -> None:
+    def __init__(self, ult_seconds: float | None = None) -> None:
         logging.getLogger("ow174.script").setLevel(logging.ERROR)
         self.body = BodyScript(SOLDIER, 0xA0000101, START, ult_seconds=ult_seconds)
         self.client = ClientModel()
@@ -159,7 +159,25 @@ class UltimateTests(unittest.TestCase):
         self.assertAlmostEqual(body.component.vars[342].value(), cost * 30 * 16 / 2000, delta=1.0)
         session.run(100, 0)
         self.assertEqual(body.component.vars[342].value(), cost)
-        self.assertGreater(ULT_SECONDS, 0)
+
+    def test_the_passive_adds_five_points_a_second_by_default(self):
+        session = Session()
+        body = session.body
+        cost = body.component.vars[338].value()
+        self.assertEqual(ULT_PASSIVE, 5.0)
+        self.assertAlmostEqual(body.ult_seconds, cost / ULT_PASSIVE)  # 462 s for Tactical Visor's 2310
+        before = body.component.vars[342].value()
+        session.run(125, 0)  # 2 s
+        self.assertAlmostEqual(body.component.vars[342].value() - before, 2 * ULT_PASSIVE, delta=0.05)
+
+    def test_each_body_fills_by_its_own_cost(self):
+        dva = 0x02E000000000007A
+        for body_definition, cost in ((0x040000000000040A, 319.0), (0x0400000000000407, 1540.0)):
+            with self.subTest(body=f"{body_definition & 0xFFFF:04X}"):
+                body = BodyScript(dva, 0xA0000101, START, body_definition=body_definition)
+                body.spawn_frames()
+                self.assertAlmostEqual(body.component.vars[338].value(), cost, delta=0.5)
+                self.assertAlmostEqual(body.ult_seconds, cost / ULT_PASSIVE, delta=0.1)
 
     def test_tactical_visor_needs_a_full_charge(self):
         session = Session(ult_seconds=0)

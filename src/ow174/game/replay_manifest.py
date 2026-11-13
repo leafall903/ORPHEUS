@@ -52,7 +52,7 @@ _REQUIRED_CONFIG = {
         "MAX_SCRIPT_WORK", "MAX_FOLLOW_DEPTH",
     },
     "ow174.game.script.expr": {"MAX_EXPRESSION_STEPS"},
-    "ow174.game.script.driver": {"MAX_GAP", "MAX_SHOTS", "MAX_REPORTS", "ULT_SECONDS", "SETTLE_FRAMES"},
+    "ow174.game.script.driver": {"MAX_GAP", "MAX_SHOTS", "MAX_REPORTS", "ULT_PASSIVE", "SETTLE_FRAMES"},
 }
 _HEX256 = re.compile(r"[0-9a-f]{64}\Z")
 
