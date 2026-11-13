@@ -1,5 +1,21 @@
 # Changelog
 
+## Kill feed option default at login
+
+- A profile that never saved its Gameplay options now gets the client's own defaults for block
+  `+0x120` of message 20802: Kill Feed Display (`+0x4`) and Tips Display (`+0x7`) on. The block
+  went out as zeros before. A saved block is still sent as saved.
+- Read from the client: its own defaults for the block (at `0x7FF7899B8650`), and that the kill
+  feed's presenter shows only while byte `+0x4` is set.
+- Gap: on the kjs branch this default alone did not bring back the kill feed line for a bot kill;
+  that needed the datagram fix that follows.
+- The five `settings` digests of `tests/golden/messages.json` change with it, to the values the
+  kjs branch has. The golden test already fails on this source's base for its `login` and `live`
+  parts; those digests are left as they are.
+- Tests: `tests/runtime/test_player_settings.py` (the default and a saved block).
+- Ported from the kjs branch, where the client's Options screen showed Kill Feed Display on.
+  Original-client acceptance on this source is pending.
+
 ## Graph extraction from the pinned DataTool's UUID fields
 
 - `tools/extract_game_graphs.py` now reads a `teUUID` field as its text, or as none when the dump

@@ -37,6 +37,10 @@ WHISPERS_FROM_EVERYONE = 1
 # Byte 0 of +0x10D is "Members can invite to group" (Social.members_may_invite). It starts on: at
 # the schema default (off) the first save of any Social option would quietly turn it off.
 MEMBERS_CAN_INVITE = True
+# +0x120 is Options > Gameplay. The client's own defaults (0x7FF7899B8650) have byte 4, Kill Feed
+# Display, and byte 7, Tips Display, on. The client holds only what 20802 gave it, and the kill
+# feed's presenter shows only while byte 4 is set (docs/research/kill-feed.md).
+GAMEPLAY_DEFAULTS = {"+0x4": True, "+0x7": True}
 # +0x130 holds values [{+0x0 value, +0x8 key}], a key being (type table << 16) | identifier
 # (0x7FF7893512B0). While key B03A of table E0 is above 0, the login popups graph (01B/0C75)
 # shows "N of your containers were opened" (05A/07D9, the move to Overwatch 2) on the main menu,
@@ -236,6 +240,8 @@ class PlayerMessages:
             value["+0x10D"]["+0x5"] = WHISPERS_FROM_EVERYONE
         if "+0x108" not in saved:
             value["+0x108"]["+0x4"] = True
+        if "+0x120" not in saved:
+            value["+0x120"].update(GAMEPLAY_DEFAULTS)
         return value
 
     def features(self) -> dict:
