@@ -13,7 +13,9 @@ import random
 import types
 import uuid
 
-from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
+from ow174.game import (
+    assassin_controller, doomfist_helper_health, enforcer_controller, hanzo_movement, replay_values,
+)
 from ow174.game import npc_controller_storage, volskaya
 from ow174.game.script.player_controller import ControllerVM, ControllerWorld
 from ow174.game.script.controller_filter import ControllerFilterInputs
@@ -182,7 +184,11 @@ _STATE_LAYOUTS = {
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed", "target_var", "last_refresh", "count_var"), ()),
     nodes.CompatiblePet: (("pet_entity", "pet_var", "linked_pet"), ()),
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
-    nodes.ModifyHealth: (("last_applied", "hit_entities", "target_body", "heal_last", "heal_elapsed", "heal_duration", "heal_amount"), ()),
+    nodes.ModifyHealth: (
+        ("last_applied", "hit_entities", "target_body", "heal_last", "heal_elapsed",
+         "heal_duration", "heal_amount"),
+        ("doomfist_body_damage_receipt",),
+    ),
     nodes.SprayPlacement: (("placement",), ()),
     nodes.CompatibleTrackRay: (("ray_hit",), ()),
     nodes.CreateEntity: ((), ()),
@@ -194,6 +200,11 @@ _STATE_LAYOUTS = {
 from ow174.game.script import component86, distance_constraints, possession_requests
 
 _VALUE_LAYOUTS = {
+    doomfist_helper_health.Request: ("state", "activation", "recipient", "component", "source", "source_body",
+                                    "source_script", "source_frame", "reference_entity", "amount", "loadout",
+                                    "tags", "paired"),
+    # original_completion_qualified is a class-level init=False constant, not stored instance state.
+    doomfist_helper_health.Receipt: ("request", "accepted", "health_before", "health_after", "phase"),
     nodes.AIFacingRecord: ("direction", "priority", "prefer_later"),
     component86.Registry: ("descriptors", "accepted_selections", "entries", "selection_entries"),
     component86.Entry: ("state", "source", "instance", "node", "kind", "priority", "before_equal", "selection", "numeric_pair", "vector"),
@@ -364,6 +375,9 @@ class _Export:
             raise BodyVMSnapshotError(f"unknown state class {_name(kind)}")
         required, optional = _STATE_LAYOUTS[kind]
         fields = _layout(obj, _STATE | set(required), optional)
+        if (kind is nodes.ModifyHealth and "doomfist_body_damage_receipt" in fields
+                and type(fields["doomfist_body_damage_receipt"]) is not doomfist_helper_health.Receipt):
+            raise BodyVMSnapshotError("unknown ModifyHealth body-damage receipt class")
         _containers(fields, ("watched",), dict, "state")
         _containers(fields, ("natives",), set, "state")
         owner = fields["instance"]
@@ -563,6 +577,48 @@ class _Export:
             return [kind.__name__, values]
         raise BodyVMSnapshotError("set member has no supported stable ordering key")
 
+    def _health_request(self, obj, scope):
+        """Exact staged receipt inputs; foreign actors/scripts remain identity references.
+
+        Their mutable domain storage belongs to the enclosing server observation,
+        like foreign watched-variable storage. No actor/VM callback is evaluated.
+        """
+        from ow174.game import bots
+        from ow174.game.match import Player
+
+        fields = _layout(obj, _VALUE_LAYOUTS[doomfist_helper_health.Request])
+        if (fields["component"] is not self.component or type(fields["state"]) is not nodes.ModifyHealth
+                or fields["state"].instance.component is not self.component
+                or (fields["state"].instance.graph.index, fields["state"].node.pos) != (0x0D07, 14)):
+            raise BodyVMSnapshotError("foreign staged health request component/state")
+
+        def actor_ref(actor, *, source=False):
+            if type(actor) is Player:
+                label = "external-player"
+            elif not source and type(actor) is bots.Bot:
+                label = "external-bot"
+            else:
+                raise BodyVMSnapshotError("unknown staged health actor class")
+            entity = _integer(actor.entity, "health actor identity")
+            if not 0 <= entity <= 0xFFFFFFFF or not expr.valid_entity(entity):
+                raise BodyVMSnapshotError("invalid staged health actor identity")
+            return {"ref": [label, entity], "identity": self.identity(actor, scope)}
+
+        script = fields["source_script"]
+        if (type(script) is not BodyScript or script.entity != fields["source_body"]
+                or type(script.component) is not runtime.Component
+                or script.component.entity != fields["source_body"]):
+            raise BodyVMSnapshotError("unknown staged health source-script reference")
+        refs = {
+            "recipient": actor_ref(fields["recipient"]),
+            "source": actor_ref(fields["source"], source=True),
+            "source_script": {"ref": ["external-body-script", fields["source_body"]],
+                              "identity": self.identity(script, scope)},
+        }
+        return {"class": _name(type(obj)), "fields_identity": self.identity(vars(obj), scope),
+                "fields": [[name, refs[name] if name in refs else self.value(value, scope=scope)]
+                           for name, value in fields.items()]}
+
     def value(self, obj, *, scope="vm"):
         if obj is NotImplemented:
             return {"sentinel": "NotImplemented"}
@@ -594,6 +650,8 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
+        if kind is doomfist_helper_health.Request:
+            return self._health_request(obj, scope)
         if kind is volskaya.LiftScene:
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign lift scene reference")

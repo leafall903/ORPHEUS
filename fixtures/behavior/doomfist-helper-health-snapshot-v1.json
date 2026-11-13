@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-helper-health-snapshot-v1",
+  "target_build": 104319,
+  "source": {"revision": "aa2579986781f1751d35761556d86cbcad402980", "api": "8416744877c03facaa97d09ac876308efe4f0b32", "provenance": "Synthetic storage contract consumed on the actual staged helper/body-damage fixture. This adds exact observation layouts, not a restorer or a completion policy."},
+  "evidence": "synthetic-storage-contract-with-actual-helper-consumer",
+  "client_acceptance": "pending",
+  "input": {"frame_delta": 1, "mutated_accepted": false},
+  "expected": {"actor_ref": "external-player", "source_script_ref": "external-body-script", "request_field_count": 13, "unchanged_observation_equal": true, "mutation_changes_digest": true, "field_restoration_equal": true, "unknown_state_request_receipt_fields": "rejected", "vm_or_backend_calls_during_export": 0, "param120_kind": "Vec3"},
+  "limits": "Only exact ModifyHealth receipt and Request/Receipt classes are registered. Actor/script storage remains a referenced external domain; no mutable foreign object expansion, unknown-key exemption, VM/backend replay or general restore is introduced. Full helper adoption and original completion remain open."
+}

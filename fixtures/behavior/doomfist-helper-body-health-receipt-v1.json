@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-helper-body-health-receipt-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "fd0894af46c80fce60b672008a26b01243161198",
+    "provenance": "Synthetic body-backend contract with external original helper entry/resource/parameter evaluation. Actual legacy Punch contact is intercepted before damage; a readonly contact-target evaluator adapter stages the same recipient helper without writing375/23530. Legacy damage/force are skipped only in this isolated fixture."
+  },
+  "evidence": "synthetic-host-backend-contract",
+  "client_acceptance": "pending",
+  "input": {"recipient_frame": 9000, "charge_frames": 18, "lifecycle_cases": ["live-source-and-replay", "same-body-source-death", "exception-after-backend-mutation"]},
+  "expected": {"amount": 53.64337883254163, "damage_events": 1, "hit_events": 1, "passive_shields": 30, "new_force_events": 0, "health14_stays_active": true, "original_completion_qualified": false},
+  "limits": "Body-only backend receipt, not complete original health14 semantics. Paired23530 is retained verbatim and remains unqualified; no inferred replacement, no finish or OnEnd, no normal source16 router or atomic adoption is enabled."
+}

@@ -1,5 +1,25 @@
 # Shared behavior contracts
 
+## Existing physical movers and staged health receipts
+
+`ashe-bob-finite-receiver-v1.json` exercises original-Q charge, gun and retirement
+with direct canonical service requests. Finite effects may reuse an existing
+NPC physical mover while moving; initialization still requires a stationary
+body. Current-frame, current body/component, navigation, route and active MoveTo
+guards remain. The contract checks one mover and one pose per frame, finite
+expiry and original retirement. Canonical force already worked in all three
+phases; actual attack producers and native behavior remain unaccepted.
+
+`doomfist-helper-body-health-receipt-v1.json` and
+`doomfist-helper-health-snapshot-v1.json` qualify an explicit staged body backend
+and its read-only receipt observation. Actual helper parameters, caller frame,
+source-death attribution, replay/failure guards and strict unknown-field
+rejection are tested. Cross-actor/script edges remain identity references.
+Observation must not run VM, expression or damage/passive services; explicit
+stored-value changes must change the digest. Field-value restoration is not a
+general restore engine. No normal World hook, original health14 completion,
+paired-target interpretation or atomic damage/force adoption is enabled.
+
 ## Authoritative placement-byte storage
 
 `placement-byte-authority-v1.json` records the shared original priority2 byte

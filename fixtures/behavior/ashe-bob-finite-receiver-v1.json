@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-bob-existing-physical-mover-finite-v1",
+  "target_build": 104319,
+  "source": "Actual ultimate enters original1536/1537 charge, gun and retirement; service-level synthetic finite and mode4 requests use the existing canonical receiver, not a native attack or damage claim",
+  "input": {"phases": ["charge", "gun", "retire"], "finite_seconds": 0.32, "ground_decel_scale": 0.01, "air_decel_scale": 0, "mode4_vector": [6, 2, 0]},
+  "expected": {"finite_admitted": true, "new_movers": 0, "poses_per_tick": 1, "finite_start": "next physical frame", "finite_end": "21st physical frame restores base values", "route_pullback": false, "live_response26": 1},
+  "limits": ["Existing mover required while moving; no moving NPC initialization", "Navigation, route, ActiveMoveTo and delayed effect-only requests still declined", "No native color/force/control or full NPC navigation acceptance"]
+}

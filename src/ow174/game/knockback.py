@@ -181,9 +181,9 @@ class Knockbacks:
     def admit_modifiers(self, target, *, impact_tick, source_entity=None, launch_modifiers=()):
         """Finite effects on qualified physical bodies, without a force.
 
-        Stationary, current-tick ordinary NPCs reuse the canonical physical
-        initialization. Moving/navigation and delayed effect-only handoff
-        remain unsupported; no zero velocity or synthetic force is queued.
+        Current-tick NPCs reuse an existing physical mover, or initialize one
+        only while stationary. Navigation, routes, MoveTo and delayed effect-only
+        handoff remain unsupported; no synthetic force is queued.
         """
         from ow174.game import bots, correction
         from ow174.game.combat import TICK
@@ -207,7 +207,8 @@ class Knockbacks:
             script = owner.body_script
             component = getattr(script, 'component', None)
             if (frame != self.combat.match.tick + 1 or owner.navigation is not None
-                    or owner.route or owner.keys or any(owner.velocity)
+                    or owner.route
+                    or ((owner.keys or any(owner.velocity)) and owner.impulse_mover is None)
                     or component is None or component.entity != owner.entity
                     or component.owner_dead or component.fault is not None
                     or getattr(component.world, 'match', None) is not self.combat.match
