@@ -1,5 +1,20 @@
 # Changelog
 
+## Chunk sweep for the runtime tests
+
+- `tests/chunk_sweep.py` runs the runtime tests with every statescript chunk queued for a game
+  client read the way the client reads it: each client keeps a `decode.ClientBody` per entity and
+  applies its chunks in queue order. A chunk the client would crash on, refuse or misread is
+  listed with the test that queued it, and the exit code is 1. Run it with
+  `python -B -m tests.chunk_sweep`.
+- Not read: a fragment of a split mode frame, a state class without a verified codec, a graph the
+  bundle lacks, a delta whose base was never queued, and the deltas that follow it on the same
+  entity. Those count as unchecked. Chunks handed to a mock client are not seen.
+- The sweep needs the runtime data, so it does not run in CI. It was not run over this source's
+  full runtime suite.
+- Tests: `tests/runtime/test_chunk_sweep.py` covers the sweep's counting.
+- Ported from the kjs branch. Original-client acceptance on this source is pending.
+
 ## Uprising's first wave
 
 - Eight seconds into the defend phase the server creates the first wave: eight Slicers on the
