@@ -133,6 +133,33 @@ class Knockbacks:
             body_script_requests.activate_npc(match, owner)
         return True
 
+    def apply_script_projected(self, target, impulse, *, recipient_component, source_entity, priority=0.0):
+        """Positive script mode4 on one current physical player component.
+
+        Original FF3471E9 uses backend frame+1. Admit only when the canonical
+        receiver agrees with that actual physical/VM frame; do not re-anchor a
+        stale script clock. This queues force only. Persistent graph modifiers
+        keep their own states and are never copied into finite launch storage.
+        NPCs, possession and zero requests are not qualified by this API.
+        """
+        from ow174.game import bots
+
+        owner = target.owner
+        script = getattr(owner, 'body_script', None)
+        if (isinstance(owner, bots.Bot) or owner not in self.combat.match.players
+                or script is None or script.retired
+                or script.component is not recipient_component or recipient_component.strict
+                or recipient_component.owner_dead or recipient_component.fault is not None
+                or owner.body != target.entity or owner.mover.last_command is None
+                or owner.mover.last_command.frame != recipient_component.frame):
+            return False
+        resolved = self._launch_receiver(target, None, self.combat.match.tick, ())
+        if (not resolved or resolved[0] is not owner or resolved[2] is not owner.mover
+                or resolved[3] != recipient_component.frame + 1 or resolved[4]):
+            return False
+        return self.apply(target, impulse, impact_tick=self.combat.match.tick,
+                          source_entity=source_entity, velocity_mode=4, velocity_priority=priority)
+
     def _launch_receiver(self, target, impact_frame, impact_tick, launch_modifiers):
         """One admission/clock policy shared by force and finite-only modifiers."""
         from ow174.game import bots

@@ -897,7 +897,12 @@ class Client:
 
         possession = pending[1] if pending is not None else None
         script = getattr(self.player, "body_script", None)
-        stream = script.stream if script is not None else None
+        owner_streams = (script.stream,) if script is not None else ()
+        controlled = getattr(self.player, "controlled_mech", None)
+        if controlled is not None and controlled.entity == target:
+            delivery = self._bot_scripts.get(target)
+            if delivery is not None:
+                owner_streams += (delivery.stream,)
         records = []
         for item in self.entities:
             if item is possession:
@@ -906,9 +911,10 @@ class Client:
                 bound = True
             elif not bound and (
                 item.controller_close
-                or (stream is not None and item.stream is stream and item is not stream.full_update)
+                or any(item.stream is stream and item is not stream.full_update for stream in owner_streams)
             ):
-                # The body's H0 tree is independent, but owner H1 starts after possession.
+                # Both the primary and controlled mech H1 need possession first.
+                # H0 trees remain independent while a binding is in flight/lost.
                 continue
             elif item.op == world.OP_CREATE:
                 if item.entity == target:

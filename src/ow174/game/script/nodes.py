@@ -6251,6 +6251,10 @@ def _store_indexed_member(instance: Instance, cfg, value) -> None:
 @handler("STU_12F5D52D")
 def set_vars(instance: Instance, node, caller) -> bool:
     """1B6B560: each present target gets its +28 value, or int0 for missing/failure."""
+    if instance.graph.index == 0x160A and node.pos in (84, 85):
+        from ow174.game import ball
+        if ball.defer_piledriver_motion_sample(instance, node):
+            return True
     for pair in node.fields.get("m_143D4C5B") or []:
         if isinstance(pair, dict) and pair.get("m_out_Var") is not None:
             config = pair.get("m_value")

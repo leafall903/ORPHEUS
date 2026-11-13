@@ -1,0 +1,23 @@
+{
+  "targetBuild": "104319",
+  "provenance": "Synthetic actual Ctrl commands against existing externally selected original160A graph and canonical movement/force services.",
+  "input": {
+    "heldCtrlFrames": 1,
+    "airborneHeight": 8,
+    "missingPoseGapFrames": 70,
+    "resume": "normal paced real commands",
+    "ownerEpochs": [
+      "original",
+      "shifted9000 with separate world epoch"
+    ]
+  },
+  "expected": [
+    "160A samplers84/85 do not turn missing poses into zero displacement",
+    "first actual pose seeds the original sample pair for this activation",
+    "descent remains active,1949 stays false, no aerial landing report or damage",
+    "actual grounding emits one existing landing report,100damage,one accepted existing force with current source body",
+    "subsequent commands and body retirement cannot replay that report",
+    "original5s safety state36 still completes once; original safety search producer and parameters retained"
+  ],
+  "limits": "No missing pose is simulated or interpolated here. Existing bounded gap and safety start-time policy unchanged. Native trajectory/form/colour are not certified."
+}

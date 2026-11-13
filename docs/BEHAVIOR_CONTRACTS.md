@@ -1,5 +1,29 @@
 # Shared behavior contracts
 
+## Actual Piledriver poses, staged projected admission and current binding order
+
+`ball-piledriver-pose-sample-v1.json` excludes missing physical poses from the
+160A84/85 stuck sampler, seeds its original pair on the first real pose and
+preserves original five-second safety and single landing/HIT/force ownership.
+Its normal BodyWorld physical-history mapping is qualified by two actual owner
+epochs, not generalized to arbitrary independent explicit VM cursors.
+
+`doomfist-helper-velocity58-v1.json` qualifies an explicit external staged lease
+for positive projected mode4 on an aligned live physical player/VM receiver.
+The one shared API delegates to existing canonical force/correction and rejects
+unqualified NPC, possession, zero and stale-clock requests. The bridge deduplicates
+one helper admission and adds no persistent VM field or normal source/health hook.
+Original47/48 retain finite modifier ownership; no host finite copies are queued.
+Normal invocation phase, complete320ms physical interval and full helper adoption
+are separate open contracts.
+
+`dva-owner-possession-loss-v1.json` extends the existing possession prerequisite
+to the controlled0407 H1 stream. H0 remains independent; an ordered binding in
+the same candidate packet may precede H1, but merely in-flight/lost binding cannot
+release it. Exact current record/generation ACKs, failed-send retention, retries,
+pilot return and Soldier switch are covered. No permanent gate or new wire schema
+is added. Native black screen/camera/rewind/damage and earned-charge remain open.
+
 ## Independent observed frame labels
 
 `observed-component-cursor-v1.json` records the original explicit-setter case

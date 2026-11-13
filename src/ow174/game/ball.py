@@ -98,6 +98,40 @@ def body_pitch(world, cfg, instance):
     return expr.f32(radians * 57.295780181884766)
 
 
+
+def defer_piledriver_motion_sample(instance, node):
+    """Leave the stuck detector unsampled when this body cursor has no pose."""
+    world = instance.component.world
+    if (instance.component.strict or world.hero != HERO or getattr(world, 'match', None) is None
+            or instance.graph.index != PILEDRIVER or node.pos not in (84, 85)
+            or node.cls != 'STU_12F5D52D' or instance.component.entity != world.body):
+        return False
+    player = world.match.script_player_body(world.body, world.body)
+    if (player is None or player.body_script is None
+            or player.body_script.component is not instance.component):
+        return False
+    history = player.mover.history
+    sample_frame = instance.component.now // instance.component.frame_ms
+    if history and sample_frame == history[-1].frame:
+        samples = instance.vars.get(12320)
+        samples = samples.value() if samples is not None else None
+        if node.pos == 85 and not (isinstance(samples, tuple) and len(samples) == 2
+                                  and all(isinstance(value, expr.Vec3) for value in samples)):
+            # First real sample initializes the authored pair; it is not yet
+            # a comparison with an earlier physical sample from this cast.
+            for pair in instance.graph.node(84).field('m_143D4C5B'):
+                nodes.store(instance, pair['m_out_Var'], instance.evaluate(pair['m_value']))
+            return True
+        return False
+    if node.pos == 84:
+        instance.write((expr.INSTANCE, 12320), None)
+        # Start the original32ms poll even when its initial pose is unavailable.
+        instance.follow(node, 'm_outPlug', None)
+    # Node85's old/new comparison is meaningful only after an actual pose.
+    # Its poll rearm and original5s safety bound are independent graph plugs.
+    return True
+
+
 def shield_enemy_count(fight, player, radius):
     """Use the existing E grant's eye/capsule query for its graph count too.
 

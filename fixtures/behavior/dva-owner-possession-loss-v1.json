@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "build": "1.74.0.0.104319",
+  "provenance": "Synthetic loss schedule over the authored initial0407 and production possession, encrypted frame, stream and ACK paths. Pilot create/full and controller existence are seeded as prior received state. No native renderer acceptance.",
+  "input": [
+    "Send mech H0 baseline; delay ACK",
+    "Send component44 binding to mech while H0 remains pending; drop this packet",
+    "Receive older H0 ACK; owner H1 becomes ready",
+    "Send another packet before binding loss is reported",
+    "Report binding packet lost; fail one send without consuming queued binding/H1; retry twice",
+    "Receive old mech-binding ACK plus older pilot H0 ACK while newer pilot binding remains in flight",
+    "Switch to Soldier with an old mech binding in flight; ACK old binding before new body create/owner delivery"
+  ],
+  "expected": {
+    "ownerH1BeforeBindingReceived": [],
+    "retryOrder": ["binding", "owner"],
+    "fullH0MayPrecedeBinding": true,
+    "oldBindingAckReleasesNewBodyOwner": false,
+    "failedSendConsumesBinding": false,
+    "duplicateAckAdvancesStream": false,
+    "switchedSoldierOwnerProgresses": true
+  },
+  "native_contract": "Original809850 callback establishes43 ownership on the new44 current body. H1 is the controlled-body owner projection; it must not bypass that current-body prerequisite.",
+  "limits": "Does not prove the cause or resolution of Q black, early pilot visibility, movement rewind or native camera readiness. No Pet72 producer policy change."
+}

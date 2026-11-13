@@ -588,3 +588,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Independent observed component frame labels with11 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Physical Piledriver samples, staged projected admission and controlled-body binding with10 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.
