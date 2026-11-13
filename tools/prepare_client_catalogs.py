@@ -40,6 +40,7 @@ def run_data_tool(data_tool: Path, root: Path, *args: str) -> None:
         ],
         check=True,
         timeout=300,
+        cwd=data_tool.parent,  # DataTool reads Static/GUIDNames.csv relative to the working directory
     )
 
 

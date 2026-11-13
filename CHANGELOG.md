@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-13
+
+#### Catalog preparation runs DataTool from its own folder
+
+- `tools/prepare_client_catalogs.py` now starts DataTool in the DataTool folder. DataTool reads `Static/GUIDNames.csv` relative to the working directory, so a run from the repository root named no hero classes (`Class: null`) and the prepared hero catalog then failed lobby login in `content/career.py`. Started from its own folder, the generated hero, item and general unlock catalogs matched existing prepared copies exactly in a local 104319 check.
+- The public catalog test checks the working directory. Passed Ruff and the public Python tests.
+
 ### 2026-11-12
 
 #### Strict World query behavior contract
