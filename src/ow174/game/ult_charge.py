@@ -1,9 +1,9 @@
 """How the server turns damage, healing and eliminations into ultimate charge.
 
-OW1 computed these rates inside its own server code: no client artifact carries them. On 1.74 data
-the hero's entity definition has no charge component (its components are health, weapon, mover,
-model, first-person, statescript, target tags and voice) and the generic settings have no charge
-keys, so the built-in rates are estimates. A local runtime can override them.
+The built-in rates are estimates and predate the decode of graph 0B8B, whose server-only nodes hold
+the game's own rules: one point of charge for a point of the amount a game message carries, times
+ruleset scales, and no share of the meter for an elimination (docs/research/ultimate-charge.md).
+This table has not been brought in line with that graph yet. A local runtime can override it.
 
 A rate is the amount of damage or healing that fills the meter. Cost #338e differs per hero, so
 points are computed against the cost the hero's own Entries carry (see driver.py).

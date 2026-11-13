@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### The game's own ultimate charge rules, decoded
+
+- Corrected `docs/research/ultimate-charge.md`, the code comment on `ULT_PASSIVE` and the docstring
+  of `ult_charge.py`. They said no client data carries the charge rates. Read from data: every
+  hero's common graph `004B` runs graph `0B8B`, whose server-only nodes add 5 points after each
+  Wait of 1 s, times the ruleset keys `253C` and `3276`, and add the amount a game message
+  carries, a point for a point, times `253C` and `32DE`. Key `32E0` gives a full meter at spawn.
+- So the 5 points a second of the entry below is the game's own rate, not only the community's
+  figure. Nothing in the data changes an ultimate key for the Practice Range.
+- The first scan missed the graph because it read a truncated list, and the XML dump of the graph
+  leaves its expressions out. The note says so.
+- ORPHEUS still charges by its own code: the server's instance of `0B8B` never starts its loop,
+  since `#2426e` is unset there. The note lists what differs: the graph's conditions, the ruleset
+  scales, and the combat table in `ult_charge.py`, which is still the old placeholder of 380
+  damage to a full meter and 20% for an elimination.
+- Checked all 32 playable heroes on the server: each has a cost on its first frame and gains
+  5 points in its first second.
+- No behavior changed in this entry.
+
 #### Passive ultimate charge at 5 points a second
 
 - The passive filled every hero's meter in 60 s, whatever the ultimate cost and in every mode: a
@@ -15,10 +34,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   body's time to a full meter is its cost over 5, resolved when it spawns: 462 s for Soldier: 76,
   308 s for D.Va's mech, 64 s for her pilot. An explicit `ult_seconds` still means what it did,
   0 still turns the passive off, and recorded replays keep the value in their header.
-- Evidence: the rate is server code and no client data carries it. 5 a second is the community's
-  figure for Overwatch 1; `docs/research/ultimate-charge.md` cites it and records what the data
-  does hold: the costs, a ruleset key that reads as the ultimate generation scale (1.5 in the two
-  Total Mayhem rulesets, default 1.0), and nothing that speeds the Practice Range.
+- Evidence: see the entry above. This entry first said no client data carries the rate; the
+  game's graph `0B8B` does, and it is 5 points a second there too.
 - Shortcut: the time to full is resolved once, so a graph that changes the cost later keeps it.
 - Not changed: the charge from combat is still the placeholder of 380 damage to a full meter and
   20% for an elimination.

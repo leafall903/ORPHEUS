@@ -229,8 +229,9 @@ WHEEL_CALLOUT_MS = 2000
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. Combat credits it (combat.py through ult_charge.py);
 # the passive adds ULT_PASSIVE points a second, and nothing charges while the ultimate runs. The rate is
-# server code that no client data carries: 5 a second is the community's figure for Overwatch 1, the same
-# for every hero, in the scale of the costs the data holds (2310 for Tactical Visor).
+# the game's own: graph 0B8B (run by 004B, server-only nodes) adds 5.0 after each Wait of 1 s (nodes 3, 4),
+# times two ruleset scales. That graph's loop does not start here (#2426e is unset), so this code stands in
+# for it without its conditions (docs/research/ultimate-charge.md).
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_PASSIVE = 5.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
