@@ -228,10 +228,11 @@ MAX_WHEEL_CALLOUTS = 32
 WHEEL_CALLOUT_MS = 2000
 # The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
 # it starts), its cost #338e comes from the Entries. Combat credits it (combat.py through ult_charge.py);
-# the passive fills the rest in ULT_SECONDS (0: never) so a server with no combat rule still charges, and
-# nothing charges while the ultimate runs.
+# the passive adds ULT_PASSIVE points a second, and nothing charges while the ultimate runs. The rate is
+# server code that no client data carries: 5 a second is the community's figure for Overwatch 1, the same
+# for every hero, in the scale of the costs the data holds (2310 for Tactical Visor).
 ULT_CHARGE, ULT_COST = 342, 338
-ULT_SECONDS = 60.0
+ULT_PASSIVE = 5.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -1036,7 +1037,7 @@ class BodyScript(ReplicatedBody):
         quanta: int = 16000,
         mode: int = PRACTICE_RANGE_MODE,
         health: float | None = None,
-        ult_seconds: float = ULT_SECONDS,
+        ult_seconds: float | None = None,  # the passive's time to a full meter; None: ULT_PASSIVE, 0: never
         *,
         match: "Match | None" = None,
         communication_wheel: bool = False,
@@ -1103,6 +1104,10 @@ class BodyScript(ReplicatedBody):
         for instance in create_body_graphs(component, self.record):
             instance.init()
         component.run_frame(frame)
+        if self.ult_seconds is None:
+            # shortcut: resolved once from the cost the Entries set, so a graph that changes #338e later
+            # keeps this time to full. Use a rate per frame when such a graph is played.
+            self.ult_seconds = expr.to_float(component.entity_var(ULT_COST).value()) / ULT_PASSIVE
         self.server_only = self.initial_exclusions()
         for instance in component.instances.values():
             for node in instance.graph.states:

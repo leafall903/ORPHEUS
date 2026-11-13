@@ -141,7 +141,7 @@ BUDGET-named values, and explicit mutable model controls. This includes:
   script.runtime.EVENTS_PER_TIME, MAX_INSTANCE_UPDATES, MAX_COMPONENT_UPDATES,
     MAX_SCRIPT_WORK, MAX_FOLLOW_DEPTH
   script.expr.MAX_EXPRESSION_STEPS
-  script.driver.MAX_GAP, MAX_SHOTS, MAX_REPORTS, ULT_SECONDS, SETTLE_FRAMES
+  script.driver.MAX_GAP, MAX_SHOTS, MAX_REPORTS, ULT_PASSIVE, SETTLE_FRAMES
   transport/command/codec MAX limits and replay_values.MAX_DEPTH/MAX_VALUES
 
 The required fields cannot disappear silently. Newly added runtime settings outside
