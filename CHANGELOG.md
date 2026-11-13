@@ -1,5 +1,22 @@
 # Changelog
 
+## Training Bot rebuild after a respawn
+
+- A bot made again at its spawner now gets game message `0013.025` on its body graph `0BA8`
+  before its first frame is built (`BotScript(respawned=True)` from `Combat._respawn_bot`). The
+  graph's entry for that message starts the Anim that puts a Training Bot together; before, the
+  message went only to the firing behaviour, so a respawned bot appeared whole. With entity
+  variable 7143 unset the graph takes its second Anim. A first spawn is unchanged, and the firing
+  behaviour still gets its own reset as before.
+- Read from data: the `0BA8` entry for `0013.025` and its two Anims. Reconstructed: retail's sender
+  of the message is not known. The animation was seen in a separate offline service on a revived
+  body with the same remote state on; this server plays it on a new entity.
+- Tests: `tests/runtime/test_bot_rebuild.py` (no rebuild on a first spawn, the Anim on in a
+  respawned bot's first frame as the client reads it, the state staying on as authored, and a kill
+  in a Practice Range match bringing back only that bot rebuilding). The direct `BotScript` cases
+  give the Training Bot the controller entity its body record asks for on this source.
+- Ported from the kjs branch. Original-client acceptance on this source is pending.
+
 ## Tab board in Deathmatch and Team Deathmatch
 
 - The client holds its scoreboard shut until the mode's own graph posts `06DF.025`. The game mode

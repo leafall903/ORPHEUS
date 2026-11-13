@@ -17,6 +17,7 @@ DEATH_VOLLEY_MODE_FLAG = 28300
 ARCHIVES_MODIFIER_FLAGS = (DEATH_VOLLEY_MODE_FLAG, 34924)
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
 FIRING_GRAPH = FIRING & 0xFFFF
+REBUILD_GRAPH = 0x0BA8  # the Training Bot's body graph: its 0013 entry starts the Anim that rebuilds it
 PRACTICE_NAMEPLATE = 0x0D24
 PRACTICE_NAMEPLATE_PARENT = 0x0C18
 ENABLE_NAMEPLATE = 0x0240000000000C3C
@@ -1061,6 +1062,7 @@ class BotScript(ReplicatedBody):
         record: dict | None = None, world: runtime.World | None = None,
         resolve_graph=None, source_entity: int | None = None,
         manual_controller_definition: int | None = None, body_position: tuple | None = None,
+        respawned: bool = False,
     ) -> None:
         from ow174.game import heavy_assault
 
@@ -1163,6 +1165,14 @@ class BotScript(ReplicatedBody):
                 raise ValueError("NPC difficulty requires body graph 143A")
             component.run_frame(frame)
             self.server_only = self.initial_exclusions()
+            if respawned:
+                # Reconstruction: a bot made again at its spawner gets the reset on its rebuild graph,
+                # whose 0013 entry starts the Anim that puts a Training Bot together.
+                rebuilds = [item for item in component.instances.values()
+                            if item.graph.index == REBUILD_GRAPH]
+                for instance in rebuilds:
+                    runtime.send_instance_message(instance, RESET, {}, entity)
+                component.run_now()
             self.flashbang_weapon_stack: runtime.Instance | None = None
             self.behavior = component.create(firing) if firing is not None else None
             if self.behavior is not None:

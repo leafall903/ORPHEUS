@@ -1114,7 +1114,8 @@ class Match:
                 updates.append(self.remote_body_create(viewer, other))
         return updates
 
-    def _prepare_bot_script(self, bot: bots.Bot, *, born_tick: int | None = None, source_entity: int | None = None) -> None:
+    def _prepare_bot_script(self, bot: bots.Bot, *, born_tick: int | None = None, source_entity: int | None = None,
+                            respawned: bool = False) -> None:
         record = graph.entity_body(bot.body)
         if record is None and bot.spawner.get('manual_hero_target') is True:
             selected = heroes().get(bot.hero)
@@ -1160,6 +1161,7 @@ class Match:
                 controller_entity=controller_entity, match=self,
                 manual_controller_definition=manual_definition, body_position=bot.position,
                 source_entity=source_entity,
+                respawned=respawned,
                 difficulty_index=bot.spawner.get("difficulty_index"),
                 record=record,
             )
