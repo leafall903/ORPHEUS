@@ -2,9 +2,9 @@
 
 The built-in rates are estimates and predate the decode of graph 0B8B, whose server-only nodes hold
 the game's own rules: a point of charge for a point of the amount a game message carries, times
-ruleset scales (docs/research/ultimate-charge.md). There the amount is damage dealt to a hero's
-body or healing done, and no entry takes an elimination. This table has not been brought in line
-with the graph. A local runtime can override it.
+ruleset scales (docs/research/ultimate-charge.md). There the amount is damage dealt or healing
+done, and the graph has no entry of its own for an elimination. This table has not been brought
+in line with the graph. A local runtime can override it.
 
 A rate is the amount of damage or healing that fills the meter. Cost #338e differs per hero, so
 points are computed against the cost the hero's own Entries carry (see driver.py).

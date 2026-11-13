@@ -6,6 +6,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### The charge graph's messages, tried in a match
+
+- Sent each message to a player's `0B8B` in a match of two players on opposite teams, with
+  `#2426e` held on and the server's own passive off. One `0044.025` of 100 (healing done) and one
+  `00EB.025` of 100 (a direct grant) each raised the charge by exactly 100. One `0012.025` of 100
+  (damage dealt, the other player's body as the one hit) did nothing: the graph's node 53
+  evaluates false, because `STU_AC829876` is answered only in Hack's graph on a player's body,
+  and node 28's `STU_A58C1E63` has no answer either. An earlier try on a body outside a match
+  proved nothing and is replaced by this one.
+- Read the eight senders of `00EB.025` and listed them in the note: Mercy's staff sends an amount
+  of its own, two graphs grant half or the whole cost, one drains the meter, one passes a damage
+  amount to its player's hero, one grants 120. None is tied to an elimination by what was read,
+  and the events behind three of them are not identified.
+- Checked the full dump of the installation's graphs: every mention of `0012`, `0044` and `0148`
+  is a message entry. No graph was found that sends them.
+- The note's damage path now lists every node, and says "a body carrying filter bit 0" where it
+  said "a hero's body".
+- No behavior changed.
+
 #### Who posts the ultimate charge graph's messages
 
 - Decoded in `docs/research/ultimate-charge.md`. The engine posts `0012.025` for damage dealt and
@@ -13,13 +32,12 @@ This log records tested changes and their acceptance status. Entries are grouped
   either: 109 graphs take the first and 16 the second, and ORPHEUS already feeds `0012` with
   these parameters to the Summoner's charge graph. Eight graphs send `00EB.025`, which grants an
   amount directly. `0148.025` has the damage message's parameters and no sender found.
-- So in graph `0B8B` a point of damage dealt to a hero's body, or of healing done, is a point of
-  charge at the default scales, after tests of the body, the hit's tags and the owner's state,
-  and after reductions whose conditions are not decoded. No entry takes an elimination.
-- Tried on the server: one `0012` of 100 damage sent to a player's `0B8B` with the gate held on
-  left the charge unchanged. The graph's first test asks filters the server answers only in
-  Hack's graph. So the combat table in `ult_charge.py` still stands, with its 380 damage to a
-  full meter and its 20% for an elimination, which the graph does not have.
+- So in graph `0B8B` a point of damage dealt, or of healing done, is a point of charge at the
+  default scales, after tests of the body, the hit's tags and the owner's state, and after
+  reductions whose conditions are not decoded. The graph has no entry of its own for an
+  elimination; see the entry above for the rest.
+- The combat table in `ult_charge.py` still stands, with its 380 damage to a full meter and its
+  20% for an elimination.
 - No behavior changed.
 
 #### The game's own ultimate charge rules, decoded
