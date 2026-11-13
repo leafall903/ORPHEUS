@@ -322,3 +322,13 @@ and single MoveTo remain responsible for contact and pull; no force producer or
 guessed muzzle offset is added. Related delivery, jump/death cancellation and
 mine regressions remain selected. Native camera, pose, collision filtering,
 anchor/chain attachment and rendered hardpoints remain unverified.
+
+## Ball live shield count preparation
+
+`fixtures/behavior/ball-e-count-preparation-v1.json` records actual Q/E input in
+three cases: own mine, hostile mine, and hostile mine plus a real enemy. The
+original node14 preparation delegates to the existing Ball enemy-count query.
+Live count11 agrees with frozen11398 as0/0/1; health stays700/700/775. The frozen
+count and health pools were already correct before this repair. No new query
+policy or shield producer is introduced. Native geometry, filtering and count
+display remain unverified.

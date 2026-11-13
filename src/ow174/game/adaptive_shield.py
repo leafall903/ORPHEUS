@@ -21,7 +21,7 @@ class Pool:
 
 def prepare_count(instance):
     """Supply node20's count immediately before node14 snapshots it."""
-    from ow174.game.combat import segment_distance
+    from ow174.game import ball
 
     component = instance.component
     world = component.world
@@ -37,12 +37,7 @@ def prepare_count(instance):
     radius = expr.to_float(instance.evaluate(tracker.field("m_radius")))
     count = 0
     if math.isfinite(radius) and radius > 0:
-        origin = fight._eye(player)
-        count = sum(segment_distance(origin, *target.segment()) - target.radius <= radius
-                    for target in fight._targets()
-                    if target.owner is not player
-                    and (match.game_map.free_for_all or target.team != player.team)
-                    and not fight.vitals_of(target).dead)
+        count = ball.shield_enemy_count(fight, player, radius)
     instance.write(expr.lvalue(tracker.field("m_1B89EA79")), count)
 
 

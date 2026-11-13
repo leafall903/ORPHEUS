@@ -1,0 +1,29 @@
+{
+  "targetBuild": "104319",
+  "provenance": "Synthetic fixture using actual Q and E, one isolated original mine actor kept in the existing zero-gravity-flight fixture. Runtime graph inputs remain external.",
+  "input": [
+    "own mine, real enemy remote",
+    "hostile mine, caster remote",
+    "hostile mine and one real enemy nearby"
+  ],
+  "expected": {
+    "liveCount11": [
+      0,
+      0,
+      1
+    ],
+    "frozenCount11398": [
+      0,
+      0,
+      1
+    ],
+    "health": [
+      700,
+      700,
+      775
+    ],
+    "mine": "alive, unarmed and not triggered"
+  },
+  "scope": "Reuse existing Ball shield query in the node14 preparation hook; no new admission, radius, filter, health-pool producer or renderer.",
+  "limits": "Native filter/geometry/count display still unverified. Earlier direct position edits were rolled back by mover history and were not evidence of excess shields; corrected fixture replaces mover via existing relocate helper."
+}
