@@ -1,0 +1,25 @@
+{
+  "build": 104319,
+  "inputs": {
+    "npc_name": "Trooper",
+    "npc_body": "0x0400000000001D40",
+    "source_origin": [
+      1000,
+      0,
+      1000
+    ],
+    "target_distance": 3,
+    "hold_frames": 18,
+    "caller_multiplier": 0
+  },
+  "expected": {
+    "initial_npc_count": 15,
+    "count_with_trooper": 16,
+    "initial_health": 200,
+    "hit_count": 1,
+    "force_count": 0,
+    "finite_admissions": 1,
+    "brake_frames": 20
+  },
+  "boundary": "Actual stationary npc.spawn body and actual Punch commands; no moving/navigation/delayed or complete original-helper/native acceptance."
+}
