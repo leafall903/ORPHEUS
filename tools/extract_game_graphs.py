@@ -208,6 +208,10 @@ class StuXml:
             return None
         if kind == "ref":
             return guid_text(element.get("GUID"))
+        if kind == "teUUID":
+            # The pinned DataTool prints a UUID's Guid as an object that holds only a reference to
+            # itself, without the value. Keep the text of a dump that has it.
+            return (element.text or "").strip() or None
         if kind == "array":
             return [self.value(child) for child in element]
         if id(element) in self.nodes:

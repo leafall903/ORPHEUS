@@ -1,5 +1,19 @@
 # Changelog
 
+## Graph extraction from the pinned DataTool's UUID fields
+
+- `tools/extract_game_graphs.py` now reads a `teUUID` field as its text, or as none when the dump
+  holds no value. The pinned DataTool prints a UUID's `Guid` as an object that holds only a
+  reference to itself, and the extractor stopped on it with "reference cycle through Guid".
+  Mode graph `100B` has such a field, so a bundle with `--mode-xml` could not be built from a
+  pinned dump.
+- Limit: the UUID values are not in a pinned dump at all, so such an entity reference reads as
+  none.
+- Not checked on this source: building a full bundle from a pinned dump. The kjs branch built one
+  with this change.
+- Tests: `tests/public/test_extract_game_graphs.py` `UuidValueTests`.
+- Ported from the kjs branch. Original-client acceptance on this source is pending.
+
 ## Training Bot rebuild after a respawn
 
 - A bot made again at its spawner now gets game message `0013.025` on its body graph `0BA8`

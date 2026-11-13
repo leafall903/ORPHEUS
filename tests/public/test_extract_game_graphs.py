@@ -188,6 +188,34 @@ class EntityRootTests(unittest.TestCase):
         self.assertIsNone(entity["hero"])
 
 
+class UuidValueTests(unittest.TestCase):
+    def test_a_uuid_printed_without_its_value_is_none_and_one_with_text_keeps_it(self):
+        # The pinned DataTool prints a UUID's Guid as an object that holds only a reference to itself.
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / "graph.xml"
+            path.write_text('''<Root xmlns:dragon="https://yretenai.com/dragonml/v1">
+              <STUConfigVarEntityReference dragon:id="1" dragon:name="empty" m_EE729DCB="0">
+                <teUUID dragon:id="2" dragon:name="m_4A2AD74A">
+                  <Guid dragon:id="3" dragon:name="Value">
+                    <Guid dragon:id="4" dragon:name="Empty">
+                      <dragon:ref dragon:id="4" dragon:name="Empty" />
+                    </Guid>
+                  </Guid>
+                </teUUID>
+              </STUConfigVarEntityReference>
+              <STUConfigVarEntityReference dragon:id="5" dragon:name="named" m_EE729DCB="0">
+                <teUUID dragon:id="6" dragon:name="m_4A2AD74A">12345678-1234-4321-9876-112233445566</teUUID>
+              </STUConfigVarEntityReference>
+            </Root>''', encoding="utf-8")
+            xml = extractor.StuXml(path, EnumTables(root))
+            empty, named = (xml.value(child) for child in xml.root)
+            self.assertEqual(
+                empty, {"$": "STUConfigVarEntityReference", "m_EE729DCB": 0, "m_4A2AD74A": None},
+            )
+            self.assertEqual(named["m_4A2AD74A"], "12345678-1234-4321-9876-112233445566")
+
+
 class SpawnerRootTests(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
