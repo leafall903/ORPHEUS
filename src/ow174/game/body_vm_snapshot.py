@@ -23,6 +23,7 @@ from ow174.game.script.healing_status import StatusWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
 from ow174.game.ball_mines import MineWorld
+from ow174.game.venom_presentation import MineWorld as VenomMineWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
 from ow174.game.accretion import RockWorld
 from ow174.game.orisa_barrier import BarrierWorld
@@ -66,6 +67,7 @@ _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
     "deferred", "params", "stopped", "teardown", "initialized", "initialization_pending", "start",
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
+    "descriptor_source_entity",
     "auto_retire",
     "initialized_frame",
     "retirement_pending", "join_inputs", "plug_source",
@@ -329,6 +331,11 @@ class _Export:
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance source entity cache')
+        from ow174.game.statescript import validate_source_entity
+        try:
+            validate_source_entity(fields["descriptor_source_entity"])
+        except ValueError as exc:
+            raise BodyVMSnapshotError("invalid instance descriptor source entity") from exc
         target = fields["ruleset_target_entity"]
         if type(target) is not int or not 0 <= target <= 0xFFFFFFFF:
             raise BodyVMSnapshotError('invalid instance ruleset target entity')
@@ -590,7 +597,7 @@ class _Export:
                                           exclude=volskaya.SCENE_FIELDS - local)}
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
                     PackWorld, ExperimentalBarrierWorld, RockWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld,
-                    enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
+                    VenomMineWorld, enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
@@ -626,6 +633,8 @@ class _Export:
                 fields.update(("fight", "body", "tags"))
             if kind is MineWorld:
                 fields.update(("manager", "mine"))
+            if kind is VenomMineWorld:
+                fields.update(("fight", "mine", "entity"))
             if kind is PullQuery:
                 fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
             # The match and its pending deliveries belong to the enclosing server snapshot.

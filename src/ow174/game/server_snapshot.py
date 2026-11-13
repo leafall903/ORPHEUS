@@ -97,7 +97,7 @@ from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import body_owner, driver, entity_link, entity_queries, entity_team, expr, play, runtime, spatial_queries
-from ow174.game import volskaya
+from ow174.game import venom_presentation, volskaya
 from ow174.game.script import scene_host, startup
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
@@ -210,7 +210,8 @@ FIELDS = {
     junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
     entity_relation.Context: _names("owner context_present lookup relate watch_context retired"),
     junkrat_tire.TireSystem: _names("combat actors recovery next_entity last_error last_result"),
-    venom.Mines: _names("combat flights mines poison next_number last_tick replicas"),
+    venom.Mines: _names("combat flights mines poison next_number last_tick replicas presentations"),
+    venom_presentation.MineWorld: _names("hero mode fight mine entity"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     zenyatta.Zenyatta: _names("combat owners last_tick"),
     breather.Breathers: _names("fight channels"),

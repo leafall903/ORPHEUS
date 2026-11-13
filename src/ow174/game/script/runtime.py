@@ -1936,6 +1936,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.descriptor_source_entity: int | None = None  # Explicit transport opt-in only.
         self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
@@ -1970,14 +1971,22 @@ class Instance:
             self.component.ensure_valid()
         return self.cached_source_entity
 
-    def set_source_entity(self, entity: int) -> None:
+    def set_source_entity(self, entity: int, *, publish_source: bool = False) -> None:
         """1B94B10: write the typed builtin synchronously, then commit its cache."""
         if type(entity) is not int or not 0 <= entity <= 0xFFFFFFFF:
             raise ValueError("script source must be a 32-bit entity identifier")
+        if type(publish_source) is not bool:
+            raise ValueError("publish_source must be a boolean")
+        publish = publish_source or self.descriptor_source_entity is not None
+        if publish:
+            from ow174.game.statescript import validate_source_entity
+            validate_source_entity(entity)
         with self.component.operation():
             self.write((INSTANCE, 0x1B), Entity(entity))
             self.component.ensure_valid()
             self.cached_source_entity = entity
+            if publish:
+                self.descriptor_source_entity = entity
 
     def write(self, target: tuple[int, int] | None, value) -> None:
         """A plain assignment with the value's own type (0x7FF78AAB5650)."""

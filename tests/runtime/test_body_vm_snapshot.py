@@ -138,6 +138,19 @@ def digest(component):
 
 
 class BodyVMSnapshotTests(unittest.TestCase):
+    def test_explicit_descriptor_source_is_stored_without_initialization(self):
+        component, instance = fixture()
+        before = export_component_vm(component)
+        instance.set_source_entity(0xA0000101, publish_source=True)
+        with mock.patch.object(runtime.Instance, "init", side_effect=AssertionError("init called")):
+            document = export_component_vm(component)
+        stored = fields(raw(document), ["instance", 1])
+        self.assertEqual(stored["descriptor_source_entity"], 0xA0000101)
+        self.assertNotEqual(snapshot_digest(before), snapshot_digest(document))
+        instance.descriptor_source_entity = -1
+        with self.assertRaises(BodyVMSnapshotError):
+            export_component_vm(component)
+
     def test_priority_dependency_kind_is_causal_snapshot_data(self):
         component, instance = fixture()
         state = instance.states[0]

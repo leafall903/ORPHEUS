@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.descriptor-source.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "d8597014",
+    "paths": [
+      "src/ow174/game/statescript.py"
+    ]
+  },
+  "evidence": "synthetic-codec-and-external-native-parser-factory-reference",
+  "client_acceptance": "pending; native rendering and presentation not exercised",
+  "input": {
+    "graph": 4660,
+    "cases": [
+      {
+        "source": null,
+        "bits": 20,
+        "hex": "341200"
+      },
+      {
+        "source": 0,
+        "bits": 31,
+        "hex": "34120100"
+      },
+      {
+        "source": 2684354817,
+        "bits": 40,
+        "hex": "34122b2000"
+      },
+      {
+        "source": 4294967295,
+        "bits": 56,
+        "hex": "3412ffffffff03"
+      }
+    ],
+    "invalid": [
+      -1,
+      4294967296,
+      true,
+      1,
+      2147483648,
+      2684354560
+    ]
+  },
+  "expected": {
+    "native_source": {
+      "omitted": "current world entity",
+      "zero": "current world entity after factory zero fallback",
+      "explicit_launcher": "launcher before initialization"
+    },
+    "legacy": "omitted source preserves descriptor bytes; flag, parent, references unchanged"
+  },
+  "caller_contract": {
+    "graph": 5853,
+    "source": "captured launcher at birth; retained across owner hero/body replacement",
+    "publication": "opt-in before initialization; owner and observer descriptors",
+    "client_acceptance": "pending"
+  }
+}

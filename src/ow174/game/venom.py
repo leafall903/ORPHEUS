@@ -83,6 +83,7 @@ class Mines:
         self.next_number = 1  # server-local handle, never a guessed network entity ID
         self.last_tick = None
         self.replicas = {}
+        self.presentations = {}
 
     def sync_models(self):
         live = {mine.number: mine for mine in self.mines}
@@ -90,6 +91,7 @@ class Mines:
             if number in live:
                 continue
             entity, viewers = self.replicas.pop(number)
+            self.presentations.pop(number, None)
             for viewer in self.combat.match.players:
                 if viewer.client is not None and viewers.get(viewer.slot) is viewer.client:
                     viewer.client.queue_entities([world.EntityUpdate(entity, world.OP_DESTROY)])
@@ -105,18 +107,21 @@ class Mines:
             position = mine.position
             theme, _ = mine.owner.skin
             for viewer in self.combat.match.players:
-                if (not viewer.spawned or viewer.client is None
-                        or viewers.get(viewer.slot) is viewer.client):
+                if not viewer.spawned or viewer.client is None:
                     continue
-                viewers[viewer.slot] = viewer.client
-                viewer.client.queue_entities([world.EntityUpdate(
-                    entity, world.OP_CREATE,
-                    lambda origin, position=position, rotation=rotation, theme=theme: world.create(
-                        origin, MINE_DEFINITION, {},
-                        flags=world.WITH_TRANSFORM | world.WITH_SCALE,
-                        position=position, rotation=rotation, skin=(theme, False),
-                    ),
-                )])
+                if viewers.get(viewer.slot) is not viewer.client:
+                    viewers[viewer.slot] = viewer.client
+                    viewer.client.queue_entities([world.EntityUpdate(
+                        entity, world.OP_CREATE,
+                        lambda origin, position=position, rotation=rotation, theme=theme: world.create(
+                            origin, MINE_DEFINITION, {},
+                            flags=world.WITH_TRANSFORM | world.WITH_SCALE,
+                            position=position, rotation=rotation, skin=(theme, False),
+                        ),
+                    )])
+                from ow174.game import venom_presentation
+
+                venom_presentation.sync(self, mine, entity, viewer.client)
 
     @cached_property
     def properties(self):

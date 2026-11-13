@@ -2350,6 +2350,7 @@ class Snapshot:
     events: dict = field(default_factory=dict)  # instance -> ((time, state, finish, param), ...)
     callout: int = 0  # newest event in a full projection, or last event carried by a delta
     callouts: tuple[WheelCallout, ...] = ()
+    sources: dict[int, int] = field(default_factory=dict)  # explicit descriptor source inputs
 
     def next_callout(self, baseline: int) -> WheelCallout | None:
         return next((event for event in self.callouts if event.serial > baseline), None)
@@ -3363,6 +3364,8 @@ class BodyScript(ReplicatedBody):
         for instance in self.component.instances.values():
             parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
             snap.instances[instance.id] = (instance.graph.index, parent)
+            if instance.descriptor_source_entity is not None:
+                snap.sources[instance.id] = instance.descriptor_source_entity
             for var_id, var in self.replicated_vars(instance):
                 self._add_var(snap, instance.id, var_id, var)
             for index, state in instance.states.items():
@@ -3433,9 +3436,9 @@ class BodyScript(ReplicatedBody):
         graphs = self.graphs()
         wires = {}
         for item, (_, parent) in snap.instances.items():
-            wires[item] = InstanceWire(item, graphs[item], parent=parent)
+            wires[item] = InstanceWire(item, graphs[item], parent=parent, source_entity=snap.sources.get(item))
         entity_vars = {}
-        base = Snapshot(snap.k, dict(snap.instances))
+        base = Snapshot(snap.k, dict(snap.instances), sources=dict(snap.sources))
         for (owner, var), (value, _) in snap.vars.items():
             if owner == 0:
                 entity_vars[var] = (value, ())
@@ -3458,16 +3461,22 @@ class BodyScript(ReplicatedBody):
         def wire(item: int) -> InstanceWire:
             if item not in wires:
                 graph_index, parent = snap.instances[item]
-                wires[item] = InstanceWire(item, graphs.get(item) or graph.graph(graph_index), parent=parent)
+                wires[item] = InstanceWire(
+                    item, graphs.get(item) or graph.graph(graph_index), parent=parent,
+                    source_entity=snap.sources.get(item),
+                )
             return wires[item]
 
         keys = set()
         callout = frame_callout(base, snap, touched, keys, self.stream.last + 1)
         snap = snap.for_delta(base, keys)
         for item in snap.instances:
-            if item not in base.instances:  # new (a repeated descriptor is taken as the same instance)
+            if (item not in base.instances or snap.sources.get(item) != base.sources.get(item)
+                    or ("source", item) in touched):
                 wire(item).descriptor = True
                 keys.add(("inst", item))
+                if item in snap.sources or item in base.sources or ("source", item) in touched:
+                    keys.add(("source", item))
         for item in set(base.instances) | {key[1] for key in touched if key[0] == "inst"}:
             if item not in snap.instances:  # gone, or made and gone again since the base
                 wires[item] = InstanceWire(item, None, gone=True)

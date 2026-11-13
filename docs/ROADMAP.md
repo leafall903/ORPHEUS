@@ -540,3 +540,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Partial finite-only recipient effects and zero-multiplier Punch with8 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Stationary NPC handback and explicit presentation sources with13 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

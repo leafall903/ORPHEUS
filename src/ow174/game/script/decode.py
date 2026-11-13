@@ -322,6 +322,7 @@ class DecodedInstance:
     vars: dict = field(default_factory=dict)
     states: dict = field(default_factory=dict)  # m_states index -> (active, payload)
     events: list | None = None  # [(time, state, finish, param)]
+    source_entity: int | None = None
 
 
 @dataclass
@@ -342,8 +343,7 @@ class Frame:
 
 def _descriptor(reader: BitReader, item: DecodedInstance) -> None:
     item.graph = reader.bits(16)
-    if reader.bit():
-        reader.entity_id()
+    item.source_entity = (reader.entity_id() or 0) if reader.bit() else None
     reader.bit()
     if reader.bit():
         item.parent = (w_var(reader), w_var(reader))
@@ -603,6 +603,7 @@ class ClientBody:
         for index in initial:
             if index is not None:  # an empty entry makes nothing (and takes no id)
                 self.instances[max(self.instances, default=0) + 1] = index
+        self.sources: dict[int, int | None] = {}  # descriptor input, before native zero/self fallback
         self.records: dict[int, tuple] = {}  # id -> (graph index, parent)
         self.states: dict[tuple[int, int], bool] = {}
         self.vars: dict[tuple[int, int], object] = {}
@@ -622,18 +623,21 @@ class ClientBody:
         if frame.full:  # it nulls what the network set, and only remote-synced states can stay on (H = 0)
             self.records = {number: (item.graph, item.parent) for number, item in frame.instances.items()}
             self.instances = {key: value for key, value in self.instances.items() if key in self.records}
+            self.sources = {}
             self.states = {}
             self.vars = {}
         for number, item in frame.instances.items():
             if item.gone:
                 self.instances.pop(number, None)
                 self.records.pop(number, None)
+                self.sources.pop(number, None)
                 self.states = {key: on for key, on in self.states.items() if key[0] != number}
                 self.vars = {key: value for key, value in self.vars.items() if key[0] != number}
                 continue
             if item.descriptor:
                 self.instances[number] = item.graph
                 self.records[number] = (item.graph, item.parent)
+                self.sources[number] = item.source_entity
             for index, (active, _) in item.states.items():
                 self.states[(number, index)] = active
             for var, (value, _) in item.vars.items():

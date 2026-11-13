@@ -78,8 +78,8 @@ class SceneBody(ReplicatedBody):
         dead = self.component.owner_dead
         first_death = dead and self.terminal_snapshot is None
         previous = self.terminal_snapshot or self.latest_live
-        if not first_death and (current.instances, current.vars, current.states, current.callout) == (
-            previous.instances, previous.vars, previous.states, previous.callout
+        if not first_death and (current.instances, current.vars, current.states, current.callout, current.sources) == (
+            previous.instances, previous.vars, previous.states, previous.callout, previous.sources
         ):
             return None
         if dead:
@@ -99,6 +99,8 @@ def snapshot(script) -> Snapshot:
         # presentation states. Advertise it without the synthetic row parent.
         parent = (owner.id, instance.parent_state) if owner is not None and not _phase_list_row(owner) else None
         snap.instances[instance.id] = (instance.graph.index, parent)
+        if instance.descriptor_source_entity is not None:
+            snap.sources[instance.id] = instance.descriptor_source_entity
         _add_vars(snap, instance.id, script.replicated_vars(instance))
         for index, cls, codec, stec in _remote_snapshot_states(instance.graph):
             state = instance.states.get(index)
@@ -155,7 +157,7 @@ def full_frame(script, snap: Snapshot):
             # Delayed full frames can outlive the instance captured in the snapshot.
             definition = graph.graph(index)
         graphs[item] = definition
-        wires[item] = InstanceWire(item, definition, parent=parent)
+        wires[item] = InstanceWire(item, definition, parent=parent, source_entity=snap.sources.get(item))
     entity_vars = {}
     for (owner, var), value in snap.vars.items():
         if owner == 0:
@@ -201,13 +203,19 @@ def _delta_from(graphs, base, snap, known, touched, *, next_chunk=None, action=N
     def wire(item: int) -> InstanceWire:
         if item not in wires:
             graph_index, parent = snap.instances.get(item) or known[item]
-            wires[item] = InstanceWire(item, graphs.get(item) or graph.graph(graph_index), parent=parent)
+            wires[item] = InstanceWire(
+                item, graphs.get(item) or graph.graph(graph_index), parent=parent,
+                source_entity=snap.sources.get(item),
+            )
         return wires[item]
 
     for item in snap.instances:
-        if item not in base.instances:
+        if (item not in base.instances or snap.sources.get(item) != base.sources.get(item)
+                or ("source", item) in touched):
             wire(item).descriptor = True
             keys.add(("inst", item))
+            if item in snap.sources or item in base.sources or ("source", item) in touched:
+                keys.add(("source", item))
     for item in set(base.instances) | {key[1] for key in touched if key[0] == "inst"}:
         if item not in snap.instances and item in known:
             wire(item).gone = True
@@ -257,7 +265,7 @@ def _activity(snap: Snapshot, action: int = 0) -> tuple:
     payloads (their counters start them again)."""
     on = frozenset(key for key, (_, active, _) in snap.states.items() if active)
     stec = frozenset((key, value) for key, value in snap.states.items() if value[0] in stec_classes())
-    return frozenset(snap.instances), on, stec, action
+    return frozenset(snap.instances), on, stec, action, frozenset(snap.sources.items())
 
 
 class Watch:

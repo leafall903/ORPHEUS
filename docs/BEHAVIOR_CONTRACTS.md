@@ -141,3 +141,7 @@ record with its original VM identity and verifies a lost destroy is retried thro
 the production encrypted delivery queue. Prepared runtime data stays external.
 This contract does not establish native duplicate-model, upgrade, weapon or lava
 acceptance, or the unresolved original Pet source and VM initialization order.
+
+## Explicit descriptor source
+
+`fixtures/behavior/statescript-descriptor-source-v1.json` pins synthetic descriptor bytes for omitted, zero, launcher and maximum round-trippable uint32 sources. `tests/public/test_descriptor_source_contracts.py` exercises both writers, decoding, explicit runtime opt-in, owner/observer snapshots, initial and delta transport, delayed snapshots and unacknowledged source reversion. Descriptor source is the native factory input, not the attachment entity or Pet owner. Omitted and explicit zero differ on wire; native factory zero fallback resolves the current entity before initialization. External target-build parser/factory/cache replay establishes that bounded initialization order; native rendering, weapon visibility, turret upgrades and Pet ownership remain pending.

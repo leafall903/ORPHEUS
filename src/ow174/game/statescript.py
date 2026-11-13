@@ -123,11 +123,28 @@ class Instance:
     presence: dict[int, Value] = field(default_factory=dict)  # presence bit -> value
     extra: dict[int, Value] = field(default_factory=dict)  # variable id -> value
     active: dict[int, BitWriter | None] = field(default_factory=dict)  # owner state bit -> payload
+    source_entity: int | None = None
+
+
+def validate_source_entity(source: int | None) -> None:
+    """The optional descriptor source uses the native compressed EntityID representation."""
+    if source is None:
+        return
+    if (type(source) is not int or not 0 <= source <= 0xFFFFFFFF
+            or (source != 0 and (not source & 0x80000000 or not source & 0x1FFFFFFF))):
+        raise ValueError("descriptor source must be zero or a round-trippable uint32 EntityID")
+
+
+def _source_entity(out: BitWriter, source: int | None) -> None:
+    validate_source_entity(source)
+    out.bit(source is not None)
+    if source is not None:
+        out.entity_id(source)
 
 
 def _descriptor(out: BitWriter, instance: Instance) -> None:
     out.bits(instance.graph.index, 16)
-    out.bit(0)  # the instance lives on this entity
+    _source_entity(out, instance.source_entity)
     out.bit(0)  # flag
     if instance.parent is None:
         out.bit(0)
@@ -780,6 +797,7 @@ class InstanceWire:
     vars: dict = field(default_factory=dict)  # var id -> (value, bindings)
     states: dict[int, StateWire] = field(default_factory=dict)
     events: list[EventWire] | None = None
+    source_entity: int | None = None
 
     @property
     def listed(self) -> bool:
@@ -788,7 +806,7 @@ class InstanceWire:
 
 def _descriptor_of(out: BitWriter, item: InstanceWire) -> None:
     out.bits(item.graph.index, 16)
-    out.bit(0)  # this entity
+    _source_entity(out, item.source_entity)
     out.bit(0)  # flag
     if item.parent is None:
         out.bit(0)

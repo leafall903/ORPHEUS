@@ -1039,6 +1039,11 @@ class Mover:
         key = (*prefix, slot)
         self.mods[key] = Mod(index, op, f32(value), start, end, priority, key=key)
 
+    def pending_frame_modifiers(self, frame: int) -> bool:
+        """Whether finite body effects still require this physical mover."""
+        return any(key[0] == -3 and mod.end is not None and mod.end > frame
+                   for key, mod in self.mods.items())
+
     def track_mods(self, active: dict, frame: int, *, posed: bool = True) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
         a mod that came on acts from the next frame on, one that went off acts up to this frame. The

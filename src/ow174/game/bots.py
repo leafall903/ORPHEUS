@@ -392,11 +392,14 @@ class Bot:
             match = getattr(getattr(component, "world", None), "match", None)
             category = MOVER if match is None or match.game_map.free_for_all or self.team not in (0, 1) else (TEAM0, TEAM1)[self.team]
             walls = match.combat.walls if match is not None else None
+            finite_only = (not self.impulse_mover.external_impulse
+                           and any(key[0] == -3 for key in self.impulse_mover.mods))
             # Both route and navigation schedulers call this for one labelled tick.
             self.last_tick = tick - 1
             self._step_manual_body(tick, seconds, collision, category, 0, walls)
             mover = self.impulse_mover
-            if (self.attack_target is not None and not mover.airborne and not any(mover.velocity)):
+            if ((self.attack_target is not None or finite_only) and not mover.airborne and not any(mover.velocity)
+                    and not mover.pending_frame_modifiers(tick)):
                 # Preserve the existing explicit navigation owner once displacement settles.
                 self.impulse_mover = None
                 self.start = self.position
@@ -407,7 +410,8 @@ class Bot:
         self.position, self.velocity = tuple(mover.position), mover.velocity
         self.held = (0, 0)
         self.moved_tick = tick
-        if not mover.flags_word & IN_AIR and not any(mover.velocity):
+        if (not mover.flags_word & IN_AIR and not any(mover.velocity)
+                and not mover.pending_frame_modifiers(tick)):
             self.impulse_mover = None
             self.start = self.position  # a resumed route interpolates from the displaced position
 

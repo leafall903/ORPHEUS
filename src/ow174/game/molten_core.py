@@ -93,7 +93,7 @@ def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0), source
     instance = script.component.create(graph.graph(cfg["area_graph"]), init=False)
     # The original FX consumer reads Instance+234 through builtin001B.
     # A separately created pool must retain the launcher's source identity.
-    instance.set_source_entity(owner.body if source_body is None else source_body)
+    instance.set_source_entity(owner.body if source_body is None else source_body, publish_source=True)
     instance.init()
     runtime.send_instance_message(instance, LANDED, {}, owner.body)
     script.component.run_frame(frame)

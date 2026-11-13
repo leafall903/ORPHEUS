@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "case_id": "widowmaker-mine-presentation-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "d36c0048f212b3e434f777a2736b6d30f82b29f2",
+    "provenance": "Synthetic actual VenomMine input and encrypted peer lifecycle. Original00AE constructor declares25B4;0056/1 spawn config m_410BF8BD selects0057. LocaloriginalXML retained externally, not in repository."
+  },
+  "client_acceptance": "pending",
+  "initial_graphs": [
+    9652
+  ],
+  "deployed_graph": 87,
+  "expected_animation": {
+    "node": 17,
+    "counter": 1
+  },
+  "input": "One mine button16; remote enemy rifle input after deployment; onecreate thenoriginal0057chunk andoneDestroy per viewer."
+}

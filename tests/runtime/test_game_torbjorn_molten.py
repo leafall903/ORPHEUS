@@ -91,6 +91,7 @@ class TorbjornMoltenTests(unittest.TestCase):
         self.assertEqual(instance.source_entity(), owner.body)
         snapshot = observers.snapshot(pool.script)
         self.assertEqual(snapshot.vars[pool.instance, 27][0], expr.Entity(owner.body))
+        self.assertEqual(snapshot.sources[pool.instance], owner.body)
         self.assertGreater(observers.full_frame(pool.script, snapshot).count, 0)
         source_body = owner.body
         self.assertTrue(run.match.switch_hero(owner, heroes()[SOLDIER]))
@@ -100,6 +101,7 @@ class TorbjornMoltenTests(unittest.TestCase):
                                               source_body=source_body)
         replacement_instance = replacement.script.component.instances[replacement.instance]
         self.assertEqual(replacement_instance.source_entity(), source_body)
+        self.assertEqual(observers.snapshot(replacement.script).sources[replacement.instance], source_body)
 
     def test_empty_ultimate_charge_rejects_actual_press(self):
         run, owner, _, pool, _ = self.arena()

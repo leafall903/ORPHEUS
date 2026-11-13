@@ -179,10 +179,11 @@ class Knockbacks:
         return owner, controller, mover, frame, controlled
 
     def admit_modifiers(self, target, *, impact_tick, source_entity=None, launch_modifiers=()):
-        """Finite effects on an existing player/possessed body, without a force.
+        """Finite effects on qualified physical bodies, without a force.
 
-        Ordinary NPC ownership/handback remains unsupported by this first
-        effect-only path; it never creates a mover or queues a zero velocity.
+        Stationary, current-tick ordinary NPCs reuse the canonical physical
+        initialization. Moving/navigation and delayed effect-only handoff
+        remain unsupported; no zero velocity or synthetic force is queued.
         """
         from ow174.game import bots, correction
         from ow174.game.combat import TICK
@@ -203,7 +204,20 @@ class Knockbacks:
             return False
         owner, controller, mover, frame, controlled = resolved
         if isinstance(owner, bots.Bot) and not controlled:
-            return False
+            script = owner.body_script
+            component = getattr(script, 'component', None)
+            if (frame != self.combat.match.tick + 1 or owner.navigation is not None
+                    or owner.route or owner.keys or any(owner.velocity)
+                    or component is None or component.entity != owner.entity
+                    or component.owner_dead or component.fault is not None
+                    or getattr(component.world, 'match', None) is not self.combat.match
+                    or any(isinstance(state, nodes.MoveTo) and state.active
+                           for instance in component.instances.values() for state in instance.states.values())):
+                return False
+            mover = self._ensure_npc_mover(owner, frame - 1, preserve_motion=True)
+            self._enqueue_launch_modifiers(mover, frame, launch_modifiers)
+            owner.last_tick = frame - 1
+            return True
         expires = max(self.combat.match.tick, impact_tick)
         expires += (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
         if not correction.request_motion(controller, first_frame=frame, body=target.entity,
@@ -534,22 +548,34 @@ class Knockbacks:
             mover.add_timed_mod(index, op, value, frame, frame + math.ceil(seconds / TICK),
                                 priority=priority, frame_clock=True)
 
-    def _start_npc(self, bot, impact, key, impulse, velocity_mode=1,
-                   velocity_priority=0.0, launch_modifiers=()):
+    def _ensure_npc_mover(self, bot, impact, *, preserve_motion=False):
+        """The one canonical physical-body initialization, also used by forces."""
         mover = bot.impulse_mover
         if mover is None:
             from ow174.game import npc_navigation
 
+            motion = bot.movement(impact) if preserve_motion else None
             if bot.navigation is not None:
                 npc_navigation.stop(bot)
             match = self.combat.match
             category = MOVER if match.game_map.free_for_all or bot.team not in (0, 1) else (TEAM0, TEAM1)[bot.team]
             mover = Mover(bot.position, round(bot.yaw), match.collision_world,
-                          mover_data(bot.body), category=category)
+                          (bot.movement_data or mover_data(bot.body)) if preserve_motion else mover_data(bot.body),
+                          category=category)
             mover.velocity = tuple(bot.velocity)
+            if motion is not None:
+                mover.position[:] = motion.position
+                mover.velocity = tuple(motion.velocity)
+                mover.flags_word = motion.flags
+                mover.air_ticks = motion.air_ticks
             mover.last_command = Command(impact, yaw=mover.yaw)
+            bot.impulse_mover = mover
+        return mover
+
+    def _start_npc(self, bot, impact, key, impulse, velocity_mode=1,
+                   velocity_priority=0.0, launch_modifiers=()):
+        mover = self._ensure_npc_mover(bot, impact)
         self._enqueue(bot.entity, mover, impact + 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
-        bot.impulse_mover = mover
         bot.last_tick = impact
 
     def step_npc(self, bot, tick, seconds, collision, **movement):
