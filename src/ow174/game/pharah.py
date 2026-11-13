@@ -55,12 +55,14 @@ def view_world_tick(script, command, quanta):
 
 
 def primary_targets(fight, rocket, targets):
-    """Sample bodies at a delayed primary's physical sweep, not receipt time.
+    """Sample original Pharah projectile bodies at physical sweep time.
 
     Reuse retained world poses without changing live movers or owner/HIT clocks.
     Current-tick flights and every other projectile keep their existing policy.
     """
-    if ((rocket.source_graph, rocket.definition) != (0x0023, 0x0400000000000033)
+    if ((rocket.source_graph, rocket.definition) not in (
+            (0x0023, 0x0400000000000033), (0x002B, 0x0400000000000052),
+            (0x007B, 0x040000000000010F))
             or fight.tick >= fight.match.tick):
         return targets
     return [replace(shown, construct=target.construct) for target in targets

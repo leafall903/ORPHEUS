@@ -724,3 +724,36 @@ paired timings are not full20 skill/status acceptance or a16ms saving claim.
 Source52 receives its own exact-head unprofiled run. Current49 server, shortcuts,
 profiles and limited Halloween native result stay unchanged and are not inherited.
 All existing whole-hero/shared-service/native presentation boundaries remain open.
+
+## Restore omitted projectile-history and trap registration fixes (batch53)
+
+Soldier original42a9, adapted by original owner71b3 onto52, qualifies only
+ordinary0254/072C Helix with actual matching Shot.body/source and integer physical
+launch/last ticks. Reuse existing accepted-flight advancement and retained seen()
+capsules for direct/splash while preserving construct metadata. Existing
+Pharah/Orisa/Genji/Echo/Torb filter order remains. Full existing HIT payloads,
+120damage, one canonical force and retirement match across packet schedules and
+two source epochs. Separate-owner HIT frame labels are preserved and remain OPEN.
+No second projectile producer, radius/damage/input-window change is included.
+
+Pharah originale660 then91ac extend the existing exact history gate to Barrage
+and Concussive Blast. Actual source commands/physical sweeps and controlled
+retained poses reproduce equal full HIT lists for Barrage and equal one-per-actor
+enemy/self force lists for E. Synthetic retained poses do not establish actual
+target movement-command, encrypted-peer or native-client acceptance.
+
+Junkrat originalf611 registers the already landed103A/09BB component through
+the canonical Match API, then unregisters that exact identity on retirement.
+TrapWorld.match derives from its stored manager: no second VM or persistent
+field. Ordinary foreign slot232 reads see the identical variable object;
+getter-free full stopped-server export passes; owner replacement unregisters;
+a delayed old retirement preserves a replacement component at the same entity.
+Converted78BF consumer/final Pet72 source and original model/palette stay OPEN.
+
+Five composed focused methods pass with no failure/error/skip/logged error.
+Soldier owner's six related compatibility checks remain identified separately.
+These five previously omitted methods are newly included in formal coverage:
+311 selected total =290 new +21 maintained compatibility; no whole-hero closure.
+No new20-hero scenario or profile was run for53 under the code-only instruction.
+Latest measured52 timing remains RED and is not inherited as53 acceptance.
+Running native49 and its limited Halloween entry/opening evidence stay separate.

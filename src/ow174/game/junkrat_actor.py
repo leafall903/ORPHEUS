@@ -15,6 +15,10 @@ class TrapWorld(runtime.World):
         self.manager, self.trap = manager, trap
         self.damage_receipt = None
 
+    @property
+    def match(self):
+        return self.manager.combat.match
+
     def position(self, entity):
         if entity == self.trap.entity:
             return expr.Vec3(*self.trap.position)
@@ -77,6 +81,7 @@ def landed(manager, trap):
     script.start_entries((), trap.source_body)
     trap.actor_script = script
     component.run_now()
+    manager.combat.match.register_body_component(component)
     trap.actor_projection = observers.SceneBody(component)
 
 
@@ -107,5 +112,6 @@ def sync(manager):
 def retire(trap):
     component = trap.actor_component
     if component is not None:
+        component.world.match.unregister_body_component(component)
         for instance in tuple(component.instances.values()):
             component.destroy(instance)

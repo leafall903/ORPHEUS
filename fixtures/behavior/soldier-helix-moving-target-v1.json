@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-helix-moving-target-v1",
+  "provenance": "Synthetic actual commands on formal46 0c186f2; Run immediate notice sink, no encrypted/native acceptance.",
+  "input": {
+    "map": "Practice Range",
+    "shooter_position": [1000, 0, 1000],
+    "target_position": [1000, 0, 1005],
+    "aim_point": [1000, 1, 1005],
+    "prewarm_frames": 20,
+    "sample_frames": 64,
+    "source_packet_sizes": [1, 32],
+    "target_right": 127,
+    "press_button": 2,
+    "separate_owner_start": 9000
+  },
+  "expected": {"damage": 120, "hit_amounts": [40, 80], "impact_offset": 7, "live_projectiles": 0, "force_events": 1},
+  "contract": "Only original0254/072C with a captured integer flight stamp and matching shot body replays physical ticks and historical target capsules for contact and splash. Full HIT target/amount/flags/ownerframe stays equal across packet schedules. Other projectile families remain unchanged.",
+  "pending": ["Native moving-target hit presentation", "Separate-owner Helix HIT remains world-labelled in existing policy, unlike rifle; no ownerclock acceptance", "Original continuous fire/runjump incident replay", "Field/Visor visual acceptance", "Unanchored non-Practice launch clock", "Alternate Visor Helix", "Historical construct/barrier/status policy"]
+}

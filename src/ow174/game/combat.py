@@ -8015,6 +8015,7 @@ class Combat:
             return
         try:
             from ow174.game import ana_projectiles, hanzo_projectiles, reinhardt_projectiles, sigma_projectiles, mccree
+            from ow174.game import soldier_projectile_history
 
             direct_clocked = rocket.last_tick is not None and (
                 (rocket.source_graph == 0x006D and rocket.definition == 0x0400000000000158
@@ -8045,7 +8046,8 @@ class Combat:
                     from ow174.game import echo_projectiles
 
                     echo_projectiles.observe_live(self, rocket)
-            elif not (hanzo_projectiles.advance(self, rocket)
+            elif not (soldier_projectile_history.advance(self, rocket)
+                      or hanzo_projectiles.advance(self, rocket)
                       or reinhardt_projectiles.advance(self, rocket)
                       or lucio.advance_projectile(self, rocket)
                       or ana_projectiles.advance(self, rocket)
@@ -8469,6 +8471,9 @@ class Combat:
 
         candidates = echo_projectile_history.targets(self, rocket, candidates)
         candidates = hero_torbjorn.rivet_targets(self, rocket, candidates)
+        from ow174.game import soldier_projectile_history
+
+        candidates = soldier_projectile_history.targets(self, rocket, candidates)
         best = None
         assisted_contact = (rocket.definition == 0x0400000000001000
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
@@ -9431,6 +9436,9 @@ class Combat:
             from ow174.game import pharah as pharah_rules
 
             candidates = pharah_rules.primary_targets(self, rocket, candidates)
+        from ow174.game import soldier_projectile_history
+
+        candidates = soldier_projectile_history.targets(self, rocket, candidates)
         ice_damage = rocket.direct.amount if ice is not None and rocket.direct is not None else 0.0
         shield_damage = [(shield[1], rocket.direct.amount)] if shield and rocket.direct else []
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0

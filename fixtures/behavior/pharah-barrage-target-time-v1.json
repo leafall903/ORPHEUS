@@ -1,0 +1,23 @@
+{
+  "provenance": "Synthetic retained-pose fixture, actual original Barrage command and unmodified rays/damage/sweeps. Controlled body poses model the same world-time lane swap in both receipt schedules; not a native client or actual movement-command claim.",
+  "input": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "fire_owner_frame": 9031,
+    "fire_world_tick": 1031,
+    "receipt_world_tick": 1050,
+    "swap_after_world_tick": 1040,
+    "end_world_tick": 1051,
+    "button": 32,
+    "source_position": [1000, 0, 1000],
+    "near_position": [1000, 0, 1003],
+    "far_position": [1006, 0, 1003]
+  },
+  "expected": {
+    "health": [80, 0],
+    "hit_count": 16,
+    "hit_pair": [10, 30],
+    "remaining_rockets": 2
+  },
+  "boundary": "Full existing HIT payloads must match across schedules; their unchanged frame labels are not proof of native clock-domain correctness. No new force, model, collision extent, immunity or lifetime policy."
+}

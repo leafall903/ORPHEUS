@@ -187,3 +187,11 @@ external game catalogs, research captures and private comparison assets remain
 outside published Git history. No native visual pass is implied.
 
 Managed projectile source research uses original104319 entity2533/component47 metadata (0033 with its authored health override, and1502), the native987140 source-directory request evidence, and the existing BE8E10 ComponentStartup implementation. Original Ashe lane0200 supplied the resource/producer qualification and narrow accepted-flight hooks. Model query geometry and source identity are separate from dynamic receiver mass; raw game assets and native execution logs remain external.
+
+## Omitted Pharah follow-ups restored in batch53
+
+Pharah Barrage and Concussive Blast history repairs use original-owner actual
+source commands and synthetic retained-pose fixtures with the existing physical
+sweep/receiver and history guard. Echo's independent moving-target finding
+prompted bounded review but does not establish Pharah behavior. No original
+assets, expanded collision volume or new force rule are included.

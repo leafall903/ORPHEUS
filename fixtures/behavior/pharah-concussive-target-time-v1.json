@@ -1,0 +1,24 @@
+{
+  "provenance": "Synthetic retained-pose lane swap, actual E and subsequent neutral owner commands; unmodified windup, sweep, force planner and common receiver. No native or actual target movement-command claim.",
+  "input": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "press_world": 1031,
+    "press_owner": 9031,
+    "receipt_world": 1050,
+    "swap_after": 1048,
+    "end_world": 1051,
+    "source_position": [1000, 0, 1000],
+    "near_position": [1000, 0, 1003],
+    "far_position": [1012, 0, 1003]
+  },
+  "expected": {
+    "launch_owner": 9041,
+    "launch_world": 1041,
+    "impact_world": 1044,
+    "enemy_force": [0, 5, 20],
+    "self_force": [0, 5, -20],
+    "health": [200, 200]
+  },
+  "boundary": "Checks causal recipient identity and unchanged producer output, not native displacement or full original force parity. E remains zero damage/no HIT."
+}
