@@ -429,3 +429,16 @@ acceptance remain open. The user selected code merges only; no runtime restart.
 ## Managed projectile source lifetime
 
 `fixtures/behavior/managed-projectile-source-v1.json` covers actual accepted E, the same moving flight, pending original0033/1502 allocation, independent physical birth and owner clocks, unique fuse/owner-shot dispatch and exact retirement. The strict full-server export retains one shared source/flight/component identity graph. A component-only observation excludes its enclosing source domain, following the existing world boundary policy. Source registration does not imply native +AC association, mass, receiver eligibility or Entry execution. Deflection/absorption source hooks have no new runtime acceptance in this change; their original motion/attribution branches stay intact. Native factory/context/clock/Physics/visual behavior and restoration remain open.
+
+## Default allocation root typed SELF
+
+`fixtures/behavior/body-root-source-v1.json` covers ordinary player roots, an
+actual DVa pilot and controlled0407 mech, ordinary NPC roots and explicit NPC
+source overrides. Every root newly allocated by create_body_graphs seeds typed
+001B/cache from its actual VM component owner before caller initialization.
+The descriptor stays implicit SELF (None); an explicit caller source still
+overrides before initialization. Native977F20 zero-source fallback is independent
+of hero, while Pet attribution and dynamic PlayScript remain separate. Three
+selected methods pass; this is neither a full native allocator execution nor a
+palette or twenty-hero performance acceptance. The20-hero baseline must include
+this correctness change rather than preserving invalid zero sources for speed.

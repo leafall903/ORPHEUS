@@ -1,0 +1,18 @@
+{
+  "schema": "body-root-source-v1",
+  "provenance": "Original104319 BE8E10 root startup -> facade70/78 ->977F20; invalid source0 falls back to actual VM owner. Synthetic live-body scenarios test server semantics, not native rendering.",
+  "playerHeroes": [
+    "soldier",
+    "mei"
+  ],
+  "npc": {
+    "body": "0x0400000000001403",
+    "hero": "0x02E000000000016B",
+    "entity": "0xA0007001",
+    "explicitSource": "0xA0007002",
+    "frame": 1000,
+    "health": 200
+  },
+  "descriptorSource": null,
+  "nativeColorAccepted": false
+}

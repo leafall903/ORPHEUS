@@ -3798,15 +3798,11 @@ def create_body_graphs(
             raise ValueError(f"body weapon graph is unavailable for slot {slot}")
         if weapon is not None:
             created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
-    # These are allocation roots on their own bodies. 1536's subsequent
-    # PlayScript inherits Ashe as the charge instigator; 153B fires as B.O.B.
-    hero = getattr(component.world, 'hero', None)
-    source_graph = {0x02E0000000000200: 0x1536, 0x02E000000000021D: 0x153B}.get(hero)
+    # Native977F20 seeds body allocation roots from the actual VM owner when
+    # the allocation source is zero. Explicit NPC sources are applied by the
+    # caller afterwards, before init. Keep implicit SELF descriptors unchanged.
     for instance in created:
-        # Reaper's body roots use native977F20's zero-source owner fallback
-        # before init. Keep the descriptor's existing implicit SELF source.
-        if hero == 0x02E0000000000002 or instance.graph.index == source_graph:
-            instance.set_source_entity(component.entity)
+        instance.set_source_entity(component.entity)
     return created
 
 
