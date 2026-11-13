@@ -31,7 +31,7 @@ class MeiPreviewSnapshotTests(unittest.TestCase):
                     server_digest(fixture.capture(session)))
 
         baseline = capture()
-        for field in ('confirmation_byte', 'last_frame', 'latest_frame'):
+        for field in ('placement_byte', 'last_frame', 'latest_frame'):
             with self.subTest(field=field):
                 original = getattr(state, field)
                 setattr(state, field, 1)

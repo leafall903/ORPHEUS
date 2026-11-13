@@ -204,26 +204,32 @@ _COMMON_CONTROLLER_BASE_STATES = (
 class BodyPlacement(State):
     """Explicit host placement; authoritative routing is reconstructed, not native preview."""
 
-    def on_begin(self):
-        from ow174.game import symmetra
+    def on_created(self):
+        from ow174.game.script import placement_byte
 
-        symmetra.placement_wire_begin(self)
+        placement_byte.begin(self)
+
+    def on_begin(self):
+        from ow174.game.script import placement_byte
+
+        placement_byte.begin(self)
 
     def payload(self):
-        from ow174.game import symmetra
+        from ow174.game.script import placement_byte
 
-        value = symmetra.placement_wire_payload(self)
+        value = placement_byte.payload(self)
         return super().payload() if value is None else value
 
     def plug_enter(self, input_path):
+        from ow174.game.script import placement_byte
+
+        placement_byte.typed_input(self, input_path)
         if input_path != "m_6647ED22":
             return super().plug_enter(input_path)
         if not self.active or self.ending or self.instance.component.owner_dead:
             return True
-        from ow174.game import symmetra
         from ow174.game.script import placement
 
-        symmetra.placement_wire_confirm(self)
         component = self.instance.component
         world = component.world
         result = world.body_placement(self)
@@ -5860,19 +5866,18 @@ class PlacementPreview(Placement):
     """
 
     def on_created(self):
-        from ow174.game import reaper
+        from ow174.game.script import placement_byte
 
-        reaper.shadow_placement_begin(self)
+        placement_byte.begin(self)
 
     def _delivered(self):
         owns = getattr(self.instance.component.world, "uses_delivered_placement", None)
         return owns is not None and owns(self)
 
     def on_begin(self):
-        from ow174.game import reaper, symmetra
+        from ow174.game.script import placement_byte
 
-        symmetra.placement_wire_begin(self)
-        reaper.shadow_placement_begin(self)
+        placement_byte.begin(self)
         if self._delivered():
             return super().on_begin()
         refresh = getattr(self.instance.component.world, "refresh_compatible_placement", None)
@@ -5885,23 +5890,20 @@ class PlacementPreview(Placement):
         self.instance.component.world.refresh_compatible_placement(self, confirm=False)
 
     def payload(self):
-        from ow174.game import reaper, symmetra
+        from ow174.game.script import placement_byte
 
-        value = symmetra.placement_wire_payload(self)
-        if value is None:
-            value = reaper.shadow_placement_payload(self)
+        value = placement_byte.payload(self)
         return super().payload() if value is None else value
 
     def plug_enter(self, input_path):
+        from ow174.game.script import placement_byte
+
+        placement_byte.typed_input(self, input_path)
         if input_path == 'm_6647ED22':
             from ow174.game import reaper
 
             if reaper.shadow_placement_confirm(self):
                 return True
-        if input_path == 'm_6647ED22' and self.active and not self.ending:
-            from ow174.game import symmetra
-
-            symmetra.placement_wire_confirm(self)
         if self._delivered():
             return super().plug_enter(input_path)
         if input_path == "m_6647ED22" and self.active:
@@ -5925,24 +5927,8 @@ class PlacementPreview(Placement):
 
 
 class BaptisteMatrixPreview(PlacementPreview):
-    """1902/node16's priority2 native preview byte; geometry stays with its host."""
+    """Retain the scoped adapter identity; byte storage uses the common producer."""
 
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.confirm_byte = 0
-
-    def on_begin(self):
-        self.confirm_byte = 0
-        return super().on_begin()
-
-    def plug_enter(self, input_path):
-        if (input_path == "m_6647ED22" and self.active and not self.ending
-                and self.node.field(input_path).get("$") == "STU_A1AAB8C4"):
-            self.confirm_byte = 1
-        return super().plug_enter(input_path)
-
-    def payload(self):
-        return {"m_B4802CE3": self.confirm_byte}
 
 
 def spawn_deployable(instance, node, caller):

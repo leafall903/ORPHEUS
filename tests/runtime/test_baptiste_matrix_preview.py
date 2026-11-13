@@ -57,14 +57,14 @@ class BaptisteMatrixPreviewTests(unittest.TestCase):
             else:
                 statescript.write_remote_payload(writer, state.node.cls, state.payload(), True)
             self.assertEqual(writer.count, 8)
-            self.assertEqual(writer.value, state.confirm_byte)
+            self.assertEqual(writer.value, state.placement_byte)
         script = player.body_script
         first = snapshot_digest(export_body_vm(script))
         h0 = observers.full_frame(script, script.snapshot())
         h1, _, _ = script.delta(Snapshot(), set(), script.frame + 1, False)
-        byte = state.confirm_byte
+        byte = state.placement_byte
         with patch.object(runtime.Component, "run_now", side_effect=AssertionError("export ran VM")):
-            state.confirm_byte ^= 1
+            state.placement_byte ^= 1
             self.assertNotEqual(snapshot_digest(export_body_vm(script)), first)
             changed0 = observers.full_frame(script, script.snapshot())
             changed1, _, _ = script.delta(Snapshot(), set(), script.frame + 1, False)
@@ -75,7 +75,7 @@ class BaptisteMatrixPreviewTests(unittest.TestCase):
                 # Full H0 omits an inactive state's payload. Stored VM export
                 # still retains its confirm byte for the next activation.
                 self.assertEqual((h0.count, h0.value), (changed0.count, changed0.value))
-            state.confirm_byte = byte
+            state.placement_byte = byte
             self.assertEqual(snapshot_digest(export_body_vm(script)), first)
 
     def test_full_server_export_distinguishes_matrix_byte_without_running_vm(self):
@@ -91,7 +91,7 @@ class BaptisteMatrixPreviewTests(unittest.TestCase):
         self.assertEqual(state.payload(), {CONTRACT["field"]: 0})
         with patch.object(runtime.Component, "run_now", side_effect=AssertionError("export ran VM")):
             initial = server_digest(helper.capture(session))
-            state.confirm_byte = 1
+            state.placement_byte = 1
             self.assertNotEqual(server_digest(helper.capture(session)), initial)
-            state.confirm_byte = 0
+            state.placement_byte = 0
             self.assertEqual(server_digest(helper.capture(session)), initial)

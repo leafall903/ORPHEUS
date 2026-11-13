@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "placement-byte-authority-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "244c918c8ea55efc56714d5758037b82b26623d6",
+    "original_methods_rva": {
+      "constructors": ["8F78A0", "8F7CA0"],
+      "on_begin": ["8E8770", "8E9830"],
+      "typed_input": ["8E8AC0", "8E9990"]
+    }
+  },
+  "evidence": "synthetic-contract-with-original-method-lifecycle-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "classes": ["STU_4C96470A", "STU_43DB06B1"],
+    "typed_path": "m_6647ED22",
+    "typed_class": "STU_A1AAB8C4",
+    "initial_bytes": [0, 1, 165, 255],
+    "invalid_explicit": [true, null, -1, 256, 1.0, "0"]
+  },
+  "expected": {
+    "constructor_byte": 0,
+    "begin_byte": 0,
+    "typed_byte": 1,
+    "field": "m_B4802CE3",
+    "wire_bits": 8,
+    "excluded_roles": ["strict", "generic-world", "foreign-body", "different-class"],
+    "invalid_explicit": "preserved-by-producer-and-rejected-by-strict-codec",
+    "missing_storage": "error-without-default",
+    "non_byte_behavior": "existing geometry and confirmation services remain unchanged"
+  }
+}

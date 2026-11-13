@@ -280,23 +280,7 @@ def owns_shadow_placement(state):
             and isinstance(typed, dict) and typed.get('$') == 'STU_A1AAB8C4')
 
 
-def shadow_placement_begin(state):
-    if owns_shadow_placement(state):
-        # Original priority2 ctor8F78A0 and OnBegin8E886C..8E888D.
-        state.reaper_placement_byte = 0
-
-
 def shadow_placement_confirm(state):
-    if not owns_shadow_placement(state):
-        return False
-    if state.active and not state.ending and not state.instance.component.owner_dead:
-        # Original typed A1AAB8C4 handler8E8AC0 writes1; it does not rebegin.
-        state.reaper_placement_byte = 1
-    return True
-
-
-def shadow_placement_payload(state):
-    if not owns_shadow_placement(state):
-        return None
-    value = getattr(state, 'reaper_placement_byte', None)
-    return {'m_B4802CE3': value} if type(value) is int and 0 <= value <= 255 else {}
+    # Preserve the existing Shadow Step input-consumption route. The common
+    # producer already records the dispatched typed byte; do not rebegin here.
+    return owns_shadow_placement(state)

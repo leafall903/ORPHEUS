@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-slam-preview-wire-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "eccfc3da17285f8f24f87daf0e3e746aa8b4ce27",
+    "provenance": "Synthetic command contract consumed with external authored graphs. Original4C96470A priority2 class wins globally; its begin resets the uint8 at block2C8+78, and typed A1AAB8C4 confirmation writes1. Actual Doom B27/node15/state6 begins after Uppercut airborne publication. This case exercises begin/end/rebegin only; no authored incoming confirmation link to B27/15 was found."
+  },
+  "evidence": "synthetic-host-contract-with-local-original-consumer",
+  "client_acceptance": "pending",
+  "input": {"uppercut_button": 8, "cooldown_idle_frames": 450},
+  "expected": {"begin_byte": 0, "two_contact_damage": 100, "preview_counters": [1, 2], "observer_error_logs": 0},
+  "dependency": "Canonical priority2 placement-byte producer; the pre-dependency source intentionally fails because its active B27/15 payload is empty.",
+  "limits": "No codec fallback, no hero whitelist producer, no confirmation1 or full Slam native geometry claim. Existing body/VM/mover identities and exactly two Uppercut damage/HIT/force events remain required."
+}

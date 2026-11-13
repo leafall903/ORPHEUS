@@ -17,32 +17,6 @@ ORB_PROJECTILE = 0x04000000000026F1
 ORB_LIFETIME = 25.0  # 104319 projectile lifetime in seconds
 
 
-def _owns_placement_wire(state):
-    component = state.instance.component
-    return (not component.strict and component.world.hero == HERO
-            and (state.instance.graph.index, state.node.pos) in
-            ((0x1571, 69), (0x1571, 72), (0x156B, 57)))
-
-
-def placement_wire_begin(state):
-    if _owns_placement_wire(state):
-        # Priority2 8E886C/8E9891 reset the original uint8 on each begin.
-        state.symmetra_placement_byte = 0
-
-
-def placement_wire_confirm(state):
-    if _owns_placement_wire(state):
-        # Original A1AAB8C4 input (m_6647ED22), 8E8AC0/8E9990.
-        state.symmetra_placement_byte = 1
-
-
-def placement_wire_payload(state):
-    if not _owns_placement_wire(state):
-        return None
-    value = getattr(state, 'symmetra_placement_byte', None)
-    return {'m_B4802CE3': value} if type(value) is int and 0 <= value <= 255 else {}
-
-
 def view_world_tick(script, command, quanta):
     """Query world history through this body's actual owner/world epoch pair."""
     from ow174.game.combat import TICK

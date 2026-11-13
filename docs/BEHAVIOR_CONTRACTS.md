@@ -1,5 +1,34 @@
 # Shared behavior contracts
 
+## Authoritative placement-byte storage
+
+`placement-byte-authority-v1.json` records the shared original priority2 byte
+lifecycle for exact classes4C96470A/43DB06B1: construction and every begin store0;
+typed A1AAB8C4 stores1. The Python qualification is the existing server producer
+model: a nonstrict Component with exact BodyWorld and its matching body entity.
+BodyScript creates that model and produces owner/observer frames. This is an
+explicit host policy, not a claim that strict=False alone identifies a native
+priority. Generic World, strict, foreign-body and different-class contexts do
+not acquire this field or a new payload handler. Original priority1/base vtables
+remain outside this qualification.
+
+The field is initialized in the runtime factory's on_created hook before the
+first begin. Both classes and the retained Mei/Baptiste adapter identities
+register optional placement_byte storage explicitly. Required placement clocks
+and strict unknown-extra rejection remain intact. Explicit invalid values reach
+the unchanged strict codecs and raise; missing storage raises without a default.
+The native typed class extension has no active/ending/death gate of its own;
+the existing VM retains input-dispatch eligibility. Geometry, selection,
+confirmation routing, owner/source and actor behavior remain separate services.
+
+The original Doom test-only `doomfist-slam-preview-wire-v1.json` contract exercises
+two actual Uppercuts, B27/node15 begin/end/rebegin and both H0 observer streams.
+Its baseline missing-byte failure is separate from Uppercut damage/force
+assertions. Existing Symmetra, Mei, Reaper and Baptiste tests retain their actual
+typed input, confirmation routes and body/full-server storage checks. These
+contracts do not establish native preview geometry, model/color rendering or
+full-server restoration.
+
 Echo Flight force contract (`echo-flight-force-r2-v1.json`)
 records the original1BB6 node26 vertical SET0 followed by direction*28 ADD.
 The runtime consumer exercises actual Flight input and actual enemy0043 melee:

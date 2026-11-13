@@ -54,9 +54,9 @@ class ReaperPreviewByteTests(unittest.TestCase):
         self.assert_byte(state, 0)
         state.end(False)
         # Missing/wrongly typed producer data must still fail strict encoding.
-        state.reaper_placement_byte = True
-        self.assertEqual(state.payload(), {})
-        with self.assertRaises(KeyError):
+        state.placement_byte = True
+        self.assertEqual(state.payload(), {'m_B4802CE3': True})
+        with self.assertRaises(ValueError):
             statescript.write_remote_payload(BitWriter(), state.node.cls, state.payload(), False)
 
     def test_actual_body_and_full_server_snapshots_preserve_confirmation_byte(self):

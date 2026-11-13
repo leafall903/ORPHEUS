@@ -35,10 +35,10 @@ class SymmetraPreviewStorageTests(unittest.TestCase):
                     for state in states:
                         # Observation causality only; the separate actual-input
                         # lifecycle regression proves the original typed confirm.
-                        state.symmetra_placement_byte = 1
+                        state.placement_byte = 1
                         self.assertNotEqual(snapshot_digest(export_body_vm(script)), original_body)
                         self.assertNotEqual(server_digest(helper.capture(session)), original_server)
-                        state.symmetra_placement_byte = 0
+                        state.placement_byte = 0
                         self.assertEqual(snapshot_digest(export_body_vm(script)), original_body)
                         self.assertEqual(server_digest(helper.capture(session)), original_server)
                     states[0].unproved_palette_override = 0
