@@ -442,3 +442,22 @@ of hero, while Pet attribution and dynamic PlayScript remain separate. Three
 selected methods pass; this is neither a full native allocator execution nor a
 palette or twenty-hero performance acceptance. The20-hero baseline must include
 this correctness change rather than preserving invalid zero sources for speed.
+
+## Shared-tick duplicate work
+
+`fixtures/behavior/shared-tick-duplicate-work-v1.json` preserves live barrier
+target checks, exact Shadow source/create-ACK dependency gating, per-viewer
+delivery streams and lifecycle queue order. Barrier target geometry is built
+only for actual new or retained bubbles. Shadow dependencies inspect the record
+source body. Mei shares one read-only actor projection within a synchronous sync
+call. Queue generation pruning follows actual lifecycle changes; stale controller
+closes are checked on every call. Tick/send cadence and every observer remain.
+
+Seventeen selected retained regression methods pass, without claiming new hero
+coverage or a16ms pass. The actual twenty-hero source39 baseline was RED despite
+20 functional action/status rows passing. Exact subsequent formal-source timing
+receipts remain separate from the synthetic fixture. The old lifecycle test
+fixture now supplies combat=None. Existing Zarya removed-storage errors and
+team-change damage failure were independently reproduced on parent39 and remain
+open. Universal typed root SELF from source40 must remain in all final baselines.
+No runtime restart or native acceptance is included.

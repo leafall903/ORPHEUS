@@ -25,6 +25,15 @@ def retire(fight, entity):
 
 
 def sync(fight):
+    snapshots = {}
+
+    def live_snapshot(entity):
+        # Transport queues and ACKs belong to each viewer; this read-only VM
+        # projection is the same for all viewers during this one synchronous call.
+        if entity not in snapshots:
+            snapshots[entity] = projection(fight, entity).latest_live
+        return snapshots[entity]
+
     ice = [barrier for barrier in fight.barriers.scripted.values()
            if barrier.component.world.hero == barriers.MEI and not barrier.retired]
     pillars = [actor for actor in fight.deployables.values()
@@ -54,11 +63,11 @@ def sync(fight):
                 update = world.EntityUpdate(entity, movement=movement)
                 update.resend = False  # superseded source poses must not rewind the ice actor
                 client.queue_entities([update])
-            client.queue_bot_live(entity, projection(fight, entity).latest_live)
+            client.queue_bot_live(entity, live_snapshot(entity))
         # Pillars already have one authoritative deployable create/destroy path.
         # Attach the same 0636 VM to that entity instead of publishing another actor.
         for actor in pillars:
             if actor.entity not in viewer.seen:
                 viewer.seen[actor.entity] = False
                 client.queue_entities([fight.deployable_create(actor)])
-            client.queue_bot_live(actor.entity, projection(fight, actor.entity).latest_live)
+            client.queue_bot_live(actor.entity, live_snapshot(actor.entity))

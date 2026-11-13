@@ -273,7 +273,7 @@ class Barriers:
             self.retire(body)
             return None
         dead_caster = script.component.owner_dead or self.fight.is_dead(actor)
-        targets = {t.entity: t for t in self.fight._targets()}
+        targets = None
         personal = None
         for index, state_id, definition in ((0x244, 2, 0x13F4), (0x25C, 10, 0x3DA)):
             key = body, index
@@ -292,6 +292,9 @@ class Barriers:
             if self.seen.get(key) != stamp:
                 self.seen[key] = stamp
                 target_id = body if index == 0x244 else expr.to_entity(instance.vars[536].value())
+                if targets is None:
+                    # Unrelated heroes and inactive phases need no roster walk.
+                    targets = {t.entity: t for t in self.fight._targets()}
                 target = targets.get(target_id)
                 if target is None or self.fight.vitals_of(target).dead:
                     continue
@@ -304,6 +307,9 @@ class Barriers:
                                          maximum, maximum, actor, body)
                 self.next_entity += 1
             bubble = self.live.get(key)
+            if bubble is not None and targets is None:
+                # A retained live pet still validates its current target every sync.
+                targets = {t.entity: t for t in self.fight._targets()}
             target = targets.get(bubble.body) if bubble is not None else None
             if (target is None or target.owner is not bubble.owner or self.fight.vitals_of(target).dead):
                 self.live.pop(key, None)

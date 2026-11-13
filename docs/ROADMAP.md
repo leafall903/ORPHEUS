@@ -624,3 +624,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Initialize all default body roots with their actual VM source with3 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Remove repeated work while preserving shared-tick behavior with17 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

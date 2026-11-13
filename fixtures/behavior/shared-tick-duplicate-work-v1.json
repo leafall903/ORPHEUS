@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "scope": "Remove repeated synchronous work without changing skill, status or transport semantics",
+  "provenance": {
+    "sourceParent": "ca0edc9cee1e7502803f553ef8659f3a3e358ffa",
+    "scenario": "Existing original PvE twenty-hero r3 baseline with real encrypted commands and actual anti-heal impact",
+    "profiling": "One separately marked cProfile run; profiled times are not acceptance timings",
+    "restrictedInputs": "External profile, catalogs and runtime captures are not included"
+  },
+  "contracts": [
+    "Barrier sync skips target geometry only for inactive or unrelated phases; every existing live pet still checks its actual target and lifetime",
+    "Shadow actor dependency gating checks the record source body and the exact actor create generation ACK",
+    "Mei sync projects each actual actor once within that synchronous call; every viewer retains its own delivery stream and ACK state",
+    "Entity queue generation pruning follows create/destroy transitions; controller close validity is checked on every call and queue order is preserved"
+  ],
+  "unchanged": [
+    "0.016 second physical tick",
+    "Original frame send cadence and all observer recipients",
+    "Twenty distinct actual hero commands and twenty real status applications",
+    "Natural windup, flight and channel completion",
+    "Body identity, HP/HIT producers, pending records and lost packet replay"
+  ],
+  "baseline": {
+    "source39FunctionalRows": 20,
+    "source39BudgetPassed": false,
+    "candidateBudgetPassed": false,
+    "candidateTiming": "NOT YET MEASURED"
+  },
+  "open": [
+    "Twenty-hero end-to-end processing must meet the existing 16ms budget",
+    "Universal typed root SELF initialization is a separate reviewed correctness change",
+    "Pre-existing Zarya legacy storage and team-change test failures remain recorded",
+    "Native Halloween and whole-hero client acceptance are not established by this source change"
+  ]
+}

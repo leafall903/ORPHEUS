@@ -70,10 +70,12 @@ class ShadowActor(runtime.State):
     on_destroyed = on_cleanup
 
 
-def live_actors(match):
+def live_actors(match, *, source_entity=None):
     for player in match.players:
         script = player.body_script
         if script is None or script.retired:
+            continue
+        if source_entity is not None and script.component.entity != source_entity:
             continue
         for instance in script.component.instances.values():
             if instance.graph.index != reaper.SHADOW_GRAPH:
@@ -103,9 +105,7 @@ def record_ready(client, item):
     """Use the existing create generation/ACK; queued is not received."""
     if item.chunk is None:
         return True
-    for actor in live_actors(client.player.match):
-        if actor.instance.component.entity != item.entity:
-            continue
+    for actor in live_actors(client.player.match, source_entity=item.entity):
         generation = client.actor_generation(actor.actor_entity)
         if generation is None or client._actor_create_acks.get(actor.actor_entity) != generation:
             return False

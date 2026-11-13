@@ -742,6 +742,7 @@ class Client:
         generations = getattr(self, "_entity_record_generations", None)
         if generations is None:
             generations = self._entity_record_generations = weakref.WeakKeyDictionary()
+        lifecycle_changed = False
         for item in updates:
             generation, alive = lifecycles.get(item.entity, (0, True))
             if item not in generations:
@@ -760,6 +761,7 @@ class Client:
                         if old.entity == item.entity and old not in generations:
                             generations[old] = generation
                     generation += 1
+                    lifecycle_changed = True
                     alive = item.op == world.OP_CREATE
                     lifecycles[item.entity] = (generation, alive)
                     if item.entity == self.player.entity:
@@ -780,13 +782,19 @@ class Client:
                 generations[item] = generation
             if generations[item] == generation and (alive or item.op == world.OP_DESTROY):
                 self._queue_current_entity(item)
-        self.entities = [
-            item
-            for item in self.entities
-            if generations.get(item, 0) == lifecycles.get(item.entity, (0, True))[0]
-            and (lifecycles.get(item.entity, (0, True))[1] or item.op == world.OP_DESTROY)
-            and self._current_controller_close(item)
-        ]
+        if lifecycle_changed:
+            self.entities = [
+                item
+                for item in self.entities
+                if generations.get(item, 0) == lifecycles.get(item.entity, (0, True))[0]
+                and (lifecycles.get(item.entity, (0, True))[1] or item.op == world.OP_DESTROY)
+                and self._current_controller_close(item)
+            ]
+        else:
+            # Each newly queued record was checked above; older generations only
+            # become stale when this call creates/destroys a lifetime. Controller
+            # closes can also expire after an external full-frame replacement.
+            self.entities = [item for item in self.entities if self._current_controller_close(item)]
 
     def _current_controller_close(self, item: world.EntityUpdate) -> bool:
         # A newer full frame replaces a deferred close, including an explicit reopen.
