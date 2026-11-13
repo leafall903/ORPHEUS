@@ -42,6 +42,7 @@ class ClientCatalogTests(unittest.TestCase):
             command = call.args[0]
             self.assertEqual(command[:2], [str(self.tool), str(self.game)])
             self.assertTrue({"--skip-keys", "--online=false", "--args-reset"}.issubset(command))
+            self.assertEqual(call.kwargs["cwd"], self.tool.resolve().parent)
 
     def test_wrong_build_stops_before_running_datatool(self):
         self.record_build("2.25.1.0.155284N")
