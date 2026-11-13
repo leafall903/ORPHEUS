@@ -6,6 +6,41 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Combat charges the ultimate through the game's graph
+
+- Damage dealt and healing done now go to the body's own graph `0B8B` as the game messages
+  `0012.025` (amount, body hit, the hit's tags) and `0044.025` (amount, body healed, kind),
+  through `BodyScript.feed_ult`. The graph decides the charge. Combat no longer reads the
+  placeholder table in `ult_charge.py`: 380 damage no longer fills any meter, and an elimination
+  no longer adds 20%, since the graph has no entry of its own for one.
+- Evidence: in a match of two players on opposite teams, one `0012` of 100 at the enemy, with
+  real rifle tags, raised the charge by exactly 100 with no fault. The same hit at an ally or
+  at oneself added 0. All 32 playable heroes and D.Va's pilot have exactly one running instance
+  of `0B8B`. No shared fixture covers the ultimate; this entry and the note record the gap.
+- Reconstructions: `STU_AC829876` in `0B8B` (node 53) is answered as in Hack's graph.
+  `STU_A58C1E63` at node 28 is answered as "the body hit is hostile to the owner and is not him".
+  The feed sets `#2426e` on when it is unset, as the target searches do; a False a graph wrote
+  stays, and the graph then drops the event. Healing a body gives an empty kind.
+- Server rule, not the graph's: healing of the healer's own body is not fed. The graph's
+  healing path would charge it (one `0044` of 100 at the owner's own body added 100).
+- Once `#2426e` is on, the graph's own passive loop starts on D.Va's mech and pilot
+  (`STU_F7262B36` is answered for her). The server's passive now stands down while that loop's
+  1 s Wait runs, so each body keeps 5 points a second. Soldier's loop stays off and the server's
+  passive runs as before.
+- McCree's Rialto sandbox charge keeps its own point per point on hand-spawned NPCs. Those hits
+  are not fed, so nothing counts twice.
+- Gaps: node 83's `STU_A6B80C63` gives None and node 84 lets it through, so nothing is taken off.
+  `STU_25ECB55F` is unanswered, so nodes 59 and 97 never halve the amount or take a quarter off.
+  `0148.025` and the eight senders of `00EB.025` are not fed. The graph's conditions on `#842e`
+  and on the tags are run as the graph has them, against what the server keeps.
+- Tests: `UltimateChargeTests` rewritten. Enemy damage adds its amount; damage to an ally or to
+  oneself adds 0; a kill adds nothing beyond its damage; damage to a corpse adds 0; healing
+  another body adds its amount and one's own adds 0; Soldier, D.Va's mech and her pilot gain 50
+  in 10 s idle after a feed.
+- Seen in the original client: Practice Range, Soldier: 76, the rifle on a Training Bot of 200
+  health. The meter read 11% before the burst and 20% as the elimination showed; 200 points
+  against his 2310 is 8.7%. Not seen there: another hero, healing, a hit on another player.
+
 #### The charge graph's messages, tried in a match
 
 - Sent each message to a player's `0B8B` in a match of two players on opposite teams, with

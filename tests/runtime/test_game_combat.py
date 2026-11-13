@@ -1,9 +1,7 @@
 """Shots, damage, death and respawn (combat.py), and the commands' view time (commands.py)."""
 
-import json
 import math
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -12,17 +10,17 @@ from tests.runtime.test_game_graph_analysis import make_graph, node, output
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ow174.game import bodytrace, bots, combat, movelog, observers, stats, world
+from ow174.game import bodytrace, bots, combat, dva, movelog, observers, stats, world
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.combat import Combat, HitDef, Target, Vitals
 from ow174.game.commands import FIRE, SUBFRAME, Command, read_commands
-from ow174.game.content import JUNKENSTEIN_MODES, PRACTICE_RANGE, SOLDIER, heroes
+from ow174.game.content import JUNKENSTEIN_MODES, PRACTICE_RANGE, SOLDIER, heroes, spawn_form
 from ow174.game.match import Match
 from ow174.game.script import expr, graph, nodes, runtime, scene
 from ow174.game.script.bot import BotScript
 from ow174.game.script.decode import read_chunk
-from ow174.game.script.driver import HUD_HEALTH, ULT_CHARGE, ULT_COST, BodyStream
+from ow174.game.script.driver import HUD_HEALTH, ULT_CHARGE, BodyStream
 from ow174.game.statescript import chunk
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, SHIELDS_POOL
 
@@ -372,89 +370,90 @@ class DamageTests(unittest.TestCase):
 
 
 class UltimateChargeTests(unittest.TestCase):
-    """The server's own meter (ult_charge.py through BodyScript.credit_ult): combat events of a body
-    credit its charge #342e in the scale of the cost #338e that the body's Entries carry."""
+    """Combat feeds a body's graph 0B8B (BodyScript.feed_ult): a point of charge #342e for a point of damage
+    dealt to a hostile body (0012, node 23) or of healing done to another body (0044, node 32), at the
+    default ruleset scales; an elimination has no entry of its own (docs/research/ultimate-charge.md)."""
 
-    def meter(self, player) -> float:
+    def meter(self, run, player) -> float:
+        run.step({})  # the graph takes the message on the body's next frame
         component = player.body_script.component
         return expr.to_float(component.entity_var(ULT_CHARGE).value())
 
-    def cost(self, player) -> float:
-        return expr.to_float(player.body_script.component.entity_var(ULT_COST).value())
-
-    def fight(self, names=("Shooter", "Victim")):
-        run = Run(KANEZAKA_DM, names)
+    def fight(self, names=("Shooter", "Victim"), *, passive=False):
+        run = Run(PRACTICE_RANGE, names)  # two teams: player n is on team n
         run.match.bots.clear()
         run.match._pending_bot_scripts.clear()
-        for player in run.players:
-            player.body_script.ult_seconds = 0.0  # the passive fill is not part of these tests
+        if not passive:
+            for player in run.players:
+                player.body_script.ult_seconds = 0.0  # the server's passive is not part of these tests
         for _ in range(30):
             run.step({})  # the body's graphs settle (its cost #338e chases to its entry value)
         return run, run.match.combat
 
-    def test_damage_credits_the_meter_in_the_heros_own_scale(self):
-        run, fight = self.fight()
-        shooter, victim = run.players
-        target = next(target for target in fight._targets() if target.owner is victim)
-        cost = self.cost(shooter)
-        self.assertGreater(cost, 0.0)
-        fight._damage(shooter, target, 19.0, False, None, run.frame)
-        self.assertAlmostEqual(self.meter(shooter), cost * 19.0 / 380.0, places=3)
+    @staticmethod
+    def target(fight, player) -> Target:
+        return next(target for target in fight._targets() if target.owner is player)
 
-    def test_an_elimination_credits_the_damage_and_the_bonus(self):
+    def test_damage_to_an_enemy_adds_its_amount(self):
         run, fight = self.fight()
         shooter, victim = run.players
-        target = next(target for target in fight._targets() if target.owner is victim)
-        cost = self.cost(shooter)
+        fight._damage(shooter, self.target(fight, victim), 19.0, False, None, run.frame)
+        self.assertAlmostEqual(self.meter(run, shooter), 19.0, places=3)
+        self.assertIsNone(shooter.body_script.component.fault)
+
+    def test_damage_to_an_ally_or_oneself_adds_nothing(self):
+        run, fight = self.fight()
+        shooter, mate = run.players
+        mate.team = shooter.team
+        fight._damage(shooter, self.target(fight, mate), 19.0, False, None, run.frame)
+        fight._damage(shooter, self.target(fight, shooter), 19.0, False, None, run.frame)
+        self.assertEqual(self.meter(run, shooter), 0.0)  # node 28: the body hit is not hostile
+
+    def test_an_elimination_adds_nothing_beyond_its_damage(self):
+        run, fight = self.fight()
+        shooter, victim = run.players
+        target = self.target(fight, victim)
         fight._damage(shooter, target, 190.0, False, None, run.frame)
         fight._damage(shooter, target, 20.0, False, None, run.frame)  # 10 of it is what was left
-        self.assertAlmostEqual(
-            self.meter(shooter), cost * (1.0 / 1.9 + 0.20), places=3
-        )  # 200 HP dealt of 380, plus the 20 % of a full meter
+        self.assertTrue(fight.is_dead(victim))
+        self.assertAlmostEqual(self.meter(run, shooter), 200.0, places=3)
 
-    def test_the_shipped_soldier_line_closes_healing_out(self):
-        run, fight = self.fight(("Healer", "Mate"))
-        healer, _ = run.players
-        fight.heal_area(healer, healer.mover.position, 5.0, 60.0)  # a full Biotic Field pulse
-        self.assertEqual(self.meter(healer), 0.0)  # heal_to_full: null in the shipped table
-
-    def test_a_heal_credits_its_healer_when_the_line_allows_it(self):
-        from ow174.game import ult_charge as rule_table
-        from ow174.paths import DATA_DIR
-
-        directory = tempfile.TemporaryDirectory()
-        self.addCleanup(directory.cleanup)
-        path = Path(directory.name) / "game_ult_charge_174.json"
-        path.write_text(
-            json.dumps(
-                {"defaults": {"damage_to_full": 380.0, "heal_to_full": 600.0, "kill_bonus_percent": 20}}
-            ),
-            encoding="utf-8",
-        )
-        rule_table.TABLE_PATH = path
-        rule_table._table.cache_clear()
-        try:
-            run, fight = self.fight(("Healer", "Mate"))
-            healer, mate = run.players
-            healer_target = next(target for target in fight._targets() if target.owner is healer)
-            fight._damage(mate, healer_target, 100.0, False, None, run.frame)  # someone to heal
-            fight.heal_area(healer, healer.mover.position, 5.0, 60.0)
-            self.assertAlmostEqual(self.meter(healer), self.cost(healer) * 60.0 / 600.0, places=3)
-        finally:
-            rule_table.TABLE_PATH = DATA_DIR / "game_ult_charge_174.json"
-            rule_table._table.cache_clear()  # back to whatever the runtime pack has
-
-    def test_damage_to_a_corpse_credits_nothing(self):
+    def test_damage_to_a_corpse_adds_nothing(self):
         run, fight = self.fight()
         shooter, victim = run.players
-        target = next(target for target in fight._targets() if target.owner is victim)
-        cost = self.cost(shooter)
-        fight._damage(shooter, target, 19.0, False, None, run.frame)
-        fight._damage(shooter, target, 1000.0, False, None, run.frame)  # the rest of the health is 181
-        expected = cost * (200.0 / 380.0 + 0.20)  # 200 of 380 dealt, plus the elimination bonus
-        self.assertAlmostEqual(self.meter(shooter), expected, places=3)
+        target = self.target(fight, victim)
+        fight._damage(shooter, target, 1000.0, False, None, run.frame)  # 200 of it is dealt
         fight._damage(shooter, target, 50.0, False, None, run.frame)  # he is dead: the shot hits nothing
-        self.assertAlmostEqual(self.meter(shooter), expected, places=3)
+        self.assertAlmostEqual(self.meter(run, shooter), 200.0, places=3)
+
+    def test_healing_another_body_adds_its_amount_and_oneself_nothing(self):
+        run, fight = self.fight(("Healer", "Mate"))
+        healer, mate = run.players
+        mate.team = healer.team
+        fight._damage(mate, self.target(fight, healer), 100.0, False, None, run.frame)
+        fight._damage(healer, self.target(fight, mate), 100.0, False, None, run.frame)  # an ally: no charge
+        fight._heal(healer, self.target(fight, healer), 60.0)  # the server does not feed his own healing
+        self.assertEqual(self.meter(run, healer), 0.0)
+        fight._heal(healer, self.target(fight, mate), 60.0)
+        self.assertAlmostEqual(self.meter(run, healer), 60.0, places=3)
+
+    def test_idle_after_a_feed_gains_five_points_a_second(self):
+        for form in ("soldier", "mech", "pilot"):
+            with self.subTest(form):
+                run, fight = self.fight(passive=True)
+                shooter, victim = run.players
+                if form != "soldier":
+                    hero = heroes()[dva.HERO]
+                    form_hero = spawn_form(hero) if form == "mech" else hero
+                    self.assertTrue(run.match.switch_hero(shooter, form_hero))
+                    for _ in range(70):
+                        run.step({})
+                fight._damage(shooter, self.target(fight, victim), 100.0, False, None, run.frame)
+                start = self.meter(run, shooter)
+                for _ in range(625):  # 10 s
+                    run.step({})
+                # D.Va's own 0B8B loop starts with the gate on; the server's passive then stands down.
+                self.assertAlmostEqual(self.meter(run, shooter) - start, 50.0, delta=5.0)
 
 
 class ProjectileTimingTests(unittest.TestCase):

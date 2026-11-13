@@ -9,10 +9,10 @@ The rules are in the client's data. The heroes' common graph `004B` runs graph `
 server-only nodes charge the ultimate: 5 points every second by themselves, and an amount carried
 by a game message, each scaled by ruleset keys. The cost is in the same points.
 
-ORPHEUS does not play those nodes. It charges by its own code, which filled every meter in 60 s.
-The passive now adds 5 points a second, as the graph does. The charge from combat is still a
-placeholder. The graph gives a point for a point of damage dealt and of healing done, and has no
-entry of its own for an elimination.
+ORPHEUS plays the combat nodes. Combat sends the body's `0B8B` the damage it dealt and the
+healing it did, and the graph charges a point for a point. The graph has no entry of its own for
+an elimination, and the server gives none. The passive is still the server's own, 5 points a
+second, except on bodies whose own loop starts (D.Va's), where the graph's loop stands for it.
 
 An earlier version of this note said no graph adds charge. That was wrong: the scan behind it
 looked at a truncated list and at an XML dump that leaves expressions out.
@@ -166,10 +166,13 @@ and a [mechanics guide](https://www.furiouspaul.com/overwatch/basics/mechanics.h
 
 ## Compared with ORPHEUS
 
-The server's body does run an instance of `0B8B` (checked on six heroes), but the authored loop
-does not start there. `#2426e` is unset on an idle body, and with it held on, as the target
-searches of Mercy and Sombra do, the loop still stayed off and the meter gained exactly 5 points a
-second. Why the switch stays off is not established. ORPHEUS charges by its own code instead.
+The server's body runs an instance of `0B8B` on every playable hero (all 32 and D.Va's pilot).
+Combat posts `0012` for damage dealt and `0044` for healing done to it (`BodyScript.feed_ult`).
+The feed sets `#2426e` on when it is unset. A False a graph wrote stays, and the graph then drops
+the event. The passive loop starts on D.Va's mech and pilot once `#2426e` is on, since
+`STU_F7262B36` is answered for her; on the other heroes checked it stays off, and why is not
+established. The server's own passive adds 5 points a second and stands down while the loop's
+1 s Wait (state 1) runs, so a body has one passive.
 
 Its passive filled any meter in 60 s whatever the cost, in every mode. It now adds 5 points a
 second by default. A body's time to a full meter is its cost over 5, resolved once when the body
@@ -179,19 +182,26 @@ D.Va's pilot.
 Differences from the graph that remain:
 
 - The server adds a little every frame, where the graph adds 5 once a second.
-- None of the graph's conditions is applied but the cost: `#2426e`, `#842e`, the driver test and
-  the two inner switches are not read, so the server may charge where the game does not.
+- The server's own passive applies none of the graph's conditions but the cost: `#2426e`,
+  `#842e`, the driver test and the two inner switches are not read, so it may charge where the
+  game does not.
 - The ruleset keys are not applied. ORPHEUS loads schema defaults only, so each would read 1.0.
 - A graph that changes the cost later keeps the time resolved at spawn.
-- The charge from combat is a placeholder in `ult_charge.py`: 380 damage fills any meter and an
-  elimination adds 20%. The graph gives a point for a point of damage dealt and of healing done,
-  with the tests above, and has no entry of its own for an elimination.
-- The graph already works on the server for two of its messages. In a match of two players on
-  opposite teams, with `#2426e` held on and the server's own passive off, one `0044` of 100 and one
-  `00EB` of 100 sent to a player's `0B8B` each raised the charge by exactly 100. One `0012` of 100
-  with the other player's body as the one hit did nothing: node 53 evaluates false, since
-  `STU_AC829876` is answered only in Hack's graph on a player's body, and node 28's
-  `STU_A58C1E63` has no answer either.
+- Node 53's `STU_AC829876` is answered as in Hack's graph: masks and condition, and no tags. Node
+  28's `STU_A58C1E63` is answered as "the body hit is hostile to the owner and is not him". Both
+  are reconstructions. In a match of two players on opposite teams, one `0012` of 100 at the
+  enemy, with a rifle hit's tags, added exactly 100. At an ally or at oneself it added 0. Before
+  the two answers the same message did nothing.
+- Node 83's `STU_A6B80C63` folds the unset `#16100` to None, and node 84 still gives the full
+  amount, so nothing is taken off. `STU_25ECB55F` is unanswered, so nodes 59 and 97 never halve
+  the amount or take a quarter off.
+- The graph's healing path does not leave the owner's own body out: a `0044` of 100 at the
+  owner's own body added 100. The server does not feed healing of the healer's own body; that is
+  its own rule. A heal carries an empty kind.
+- `0148.025` and the eight senders of `00EB.025` are not fed. The conditions on `#842e` and on the
+  tags run as the graph has them, against what the server keeps.
+- McCree's Rialto sandbox charge keeps its own point per point on hand-spawned NPCs, and those
+  hits are not fed.
 - Reaper, Hanzo, Pharah and Winston have no ultimate state the server finds, so their passive
   never pauses while their ultimate runs. That is older than this change.
 
@@ -203,12 +213,18 @@ in the Practice Range, the meter climbed about 2% a second with little or no fig
 After the change, the same day, Practice Range, Soldier: 76 standing still in the spawn room. The
 meter read 0%, 6%, 12%, 19%, 25% and 27% at 3, 30, 60, 90, 120 and 129 s after the pick. Five
 points a second against 2310 gives 0.6%, 6.5%, 13.0%, 19.5%, 26.0% and 27.9%, which the meter shows
-rounded down. Not checked: another hero, another mode, and the meter in a fight.
+rounded down.
+
+After combat began to feed the graph, the same day, Practice Range, Soldier: 76 with the rifle on a
+Training Bot of 200 health: the meter read 11% before the burst and 20% as the elimination showed,
+a second later. 200 points against 2310 is 8.7%. The table before it gave 200/380 of the meter and
+20% more for the elimination. Not checked: another hero, another mode, healing, and a hit on
+another player.
 
 ## Not decoded
 
-What `0148` is and who posts it, what each of the eight senders of `00EB` grants, the native
-code that posts `0012`, `0044`, `0011` and `0013`, why the server's instance of the loop stays
-off, and the evaluators `STU_A3DEF368`, `STU_A58C1E63`, `STU_25ECB55F` and `STU_A6B80C63`. By
-their use here, `STU_A58C1E63` reads as "hostile to" and `STU_25ECB55F` as "carries this target
-tag"; neither was read in code.
+What `0148` is and who posts it, the events behind three of the eight senders of `00EB`, the
+native code that posts `0012`, `0044`, `0011` and `0013`, why the server's instance of the loop
+stays off on most heroes, and the evaluators `STU_A3DEF368`, `STU_A58C1E63`, `STU_25ECB55F` and
+`STU_A6B80C63`. By their use here, `STU_A58C1E63` reads as "hostile to", and the server answers it
+so at node 28, and `STU_25ECB55F` as "carries this target tag". Neither was read in code.
