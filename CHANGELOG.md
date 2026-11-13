@@ -1,5 +1,23 @@
 # Changelog
 
+## End-to-end tests for Guardian Angel's, the Caduceus Staff's and Hack's targets
+
+- Runtime tests that drive Mercy and Sombra through their buttons on a flat floor with walls and
+  read the target the hero's own graph keeps in `#375`. Guardian Angel (`006E`) flies Mercy to the
+  ally she aims at and stops her 2 to 4 m short of him; it finds no one for an enemy, an ally
+  outside the cone, past 30 m, behind her or behind a wall, and it takes the ally nearest the
+  crosshair over a nearer one. The staff (`006B`) locks an ally within range and sight, and its
+  beam heals him at 55 a second (`006B` `#6578`) and never an enemy or past full health. Hack
+  (`0B1B`) takes the enemy Sombra aims at, no ally and no one through a wall, casts for the
+  graph's own time and starts its cooldown only when the cast ends.
+- The expected answers come from the kjs branch, whose search was rebuilt from the client's own.
+  This source's server finds the targets with its own search code; these tests check it
+  from the outside only.
+- Not ported: the kjs tests of that branch's filter masks, search volume and body filter bits,
+  and its public target filter contract. They call functions this source does not have.
+- Tests: `tests/runtime/test_track_targets.py`.
+- Ported from the kjs branch. Original-client acceptance on this source is pending.
+
 ## Tests for Sombra's Stealth and Mercy's Angelic Descent
 
 - Runtime tests for two movement states the heroes' own graphs already run on the server. Sombra
