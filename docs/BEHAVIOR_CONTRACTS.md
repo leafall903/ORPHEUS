@@ -696,3 +696,31 @@ comparisons improve locally, with fixed stub providers and no gameplay prewarm.
 They are not aggregate20 performance evidence. Source51 receives its own single
 unprofiled20-skill/20-status run with16ms unchanged. Running49, shortcuts, profiles
 and its limited Halloween native result remain unchanged and are not inherited.
+
+## Pure activity classification reuse within one observer update (batch52)
+
+Original H0 snapshots are shared per body within synchronous Observers.update.
+Reuse only successful activity classifications of those effective Snapshot
+identities. A local dictionary retains the snapshot and private set copies;
+each watch still receives four independent new frozensets and its own action
+serial. The first watch gets the original result. Kill-feed replacement snapshots
+use their own identities. Failed classification does not populate the cache.
+No cache is attached to Observers/Watch/Client/Stream or enters strict storage;
+the dictionary is discarded after the call. Snapshot data is not mutated during
+that closed path. Default calls stay uncached, and pending-full paths stay lazy.
+
+All original full/delta/ACK/loss/unknown-value and lazy-delivery behavior remains.
+Three new focused checks cover real acknowledged three-player shared snapshots,
+same per-request activity, independent frozen identities and exact full-server
+alias digest after substituting original results; separate updates, effective
+death filters, action serials, failed payloads, pending-full and direct mutations.
+Two retained actual wire/loss and voice/direct-callout methods keep their original
+successful evidence; do not rewrite their initial combined report or repeat a
+large suite. The initial new-fixture failures remain disclosed separately.
+
+The51 profiled420 activity requests over21 shared snapshots identify repeated
+classification. Local synthetic3-body/20-logical-view classification60->3 and
+paired timings are not full20 skill/status acceptance or a16ms saving claim.
+Source52 receives its own exact-head unprofiled run. Current49 server, shortcuts,
+profiles and limited Halloween native result stay unchanged and are not inherited.
+All existing whole-hero/shared-service/native presentation boundaries remain open.

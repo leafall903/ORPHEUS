@@ -271,12 +271,27 @@ def _delta_from(graphs, base, snap, known, touched, *, next_chunk=None, action=N
 LAZY_TICKS = 8  # a delta of values only (no state on or off) goes at most this often (the ultimate's meter)
 
 
-def _activity(snap: Snapshot, action: int = 0) -> tuple:
+def _activity_uncached(snap: Snapshot, action: int = 0) -> tuple:
     """What must reach the other clients at once: the instances, the states that are on, the StEC states'
     payloads (their counters start them again)."""
     on = frozenset(key for key, (_, active, _) in snap.states.items() if active)
     stec = frozenset((key, value) for key, value in snap.states.items() if value[0] in stec_classes())
     return frozenset(snap.instances), on, stec, action, frozenset(snap.sources.items())
+
+
+def _activity(snap: Snapshot, action: int = 0, *, cache=None) -> tuple:
+    if cache is None:
+        return _activity_uncached(snap, action)
+    found = cache.get(id(snap))
+    if found is None:
+        result = _activity_uncached(snap, action)
+        # Retain the snapshot identity only for this synchronous update. Sets
+        # stay private; each watch still owns four distinct frozen containers.
+        cache[id(snap)] = (snap, tuple(set(result[index]) for index in (0, 1, 2, 4)))
+        return result
+    parts = found[1]
+    return (frozenset(parts[0]), frozenset(parts[1]), frozenset(parts[2]),
+            action, frozenset(parts[3]))
 
 
 class Watch:
@@ -336,6 +351,7 @@ class Observers:
         match = self.match
         snaps: dict[int, Snapshot] = {}  # body -> its snapshot this tick, shared by every viewer
         delta_cache = {}  # identical baselines only; never retained across updates or ACKs
+        activity_cache = {}  # pure snapshot summaries only, with fresh per-watch frozen containers
         for viewer in match.players:
             if viewer.client is None or not viewer.spawned:
                 continue
@@ -353,7 +369,8 @@ class Observers:
                 try:
                     if other.body not in snaps:
                         snaps[other.body] = snapshot(other.body_script)
-                    self._frames(viewer, other, watch, snaps[other.body], delta_cache=delta_cache)
+                    self._frames(viewer, other, watch, snaps[other.body], delta_cache=delta_cache,
+                                 activity_cache=activity_cache)
                 except Exception:
                     log.exception(
                         "[game] %s: %s's body frames for %s failed", match.label(), other.name, viewer.name
@@ -363,7 +380,8 @@ class Observers:
         for key in [key for key in self.watches if key not in live]:
             del self.watches[key]
 
-    def _frames(self, viewer, other, watch: Watch, snap: Snapshot, *, delta_cache=None) -> None:
+    def _frames(self, viewer, other, watch: Watch, snap: Snapshot, *, delta_cache=None,
+                activity_cache=None) -> None:
         script = other.body_script
         stream = watch.stream
         tick = self.match.tick
@@ -373,12 +391,12 @@ class Observers:
         if not stream.last:
             update = stream.full(full_frame(script, snap), snap)
             viewer.client.queue_entities([update])
-            watch.sent, watch.next_lazy = _activity(snap), tick + LAZY_TICKS
+            watch.sent, watch.next_lazy = _activity(snap, cache=activity_cache), tick + LAZY_TICKS
             return
         if stream.base is None:
             return  # the full frame is still on its way
         callout = snap.next_callout(stream.base.callout)
-        activity = _activity(snap, callout.serial if callout is not None else 0)
+        activity = _activity(snap, callout.serial if callout is not None else 0, cache=activity_cache)
         if activity == watch.sent and tick < watch.next_lazy:
             return
         frame, keys = delta(script, stream, snap, cache=delta_cache)
