@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Who posts the ultimate charge graph's messages
+
+- Decoded in `docs/research/ultimate-charge.md`. The engine posts `0012.025` for damage dealt and
+  `0044.025` for healing done, each with its amount and the body it concerns. No graph sends
+  either: 109 graphs take the first and 16 the second, and ORPHEUS already feeds `0012` with
+  these parameters to the Summoner's charge graph. Eight graphs send `00EB.025`, which grants an
+  amount directly. `0148.025` has the damage message's parameters and no sender found.
+- So in graph `0B8B` a point of damage dealt to a hero's body, or of healing done, is a point of
+  charge at the default scales, after tests of the body, the hit's tags and the owner's state,
+  and after reductions whose conditions are not decoded. No entry takes an elimination.
+- Tried on the server: one `0012` of 100 damage sent to a player's `0B8B` with the gate held on
+  left the charge unchanged. The graph's first test asks filters the server answers only in
+  Hack's graph. So the combat table in `ult_charge.py` still stands, with its 380 damage to a
+  full meter and its 20% for an elimination, which the graph does not have.
+- No behavior changed.
+
 #### The game's own ultimate charge rules, decoded
 
 - Corrected `docs/research/ultimate-charge.md`, the code comment on `ULT_PASSIVE` and the docstring
