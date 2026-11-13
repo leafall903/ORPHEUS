@@ -37,3 +37,34 @@ or remote merge is claimed by this delivery operation.
 The next source-only commit records reviewed unique owner increments separately.
 Its changelog maps their original focused commits and preserves pending native
 acceptance. Existing semantics already present in735 are not applied twice.
+
+## Integrated focused owner increments
+
+- Doomfist Meteor confirmation countdown: `37a600cdec9d13d8461cf5e0ed9e8e0cb47e8f17`.
+- Widowmaker melee target-history world clock: `28bdfe2a64469abce4f83054471b26fd1ac91401`.
+- Ashe resistance/immunity command contracts: `a41fc022b2e5d0d11e613285b95b81fb0b744d2b`.
+- Lucio self-hop/Physics separation contract: `fb4ef492e2fea5a9445900b25baef4b3c9cf8350`.
+- Zarya secondary receiver and existing Graviton correction: `37cb06b7bd7d2df64086f4eb386f642e15bfc09e`.
+- Symmetra Photon health-death branch before retirement: `d97ad4518ec78c88d14fe95d5c47c6b21b5151b0`.
+- Bastion Tank captured source and canonical admission: `a1676699cebe6b1bac977837358b881a896beed5`.
+- Reaper completed Shadow Step finite owner correction: `41e1b54b2b65d6a63af35b7c8cf565fa3c7c52fa`.
+
+Only focused hunks were composed; their private baseline/comparison commits are
+not ancestors. Widow/Bastion/Reaper shared Combat methods were compared against
+the original735 method preimages and all previously merged methods were retained.
+Ashe and Lucio increments add contracts without a runtime force change.
+
+13 distinct related methods passed on the composed follow-up tree:12 new
+methods and1 updated existing Bastion compatibility method. Changed source/test
+F821/F811 and whitespace checks passed. No complete suite was run or claimed.
+Whitespace-only cleanup in the delivery checkout preserves Python ASTs.
+
+Symmetra's2 actual-input tests use externally prepared104319 graphs/mesh and
+the existing deployment fixture; no extracted game asset is embedded as a
+synthetic fixture. The completed health-death branch runs before retirement;
+general Physics receiving-body effects and native model/interaction stay open.
+
+Native UI token cleanup, hero movement/effect adoption, eligibility, MoveTo and
+minimum-Y gaps remain open. Running frozen735 was not replaced or edited.
+These source commits do not inherit735 native acceptance for changed behavior.
+No remote push or all-hero completion claim is made.

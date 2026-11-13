@@ -4,8 +4,10 @@ These cases exercise reconstructed radius interpolation and owner damage.
 Native hitboxes and impulse delivery remain open.
 """
 
+import json
 import math
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import test_bastion_combat as kit
@@ -50,6 +52,53 @@ def place_target(case, actor, distance, *, behind=False):
 
 
 class BastionTankBlastTests(unittest.TestCase):
+    def test_tank_self_and_enemy_force_use_one_shared_world_tick_admission(self):
+        contract = json.loads((Path(__file__).resolve().parents[2] / 'fixtures/behavior'
+                               / 'bastion-tank-force-v1.json').read_text(encoding='utf-8'))
+        for self_jump in (True, False):
+            with self.subTest(self_jump=self_jump):
+                case = kit.BastionCombatTests()
+                case.fixture(enemy_position=(30, 1, 90), bystander_position=(30, 1, 10))
+                case.tank()
+                if self_jump:
+                    case.wall(10)
+                    case.command_aim = (0, 16384)
+                    recipient = case.player
+                else:
+                    place_target(case, case.bystander, 1)
+                    recipient = case.bystander
+                expected = contract['expected']['self_floor' if self_jump else 'enemy_wall_inner_ring']
+                before = case.health(recipient).total
+                position = tuple(recipient.mover.position)
+                source = case.player.body
+                first_tick = case.run.frame
+                serial = case.fight.knockbacks.serial
+                with patch.object(case.fight.knockbacks, 'apply', wraps=case.fight.knockbacks.apply) as apply:
+                    case.step(1)
+                    case.step(0, 23)
+                calls = [call for call in apply.call_args_list if call.args[0].owner is recipient]
+                self.assertEqual(len(calls), expected['admissions'])
+                call, = calls
+                for actual, axis in zip(call.args[1], expected['impulse'], strict=True):
+                    self.assertAlmostEqual(actual, axis, places=5)
+                self.assertEqual(call.kwargs['source_entity'], source)
+                self.assertGreater(call.kwargs['impact_tick'], first_tick)
+                self.assertLessEqual(call.kwargs['impact_tick'], case.run.frame)
+                self.assertNotIn('impact_frame', call.kwargs)
+                self.assertEqual(case.fight.knockbacks.serial - serial, 1)
+                self.assertAlmostEqual(before - case.health(recipient).total, expected['damage'], places=5)
+                self.assertIsNotNone(recipient.impulse_correction)
+                self.assertFalse(case.fight.rockets)
+                if self_jump:
+                    self.assertGreater(recipient.mover.position[1], position[1] + 1.5)
+                    case.step(0, expected['land_after_additional_frames'])
+                    self.assertFalse(recipient.mover.airborne)
+                    self.assertAlmostEqual(recipient.mover.position[1], position[1], places=3)
+                else:
+                    self.assertGreater(recipient.mover.position[0], position[0])
+                self.assertFalse(recipient.mover.velocity_changes)
+                self.assertFalse(case.fight.is_stunned(recipient))
+
     def test_tank_wall_splash_damages_owner_with_authored_scalar_without_credit(self):
         for distance in (1.0, 2.5, 5.0):
             with self.subTest(distance=distance):
@@ -95,12 +144,11 @@ class BastionTankBlastTests(unittest.TestCase):
                 delta_z = 0 if pitch else -wall
                 centre_distance = math.hypot(delta_y, delta_z)
                 surface = max(0, centre_distance - target.radius)
-                mover_type = type(mover)
-                with patch.object(mover_type, "apply_impulse", autospec=True,
-                                  side_effect=mover_type.apply_impulse) as apply:
+                with patch.object(case.fight.knockbacks, "apply", wraps=case.fight.knockbacks.apply) as apply:
                     case.step(1)
                     case.step(0, 23)
-                impulses = [call.args[1] for call in apply.call_args_list if call.args[0] is mover]
+                impulses = [tuple(call.args[1]) for call in apply.call_args_list
+                            if call.args[0].owner is case.player]
                 if surface < 4:
                     self.assertEqual(len(impulses), 1)
                     impulse, = impulses

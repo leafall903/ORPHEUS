@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "case_id": "bastion-tank-shared-force-producer-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "canonical73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/knockback.py"
+    ],
+    "provenance": "Bastion024F/23 explosion; original104319 scalar bake D855B5..D855FE and ring/vector D6D87C..D6DA6A: horizontal5, vertical8; ring1=(1,1), ring4=(.75,.25). Synthetic actual floor/wall shots exercise the producer, not a direct helper call."
+  },
+  "evidence": "synthetic-production-command-with-native-vector-reference",
+  "client_acceptance": "pending; public receiver native adoption is not established by this producer check",
+  "input": {
+    "hero": "02E0000000000015",
+    "graph_node": "024F/23",
+    "definition": "04000000000003CE",
+    "one_primary_press": true,
+    "followup_frames": 23,
+    "packet_loss": [],
+    "seed": null
+  },
+  "expected": {
+    "self_floor": {
+      "damage": 23,
+      "impulse": [
+        0,
+        8,
+        0
+      ],
+      "admissions": 1,
+      "land_after_additional_frames": 130
+    },
+    "enemy_wall_inner_ring": {
+      "damage": 140,
+      "impulse": [
+        5,
+        0,
+        0
+      ],
+      "admissions": 1
+    },
+    "impact_domain": "physical world tick",
+    "source_identity": "captured rocket.source_entity",
+    "finite_owner_correction_requested": true
+  }
+}

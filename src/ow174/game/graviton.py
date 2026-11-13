@@ -219,6 +219,24 @@ class Gravitons:
             mover.driven = False
             if npc:
                 owner.velocity = mover.velocity
+            self._request_pull_delivery(owner, mover, self.fight.tick)
+
+    def _request_pull_delivery(self, owner, mover, tick):
+        """Publish the existing pull/release pose without adding another force."""
+        from ow174.game import correction
+        from ow174.game.combat import TICK
+
+        npc = isinstance(owner, bots.Bot)
+        receiver = self.fight.knockbacks._controlled_receiver(owner) if npc else owner
+        if receiver is None or receiver.body_script is None:
+            return
+        frame = self.fight.knockbacks.body_frame(receiver, tick, TICK)
+        if frame is None:
+            return
+        current = (mover.last_command.frame if npc and mover.last_command is not None
+                   else receiver.body_script.component.frame)
+        entity = owner.entity if npc else owner.body
+        correction.request_motion(receiver, first_frame=max(current + 1, frame + 1), body=entity)
 
     def _pull(self, target, position, seconds, tick):
         owner = target.owner
@@ -252,3 +270,4 @@ class Gravitons:
             owner.position = tuple(mover.position)
             owner.velocity = horizontal_velocity if horizontal_velocity is not None else mover.velocity
             owner.moved_tick = tick
+        self._request_pull_delivery(owner, mover, tick)

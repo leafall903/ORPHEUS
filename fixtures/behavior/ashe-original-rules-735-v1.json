@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-original-rules-735-resistance-immunity-v1",
+  "target_build": 104319,
+  "source": {
+    "baseline_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "original_actions": ["1513 Coach contact41", "1537 BOB contact17", "00A4 movement modifier26", "Orisa Fortify admission"]
+  },
+  "evidence": "synthetic offline real ability commands with original graph data; original-client adoption pending",
+  "client_acceptance": "pending",
+  "input": {"source_epoch_offset": 4000, "victim_birth": 9000, "original_npcs": 15},
+  "expected": {"reinhardt_scale": 0.7, "armoured_coach_damage": 45, "fortify_victim_launches": 0},
+  "open": ["Dynamite full shared Physics API and actual character body association", "BOB1859 marked actor body association", "live visible/owner adoption"]
+}

@@ -1,5 +1,7 @@
 """Original0068 energy and charge policy on the existing single body state host."""
-from ow174.game.script import nodes
+import math
+
+from ow174.game.script import expr, nodes
 
 SECONDARY_RECOVERY_TICKS = 62  # Original paced0241 grenade recovery, build104319.
 ULT_PASSIVE_PER_SECOND = 5.0
@@ -21,15 +23,27 @@ def secondary_knockback(fight, rocket, target, point):
     if (rocket.source_graph != 0x0241 or rocket.definition != 0x04000000000003DB
             or rocket.blast is None or fight.vitals_of(target).dead):
         return
-    from ow174.game.combat import segment_distance
+    from ow174.game import actors, ball_mines, defenses
+    from ow174.game.combat import EPSILON, segment_distance
+
+    if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
+        return  # authored blast can damage object pools without a character impulse
+    if defenses.fortify_scale(target.owner) is not None:
+        return
 
     distance = max(0.0, segment_distance(point, *target.segment()) - target.radius)
     horizontal, vertical = rocket.blast.impulse_scales(distance)
     source_scale = (rocket.blast.source_impulse_scale
                     if target.entity == rocket.source_entity else 1.0)
-    fight._radial_impulse(
-        target, point, rocket.blast.horizontal_impulse * horizontal * source_scale,
-        rocket.blast.vertical_impulse * vertical * source_scale,
+    horizontal *= rocket.blast.horizontal_impulse * source_scale
+    vertical *= rocket.blast.vertical_impulse * source_scale
+    dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
+    distance = math.hypot(dx, dz)
+    scale = horizontal / distance if distance > EPSILON else 0.0
+    response = defenses.knockback_scale(target.owner)
+    impulse = expr.Vec3(dx * scale * response, vertical * response, dz * scale * response)
+    fight.knockbacks.apply(
+        target, impulse, impact_tick=fight.tick, source_entity=rocket.source_entity,
     )
 
 

@@ -31,6 +31,7 @@ class ZaryaForceRuleTests(unittest.TestCase):
                 break
         self.assertNotIn(rocket, fight.rockets)
         self.assertLess(fight.vitals[caster.body].total, 400)
+        run.step({})  # canonical queue consumes the accepted force on the next recipient pose
         self.assertGreater(caster.mover.velocity[1], 0)
         for _ in range(8):
             run.step({})

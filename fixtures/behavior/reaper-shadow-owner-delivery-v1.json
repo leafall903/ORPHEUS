@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "case_id": "reaper-shadow-owner-delivery-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "Stable source digest73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5; owner delivery delta follows its existing authored relocation.",
+    "provenance": "Actual Reaper00F2 input selection/confirm, inherited cast32 completion and sole existing relocation. Checks delivery of that actual pose, stale pre-relocation token exclusion, finite body lease, movement recovery and cancel/fire. Synthetic offline evidence; native adoption pending.",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/correction.py"]
+  },
+  "client_acceptance": "pending",
+  "input": {"owner_births": [1020, 9000], "max_cast_steps": 160},
+  "expected": {
+    "completed_relocation_motion_requests": 1,
+    "first_valid_pose": "actual relocated owner frame",
+    "cancel_motion_requests": 0,
+    "cancel_cooldown": 0,
+    "restores_movement_and_fire": true,
+    "permanent_correction_opt_in": false
+  }
+}

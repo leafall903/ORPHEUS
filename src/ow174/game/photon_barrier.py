@@ -370,6 +370,10 @@ class Barriers:
         actor.health = expr.f32(max(0, actor.health - max(0, amount)))
         actor.component.set(253, actor.health)
         if actor.health <= 0:
+            # Original 156C's entity #478 switch enters its death effect and
+            # PhysicsExplosion branch before the receiver is retired.
+            actor.component.set(478, True)
+            actor.component.run_now()
             self.end(actor)
 
     def melee(self, shooter, origin, centre, radius, amount, *, contacted=None):

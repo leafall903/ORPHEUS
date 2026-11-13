@@ -1,0 +1,25 @@
+{
+  "build": "1.74.0.0.104319",
+  "originalEvidence": "meteor-native-confirm-setvar-278.json",
+  "captureSHA256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+  "input": {
+    "distance": 5,
+    "ultimateButton": 32,
+    "confirmButton": 1,
+    "selectionFrames": 70
+  },
+  "expected": {
+    "confirmationNode": 22,
+    "countdownVar": 215,
+    "countdownValue": 0,
+    "selectionState": 18,
+    "hintPresenterState": 90,
+    "persistentPresenterStates": [
+      87,
+      88
+    ],
+    "damageEvents": 1,
+    "primaryAmmoSpent": 0
+  },
+  "boundary": "Fix original SetVar action skipped by host confirm shortcut. Original UI context/token destruction and screen adoption remain native pending; do not force global UX presenters off."
+}

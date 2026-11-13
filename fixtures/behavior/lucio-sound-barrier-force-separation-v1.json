@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "case_id": "lucio-sound-barrier-force-separation-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "composition_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "paths": ["src/ow174/game/sound_barrier.py", "src/ow174/game/script/nodes.py"]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "floor": 0,
+    "warmup_commands": 30,
+    "cast_button": 32,
+    "held_commands": 5,
+    "commands": 80,
+    "initial_charge": 2940
+  },
+  "expected": {
+    "retained_npcs": 15,
+    "character_force_requests": 0,
+    "enemy_damage": 0,
+    "self_jump_ratio": 1,
+    "self_jump_actions": 1,
+    "shield_granted": true
+  },
+  "scope": "One real ultimate input exercises self movement, landing and shield grant. Native PhysicsExplosion state and character-force requests remain separate; no assertion of live native receiver eligibility."
+}

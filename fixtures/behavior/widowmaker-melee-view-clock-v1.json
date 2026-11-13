@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "case_id": "widowmaker-melee-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "provenance": "Synthetic identity-exchange actual Widow0043 command ingestion, damage and single authored impulse;15stockNPCs retained. A/B are target identities, not screen-side labels."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "shooter_position": [
+      1000,
+      0,
+      1000
+    ],
+    "near_position": [
+      1000,
+      0,
+      1001.5
+    ],
+    "far_position": [
+      1010,
+      0,
+      1001.5
+    ],
+    "swap_after": 33,
+    "attack_offset": 41,
+    "view_delay_ms": 128,
+    "end_offset": 75
+  },
+  "expected": {
+    "view_tick": 1033,
+    "impact_tick": 1041,
+    "health_a": 170,
+    "health_b": 200,
+    "damage": 30,
+    "impulse": [
+      0,
+      0,
+      1
+    ],
+    "force_count": 1
+  }
+}

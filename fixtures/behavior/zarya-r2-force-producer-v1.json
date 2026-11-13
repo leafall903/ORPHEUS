@@ -1,0 +1,25 @@
+{
+  "schema": "zarya-r2-force-producer-v1",
+  "build": "1.74.0.0.104319",
+  "provenance": {
+    "secondary": "Original0241/node41 explosion ModifyHealth: horizontal5 and vertical8 times ruleset10621; source impulse0.5.",
+    "graviton": "Original025F impact5 plus0261 field5/sec for4seconds;0261/node15 MoveTo speed3.",
+    "shared_candidate": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "native_adoption": false
+  },
+  "secondary": {
+    "horizontal": 5,
+    "vertical": 8,
+    "self_scale": 0.5,
+    "accepted_force_events": 1,
+    "impact_time_domain": "physical world tick",
+    "source_identity": "captured Rocket.source_entity"
+  },
+  "graviton": {
+    "total_damage": 25,
+    "discrete_force_events": 0,
+    "active_owner_motion_record": true,
+    "release_owner_motion_record": true,
+    "control_returns": true
+  }
+}

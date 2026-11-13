@@ -4506,6 +4506,11 @@ class Combat:
                 if mapped is not None:
                     frame = mapped
             view_tick = frame - command.view_delay(quanta) * 1e6 / quanta
+            if hero == 0x02E000000000000A and instance.graph.index == 0x0043:
+                world, owner = script.world_frame_anchor
+                elapsed_ms = ((command.frame - owner) * script.frame_ms
+                              - command.view_delay(quanta) * 1000)
+                view_tick = world + elapsed_ms / round(TICK * 1000)
             if hero == reaper.HERO and instance.graph.index == 0x0043:
                 world, owner = script.world_frame_anchor
                 elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
@@ -9514,7 +9519,7 @@ class Combat:
                 if (tank and landed and not self.vitals_of(target).dead
                         and not defenses.invulnerable(target.owner)
                         and not immunity.fortified(target.owner, target.entity)):
-                    self._tank_impulse(target, damage_point, blast)
+                    self._tank_impulse(target, damage_point, blast, source_entity=rocket.source_entity)
                 if landed:
                     if rocket.source_graph == 0x0241 and rocket.definition == 0x04000000000003DB:
                         from ow174.game import zarya
@@ -9750,7 +9755,7 @@ class Combat:
                 vitals.healing_block = vitals.healing_block[0], self.now
                 break
 
-    def _tank_impulse(self, target: Target, point, blast: HitDef) -> None:
+    def _tank_impulse(self, target: Target, point, blast: HitDef, *, source_entity: int) -> None:
         """Delivered Tank rings resolve independent horizontal and vertical coefficients."""
         a, b = target.segment()
         nearest = (a[0], max(a[1], min(point[1], b[1])), a[2])
@@ -9770,14 +9775,9 @@ class Combat:
                            y / length * blast.vertical_impulse * up if length else 0.0,
                            z / ground * blast.horizontal_impulse * flat if ground > EPSILON else 0.0)
                 if any(impulse):
-                    if isinstance(target.owner, bots.Bot):
-                        from ow174.game.collision import TEAM0, TEAM1
-
-                        category = (MOVER if self.match.game_map.free_for_all or target.team not in (0, 1)
-                                    else (TEAM0, TEAM1)[target.team])
-                        target.owner.apply_impulse(impulse, self.tick, self._collision(), category=category)
-                    else:
-                        target.owner.mover.apply_impulse(impulse)
+                    response = defenses.knockback_scale(target.owner)
+                    self.knockbacks.apply(target, expr.Vec3(*(axis * response for axis in impulse)),
+                                          impact_tick=self.tick, source_entity=source_entity)
                 return
             previous = radius, flat, up
 
@@ -11485,6 +11485,12 @@ class Combat:
         mover.body = None
         if mover.history and mover.history[-1].frame == script.frame:
             mover.history[-1] = mover.snapshot(script.frame)
+
+        from ow174.game import correction
+
+        # Deliver this completed relocation, excluding earlier pre-cast poses.
+        correction.request_motion(player, first_frame=script.frame, body=player.body,
+                                  first_valid_frame=script.frame)
 
     def _blossom(self, player, *, register=False) -> None:
         from ow174.game import reaper_blossom

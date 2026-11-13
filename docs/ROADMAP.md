@@ -504,3 +504,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Record the reviewed735 source-only assembly on real Python upstream ancestry. This is a local code delivery, not full original-client acceptance.
 - [ ] Complete the retained character/PhysicsExplosion/native issues in CONSOLIDATED_DELIVERY_20261113.md.
+
+- [x] Integrate the8 reviewed unique owner follow-ups listed in CONSOLIDATED_DELIVERY_20261113.md, with13 selected related checks.
+- [ ] Accept their changed behavior in the original client; retain all listed native failures and shared force/Physics gaps.

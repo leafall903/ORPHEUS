@@ -93,10 +93,13 @@ class Meteors:
         if cast is not None:
             if aiming and down and not cast.confirm_down:
                 delay = max(0, command.frame * instance.component.frame_ms - instance.component.now)
+                # Native confirmation executes node22's SetVar/out chain before
+                # the queued selection exit, including countdown215 = 0.
+                instance.run_node(instance.graph.node(22), aim)
                 aim.request(runtime.FINISH, delay)
             cast.confirm_down = down
         # Primary confirms through the host rather than firing Hand Cannon;
-        # native7DEB522D's frame predicate and early-confirm buffering are open.
+        # Native7DEB522D's frame predicate and early-confirm buffering remain open.
         return replace(command, buttons=command.buttons & 2 if aiming else 0, action=0,
                        forward=command.forward if aiming else 0, right=command.right if aiming else 0)
 
