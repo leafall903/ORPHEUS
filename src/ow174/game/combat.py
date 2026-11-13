@@ -3523,11 +3523,15 @@ class Combat:
     def _ball_launch(self, source, target, speed, planar, frame):
         # Preserve the current upward-maximum policy; native arbitration remains open.
         owner = target.owner
+        response = defenses.knockback_scale(owner)
+        if response <= 0:
+            return False
         velocity = owner.velocity if isinstance(owner, bots.Bot) else owner.mover.velocity
         # Command/HIT labels stay in the source clock; physical force uses world time.
         impact_tick = min(self.match.tick, ball.world_tick_at_body(source.body_script, frame))
         return self.knockbacks.apply(
-            target, expr.Vec3(planar[0], max(0.0, speed - velocity[1]), planar[1]),
+            target, expr.Vec3(planar[0] * response,
+                              max(0.0, speed - velocity[1]) * response, planar[1] * response),
             impact_tick=impact_tick, source_entity=source.body,
         )
 
@@ -9710,7 +9714,10 @@ class Combat:
             return
         length = math.hypot(dx, dz)
         scale = horizontal / length if length > EPSILON else 0.0
-        impulse = dx * scale, vertical, dz * scale
+        response = defenses.knockback_scale(target.owner)
+        if response <= 0:
+            return
+        impulse = tuple(expr.f32(axis * response) for axis in (dx * scale, vertical, dz * scale))
         self.knockbacks.apply(target, expr.Vec3(*impulse), impact_tick=self.tick,
                               source_entity=rocket.source_entity)
 

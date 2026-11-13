@@ -1,0 +1,11 @@
+{
+  "targetBuild": "104319",
+  "provenance": "Synthetic actual Ball casts against live original modifier26 states; game-derived records stay outside Git.",
+  "cases": [
+    "Ctrl+Fortify8: damage retained, no force and no air lock",
+    "RMB swing Fireball+Fortify8: damage retained, no force",
+    "Q mine armed contact+Fortify8: damage retained, no force",
+    "Ctrl+Reinhardt0A4/node28: original response0.7, one vertical impulse7.7 instead of11"
+  ],
+  "nativeAcceptance": "Pending; full force/mass/minimumY, receiver and native presentation remain separate."
+}

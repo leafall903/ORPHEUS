@@ -1,5 +1,11 @@
 # Changelog
 
+## Fifth focused response and pose follow-ups
+
+Apply original live recipient response once to Sigma Flux entry and projectile formed impulses, preserving original damage and current ring/minimum interpretation. Apply response or zero-admission to Ball Piledriver, fireball and mines without duplicating the prior melee-clock fix. Publish the existing Mei Cryo actor source pose after create ACK; do not claim first-person hiding, camera, scale or material fixes. Seven new actual-command methods passed. The preceding original Uppercut recipient-consumer focused commit adds two qualified-player lifecycle methods; cumulative35 distinct selected follow-up methods passed (32 new,3 modified compatibility). Uppercut ordinary NPC helper consumption and activeMoveTo still remain true server gaps; the original15-NPC probe records50damage/one accepted force but no helper, while activeSlam still rejects force. No native adoption or all-hero completion is claimed. Frozen735 and the prepared038/e1da cut remain unchanged.
+
+Owner commit mapping: docs/CONSOLIDATED_DELIVERY_20261113.md. External runtime inputs and native evidence remain outside Git.
+
 ## Scoped Uppercut victim-script consumer
 
 Route original0DD8/node22 through the shared PlayScript resource/request resolver

@@ -3,7 +3,7 @@
 import math
 from dataclasses import replace
 
-from ow174.game import assassin, bots, tracer
+from ow174.game import assassin, bots, defenses, tracer
 from ow174.game.collision import MOVER, TEAM0, TEAM1
 from ow174.game.script import expr, graph
 from ow174.game.sigma_barrier import view_basis
@@ -350,7 +350,11 @@ def flux_entry_impulse(fight, state, caster, target):
     dx, dy, dz = direction
     length = math.hypot(dx, dz)
     scale = horizontal * xz / length if length else 0.0
-    impulse = expr.Vec3(expr.f32(dx * scale), expr.f32(dy * vertical * up), expr.f32(dz * scale))
+    response = defenses.knockback_scale(target.owner)
+    if response <= 0:
+        return
+    impulse = expr.Vec3(*(expr.f32(axis * response) for axis in
+                         (dx * scale, dy * vertical * up, dz * scale)))
     fight.knockbacks.apply(target, impulse, impact_tick=fight.match.tick, source_entity=source.id)
 
 

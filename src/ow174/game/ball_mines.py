@@ -519,7 +519,7 @@ class Mines:
         if mine.triggered or mine.health <= 0 or mine.removing or not mine.armed:
             return
         primary = mine.body_script.primary()
-        from ow174.game import barriers
+        from ow174.game import barriers, defenses
 
         node = primary.graph.node(52)
         centre = primary.evaluate(node.field('m_05BE62DD'))
@@ -557,6 +557,9 @@ class Mines:
             if (not self.fight.vitals_of(target).dead
                     and not self.fight._has_protection(target, {0x02E00000000000DD: (0x05FE, 35)})
                     and (horizontal > 0 or vertical > 0)):
+                response = defenses.knockback_scale(target.owner)
+                if response <= 0:
+                    continue
                 dx, dz = target.feet[0] - centre.x, target.feet[2] - centre.z
                 distance = math.hypot(dx, dz)
                 vy = (target.owner.velocity[1] if hasattr(target.owner, "velocity")
@@ -565,5 +568,6 @@ class Mines:
                            max(0.0, vertical-vy),
                            horizontal * dz/distance if distance > 1e-9 else 0.0)
                 self.fight.knockbacks.apply(
-                    target, expr.Vec3(*impulse), impact_tick=tick, source_entity=mine.source,
+                    target, expr.Vec3(*(axis * response for axis in impulse)),
+                    impact_tick=tick, source_entity=mine.source,
                 )

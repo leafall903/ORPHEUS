@@ -6,7 +6,7 @@ from unittest.mock import patch
 import test_game_combat as fixtures
 import test_sigma_flux_placement as placement
 
-from ow174.game import sigma_flux
+from ow174.game import defenses, sigma_flux
 from ow174.game.collision import flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes
@@ -25,12 +25,13 @@ class FrameRun(fixtures.Run):
 
 
 class SigmaFluxHealthOriginTests(unittest.TestCase):
-    def arena(self):
+    def arena(self, victim_hero=0x02E000000000023B):
         run = FrameRun(names=("Sigma", "Victim"))
         source, victim = run.players
         for player, offset in zip(run.players, (8000, 6000), strict=True):
             player.commands.reset(last_frame=run.frame + offset)
-            run.match.switch_hero(player, heroes()[0x02E000000000023B], start_frame=run.frame + offset)
+            hero = 0x02E000000000023B if player is source else victim_hero
+            run.match.switch_hero(player, heroes()[hero], start_frame=run.frame + offset)
             player.body_script.create_arrived = True
         run.match.collision_world = flat_world(0)
         for player, position in ((source, (1000, 0, 1000)), (victim, (1000, 0, 1006))):
@@ -101,4 +102,36 @@ class SigmaFluxHealthOriginTests(unittest.TestCase):
         self.assertFalse(victim.mover.airborne)
         self.assertFalse(sigma_flux.has_effect(victim))
         self.assertFalse(victim.mover.external_impulse)
+        self.assertEqual(len(run.match.bots), 15)
+
+    def test_actual_Q_entry_force_applies_live_Reinhardt_response_once(self):
+        run, source, victim, health = self.arena(victim_hero=0x02E0000000000007)
+        for _ in range(30):
+            run.step({})
+        self.assertAlmostEqual(defenses.knockback_scale(victim), 0.7)
+        initial = health.total
+        host = run.match.combat.knockbacks
+        original = host.apply
+        forces = []
+
+        def apply(target, impulse, **kwargs):
+            accepted = original(target, impulse, **kwargs)
+            forces.append((target.entity, tuple(impulse), defenses.knockback_scale(target.owner), accepted))
+            return accepted
+
+        with patch.object(host, "apply", apply):
+            placement.SigmaFluxPlacementTests().select(run, source, tuple(victim.mover.position))
+            for _ in range(150):
+                run.step({})
+                if health.total < initial:
+                    break
+        self.assertEqual(initial - health.total, 45)  # Original entry50 against Reinhardt armour.
+        self.assertEqual(len(forces), 1)
+        body, impulse, response, accepted = forces[0]
+        self.assertEqual(body, victim.body)
+        self.assertAlmostEqual(response, 0.7)
+        self.assertEqual(impulse[0], 0.0)
+        self.assertEqual(impulse[2], 0.0)
+        self.assertAlmostEqual(impulse[1], 0.7, places=6)
+        self.assertTrue(accepted)
         self.assertEqual(len(run.match.bots), 15)

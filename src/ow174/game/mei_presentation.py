@@ -39,9 +39,9 @@ def sync(fight):
             mover = owner.mover
             if mover is None:
                 continue
+            movement = world.Movement(tuple(mover.position), mover.yaw, mover.pitch)
             if entity not in viewer.seen:
                 viewer.seen[entity] = False
-                movement = world.Movement(mover.position, mover.yaw, mover.pitch)
                 components = {26: [owner.team_bit]}
                 if barrier.pet_owner is not None:
                     components[72] = [barrier.pet_owner]
@@ -50,6 +50,10 @@ def sync(fight):
                     lambda origin, c=components, m=movement:
                         world.create(origin, CRYO, c, position=m.position, movement=m),
                 )])
+            elif client.bot_create_acked(entity):
+                update = world.EntityUpdate(entity, movement=movement)
+                update.resend = False  # superseded source poses must not rewind the ice actor
+                client.queue_entities([update])
             client.queue_bot_live(entity, projection(fight, entity).latest_live)
         # Pillars already have one authoritative deployable create/destroy path.
         # Attach the same 0636 VM to that entity instead of publishing another actor.

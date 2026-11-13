@@ -1,0 +1,8 @@
+{
+  "build": "1.74.0.0.104319",
+  "input": "Actual Cryo command, then another Mei confirms Ice Wall under the protected body",
+  "minimum_lift": 3,
+  "expected": "Same090B entity/0623 VM follows authoritative source body pose for owner and observer after create ACK; no update before create ACK; no repeated create; superseded poses never retransmit",
+  "provenance": "Original0623/node0 names source body variable40 and bone1. Existing body-pose host is retained; this change repairs its missing later pose publications without inventing a bone transform.",
+  "limits": "Does not fix or accept exact native bone attachment, camera, first-person hiding, material/scale or visible native alignment. Existing wall top projection discrepancy is separate."
+}
