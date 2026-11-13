@@ -515,6 +515,13 @@ class BotStatescriptTests(unittest.TestCase):
             peer.receive(packet, records)
         return packet, reliable, records
 
+    def send_after_notices(self, peer, *, receive=True):
+        """A kill's datagram with its notices carries no bot chunk: send it, then the one with the chunk.
+        `receive` is for the second. Returns the second packet, the notices and both datagrams' records."""
+        _, reliable, first = self.send(peer)
+        packet, _, records = self.send(peer, receive=receive)
+        return packet, reliable, first + records
+
     @staticmethod
     def entities(records, op):
         return [record.entity for record, _ in records if record.op == op]
@@ -737,7 +744,7 @@ class BotStatescriptTests(unittest.TestCase):
         self.match.combat._damage(self.shooter, target, 200, True, None, death_tick)
         self.match.combat._send_health()
         for peer in (watcher, shooter):
-            _, reliable, death = self.send(peer)
+            _, reliable, death = self.send_after_notices(peer) if peer is shooter else self.send(peer)
             self.assert_terminal_health(death)
             frame = self.bot_frame(peer, death, victim)
             self.assertEqual(frame.last, 2, "nameplate must not consume the first post-baseline death slot")
@@ -767,7 +774,7 @@ class BotStatescriptTests(unittest.TestCase):
         self.assertNotIn(NAMEPLATE, shooter.models[victim].graphs.values())
         self.assertEqual(self.chunks(voiced, living.entity), [])
         shooter.ack()
-        _, reliable, named = self.send(shooter)
+        _, reliable, named = self.send_after_notices(shooter)
         self.assert_nameplate_child(self.bot_frame(shooter, named, living.entity))
         self.assertNotIn(NAMEPLATE, shooter.models[victim].graphs.values())
         self.assertEqual(shooter.feed_pulses, [(victim, 4, 1)])
@@ -804,7 +811,7 @@ class BotStatescriptTests(unittest.TestCase):
         target = next(target for target in self.match.combat._targets() if target.owner is self.bot)
         self.match.combat._damage(self.shooter, target, 200, True, None, self.tick)
         self.match.combat._send_health()
-        _, _, terminal = self.send(shooter)
+        _, _, terminal = self.send_after_notices(shooter)
         self.assert_terminal_health(terminal)
         self.assertEqual(
             [
@@ -902,7 +909,7 @@ class BotStatescriptTests(unittest.TestCase):
         self.assert_terminal_health(immediate)
         self.assertEqual(watcher.pulses, [(old, 2, 1)])
         self.assertEqual(watcher.feed_pulses, [])
-        _, _, shooter_death = self.send(shooter)
+        _, _, shooter_death = self.send_after_notices(shooter)
         self.assert_terminal_health(shooter_death)
         self.assertEqual(shooter.pulses, [(old, 2, 1)])
         self.assertEqual(shooter.feed_pulses, [(old, 2, 1)])
@@ -931,6 +938,26 @@ class BotStatescriptTests(unittest.TestCase):
         watcher.ack()
         _, _, after = self.send(watcher)
         self.assertEqual(self.chunks(after, old), [])
+
+    def test_bot_chunk_and_reliable_messages_take_turns(self):
+        # The original client lost a bot's statescript chunk that came with reliable messages. An
+        # acknowledged datagram is never sent again, so the body's stream stalled
+        # (docs/research/kill-feed.md).
+        self.install_kill_feed_bot()
+        self.show_shooter_identity()
+        shooter, old = self.shooting_peer, self.bot.entity
+        self.kill_feed_bot()
+        _, reliable, first = self.send(shooter)
+        self.assertEqual([number for _, number, _ in reliable], [combat.HIT, combat.KILL_NOTICE])
+        self.assertEqual(self.chunks(first, old), [])  # the notices go first
+        shooter.client.queue_ownership()  # another message is waiting: the chunk that waited goes before it
+        _, reliable, second = self.send(shooter)
+        self.assertEqual(reliable, [])
+        frame = self.bot_frame(shooter, second, old)
+        self.assertEqual(shooter.feed_pulses, [(old, frame.last, 1)])
+        _, reliable, third = self.send(shooter)
+        self.assertEqual([number for _, number, _ in reliable], [20302])
+        self.assertEqual(self.chunks(third, old), [])
 
     def test_expired_kill_feed_pulse_is_not_released_by_a_late_mode_ack(self):
         self.install_kill_feed_bot()
@@ -979,7 +1006,7 @@ class BotStatescriptTests(unittest.TestCase):
     def test_npc_kill_feed_waits_for_remote_killer_possession_ack(self):
         lost = self.kill_with_lost_shooter_possession()
         shooter, watcher, old = self.shooting_peer, self.watching_peer, self.bot.entity
-        _, _, local = self.send(shooter)
+        _, _, local = self.send_after_notices(shooter)
         self.assert_terminal_health(local)
         self.assertEqual(shooter.pulses, [(old, 2, 1)])
         self.assertEqual(shooter.feed_pulses, [(old, 2, 1)])
@@ -1428,7 +1455,7 @@ class BotStatescriptTests(unittest.TestCase):
         self.kill_bot()
         death_tick = self.tick
 
-        _, _, lost_immediate = self.send(shooter, receive=False)
+        _, _, lost_immediate = self.send_after_notices(shooter, receive=False)
         immediate = self.only_chunk(lost_immediate, old)
         self.assert_pulse(immediate, first=2, last=2, count=1)
         _, _, witnessed = self.send(watcher)

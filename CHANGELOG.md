@@ -1,5 +1,23 @@
 # Changelog
 
+## A bot's statescript chunk and reliable messages take turns in a datagram
+
+- A bot's statescript chunk and reliable messages now take turns in a client's datagrams, the
+  messages first (`Client.send_frame`, `Client._bot_chunk_waited`). On the kjs branch the original
+  client lost a bot's chunk that came with reliable messages; the datagram was acknowledged, so the
+  chunk was never sent again, and every later delta of that body waited for it: no kill feed line,
+  and no later state of the dying bot.
+- The cause was found on the kjs branch with a read-only sampler of the client's memory: at a
+  bot's death the client held chunks 4 and 5 as waiting and never saw chunk 3, the one sent with
+  the hit and elimination notices. Where the client loses the chunk is not established, so the
+  turn-taking is a workaround, not the client's own rule.
+- Limits: only bot bodies are covered. Other players' bodies use the same kind of stream and were
+  not tested.
+- Tests: `tests/runtime/test_game_bot_statescript.py`, a new test for the turn-taking and five
+  bot statescript tests adapted to send the notices' datagram before the one with the chunk.
+- Ported from the kjs branch, where kills of a Practice Range bot drew their kill feed lines with
+  this rule. Original-client acceptance on this source is pending.
+
 ## Kill feed option default at login
 
 - A profile that never saved its Gameplay options now gets the client's own defaults for block
