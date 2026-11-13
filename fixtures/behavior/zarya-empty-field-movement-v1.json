@@ -1,0 +1,8 @@
+{
+  "schema": "zarya-empty-field-movement-v1",
+  "provenance": "Approved synthetic host optimization contract against formal52. An empty Gravitons.fields collection has no movement destination; existing Player movement retains its independent release_player call. Original-client presentation is outside this contract.",
+  "query_count": 21,
+  "empty_field_target_queries": 0,
+  "expected": "When no field exists, preflight stored eligible Bastion1216 variables without creation or output calls. Linked or unknown providers use the original complete target query and subsequent field loop. Only known unlinked variables may retain one lazy lookup/value read and skip geometry construction. With an actual admitted Q field, retain the original fresh target construction and pull gating.",
+  "limits": "No cross-tick target cache; no all-hero tick-time acceptance, Q visual repair, original0260/0261 source proof or native force acceptance."
+}

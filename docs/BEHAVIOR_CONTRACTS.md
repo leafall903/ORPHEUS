@@ -826,3 +826,31 @@ No new20-hero/profile/native run;55 timing is unmeasured, last52 remains16ms RED
 Running49 is unchanged and its limited Halloween evidence is not inherited.
 Superseded/multi-activation coverage, native render/colors, complete force/status
 policies, Zarya side-effect qualification and full hero goals remain OPEN.
+
+## Conservative empty-field movement query with linked fallback (batch56)
+
+Select only cumulative owner50f82bd5 (original chain4d3f→5ce→50f), never the
+bare early-return or preserved-read candidate alone. First inspect stored
+eligible Bastion components/variables without creation/output. Only exact
+Component/dict and missing or exactVar with empty builtin links qualify. All
+eligible postures must qualify before any original variable materialization or
+read. Linked/unknown cases fall through to the unchanged complete _targets and
+field loop, preserving once-only read order and fields created during output.
+Qualified no-link empty-field cases retain original1216 materialization/read
+but omit all-target geometry. Nonempty-field movement, immunity, release, damage,
+clock and mover code remain unchanged; no cross-call/tick answers are retained.
+
+Four composed methods pass: no-field target construction avoidance; real linked
+posture read; adversarial wrapper of actual active Stack.output creating a real
+Field and preserving exact original query/read trace; actual Q normal/fortified
+movement. The adversarial boundary is not claimed as authored Bastion/Q behavior.
+Three owner ordinary posture comparisons preserve clocks/variables/messages.
+Original failed4d3f/5ce and unrelated-random-server digest evidence remain recorded.
+
+Four first-included methods bring selected total329=308new+21maintained.
+Source56 receives one unchanged-standard exact-head unprofiled20-hero run;
+earlier51/52 measurements and53-55 unmeasured status stay separate. No repeat
+selection, reduced roster, changed tick or native acceptance is implied.
+Running49 remains unchanged; all original hero/model/force/color/Halloween
+full-wave/native boundaries stay OPEN. Packet-budget cache exploration remains
+external qualification and is not part of56.

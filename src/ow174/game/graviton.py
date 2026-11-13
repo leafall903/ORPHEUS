@@ -172,6 +172,28 @@ class Gravitons:
         return at < field.end_tick and not fortified and self.includes(field, target, tick=tick)
 
     def movement_for(self, actor):
+        if not self.fields:
+            from ow174.game.combat import BASTION
+
+            postures = []
+            # Inspect stored variables before any creation/evaluation. Linked or
+            # unknown providers retain the original query and its control flow.
+            for player in self.fight.match.players:
+                if (player.has_body and player.spawned and player.client is not None
+                        and player.controlled_mech is None and player.hero.guid == BASTION
+                        and player.body_script is not None):
+                    component = player.body_script.component
+                    if type(component) is not runtime.Component or type(component.vars) is not dict:
+                        break
+                    var = component.vars.get(1216)
+                    if var is not None and (type(var) is not runtime.Var
+                                            or type(var.links) is not list or var.links):
+                        break
+                    postures.append(component)
+            else:
+                for component in postures:
+                    component.entity_var(1216).value()
+                return None
         target = next((target for target in self.fight._targets() if target.owner is actor), None)
         if target is None:
             return None

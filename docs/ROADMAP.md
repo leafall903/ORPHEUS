@@ -669,3 +669,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Restore omitted strict volley and late-flight observer fixes with11 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Preserve linked movement query side effects before empty-field shortcut with4 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.
