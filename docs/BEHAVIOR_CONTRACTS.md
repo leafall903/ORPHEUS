@@ -671,3 +671,28 @@ establish aggregate20-hero savings. Exact50 needs its own single unprofiled
 The running49 server, its frozen inputs/shortcuts and limited Halloween native
 acceptance remain unchanged. No source50 native result is inherited. Full hero
 presentation/combat/Physics/MoveTo and all existing open boundaries remain open.
+
+## Qualified pure module preloads and original-site live bindings (batch51)
+
+Only the13 qualified Doom helper/spatial/typed-query modules initialize at
+module-definition import time. Temporary preload aliases are discarded. The
+three original local-import sites bind current parent-package attributes, and
+missing attributes execute the original from-import fallback. Keep function
+lookup at call time; never retain functions, dispatch tuples, live query/world/
+recipient values, unknown results or watcher decisions. Other hero imports stay
+local and strict/poll/query order is unchanged. There are no new stored fields.
+
+Four focused methods cover dynamic function/module replacement/deletion,
+spatial binding before constant queries, all11 typed service bindings after the
+poll callback, strict/poll/tick ordering and three fresh-process import orders.
+The13 qualified preload definitions trigger no resource reads. Existing driver
+projectile-tag initialization still reads its configured resource; this is not
+a global zero-startup-I/O claim. Arbitrary import-hook/sys.modules replacement
+equivalence beyond the tested parent-module bindings is not established.
+
+Removing preloads and restoring the three exact fallback imports restores both
+complete original module ASTs. Isolated synthetic full-method warm-binding
+comparisons improve locally, with fixed stub providers and no gameplay prewarm.
+They are not aggregate20 performance evidence. Source51 receives its own single
+unprofiled20-skill/20-status run with16ms unchanged. Running49, shortcuts, profiles
+and its limited Halloween native result remain unchanged and are not inherited.

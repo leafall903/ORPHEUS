@@ -654,3 +654,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Compose qualified source scans and stable queued close filtering with4 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Preserve live native module bindings with qualified preloads with4 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

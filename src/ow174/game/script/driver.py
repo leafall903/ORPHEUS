@@ -66,6 +66,10 @@ from ow174.paths import (
     WHEEL_POSE_DATA,
 )
 
+from ow174 import game as _game_package
+from ow174.game import doomfist_helper as _preloaded_doomfist_helper
+del _preloaded_doomfist_helper
+
 if TYPE_CHECKING:
     from ow174.game.match import Match
     from ow174.game.mover import VelocityChange
@@ -1062,7 +1066,10 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import doomfist_helper
+        try:
+            doomfist_helper = _game_package.doomfist_helper
+        except AttributeError:
+            from ow174.game import doomfist_helper
 
         response = doomfist_helper.native(self, cfg, instance)
         if response is not NotImplemented:

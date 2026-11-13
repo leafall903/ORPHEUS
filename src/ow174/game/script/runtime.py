@@ -35,6 +35,18 @@ from ow174.game.script.expr import ENTITY, INSTANCE, Context, Entity
 from ow174.game.script.graph import Graph, Node, is_plug, mode_variables
 from ow174.game.world import GAME_MODE_ENTITY
 
+# Load only qualified module definitions; bind their current package attributes
+# at each original query site, including package-level module replacements.
+from ow174.game import script as _script_package
+from ow174.game.script import (
+    body_owner, controller_heroes, controller_queries, controller_query, npc_queries,
+    entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
+    spatial_queries,
+)
+del (body_owner, controller_heroes, controller_queries, controller_query, npc_queries,
+     entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
+     spatial_queries)
+
 if TYPE_CHECKING:
     from ow174.game.mover import VelocityChange
 
@@ -425,7 +437,10 @@ class InstanceContext(Context):
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         cls = cfg.get("$")
-        from ow174.game.script import spatial_queries
+        try:
+            spatial_queries = _script_package.spatial_queries
+        except AttributeError:
+            from ow174.game.script import spatial_queries
 
         component = self.instance.component
         if not component.strict:
@@ -500,9 +515,23 @@ class InstanceContext(Context):
                 return values[0] if values else expr.EVALUATION_FAILED
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import (
-            body_owner, controller_heroes, controller_queries, controller_query, npc_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
-        )
+        try:
+            body_owner = _script_package.body_owner
+            controller_heroes = _script_package.controller_heroes
+            controller_queries = _script_package.controller_queries
+            controller_query = _script_package.controller_query
+            npc_queries = _script_package.npc_queries
+            entity_filter = _script_package.entity_filter
+            entity_link = _script_package.entity_link
+            entity_queries = _script_package.entity_queries
+            entity_team = _script_package.entity_team
+            health_queries = _script_package.health_queries
+            pet_relation = _script_package.pet_relation
+        except AttributeError:
+            from ow174.game.script import (
+                body_owner, controller_heroes, controller_queries, controller_query, npc_queries,
+                entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
+            )
 
         component = self.instance.component
         if (not component.strict and component.world.hero == 0x02E0000000000016
