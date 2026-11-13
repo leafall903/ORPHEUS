@@ -17,12 +17,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   figure. Nothing in the data changes an ultimate key for the Practice Range.
 - The first scan missed the graph because it read a truncated list, and the XML dump of the graph
   leaves its expressions out. The note says so.
-- ORPHEUS still charges by its own code: the server's instance of `0B8B` never starts its loop,
-  since `#2426e` is unset there. The note lists what differs: the graph's conditions, the ruleset
-  scales, and the combat table in `ult_charge.py`, which is still the old placeholder of 380
-  damage to a full meter and 20% for an elimination.
-- Checked all 32 playable heroes on the server: each has a cost on its first frame and gains
-  5 points in its first second.
+- ORPHEUS still charges by its own code: the server's instance of `0B8B` does not start its
+  loop, also with `#2426e` held on, and why is not established. The note lists what differs: the
+  graph's conditions, the ruleset scales, and the combat table in `ult_charge.py`, still the old
+  placeholder of 380 damage to a full meter and 20% for an elimination. Who posts the graph's
+  messages is not decoded, so what damage, healing and an elimination give is not shown yet.
+- Checked on the server: all 32 playable heroes have a cost on their first frame and gain 5
+  points a second (D.Va's mech 4.6 in its first second, 5.0 after). In a match, six heroes
+  standing still gained exactly 50 points in 10 s, Mercy and Sombra also after their target
+  search had run, so the graph's loop and the server's code do not add up to a double rate.
 - No behavior changed in this entry.
 
 #### Passive ultimate charge at 5 points a second

@@ -5,14 +5,13 @@ see the [index](README.md) for the evidence labels.
 
 ## Summary
 
-The rules are in the client's data. Every hero's common graph `004B` runs graph `0B8B`, whose
+The rules are in the client's data. The heroes' common graph `004B` runs graph `0B8B`, whose
 server-only nodes charge the ultimate: 5 points every second by themselves, and an amount carried
-by a game message for what the hero does, each scaled by ruleset keys. The cost is in the same
-points.
+by a game message, each scaled by ruleset keys. The cost is in the same points.
 
 ORPHEUS does not play those nodes. It charges by its own code, which filled every meter in 60 s.
 The passive now adds 5 points a second, as the graph does. The charge from combat is still a
-placeholder that the graph contradicts.
+placeholder, and what the graph's messages carry is not decoded yet.
 
 An earlier version of this note said no graph adds charge. That was wrong: the scan behind it
 looked at a truncated list and at an XML dump that leaves expressions out.
@@ -56,8 +55,9 @@ sets
     #342e = min(#338e, #342e + 5.0 * valueOr(#9532e, 1) * valueOr(#12918e, 1))
 
 and links back to the Wait. So the meter gains 5 points each second while the switch holds.
-`STU_F7262B36` is "somebody drives this body" (see [D.Va's two forms](dva-forms.md)). What sets
-`#2426e` is not decoded; a mode graph does.
+`STU_F7262B36` is "somebody drives this body" (see [D.Va's two forms](dva-forms.md)). `#2426e`
+is held on by graph `01C7` while one of the mode's standing messages reaches the body (see
+[TrackTargets](track-targets.md)).
 
 ### What the hero does
 
@@ -73,9 +73,9 @@ On the way to node 23 the amount `#336` is reduced: node 84 takes `STU_A6B80C63(
 to zero, node 60 halves it and node 98 takes a quarter off, each under a condition. Every path
 also tests `#2426e`, and all three test `!#842e`.
 
-So at the default scales one point of the amount is one point of charge. Which entry is damage
-dealt and which is healing done is not established, and neither are the conditions behind the
-reductions.
+So at the default scales one point of the amount is one point of charge. What each message
+means and what its amount is are not established: who posts them is not decoded. Damage dealt and
+healing done are the likely amounts, and a bonus for an elimination could arrive the same way.
 
 ### Full, empty and the HUD
 
@@ -124,8 +124,10 @@ and a [mechanics guide](https://www.furiouspaul.com/overwatch/basics/mechanics.h
 
 ## Compared with ORPHEUS
 
-The server's body does run an instance of `0B8B`, but `#2426e` is unset there, so the authored
-loop never starts. ORPHEUS charges by its own code instead.
+The server's body does run an instance of `0B8B` (checked on six heroes), but the authored loop
+does not start there. `#2426e` is unset on an idle body, and with it held on, as the target
+searches of Mercy and Sombra do, the loop still stayed off and the meter gained exactly 5 points a
+second. Why the switch stays off is not established. ORPHEUS charges by its own code instead.
 
 Its passive filled any meter in 60 s whatever the cost, in every mode. It now adds 5 points a
 second by default. A body's time to a full meter is its cost over 5, resolved once when the body
@@ -140,8 +142,10 @@ Differences from the graph that remain:
 - The ruleset keys are not applied. ORPHEUS loads schema defaults only, so each would read 1.0.
 - A graph that changes the cost later keeps the time resolved at spawn.
 - The charge from combat is a placeholder in `ult_charge.py`: 380 damage fills any meter and an
-  elimination adds 20%. The graph gives one point for a point of the amount, and no node of it
-  adds a share of the meter for an elimination.
+  elimination adds 20%. The graph adds a point for a point of a message's amount; until the
+  senders are decoded it is not shown what damage, healing or an elimination give.
+- Reaper, Hanzo, Pharah and Winston have no ultimate state the server finds, so their passive
+  never pauses while their ultimate runs. That is older than this change.
 
 ## Seen live against ORPHEUS
 
@@ -156,5 +160,5 @@ rounded down. Not checked: another hero, another mode, and the meter in a fight.
 ## Not decoded
 
 Who posts the messages `0012`, `00EB`, `0044`, `0148`, `0011`, `0013`, `0067`, `0610` and `14F2`
-and what each means, what sets `#2426e`, and the evaluators `STU_A3DEF368`, `STU_A58C1E63`,
-`STU_25ECB55F` and `STU_A6B80C63`.
+and what each means, why the server's instance of the loop stays off, and the evaluators
+`STU_A3DEF368`, `STU_A58C1E63`, `STU_25ECB55F` and `STU_A6B80C63`.

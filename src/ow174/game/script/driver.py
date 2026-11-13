@@ -230,8 +230,8 @@ WHEEL_CALLOUT_MS = 2000
 # it starts), its cost #338e comes from the Entries. Combat credits it (combat.py through ult_charge.py);
 # the passive adds ULT_PASSIVE points a second, and nothing charges while the ultimate runs. The rate is
 # the game's own: graph 0B8B (run by 004B, server-only nodes) adds 5.0 after each Wait of 1 s (nodes 3, 4),
-# times two ruleset scales. That graph's loop does not start here (#2426e is unset), so this code stands in
-# for it without its conditions (docs/research/ultimate-charge.md).
+# times two ruleset scales. That graph's loop does not start here (why is not established), so this code
+# stands in for it without its conditions (docs/research/ultimate-charge.md).
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_PASSIVE = 5.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
