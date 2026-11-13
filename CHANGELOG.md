@@ -1,5 +1,16 @@
 # Changelog
 
+## Tests for Sombra's Stealth and Mercy's Angelic Descent
+
+- Runtime tests for two movement states the heroes' own graphs already run on the server. Sombra
+  walks at 5.5 m/s, keeps that through Stealth's 0.75 s fade, then moves at 1.65 times it until
+  Shift ends it. Mercy's held jump falls at 2 m/s and stays in the air longer than a tapped one.
+- The expected numbers are measurements of the original client against a separate offline service
+  (9.1 m/s in Stealth, a 1.95 m/s fall). The tests check this source's server against them.
+- No server code changed.
+- Tests: `tests/runtime/test_hero_movement_states.py`.
+- Ported from the kjs branch. Original-client acceptance on this source is pending.
+
 ## Chunk sweep for the runtime tests
 
 - `tests/chunk_sweep.py` runs the runtime tests with every statescript chunk queued for a game
