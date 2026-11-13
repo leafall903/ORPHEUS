@@ -48,6 +48,7 @@ mod junkenstein_host;
 mod junkenstein_messages;
 mod junkenstein_navigation;
 mod junkenstein_spawn;
+mod junkenstein_validation;
 mod junkenstein_voice;
 mod linked_aim;
 pub mod lobby_arcade;

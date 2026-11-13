@@ -659,3 +659,9 @@ Original copyright and attribution notices are retained. References to related p
   1.85.0 checks identified unsupported let-chain and if-let guard syntax. The
   source-only rewrite preserves branch ordering and existing shared contracts;
   native captures and runtime inputs remain external.
+
+- Local Halloween validation settings follow the user's explicit invulnerable
+  Cassidy and high-health-gate acceptance scenarios. They reuse the existing
+  gate instance 1 variable 8567 notification/binding path and room damage
+  delivery. The new fixture specifies host test policy, not native defaults;
+  runtime data, profiles and original-client results remain external.

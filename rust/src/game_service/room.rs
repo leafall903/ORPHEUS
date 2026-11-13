@@ -454,7 +454,9 @@ impl Room {
                     .and_then(|member| member.peer.as_mut())
                     .ok_or(RoomError::Invariant("damage recipient disappeared"))?;
                 let source = hit.source;
-                if peer.world.apply_enemy_damage(hit, now, tick) {
+                if !world.scene.protects_cassidy(peer.world.encounter_hero())
+                    && peer.world.apply_enemy_damage(hit, now, tick)
+                {
                     peer.queue_combat_notice(CombatNotice::Death {
                         source,
                         killed_by: true,

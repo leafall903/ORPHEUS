@@ -734,3 +734,12 @@ current pose, selector1 retention, shared linked-state order and cleanup/reentry
 Yaw pose projection is bounded by half a signed16 angular unit; native component
 and arbitrary parent/platform facts are not inferred. Owner-full player cache
 replication remains unavailable; observer encoding has separate prepared checks.
+
+### Local Junkenstein validation startup policy
+
+`fixtures/behavior/junkenstein-validation-v1.json` describes the user-requested
+Normal Cassidy acceptance overrides. The Rust consumer checks explicit/default
+settings, other heroes/cards, missing owners and rejected invalid configuration.
+A prepared-runtime regression verifies the gate binding and unchanged harder-mode
+HUD. These are host configuration contracts; they do not supply native category
+provenance, a Python implementation or original-client acceptance.

@@ -3287,7 +3287,7 @@ mod tests {
             script_init::StateKind::Registered { next: Some((2, 0)) }
         ));
         component
-            .set_test_instance_variable(1, 501, Value::Float(-90.0), &mut world)
+            .set_instance_variable(1, 501, Value::Float(-90.0), &mut world)
             .unwrap();
         component.advance_frame(1, &mut world).unwrap();
         assert_eq!(

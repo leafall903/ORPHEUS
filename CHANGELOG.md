@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Make the requested Normal Cassidy client validation settings launchable
+
+- Add an explicit local `--junkenstein-validation <json>` startup input. It can
+  protect Cassidy from authoritative enemy damage and optionally set gate
+  capacity in card 0x3C through the existing VM watcher path. Other cards,
+  heroes and default launches retain their ordinary policy.
+- Replace the natural scenario replay's private initial gate override with the
+  same prepared-scene configuration used by real sessions. The settings neither
+  force results nor skip Boss AI, introductions, camera routes or normal charge.
+- Verification: Rust 1.85 check, default 406 / inspector 410 library tests,
+  both workspace/Clippy lanes, the startup contract and five prepared-runtime
+  checks pass. Configured early/late losses and natural Deadeye victory pass;
+  real CLI win/loss profile startup and invalid-input rejection pass. Client
+  visuals/audio and runtime category provenance remain open.
+
 #### Keep Halloween restoration compatible with Rust 1.85
 
 - PR #33 exposed unsupported let-chain syntax in the runtime metadata reader,

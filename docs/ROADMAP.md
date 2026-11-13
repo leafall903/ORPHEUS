@@ -375,3 +375,9 @@ research history. Its first hosted run exposed Rust 1.85 syntax incompatibility;
 the repair preserves the declared minimum compiler and existing behavior
 contracts. Hosted confirmation of the repaired candidate remains required,
 alongside the open production category and original-client acceptance work.
+
+The requested Normal Cassidy success/failure setup is now available through an
+explicit local startup profile, using real room damage routing and the existing
+authored gate binding. Its scoped prepared-scene and configuration checks are
+separate from the still-open original-client success/failure, UI/audio, Boss
+intro/camera, first-Reaper crash and Gallery acceptance.

@@ -75,3 +75,27 @@ Open [127.0.0.1:3726](http://127.0.0.1:3726/) after startup. The [architecture g
 | `docs` | Architecture, acceptance criteria and research records |
 
 ORPHEUS is an unofficial preservation project. The public source retains the upstream [MIT notice](LICENSE) and [credits](CREDITS.md). Keep game clients, commercial assets, signing material, content keys, private logs, captures and dumps out of the repository and public discussion.
+
+### Local Halloween acceptance sessions
+
+For an isolated Normal Cassidy acceptance session, add
+`--junkenstein-validation <local-json>` to the native server command. The local
+file is read before listeners start; clients cannot change these settings.
+For the requested success scenario, use:
+
+```json
+{"invulnerable_cassidy": true, "gate_capacity": 1000000000}
+```
+
+For a destructible-gate failure scenario, use:
+
+```json
+{"invulnerable_cassidy": true}
+```
+
+Only Normal Revenge card 0x3C uses this profile. Cassidy's health is protected
+from enemy damage; the optional gate capacity uses the authored health binding.
+Boss logic, introductions, camera transitions, weapon inputs, ultimate charge,
+score and result progression still run normally. Default launches and other
+cards/heroes use their usual policy. Keep these local files and session data
+outside the source checkout. This setup does not itself prove client acceptance.

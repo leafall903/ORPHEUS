@@ -2194,7 +2194,11 @@ mod tests {
         let late = !matches!(ending, NormalEnding::EarlyDefeat);
         let victory = matches!(ending, NormalEnding::DeadeyeVictory);
         let runtime = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
-        let assets = SceneAssets::load(&runtime).unwrap();
+        let mut assets = SceneAssets::load(&runtime).unwrap();
+        assets.set_junkenstein_validation(crate::junkenstein_validation::JunkensteinValidation {
+            invulnerable_cassidy: true,
+            gate_capacity: late.then_some(1_000_000_000.0),
+        });
         let card = JunkensteinCard::from_index(0x3c).unwrap();
         let map = MapCatalog::load(runtime.join("data/game_maps_174.json"))
             .unwrap()
@@ -2207,10 +2211,8 @@ mod tests {
             )
             .unwrap();
         let mut scene = assets.prepare_junkenstein(map, card, 0).unwrap();
-        if late {
-            scene.set_test_gate_capacity(1_000_000_000.0);
-        }
         let hero = scene.heroes().find_hero("Cassidy").unwrap();
+        assert!(scene.protects_cassidy(Some(hero.guid)));
         let mut mover = scene.player_spawn_mover(hero.body, 0).unwrap();
         let body = 0xa000_0101;
         let flags = crate::match_scene::team_bit(0).unwrap() | 1;

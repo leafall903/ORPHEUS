@@ -1461,8 +1461,7 @@ impl Component {
         })
     }
 
-    #[cfg(test)]
-    pub(crate) fn set_test_instance_variable(
+    pub(crate) fn set_instance_variable(
         &mut self,
         instance: u16,
         id: u32,

@@ -2183,3 +2183,15 @@ Windows lanes, Linux portable crates and Gallery policy, but failed the declared
 match replaces the Boss pursuit if-let guard. This is a source compatibility
 repair; existing Python comparison pins and behavior fixtures remain unchanged.
 It does not establish production NPC category provenance or client acceptance.
+
+## Local Normal Cassidy acceptance settings
+
+The native CLI can now load an explicit local JSON profile before listeners
+start. `invulnerable_cassidy` applies at authoritative enemy-to-defender damage
+routing only for card 0x3C and Cassidy. Optional `gate_capacity` reaches the
+existing authored gate VM through its value-notification path. Other cards,
+heroes and ordinary startup remain outside this override. This closes the gap
+between the earlier private headless-test setup and launchable client sessions;
+it does not close original-client acceptance or production category provenance.
+The synthetic startup contract is a Rust local-host policy with no new Python
+or native default-parity claim.

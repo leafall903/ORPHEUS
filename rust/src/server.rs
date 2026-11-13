@@ -55,6 +55,7 @@ pub struct ServerConfig {
     pub stall_port: u16,
     pub rpc_port: u16,
     pub debug_port: Option<u16>,
+    pub junkenstein_validation: Option<PathBuf>,
 }
 
 impl ServerConfig {
@@ -68,6 +69,7 @@ impl ServerConfig {
             stall_port: bnet_service::STALL_PORT,
             rpc_port: bnet_service::RPC_PORT,
             debug_port: None,
+            junkenstein_validation: None,
         }
     }
 }
@@ -110,6 +112,11 @@ impl Server {
         let celebrations = Celebrations::load(&data, &templates)?;
         let extra_skins = extra_preload_themes(&items).collect();
         let mut assets = SceneAssets::load(&config.runtime)?;
+        if let Some(path) = &config.junkenstein_validation {
+            assets.set_junkenstein_validation(
+                crate::junkenstein_validation::JunkensteinValidation::load(path)?,
+            );
+        }
         if config.debug_port.is_some() {
             assets.enable_contact_trace();
         }

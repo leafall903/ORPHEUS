@@ -103,6 +103,7 @@ struct CollisionKey {
 }
 
 pub struct SceneAssets {
+    junkenstein_validation: Option<crate::junkenstein_validation::JunkensteinValidation>,
     collision: PathBuf,
     junkenstein_map_world: PathBuf,
     last_collision: Mutex<Option<(CollisionKey, MapCollision)>>,
@@ -119,6 +120,7 @@ pub struct SceneAssets {
 }
 
 pub struct PreparedScene {
+    junkenstein_validation: Option<crate::junkenstein_validation::JunkensteinValidation>,
     map: GameMap,
     #[cfg(any(test, feature = "inspector"))]
     movement_cache: String,
@@ -735,6 +737,13 @@ impl JunkensteinEncounter {
 }
 
 impl SceneAssets {
+    pub(crate) fn set_junkenstein_validation(
+        &mut self,
+        settings: crate::junkenstein_validation::JunkensteinValidation,
+    ) {
+        self.junkenstein_validation = Some(settings);
+    }
+
     pub fn load(runtime: impl AsRef<Path>) -> io::Result<Self> {
         let runtime = runtime.as_ref();
         let data = runtime.join("data");
@@ -750,6 +759,7 @@ impl SceneAssets {
             junkenstein_map_world: runtime.join(JUNKENSTEIN_MAP_WORLD),
             last_collision: Mutex::new(None),
             trace_contacts: false,
+            junkenstein_validation: None,
             mode_props: read_mode_props(&data.join("collision_props_174.json"))?,
             graphs,
             codecs,
@@ -940,6 +950,15 @@ impl SceneAssets {
         if Some(card) == JunkensteinCard::from_index(0x3c) {
             scene.owner_body_factory = self.prepare_owner_body(&scene, CASSIDY);
         }
+        scene.junkenstein_validation = self
+            .junkenstein_validation
+            .and_then(|settings| settings.for_card(card));
+        if let Some(capacity) = scene
+            .junkenstein_validation
+            .and_then(|settings| settings.gate_capacity)
+        {
+            scene.set_gate_capacity(capacity)?;
+        }
         Ok(scene)
     }
 
@@ -1017,6 +1036,7 @@ impl SceneAssets {
             junkenstein_gate,
             junkenstein_anchors,
             encounter: None,
+            junkenstein_validation: None,
             initial_board,
             simulation,
             scripted_bots,
@@ -1274,8 +1294,14 @@ impl PreparedScene {
 
     #[cfg(test)]
     pub(crate) fn set_test_gate_capacity(&mut self, capacity: f64) {
+        self.set_gate_capacity(capacity).unwrap();
+    }
+
+    fn set_gate_capacity(&mut self, capacity: f64) -> io::Result<()> {
         let capacity = f64::from(capacity as f32);
-        assert!(capacity.is_finite() && capacity > 0.0);
+        if !capacity.is_finite() || capacity <= 0.0 {
+            return Err(invalid("gate capacity must be positive and finite"));
+        }
         let gate = self.junkenstein_gate.as_ref().unwrap();
         let encounter = self.encounter.as_mut().unwrap();
         let mut world = GateWorld {
@@ -1286,19 +1312,27 @@ impl PreparedScene {
         };
         encounter
             .gate_script
-            .set_test_instance_variable(1, 8567, Value::Float(capacity), &mut world)
-            .unwrap();
-        encounter.gate_script.run_now(&mut world).unwrap();
-        assert_eq!(
-            encounter.gate_script.resolved_variable(
-                0,
-                crate::script_expr::Variable {
-                    scope: crate::script_expr::Scope::Entity,
-                    id: 7786,
-                }
-            ),
-            Some(Value::Float(capacity))
-        );
+            .set_instance_variable(1, 8567, Value::Float(capacity), &mut world)
+            .map_err(invalid)?;
+        encounter.gate_script.run_now(&mut world).map_err(invalid)?;
+        if encounter.gate_script.resolved_variable(
+            0,
+            crate::script_expr::Variable {
+                scope: crate::script_expr::Scope::Entity,
+                id: 7786,
+            },
+        ) != Some(Value::Float(capacity))
+        {
+            return Err(invalid(
+                "gate capacity override did not reach its authored binding",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn protects_cassidy(&self, hero: Option<u64>) -> bool {
+        self.junkenstein_validation
+            .is_some_and(|settings| settings.protects(hero))
     }
 
     pub(crate) fn encounter_snapshot(&self) -> Option<&script_init::Snapshot> {
@@ -2530,6 +2564,63 @@ mod tests {
                 )
                 .unwrap();
         }
+    }
+
+    #[test]
+    #[ignore = "requires separately prepared 104319 Junkenstein runtime"]
+    fn configured_normal_validation_changes_gate_capacity_and_scopes_immunity() {
+        use crate::game_content::{JUNKENSTEIN_MAP, MapCatalog};
+        use crate::junkenstein_validation::JunkensteinValidation;
+
+        let runtime = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+        let mut assets = SceneAssets::load(&runtime).unwrap();
+        let maps = MapCatalog::load(runtime.join("data/game_maps_174.json")).unwrap();
+        let prepare = |assets: &SceneAssets, index| {
+            let card = JunkensteinCard::from_index(index).unwrap();
+            let map = maps
+                .game_map(
+                    JUNKENSTEIN_MAP,
+                    card.mode,
+                    "Junkenstein's Revenge",
+                    false,
+                    &[4, 0],
+                )
+                .unwrap();
+            assets.prepare_junkenstein(map, card, 0).unwrap()
+        };
+        let capacity = |scene: &PreparedScene| {
+            scene
+                .encounter
+                .as_ref()
+                .unwrap()
+                .gate_script
+                .resolved_variable(
+                    0,
+                    crate::script_expr::Variable {
+                        scope: crate::script_expr::Scope::Entity,
+                        id: 7786,
+                    },
+                )
+        };
+        let default = prepare(&assets, 0x3c);
+        let harder = prepare(&assets, 0x3d);
+        assert!(!default.protects_cassidy(Some(CASSIDY)));
+        let file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(
+            file.path(),
+            br#"{"invulnerable_cassidy":true,"gate_capacity":1000000000}"#,
+        )
+        .unwrap();
+        assets.set_junkenstein_validation(JunkensteinValidation::load(file.path()).unwrap());
+        let configured = prepare(&assets, 0x3c);
+        assert!(configured.protects_cassidy(Some(CASSIDY)));
+        assert!(!configured.protects_cassidy(Some(crate::game_heroes::SOLDIER)));
+        assert_eq!(capacity(&configured), Some(Value::Float(1_000_000_000.0)));
+        assert_ne!(capacity(&default), capacity(&configured));
+        let untouched = prepare(&assets, 0x3d);
+        assert!(!untouched.protects_cassidy(Some(CASSIDY)));
+        assert_eq!(capacity(&untouched), capacity(&harder));
+        assert_eq!(untouched.mode_ui().as_bytes(), harder.mode_ui().as_bytes());
     }
 
     #[test]
