@@ -181,3 +181,17 @@ To serve the bot spawn and death graphs from a prepared pack, include the six Pr
 ```powershell
 .\.venv\Scripts\python.exe tools\prepare_server_runtime.py --source 'C:\path\to\local-research' --destination 'C:\path\to\orpheus-bot-runtime' --map 0688 --game-graphs 'C:\path\to\entity-graphs.json.gz'
 ```
+
+## Uprising's first wave
+
+The first wave of Uprising needs two more files in `runtime-data/data/`. Without them the mission runs
+with no enemies. A pack rebuild does not make them.
+
+- `map_tags_174.json`: the target tags of the map's placed entities, read from your installation.
+- `uprising-npcs.json`: the four omnics' health, from the body graphs of a DataTool XML dump. The tool
+  writes outside the checkout; copy its output in.
+
+```powershell
+.\.venv\Scripts\python.exe tools\extract_map_tags.py 0x6FE --game 'C:\path\to\Overwatch' --output runtime-data\data\map_tags_174.json
+.\.venv\Scripts\python.exe tools\extract_pve_npcs.py --xml 'C:\path\to\xml-dump' --owlib 'C:\path\to\owlib-174' --npc 173=173=Eradicator --npc 178=178=Slicer --npc 179=179=Nulltrooper --npc 17C=17C=Detonator --output 'C:\path\to\uprising-npcs.json'
+```

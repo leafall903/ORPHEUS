@@ -1,5 +1,30 @@
 # Changelog
 
+## Uprising's first wave
+
+- Eight seconds into the defend phase the server creates the first wave: eight Slicers on the
+  enemy team, each with 200 health, at floor points 35 to 38 m from the spawn centre. Damage
+  hurts them. A kill drops the wave's alive count by one and the dead unit is not respawned.
+- Read from data: the hero (`0178`), the count, the alive cap, the arc and the range from the
+  defend director `0D4A`'s SubScript [50] to the shared spawner `0D1C`. The delay comes from Waits
+  [33] and [42]. The team and the candidate counts come from `0D1C` [13] and [7].
+- Also read from data: the centre and the facing come from the map's placeables tagged `7CA` and
+  `339`, which the new `tools/extract_map_tags.py` reads from the installed map chunk. The health
+  comes from the body graph through `tools/extract_pve_npcs.py`.
+- The wave needs two files a pack does not have by default, `data/map_tags_174.json` and
+  `data/uprising-npcs.json`; `data/README.md` gives the two commands. Without them the mission
+  runs as before, with no wave.
+- Reconstructed: the spawn search's floor test is a flood fill over the floor walkable from the
+  centre, and the candidate order is the Junkenstein golden-angle pattern. All eight are created
+  in one tick, and they stand still: `0D1C`, `0D1D` and the omnic controllers do not run.
+- Not done: later waves, movement and attack, corpse removal, `0D1C`'s global cap.
+- Known cost: the spawn search runs once when the map's collision is loaded and holds that tick
+  for about 2 s.
+- Tests: `tests/runtime/test_uprising_waves.py` (skipped on a pack without the two files),
+  `tests/public/test_extract_map_tags.py`.
+- Ported from the kjs branch, where the original client drew the Slicers and rifle fire killed
+  them. Original-client acceptance on this source is pending.
+
 ## Start points for Uprising, Junkenstein and Retribution from the map data
 
 - The three PvE missions had no spawn rows in the extracted map data. Their maps hold no spawn

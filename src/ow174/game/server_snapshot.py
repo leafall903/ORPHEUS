@@ -175,7 +175,7 @@ FIELDS = {
                    "leaving_since _own_controller_acked _mode_create_acked _pending_mode_frame "
                    "_mode_fragments _display_notices _pending_possessions _confirmed_possessions _npc_idle"),
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update historical_death"),
-    Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends mission_ends assembled players "
+    Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends mission_ends wave_spec wave_points wave assembled players "
                   "_body_messages body_components started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),

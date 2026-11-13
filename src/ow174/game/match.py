@@ -879,6 +879,11 @@ class Match:
         self._npc_planning_turn = 0
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.mission_ends: float | None = None  # Uprising: when its defend phase ends (pve.director)
+        uprising = pve.defend_seconds(game_map.mode_guid, game_map.map_guid) is not None
+        spec = pve.first_wave(game_map.map_guid) if uprising else None
+        self.wave_spec = spec if spec is not None and pve.wave_definition(spec) is not None else None
+        self.wave_points: list[tuple] | None = None  # found once the map's collision is loaded
+        self.wave: list[bots.Bot] | None = None  # the first wave's units once created
         self.assembled = False
         self.players: list[Player] = []
         self._body_messages: list[tuple] = []
@@ -1626,6 +1631,7 @@ class Match:
                 self.combat.update(now - (tick - at) * combat.TICK, at,
                                    frames=frames and at == tick, replay_routes=replay_routes)
             self.tick = tick
+            self._spawn_wave(now)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)
         for player in self.players:
@@ -1724,6 +1730,27 @@ class Match:
         if seconds is not None:
             self.mission_ends = now + seconds
             log.info("[game] %s: defend phase shown, %d s", self.label(), seconds)
+
+    def _spawn_wave(self, now: float) -> None:
+        """Uprising's first wave, `wave_spec.delay` seconds into the defend phase (pve.first_wave)."""
+        spec = self.wave_spec
+        if spec is None or self.wave is not None:
+            return
+        if self.wave_points is None:  # the search takes about a second: done while the map loads
+            self.wave_points = pve.wave_positions(self.collision_world, spec)
+        if self.mission_ends is None or now < self.mission_ends - pve.DEFEND_SECONDS + spec.delay:
+            return
+        from ow174.game import npc
+
+        definition = pve.wave_definition(spec)
+        # shortcut: all units are created in one tick and stand still; 0D1C creates one per spawner loop
+        # (its gap #9463 is unset, 0 s) and runs their controllers. Upgrade when 0D1C runs in a scene host.
+        self.wave = [npc.spawn(self, definition, point, team=spec.team) for point in self.wave_points]
+        log.info("[game] %s: first wave, %d %s", self.label(), len(self.wave), definition.name)
+
+    def wave_alive(self) -> int:
+        """Units of the first wave still alive: 0D1C's alive list #8399 drops the dead."""
+        return sum(1 for bot in self.wave or () if not bot.dead and bot in self.bots)
 
     def mission_left(self, now: float) -> float | None:
         """Seconds of Uprising's defend phase left, 0 once it is over; None when no mission is shown."""
