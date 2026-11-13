@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "case_id": "pharah.primary-command-world-batch-clock.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/sombra_replay.py"]
+  },
+  "evidence": "synthetic-stationary-command-timeline",
+  "client_acceptance": "pending",
+  "input": {
+    "batches": [1, 8, 32],
+    "commands": 48,
+    "fire_offset": 1,
+    "world_tick_seconds": 0.016,
+    "enemy_distance": 40
+  },
+  "expected": {
+    "flight_seconds": 0.752,
+    "distance": 26.32,
+    "enemy_health_after_impact": 80,
+    "same_impact_world_frame": true
+  }
+}

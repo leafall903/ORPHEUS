@@ -1,5 +1,10 @@
 # Restoration roadmap
 
+- [ ] Canonical shared knockback: finite current-body owner delivery and unequal
+  command/world clocks have focused offline contact, encrypted-wire, ACK and
+  stored-identity coverage. Original-client prediction adoption, MoveTo receivers
+  and controlled-DVa no-input replay still require acceptance.
+
 The Halloween movement-driver context mismatch is repaired in the ordinary
 Boss/Witch/Summoner pursuit path. Existing authored Reaper chase displacement
 checks cover the failing route; full Normal outcomes and client presentation
@@ -493,3 +498,9 @@ not a state. Original104319 scalar dispatch tails pass18 offline cases with
 expression/service adapters. This establishes parameter forwarding only;
 full service behavior, NPC impulse/resistance and Whip equivalence stay open.
 No milestone or original-client acceptance is completed by this probe.
+
+
+WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;88 selected checks pass. No new global completion box is checked. Exact-scene Halloween acceptance is tracked externally against the frozen candidate; full hero/native force/presentation/outcome work remains open. See WIP10_ASSEMBLY.md.
+
+- [x] Record the reviewed735 source-only assembly on real Python upstream ancestry. This is a local code delivery, not full original-client acceptance.
+- [ ] Complete the retained character/PhysicsExplosion/native issues in CONSOLIDATED_DELIVERY_20261113.md.

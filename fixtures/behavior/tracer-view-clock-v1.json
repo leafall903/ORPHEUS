@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "case_id": "tracer-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/tracer_pistol.py"],
+    "provenance": "Synthetic A/B identity exchange adapted from the original Ball view-clock case; actual Tracer input, two real bullets and quick melee, all 15 existing NPCs retained. World positions do not imply screen coordinates."
+  },
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "shot_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "aim_height": 1.1,
+    "pistol_a_offset": [-3, 0, 8],
+    "pistol_b_offset": [3, 0, 8],
+    "melee_a_offset": [-1.5, 0, 1.5],
+    "melee_b_offset": [1.5, 0, 1.5]
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "pistol_a_health": 188,
+    "melee_a_health": 170,
+    "b_health": 200,
+    "hit_target_identity": "A",
+    "owner_hit_frame_offset": 41
+  },
+  "fractional_case": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "frame_ms": 15,
+    "command_frame": 9041,
+    "quanta_us": 15000,
+    "view_delay_ms": 8,
+    "expected_world_view": 1037.9375
+  }
+}

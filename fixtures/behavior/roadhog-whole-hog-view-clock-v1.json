@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "case_id": "roadhog-whole-hog-view-target-identity-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "scope": "Actual original 01C6/33 volley input; synthetic target identity exchange"
+  },
+  "evidence": "server target-history identity and owner HIT frame; no native rendering claim",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "ultimate_button_offset": 1,
+    "first_volley_offset": 32,
+    "swap_after_offset": 28,
+    "view_delay_ms": 128,
+    "target_on_ray_offset": [0, 0, 4],
+    "target_off_ray_offset": [20, 0, 4],
+    "seed": 1,
+    "packet_loss": []
+  },
+  "expected": {
+    "view_world_tick": 1024,
+    "hit_identity": "target_on_ray_at_view_time",
+    "owner_hit_frame_offset": 32,
+    "unselected_target_health": 200,
+    "original_npc_count": 15
+  },
+  "melee_case": {
+    "owner_birth": 9000,
+    "button": 2048,
+    "fire_offset": 32,
+    "on_ray_offset": [0, 0, 2],
+    "expected_target_health": 170
+  }
+}

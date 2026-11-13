@@ -193,6 +193,7 @@ def flux_velocity(instance, node):
                 return False
     else:
         mover = target.mover
+    before_velocity = mover.velocity
     for row in node.field("m_BC5E91CF"):
         config = row["m_9B7A63EA"]
         value = instance.evaluate(config)
@@ -223,6 +224,19 @@ def flux_velocity(instance, node):
             length = math.sqrt(sum(axis * axis for axis in mover.velocity))
             if length > value:
                 mover.velocity = tuple(expr.f32(axis * value / length) for axis in mover.velocity)
+    if not isinstance(target, bots.Bot) and mover.velocity != before_velocity:
+        from ow174.game import correction
+        from ow174.game.combat import TICK
+
+        # These original SET/ADD/MINIMUM rows already changed this recipient's
+        # current VM frame. Only request adoption; never enqueue a second ADD.
+        expires = match.tick + (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
+        if correction.request_motion(target, first_frame=component.frame, body=component.entity,
+                                     expires_tick=expires):
+            body = next((t for t in match.combat._targets() if t.entity == component.entity), None)
+            source = target if caster_action else _flux_source(match, instance)
+            if body is not None and source is not None:
+                match.combat.knockbacks.record_launch(body, source_entity=source.body)
     return True
 
 

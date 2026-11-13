@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "case_id": "moira-fade-qualified-rigid-body-dispatch",
+  "target_build": "1.74.0.0.104319",
+  "source": {
+    "graph": "0F7C",
+    "parent_node": 33,
+    "enter_node": 52,
+    "end_node": 54,
+    "native_builder_rva": "987140",
+    "query_rva": [
+      "E121D0",
+      "E0D470"
+    ],
+    "receiver_rva": "DE6400"
+  },
+  "input": {
+    "hero": "0x02E00000000001A2",
+    "button": 8,
+    "owner_frame_origin": 9000,
+    "world_origin": 1020,
+    "inside_category": 256,
+    "excluded_team_proxy": 24,
+    "sphere_radius": 0.02,
+    "inverse_mass": 1
+  },
+  "expected": {
+    "strengths": [
+      -10,
+      10
+    ],
+    "radius": 1.5,
+    "parameter": 0,
+    "interval": 0,
+    "dispatch_count": 2,
+    "self_or_character_force_count": 0,
+    "world_clock_start_ms": true
+  },
+  "native_acceptance": "pending; original-code query/receiver and server prop backend only"
+}

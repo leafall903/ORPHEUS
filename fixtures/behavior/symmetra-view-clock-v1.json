@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "paths": ["src/ow174/game/symmetra.py", "src/ow174/game/combat.py"],
+    "provenance": "Adapted Soldier/Ball two-target identity exchange; actual Symmetra beam and quick-melee input; all 15 stock NPCs retained. A/B name identities, not native screen sides."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "shot_offset": 41,
+    "swap_after": 33,
+    "delay_ms": 128,
+    "beam": {"buttons": 1, "a": [997, 0, 1008], "b": [1003, 0, 1008]},
+    "melee": {"buttons": 2048, "a": [999.65, 0, 1001.8], "b": [1004, 0, 1001.8]}
+  },
+  "expected": {
+    "world_view_tick": 1033,
+    "beam": {"health_a": 199.04, "health_b": 200},
+    "melee": {"health_a": 170, "health_b": 200}
+  }
+}

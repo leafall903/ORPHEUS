@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-fusion-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/dva.py", "src/ow174/game/combat.py"],
+    "provenance": "Synthetic distinct target identities exchange world positions after the viewed frame; actual DVa hero selection creates owned0407, production command input fires original050A/6 Fusion volley. No rendering acceptance."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "input": {
+    "owner_births": [1000, 9000],
+    "shot_offset": 141,
+    "swap_after_offset": 133,
+    "view_delay_ms": 128
+  },
+  "expected": {
+    "world_view": 1133,
+    "identity": "Only OriginallyLeft loses health; all owner HIT target identities remain OriginallyLeft and notice frames remain owner_birth+141."
+  },
+  "client_acceptance": "pending"
+}

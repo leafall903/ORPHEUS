@@ -20,6 +20,14 @@ HARMONY_RATE, TRANSCENDENCE_RATE, DISCORD_SCALE = 30.0, 300.0, 1.25
 TICK = 0.016
 
 
+def view_world_tick(script, command, quanta):
+    """Map a viewed owner instant to world history without rounding it."""
+    world_birth, owner_birth = script.world_frame_anchor
+    elapsed_ms = (command.frame - owner_birth) * script.frame_ms
+    elapsed_ms -= command.view_delay(quanta) * 1000
+    return world_birth + elapsed_ms / round(TICK * 1000)
+
+
 def weapon_assignment(world, instance, node, value):
     """Reconstructed charge budget for0164's literal charge-loop assignments.
 

@@ -1,0 +1,27 @@
+"""Opt Hanzo's admitted arrows into physical event replay."""
+
+from ow174.game import projectile_clock
+
+FLIGHTS = {
+    (0x00B9, 0x0400000000000144),
+    (0x00B9, 0x040000000000020B),
+    (0x00B9, 0x040000000000270F),
+    (0x00B9, 0x0400000000000149),
+    (0x00B9, 0x040000000000020D),
+    (0x0101, 0x040000000000034F),
+}
+
+
+def clock_origin(script):
+    # Hanzo's anchor is fixed at this body's birth; capture it before a switch
+    # can replace the player's current BodyScript.
+    if script.hero != 0x02E0000000000005 or script.world_frame_anchor is None:
+        return None
+    return (*script.world_frame_anchor, script.frame_ms)
+
+
+def advance(fight, rocket):
+    if (rocket.source_graph, rocket.definition) not in FLIGHTS or rocket.last_tick is None:
+        return False
+    projectile_clock.advance_accepted(fight, rocket)
+    return True

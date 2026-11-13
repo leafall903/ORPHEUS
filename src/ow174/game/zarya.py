@@ -7,6 +7,41 @@ ULT_PASSIVE_PER_SECOND = 5.0
 HERO = 0x02E0000000000068
 
 
+def view_world_tick(script, command, quanta):
+    """Use the immutable body epoch for target history; keep fractional view time."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.world_frame_anchor
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
+def secondary_knockback(fight, rocket, target, point):
+    """Consume 0241/19's authored splash force after its damage was accepted."""
+    if (rocket.source_graph != 0x0241 or rocket.definition != 0x04000000000003DB
+            or rocket.blast is None or fight.vitals_of(target).dead):
+        return
+    from ow174.game.combat import segment_distance
+
+    distance = max(0.0, segment_distance(point, *target.segment()) - target.radius)
+    horizontal, vertical = rocket.blast.impulse_scales(distance)
+    source_scale = (rocket.blast.source_impulse_scale
+                    if target.entity == rocket.source_entity else 1.0)
+    fight._radial_impulse(
+        target, point, rocket.blast.horizontal_impulse * horizontal * source_scale,
+        rocket.blast.vertical_impulse * vertical * source_scale,
+    )
+
+
+def catch_up_projectile(fight, rocket):
+    """Advance this accepted projectile through command frames already elapsed in the world."""
+    from ow174.game import projectile_clock
+
+    if rocket not in fight.rockets or rocket.last_tick is None or rocket.last_tick >= fight.tick:
+        return
+    projectile_clock.advance_accepted(fight, rocket)
+
+
 def ultimate_charge_ready_frame(script) -> int | None:
     """Use the cast's authored end wait even when input stalls the body VM."""
     ready = 0

@@ -5,10 +5,26 @@ import math
 from ow174.game import observers, sigma_barrier, world
 
 
+class BarrierBody(observers.SceneBody):
+    """Keep the barrier's authored ModelLook health input in its remote VM."""
+
+    def replicated_vars(self, instance=None):
+        yield from super().replicated_vars(instance)
+        # Player health is normally derived from component51. The barrier's
+        # 1A2A/node19 also reads entity253 directly to select its ModelLook.
+        if instance is None and 253 not in self.server_only:
+            health = self.component.vars.get(253)
+            if health is not None:
+                yield 253, health
+
+
 def projection(fight, entity):
+    rock = fight.projectiles.sigma_scripts.get(entity)
+    if rock is not None:
+        return observers.SceneBody(rock)
     actor = fight.sigma_barriers.get(entity)
     if actor is not None and actor.component is not None:
-        return observers.SceneBody(actor.component)
+        return BarrierBody(actor.component)
     return None
 
 
@@ -35,7 +51,9 @@ def sync(fight):
                         -math.sin(y) * math.sin(p), math.cos(y) * math.cos(p))
             movement = world.Movement(actor.position, round(yaw * 65536 / math.tau),
                                       round(pitch * 65536 / math.tau))
-            components = {26: [actor.owner.team_bit]}
+            # 1B55/node6 names the controller through its authored Pet source
+            # query. 1A2A reads component72 for owner-only and source-pose paths.
+            components = {26: [actor.owner.team_bit], 72: [actor.pet_source]}
             components.update(actor.vitals.component(actor.vitals.most))
             if entity not in viewer.seen:
                 viewer.seen[entity] = False

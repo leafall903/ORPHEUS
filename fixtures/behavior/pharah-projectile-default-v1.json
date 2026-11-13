@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "pharah.primary-projectile-prefab-default.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "native_default_writer_rva": "16323A4..16323B2",
+    "native_prefab_initializer_rva": "1632D90..1632DA2"
+  },
+  "evidence": "native-default-writer-execution",
+  "client_acceptance": "pending",
+  "input": {
+    "graph": 35,
+    "node": 8,
+    "projectile": {
+      "$": "STUStatescriptWeaponProjectileEntity",
+      "m_entityDef": {
+        "$": "STU_8556841E",
+        "m_entityDef": null,
+        "m_resourceKey": null,
+        "m_EE729DCB": 0
+      }
+    }
+  },
+  "expected": {
+    "default_definition": "0x0400000000000033",
+    "model": "084C.00C",
+    "look": "07AF.01A",
+    "contact_set": "0245.049"
+  }
+}

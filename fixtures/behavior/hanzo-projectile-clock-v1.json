@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-projectile-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["tests/runtime/test_game_hanzo_packet_clock.py", "src/ow174/game/combat.py", "src/ow174/game/script/driver.py"],
+    "provenance": "Synthetic fixed command sequence through Player.take_commands; no game asset data included."
+  },
+  "evidence": "headless-production-command-path",
+  "client_acceptance": "pending",
+  "input": {
+    "tick_ms": 16,
+    "seed": "same fresh body/entity identities and authored default seed in every run",
+    "start_world": 1020,
+    "packet_groups": [1, 8, 32],
+    "delivery": "update world to each group's last command, then accept the group",
+    "packet_loss": "none",
+    "commands": "128 commands; ability at offset1, primary held offsets4..73 for bow/Sonic/storm; Dragon ultimate at offset1",
+    "query_world": 1149,
+    "retirement_world": 2549,
+    "hit_case": "stationary hostile five metres ahead on the synthetic floor"
+  },
+  "expected": {
+    "launch_counts": {"bow": 1, "sonic": 1, "storm": 4, "dragon": 1},
+    "world_birth": "mapped from body command epoch; independent of packet size",
+    "flight": "same position, age, remaining lifetime and Dragon transition at query_world",
+    "hit_case": {"remaining_health": 75, "owner_hit_amounts": [125]},
+    "sonic": "same impact beacon birth, position and attachment",
+    "retirement": "no live arrows, Dragon flights or Sonic fields at retirement_world"
+  }
+}

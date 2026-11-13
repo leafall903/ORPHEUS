@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-knockback-174-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/doomfist.py", "src/ow174/game/combat.py"],
+    "provenance": "Synthetic command/recipient cases. Original 0DD8 node17 fields and captured 104319 radial consumer B342/D6D6C6/D6D93F/D6DB01 establish radial horizontal7, vertical floor14, radius30 and unit ring at default ruleset2ACE. Native acceptance is separate."
+  },
+  "evidence": "synthetic-regression-with-native-arithmetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "ability_button": 8,
+    "target_offset": [0.5, 0, 1.5],
+    "commands": "One Uppercut press after one neutral settle; neutral commands through landing; no resource writes.",
+    "packet_loss": [],
+    "seed": "Fresh default DoomfistFixture and normal activation seed",
+    "recipient_response_modifier": 26
+  },
+  "expected": {
+    "damage": 50,
+    "horizontal_speed": 7,
+    "upward_impulse": 14,
+    "accepted_impulse_count": 1,
+    "passive_shields": 30,
+    "fortify_response": 0,
+    "fortify_accepted_impulse_count": 0
+  },
+  "limits": ["Synthetic transport and static floor do not establish native adoption.", "Shared owner force/frame/ACK receiver dependency is pending original0042 coordination."]
+}

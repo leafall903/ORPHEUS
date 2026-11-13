@@ -472,6 +472,7 @@ class Barrier:
     recipient_component: runtime.Component | None = None
     application_tick: int = 0
     cleanse_applied: bool = False
+    pet_owner: int | None = None
 
 
 def track_projected_target(world, state):
@@ -630,6 +631,12 @@ def create(world, state):
     if (owner is None or owner.gone or owner.body_script is None or owner.body_script.retired
             or owner.body_script.component is not state.instance.component or fight.is_dead(owner)):
         return 0
+    pet_owner = None
+    if signature == (MEI, 0x05FE, 11):
+        pet_source = state.evaluate(state.node.field('m_D749D7D8'), watch=False)
+        if not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id):
+            return 0
+        pet_owner = pet_source.id
     recipient = None
     if signature == (ZARYA, 0x025C, 10):
         variable = state.instance.vars.get(536)
@@ -655,7 +662,7 @@ def create(world, state):
     component.frame, component.now = state.instance.component.frame, state.now
     barrier = Barrier(entity, owner, owner.body, state.instance.component,
                       state.instance.id, state.index, state.counter, component,
-                      application_tick=world.match.tick)
+                      application_tick=world.match.tick, pet_owner=pet_owner)
     if recipient is not None:
         barrier.recipient = recipient
         barrier.recipient_body = recipient.entity if isinstance(recipient, bots.Bot) else recipient.body
@@ -696,6 +703,10 @@ def retire(fight, entity):
     if barrier is None:
         return
     barrier.retired = True
+    if barrier.component.world.hero == MEI:
+        from ow174.game import mei_presentation
+
+        mei_presentation.retire(fight, entity)
     for instance in list(barrier.component.instances.values()):
         barrier.component.destroy(instance)
 
@@ -787,9 +798,10 @@ def advance(fight, tick):
         _init_health(fight, barrier)
         _apply_bubble_cleanse(fight, barrier)
 
-    from ow174.game import reinhardt_presentation
+    from ow174.game import mei_presentation, reinhardt_presentation
 
     reinhardt_presentation.sync(fight)
+    mei_presentation.sync(fight)
 
 
 def _init_health(fight, barrier):

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from ow174.game import collision, contacts, mei_wall, pools
 from ow174.game.mover import quantise
-from ow174.game.script import expr, graph
+from ow174.game.script import expr, graph, play, play_queue
 from ow174.game.script.placement_geometry import static_surface_allowed
 from ow174.game.symmetra import HERO
 
@@ -90,6 +90,8 @@ class Portals:
     def factory(self, instance, node):
         from ow174.game import npc
 
+        if instance.graph.index != 0x1571 or node.pos not in (3, 70):
+            return NotImplemented
         owner = self.owner(instance.component.entity)
         if owner is None or owner.hero.guid != HERO:
             return NotImplemented
@@ -103,6 +105,9 @@ class Portals:
         entrance = instance.find_var(0, 14877).value()
         if not isinstance(destination, expr.Vec3) or not isinstance(entrance, expr.Vec3):
             return False
+        pet_source = instance.evaluate(node.field('m_D749D7D8'))
+        if pet_source != expr.Entity(owner.entity):
+            return NotImplemented
         position = expr.Vec3(destination.x, destination.y + .05, destination.z)
         activation = graph.graph(0x157D).node(41).field('m_timeout')['m_value']
         endpoints = []
@@ -116,7 +121,8 @@ class Portals:
                 definition = npc.Definition(HERO, body, 'Teleporter', values[pools.HEALTH_VAR],
                                             values.get(pools.ARMOUR_VAR, 0),
                                             values.get(pools.SHIELDS_VAR, 0))
-                bot = npc.spawn(self.combat.match, definition, tuple(point), team=owner.team)
+                bot = npc.spawn(self.combat.match, definition, tuple(point), team=owner.team,
+                                source_entity=owner.body, pet_owner=pet_source.id)
                 bot.spawner.update(manual_spawn=False, summoned=True)
                 bot.combat_owner = owner
                 bot.combat_geometry = (1.5, .5, 1.125, False)
@@ -129,6 +135,28 @@ class Portals:
         self.pairs.append(PortalPair(owner, tuple(endpoints), instance.id, owner.body, ready))
         for variable, bot in zip((1624, 1625), endpoints, strict=True):
             instance.component.set(variable, expr.Entity(bot.entity))
+        return True
+
+    def play(self, instance, node):
+        if (instance.graph.index, node.pos) != (0x1571, 71):
+            return NotImplemented
+        pair = next((pair for pair in self.pairs
+                     if pair.owner_body == instance.component.entity
+                     and pair.instance_id == instance.id), None)
+        if pair is None:
+            return True
+        resource = play.resolve_resource(instance, node)
+        if resource is None or resource.guid != 0x058000000000157D:
+            raise ValueError('Teleporter activation graph changed')
+        source = instance.component.entity
+        request = play.resolve_request(instance, node, resource, context_provider=lambda:
+                                       play.InvocationContext(source, source, instance.source_entity()))
+        entrance = pair.endpoints[1]
+        if request is None or request.targets != (entrance.entity,):
+            raise ValueError('Teleporter activation target does not resolve to its entrance')
+        component = entrance.body_script.component
+        play_queue.Queue(component, lambda _: play_queue.Load('ready', graph.graph(0x157D))).submit(request)
+        component.run_now()
         return True
 
     def _retire(self, pair):
@@ -165,6 +193,13 @@ class Portals:
             if (pair.owner.gone or pair.owner.hero.guid != HERO
                     or any(bot.dead or bot not in self.combat.match.bots for bot in pair.endpoints)):
                 self._retire(pair)
+                continue
+            for endpoint in pair.endpoints:
+                snapshot = endpoint.body_script.advance_live(self.combat.tick, endpoint.position)
+                if snapshot is not None:
+                    for viewer in self.combat.match.players:
+                        if viewer.client is not None and viewer.spawned:
+                            viewer.client.queue_bot_live(endpoint.entity, snapshot)
         for body, (instance_id, deadline) in tuple(self.transits.items()):
             player = self.owner(body)
             script = player.body_script if player is not None else None

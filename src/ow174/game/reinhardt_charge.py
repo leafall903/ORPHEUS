@@ -51,6 +51,10 @@ def drive(fight, player, command, seconds):
     limit = math.radians(rate) * seconds
     charge.heading += max(-limit, min(limit, delta))
     speed = expr.to_float(instance.find_var(0, 7726).value()) * 60
+    if speed > 0:
+        from ow174.game import correction
+
+        correction.force_charge(player, first_frame=command.frame)
     return (math.sin(charge.heading) * speed, math.cos(charge.heading) * speed) if speed > 0 else None
 
 
@@ -125,6 +129,14 @@ def lateral_impulse(source_position, target, state, forward, *, fight=None, fram
     payload = state.node.field("m_modifyHealth")
     horizontal = expr.to_float(state.evaluate(payload["m_E33EFEE1"], watch=False))
     vertical = expr.to_float(state.evaluate(payload["m_583C208B"], watch=False))
+    if state.instance.graph.index == 0x007D:
+        # D853A0: +78 is the vertical increment; +80 is its final-Y floor.
+        # D6DA6A applies max(deltaY, minimumY - incomingY), rather than adding
+        # the floor on every hit. Preserve the unrelated1408 legacy path.
+        vertical = expr.to_float(state.evaluate(payload["m_10399AE7"], watch=False))
+        minimum = expr.to_float(state.evaluate(payload["m_583C208B"], watch=False))
+        incoming = target.owner.velocity[1] if isinstance(target.owner, bots.Bot) else target.owner.mover.velocity[1]
+        vertical = max(vertical, minimum - incoming)
     if fight is not None and state.instance.graph.index != 0x1408:
         offset = 5.0 if state.index == 15 else 2.0
     else:
@@ -136,7 +148,12 @@ def lateral_impulse(source_position, target, state, forward, *, fight=None, fram
     # Native force conversion and recipient resistance are separate.
     scale = horizontal / distance if distance > 0 else 0
     if fight is not None:
-        fight.knockbacks.apply(target, expr.Vec3(x * scale, vertical, z * scale), impact_frame=frame)
+        impulse = expr.Vec3(x * scale, vertical, z * scale)
+        if state.instance.graph.index == 0x007D:
+            fight.knockbacks.apply(target, impulse, impact_tick=fight.tick,
+                                  source_entity=state.instance.component.entity)
+        else:
+            fight.knockbacks.apply(target, impulse, impact_frame=frame)
         return
     mover = getattr(target.owner, "mover", None)
     if mover is None:
@@ -147,6 +164,59 @@ def lateral_impulse(source_position, target, state, forward, *, fight=None, fram
     if mover.velocity[1] > 0:
         mover.flags_word |= FELL
         mover.fall = 0.0
+
+
+def capture_body_query(world, cfg, instance):
+    """Only007D/117's plain body predicate inside its candidate condition."""
+    if (world.match is None or world.hero != barrier.REINHARDT or instance is None
+            or instance.graph.index != 0x007D or cfg.get("$") != "STU_AC829876"):
+        return NotImplemented
+    condition = instance.graph.node(117).field("m_filter.m_condition")
+    if cfg is not condition["m_configVars"][0]:
+        return NotImplemented
+    selected = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+    return any(target.entity == selected and not isinstance(target.owner, actors.Deployable)
+               for target in world.match.combat._targets())
+
+
+def capture_force(fight, player, target, instance, forward, frame):
+    """007D/117 -> /140 force-only branch, before this host acquires its pin.
+
+    Retain the authored candidate condition and growing frontal cone. The
+    existing contact host owns pin transport; no second mover is introduced.
+    """
+    from ow174.game.combat import capsule_visible, segment_distance
+    from ow174.game.reinhardt_hammer import _wall_clear
+    from ow174.game.script import filter_condition
+
+    tracker, force = instance.states.get(52), instance.states.get(65)
+    if tracker is None or force is None or not tracker.active or not force.active:
+        return False
+    node = tracker.node
+    local = tracker.evaluate(node.field("m_05BE62DD"), watch=False)
+    reach = expr.to_float(tracker.evaluate(node.field("m_radius"), watch=False))
+    aperture = expr.to_float(tracker.evaluate(node.field("m_A30B383E"), watch=False))
+    offset = expr.to_float(tracker.evaluate(node.field("m_D45E22FA"), watch=False))
+    if not isinstance(local, expr.Vec3) or reach <= 0 or aperture <= 0:
+        return False
+    fx, _, fz = forward
+    x, y, z = player.mover.position
+    centre = (x + fz * local.x + fx * local.z, y + local.y, z - fx * local.x + fz * local.z)
+    a, b = target.segment()
+    dx, dz = target.feet[0] - centre[0], target.feet[2] - centre[2]
+    distance = math.hypot(dx, dz)
+    angle = math.atan2(dx * fz - dz * fx, dx * fx + dz * fz) - math.radians(offset)
+    angle = (angle + math.pi) % math.tau - math.pi
+    margin = math.asin(min(1., target.radius / distance)) if distance else math.pi
+    if (segment_distance(centre, a, b) > reach + target.radius
+            or abs(angle) > math.radians(aperture) / 2 + margin):
+        return False
+    if (not filter_condition.evaluate(instance, node.field("m_filter.m_condition"), target.entity)
+            or not capsule_visible(fight._collision(), centre, a, b, target.radius)
+            or not _wall_clear(fight, centre, a)):
+        return False
+    lateral_impulse(player.mover.position, target, force, forward, fight=fight, frame=frame)
+    return True
 
 
 def counter_duration(instance):
@@ -354,7 +424,6 @@ def advance(fight, player, command, start, seconds):
                 or not capsule_visible(fight._collision(), a, c, d, target.radius)
                 or not _wall_clear(fight, a, (target.feet[0], target.feet[1] + 1, target.feet[2]))):
             continue
-        charge.hit.add(key)
         frontal = math.dist(*closest_segments(a, tip, c, d)) <= width + target.radius
         if frontal and isinstance(target.owner, bots.Bot) and target.owner.body_script is not None:
             immunity = target.owner.body_script.component.entity_var(6601, create=False)
@@ -364,9 +433,13 @@ def advance(fight, player, command, start, seconds):
         captured = (pinned(fight, target.entity) or target.entity in fight.pins.values()
                     or any(c.captured == target.entity for c in fight.charge_contacts.values()))
         if frontal and charge.pinned is None and not captured and not fight._control_immune(target):
+            if not capture_force(fight, player, target, instance, forward, command.frame):
+                continue
+            charge.hit.add(key)
             charge.pinned = target.entity
             fight.interrupt(target)
         else:
+            charge.hit.add(key)
             before = fight.vitals_of(target).total
             impact(fight, player, target, instance, 15, command.frame)
             vitals = fight.vitals_of(target)
@@ -383,8 +456,18 @@ def advance(fight, player, command, start, seconds):
         mover._move_to(seconds, destination, math.dist(mover.position, destination) / seconds + 1)
         if isinstance(owner, bots.Bot):
             owner.position = tuple(mover.position)
-        elif mover.history and mover.history[-1].frame == command.frame:
-            mover.history[-1] = mover.snapshot(command.frame)
+        else:
+            # Pin transport changes the recipient body between its input poses.
+            # Retain that body's existing owner-frame label, never the caster's.
+            if mover.history:
+                mover.history[-1] = mover.snapshot(mover.history[-1].frame)
+            from ow174.game import correction
+
+            recipient_frame = fight.knockbacks.body_frame(owner, fight.tick, TICK)
+            if recipient_frame is not None:
+                correction.request_motion(owner, body=victim.entity,
+                                          first_frame=max(owner.body_script.component.frame + 1,
+                                                          recipient_frame + 1))
         if wall is not None or math.dist(mover.position, destination) > .03:
             impact(fight, player, victim, instance, 12, command.frame)
             stop(fight, player.body, charge)

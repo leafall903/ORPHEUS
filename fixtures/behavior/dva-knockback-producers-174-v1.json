@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-knockback-producers-174-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "candidate_base_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "paths": ["src/ow174/game/dva.py", "src/ow174/game/combat.py"],
+    "provenance": "Synthetic actual command fixtures on authored owned0407, original047E/16,0B2F/22,026A/36. Reuse original ModifyHealth D853A0 defaults and D6D87C..D6DA6A ring interpretation; no raw client assets included. Direction/recipient timing remain reconstructed host policy."
+  },
+  "evidence": "actual-ability-command-and-authoritative-mover-regression",
+  "input": {"world_birth": 1000, "owner_births": [1000, 9000], "victim_health": 5000},
+  "expected": {
+    "boosters": {"damage": 10, "force": [17, 4, 1]},
+    "self_destruct": {"damage": 1000, "force": [20, 10, 0]},
+    "call_mech": {"damage": 250, "force": [25, 3, 0]},
+    "force_tuple": "horizontal strength, minimum resulting Y velocity, additive upward strength",
+    "transport": "one accepted shared Knockbacks.apply call per damaged survivor; world impact_tick and actual source entity; no legacy direct velocity write",
+    "self_destruct_distance12": [17.5, 0, 0],
+    "self_destruct_distance20": "no force at exclusive outer edge",
+    "fortify": {"damage": 6, "force_calls": 0}
+  },
+  "client_acceptance": "pending; existing Q black screen remains FAIL"
+}

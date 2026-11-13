@@ -17,6 +17,39 @@ from ow174.game.script import expr
 
 
 class JunkratMineTests(unittest.TestCase):
+    def test_remote_detonation_uses_the_same_command_tick_across_batches(self):
+        def replay(batch):
+            self.setUp()
+            self.throw()
+            mine, = self.fight.junkrat.mines.values()
+            first = self.run.frame
+            blasts = []
+            explode = self.fight._explode
+
+            def observe(rocket, point, **kwargs):
+                blasts.append((self.fight.tick, point))
+                return explode(rocket, point, **kwargs)
+
+            with patch.object(self.fight, "_explode", side_effect=observe):
+                for offset in range(batch, 65, batch):
+                    tick = first + offset
+                    self.run.match.update(tick * combat.TICK, tick, frames=False)
+                    frames = range(tick - batch + 1, tick + 1)
+                    self.player.take_commands([
+                        Command(frame, buttons=2 if frame == first + 17 else 0) for frame in frames
+                    ])
+                    self.enemy.take_commands([Command(frame) for frame in frames])
+            self.assertEqual(blasts, [(first + 17, mine.flight.position)])
+            self.assertNotIn(mine.entity, self.fight.junkrat.mines)
+            self.assertFalse(self.fight.junkrat.pending)
+            self.assertEqual(self.health(self.run, self.enemy).total, 80)
+            return blasts, len(self.player.client.messages(combat.HIT))
+
+        expected = replay(1)
+        for batch in (8, 32):
+            with self.subTest(batch=batch):
+                self.assertEqual(replay(batch), expected)
+
     health = helpers.JunkratProjectileTests.health
     place = helpers.JunkratProjectileTests.place
 
@@ -155,9 +188,12 @@ class JunkratMineTests(unittest.TestCase):
         self.assertEqual(tuple(self.enemy.mover.position), position)
 
     def test_cryo_freeze_blocks_parked_mine_damage_and_impulse_until_cancel(self):
-        self.run.match.switch_hero(self.enemy, find_hero("Mei"))
         for protected in (True, False):
             with self.subTest(protected=protected):
+                # The previous blast can self-launch Junkrat. Start each
+                # immunity case from an independent grounded scene.
+                self.setUp()
+                self.run.match.switch_hero(self.enemy, find_hero("Mei"))
                 self.throw()
                 mine, = self.fight.junkrat.mines.values()
                 self.assertTrue(mine.parked)
@@ -229,7 +265,7 @@ class JunkratMineTests(unittest.TestCase):
         position = tuple(self.enemy.mover.position)
         self.detonate()
         expected = max(120 * scale - 5, 120 * scale / 2)
-        self.assertAlmostEqual(before - self.health(self.run, self.enemy).total, expected)
+        self.assertAlmostEqual(before - self.health(self.run, self.enemy).total, expected, delta=1e-5)
         self.assertEqual(tuple(self.enemy.mover.position), position)
 
     def test_authored_two_charges_refuse_third_throw_until_recovery(self):

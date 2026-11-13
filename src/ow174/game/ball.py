@@ -7,7 +7,9 @@ initial descent. These physical meanings have not had original-client acceptance
 """
 
 import math
+import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from ow174.game.mover import WORLD_GRAVITY
 from ow174.game.script import expr, nodes, runtime
@@ -15,6 +17,26 @@ from ow174.game.script import expr, nodes, runtime
 HERO = 0x02E00000000001CA
 PILEDRIVER = 0x160A
 GRAPPLE = 0x14E4
+
+
+def animation_duration(world, graph, node):
+    """Resolve the Roll intro in its body/model context, without a time fallback."""
+    if (graph.component.strict or world.hero != HERO
+            or graph.graph.index != 0x1203 or node.pos != 43):
+        return NotImplemented
+    alias = graph.evaluate(node.field('m_11E0A658'))
+    category = graph.evaluate(node.field('m_22326315'))
+    if not isinstance(alias, expr.Asset) or not isinstance(category, expr.Asset):
+        return None
+    from ow174.game.script.driver import wheel_animation_durations
+    from ow174.paths import DATA_DIR
+
+    configured = os.environ.get('ORPHEUS_BALL_ANIMATION_DURATIONS')
+    path = Path(configured) if configured else DATA_DIR / 'ball_animation_durations_174.json'
+    # The extractor maps STUModelComponent.m_animBlendTreeSet through the body
+    # definition. Exact categories only; unsupported branches have no default.
+    key = world.body_definition, alias.guid, category.guid
+    return wheel_animation_durations(path).get(key)
 
 
 @dataclass
@@ -45,6 +67,56 @@ def world_tick_at_body(script, frame):
     return world + (elapsed + quantum - 1) // quantum
 
 
+def view_world_tick(script, command, quanta):
+    """Sample target world history at the owner's reported view time, without rounding."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.ball_birth
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
+def body_pitch(world, cfg, instance):
+    """104319 CC8200 -> D1C220 -> C61F70 body pitch query, in degrees."""
+    if (cfg.get('$') != 'STU_40AC5AE4' or world.hero != HERO
+            or instance is None or instance.component.strict
+            or instance.graph.index not in (0x1203, GRAPPLE)
+            or world.match is None or instance.component.entity != world.body):
+        return NotImplemented
+    entity = instance.evaluate(cfg.get('m_entity'))
+    if entity != expr.Entity(world.body):
+        return NotImplemented
+    player = world.match.script_player_body(world.body, world.body)
+    if (player is None or player.body_script is None
+            or player.body_script.component is not instance.component):
+        return NotImplemented
+    units = player.mover.pitch
+    if type(units) is not int or not -32768 <= units <= 32767:
+        return NotImplemented
+    # Native C61F70 and D1C972 round these two multiplications separately.
+    radians = expr.f32(units * 9.58738019107841e-05)
+    return expr.f32(radians * 57.295780181884766)
+
+
+def shield_enemy_count(fight, player, radius):
+    """Use the existing E grant's eye/capsule query for its graph count too.
+
+    This removes the separate feet-distance query; native filter completeness
+    and the reported training-range count still require client acceptance.
+    """
+    from ow174.game.ball_mines import Mine
+    from ow174.game.combat import segment_distance
+
+    origin = fight._eye(player)
+    return sum(
+        segment_distance(origin, *target.segment()) - target.radius <= radius
+        for target in fight._targets()
+        if target.owner is not player and not isinstance(target.owner, Mine)
+        and (fight.match.game_map.free_for_all or target.team != player.team)
+        and not fight.vitals_of(target).dead
+    )
+
+
 def instance(player, index=PILEDRIVER):
     script = player.body_script
     if player.hero.guid != HERO or script is None:
@@ -60,11 +132,11 @@ def rolling(player):
 
 
 def grapple_gap_buttons(script, buttons):
-    """Replay only a right button held on both sides of a missing command range."""
+    """Retain confirmed Grapple and Roll holds across missing command frames."""
     if (script is None or script.hero != HERO or script.component.strict
-            or buttons & 1 or not script.buttons & buttons & 2):
+            or buttons & 1):
         return 0
-    return 2
+    return script.buttons & buttons & (2 | 8)
 
 
 def cannon_direction(shooter, state, forward, number: int, time: int, activation):
@@ -271,14 +343,15 @@ def update_grapple(fight, player, command, direction):
         return
     owned.attached = True
     graph.write((expr.INSTANCE, 431), expr.Vec3(*owned.anchor))
-    # The native cast exposes both the physics attachment (431) and its world
-    # contact (1220). Leaving the latter at zero draws the hook at the map origin.
+    # 14E4's cast outputs separate contact (431/1220) and hook position (432).
+    # CosmeticEntity93 and its transform/aim expressions consume 432 as a point,
+    # including after attachment. The pendulum's scalar rope stays in Grapple.
     graph.write((expr.INSTANCE, 1220), expr.Vec3(*owned.anchor))
     graph.write((expr.INSTANCE, 434), expr.Vec3(*owned.normal))
     graph.write((expr.INSTANCE, 38), expr.Entity(0))  # static map, no actor/bone
     graph.write((expr.INSTANCE, 8695), 0)
     graph.write((expr.INSTANCE, 1221), True)
-    graph.write((expr.INSTANCE, 432), owned.rope)
+    graph.write((expr.INSTANCE, 432), expr.Vec3(*owned.anchor))
     graph.write((expr.INSTANCE, 435), True)
     state.request(runtime.FINISH)
     graph.component.run_now()  # actual hit branch retains the authored running ability

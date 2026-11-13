@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py"
+    ],
+    "provenance": "Synthetic two-target position exchange, real Soldier switch/command ingestion/damage/HIT; all 15 stock NPCs retained. A/B are identities, not native screen-side labels.",
+    "working_source": "WIP9 frozen working files; exact pre/post hashes in local manifest"
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "shot_offset": 41,
+    "swap_after": 33,
+    "view_delay_ms": 128,
+    "target_a_position": [
+      997,
+      0,
+      1008
+    ],
+    "target_b_position": [
+      1003,
+      0,
+      1008
+    ]
+  },
+  "expected": {
+    "world_view_tick": 1033,
+    "health_a": 180,
+    "health_b": 200,
+    "damage": 20,
+    "hit_frame_offset": 41
+  },
+  "fractional": {
+    "anchor": [
+      1000,
+      9000
+    ],
+    "frame_ms": 15,
+    "command_frame": 9041,
+    "view_delay_ms": 8,
+    "quanta": 15000,
+    "expected": 1037.9375
+  }
+}

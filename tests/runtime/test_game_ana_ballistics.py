@@ -49,7 +49,7 @@ class AnaBallisticsTests(unittest.TestCase):
                     run.step({ana: (*direction, 16)})
                     for _ in range(110):
                         run.step({})
-                    expected = (200 if ally else 150) if lofted else (100 if ally else 200)
+                    expected = (200 if ally else 140) if lofted else (100 if ally else 200)
                     self.assertEqual(vitals.total, expected)
 
     def test_gravity_world_catch_up_matches_individual_frames(self):
@@ -67,7 +67,7 @@ class AnaBallisticsTests(unittest.TestCase):
         self.assertEqual(first.flown, second.flown)
 
     def test_detached_dart_and_grenade_keep_source_after_death_or_replacement(self):
-        for button, damage in ((8, 5), (16, 50)):
+        for button, damage in ((8, 5), (16, 60)):
             for replace_source in (False, True):
                 with self.subTest(button=button, replacement=replace_source):
                     run, ana, enemy, entry = fixture.AnaRifleTests().setup_fight(enemy=True, distance=20)
@@ -84,7 +84,9 @@ class AnaBallisticsTests(unittest.TestCase):
                     rocket, = fight.rockets
                     source = ana.body
                     self.assertEqual(rocket.source_entity, source)
-                    self.assertIsNone(rocket.shot)
+                    self.assertIsNotNone(rocket.shot)
+                    self.assertEqual(rocket.shot.body, source)
+                    self.assertEqual(rocket.shot.authoritative, button == 16)
                     self.assertEqual(victim.total, 200)
                     if replace_source:
                         self.assertTrue(run.match.switch_hero(ana, ana.hero))
@@ -100,7 +102,7 @@ class AnaBallisticsTests(unittest.TestCase):
                     self.assertEqual(rocket.source_entity, source)
                     self.assertEqual(victim.total, 200 - damage)
                     self.assertEqual(fight.is_asleep(enemy), button == 8)
-                    self.assertEqual(victim.healing_block_until > fight.now, button == 16)
+                    self.assertEqual(fight.healing.factor(entry) == 0, button == 16)
 
     def test_leased_hip_rifle_survives_death_but_retires_on_body_replacement(self):
         for replace_source in (False, True):
@@ -164,4 +166,4 @@ class AnaBallisticsTests(unittest.TestCase):
                 run.step({ana: (*direction, 16)})
                 for _ in range(110):
                     run.step({})
-                self.assertEqual(run.match.combat.vitals_of(entry).total, 150 if lofted else 200)
+                self.assertEqual(run.match.combat.vitals_of(entry).total, 140 if lofted else 200)

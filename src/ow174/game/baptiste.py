@@ -9,7 +9,7 @@ from 19A5; 1B2D doubles the amount when source equals recipient.
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import actors, weapon_spread
+from ow174.game import actors, projectile_clock, weapon_spread
 from ow174.game.script import expr, graph, runtime
 
 HERO = 0x02E0000000000221
@@ -17,6 +17,35 @@ BURST_GRAPH, TRACK_STATE = 0x19A5, 4
 RADIUS, DURATION, AMOUNT = 11861, 215, 499
 GRENADE_RADIUS, GRENADE_HEAL = 19948, 17411
 TICK = 0.016
+
+
+def projectile_clock_origin(shooter, state, definition):
+    """Capture this body's immutable epoch only for the two accepted throws."""
+    if (getattr(shooter.hero, "guid", None) != HERO
+            or (state.instance.graph.index, state.node.pos, definition) not in (
+                (0x1932, 58, 0x04000000000029AD), (0x1761, 21, 0x04000000000029A8))):
+        return None
+    birth = shooter.body_script.world_frame_anchor
+    return None if birth is None else (*birth, state.instance.component.frame_ms)
+
+
+def advance_projectile(combat, rocket):
+    """Advance accepted Baptiste throws on their mapped command-world clock."""
+    if ((rocket.source_graph, rocket.definition) not in (
+            (0x1932, 0x04000000000029AD), (0x1761, 0x04000000000029A8))
+            or rocket.last_tick is None):
+        return False
+    projectile_clock.advance_accepted(combat, rocket)
+    return True
+
+
+def view_world_tick(script, command, quanta):
+    """Query target history in world time without changing owner event labels."""
+    if script.world_frame_anchor is None:
+        return None
+    world, owner = script.world_frame_anchor
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / (TICK * 1000)
 
 
 def primary_direction(state, forward, owner_entity, counter, shot):

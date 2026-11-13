@@ -8,7 +8,7 @@ from unittest.mock import patch
 import test_junkrat_projectile_combat as helpers
 from test_game_combat import KANEZAKA_DM, Run, aim, in_world
 
-from ow174.game import combat, immunity, junkrat
+from ow174.game import combat, immunity, junkrat, world
 from ow174.game.collision import World
 from ow174.game.commands import FIRE, JUMP, Command
 from ow174.game.content import SOLDIER, find_hero
@@ -130,6 +130,52 @@ class JunkratTrapTests(unittest.TestCase):
         for _ in range(20):
             self.step()
         self.assertEqual(self.health(self.run, self.enemy).total, 120)
+
+    def test_native_trap_entity_is_created_once_and_destroyed_after_capture(self):
+        shots = []
+        original = self.fight.projectiles.fired
+
+        def fired(*args, **kwargs):
+            shot = original(*args, **kwargs)
+            shots.append(shot)
+            return shot
+
+        with patch.object(self.fight.projectiles, "fired", side_effect=fired):
+            trap = self.throw()
+        shot, = shots
+        self.assertEqual(shot.definition, junkrat.TRAP_PROJECTILE)
+        self.assertTrue(shot.authoritative)
+        self.assertEqual({delivery.viewer for delivery in shot.observers}, {self.player, self.enemy})
+        for delivery in shot.observers:
+            self.assertTrue(delivery.launch_queued and delivery.launch_arrival.received)
+            self.assertTrue(delivery.finished)
+            self.assertTrue(any(item.entity == delivery.record.ids[0] and item.op == world.OP_DESTROY
+                                and item.ch2 is not None for item in delivery.client.entities))
+        self.assertIsNone(trap.flight.shot)
+        clients = (self.player.client, self.enemy.client)
+        for client in clients:
+            creates = [item for item in client.entities
+                       if item.entity == trap.entity and item.op == world.OP_CREATE]
+            self.assertEqual(len(creates), 1)
+            with patch.object(world, "create", wraps=world.create) as create:
+                creates[0].build(0)
+            self.assertEqual(create.call_args.args[1], junkrat.TRAP_BODY)
+            self.assertEqual(create.call_args.kwargs["position"], trap.position)
+        replay, = self.fight.junkrat.trap_creates()
+        self.assertEqual((replay.entity, replay.op), (trap.entity, world.OP_CREATE))
+        self.capture(trap)
+        self.assertEqual(self.health(self.run, self.enemy).total, 120)
+        self.assertTrue(self.player.client.messages(combat.HIT))
+        while self.run.frame <= trap.release_tick:
+            self.step()
+        self.assertNotIn(trap.entity, self.fight.junkrat.traps)
+        self.assertFalse(self.fight.junkrat.trap_creates())
+        self.assertFalse(self.fight.junkrat.rooted(self.enemy.body, self.run.frame))
+        for client in clients:
+            self.assertEqual(sum(item.entity == trap.entity and item.op == world.OP_CREATE
+                                 for item in client.entities), 1)
+            self.assertEqual(sum(item.entity == trap.entity and item.op == world.OP_DESTROY
+                                 for item in client.entities), 1)
 
     def test_active_grasp_does_not_absorb_armed_trap_damage_or_root(self):
         trap = self.throw()

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-force-producer-v1",
+  "target_build": 104319,
+  "source": {
+    "canonical_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "original_definitions": [
+      "0254/38 Helix",
+      "0043/10 quick melee",
+      "Orisa Fortify authored modifier26/immune control"
+    ],
+    "provenance": "Synthetic actual normal command ingestion, 15 original Practice NPCs retained, Soldier owner9000, Ashe owner12000, world1000; 20 neutral input frames then Helix into wall at(1000,*,1000.6). Melee identities swap after viewed1033, shot9041/extra128."
+  },
+  "evidence": "offline actual-skill-producer-and-shared-force-consumer",
+  "client_acceptance": "pending; common native receiver adoption not accepted",
+  "helix": {
+    "damage_self_enemy": [
+      40,
+      80
+    ],
+    "force_events": 2,
+    "impact_tick_domain": "physical world",
+    "source_entity": "actual rocket.source_entity",
+    "damage_self_scale": 0.5,
+    "force_self_scale": 1,
+    "axes": [
+      4,
+      6
+    ],
+    "rings": [
+      [
+        0.5,
+        1,
+        1
+      ],
+      [
+        3,
+        0.75,
+        0.25
+      ]
+    ]
+  },
+  "melee": {
+    "damage": 30,
+    "health_a_b": [
+      170,
+      200
+    ],
+    "force_events": 1,
+    "view_world_tick": 1033,
+    "owner_hit_frame": 9041,
+    "original_live_axes": [
+      1,
+      0
+    ]
+  },
+  "fortify": {
+    "expected": "actual reduced damage, zero accepted victim force; self force still permitted"
+  },
+  "limits": [
+    "Existing radial/up direction retained; native animated hitbox/minimumY and full resistance/mass arbitration unproven",
+    "Owner correction record eligibility is offline evidence, not native packet adoption",
+    "No independent public transport implementation or 0043 hero-if"
+  ]
+}

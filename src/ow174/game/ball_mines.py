@@ -3,9 +3,9 @@
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import sombra_control, scalar_math, observers, world
+from ow174.game import ball, observers, scalar_math, sombra_control, world
 from ow174.game.script import entity_queries, expr, graph, runtime
-from ow174.game.script.driver import create_body_graphs, ReplicatedBody
+from ow174.game.script.driver import ReplicatedBody, create_body_graphs
 
 HERO = 0x02E00000000001CA
 BODY = DEVICE = 0x0400000000002578
@@ -337,6 +337,10 @@ class Mines:
         if fight.next_bot + count > 0xD0000000:
             raise ValueError("mine entity allocator exhausted")
         health = expr.to_float(graph.graph(LIFECYCLE).node(0).field("m_amount.m_value"))
+        reported_frame = state.instance.component.frame if frame is None else frame
+        # Delayed reports keep their event's world time. Accepted commands may
+        # lead the world clock; preserve receipt-time launch for those reports.
+        born_tick = min(fight.match.tick, ball.world_tick_at_body(owner.body_script, reported_frame))
         position = tuple(expr.f32(p + o) for p, o in zip(owner.mover.position, offset, strict=True))
         yaw = owner.mover.yaw * math.tau / 65536
         self.volleys[slot] = report
@@ -353,13 +357,15 @@ class Mines:
             fight.next_bot += 1
             mine = Mine(owner, source, owner.team, body, position, velocity, gravity, lifetime,
                         reach, health, fight.tick)
-            mine.born_tick = fight.match.tick
+            mine.born_tick = born_tick
             mine.last_tick = mine.born_tick
-            mine.reported_frame = state.instance.component.frame if frame is None else frame
+            mine.reported_frame = reported_frame
             mine.body_script = MineScript(self, mine, mine.born_tick)
             self.devices[body] = mine
             fight.record_replacement(body)
+            fight.replacement_ticks[body] = mine.born_tick
             self.deliver(mine)
+            self._update_mine(mine, fight.match.tick)
         return True
 
     def deliver(self, mine):
@@ -455,30 +461,33 @@ class Mines:
 
     def update(self, tick):
         for mine in tuple(self.devices.values()):
-            if tick < mine.last_tick:
-                raise ValueError("Minefield world clock moved backwards")
-            if (mine.owner.gone or mine.owner.body != mine.source or mine.component.fault is not None
-                    or mine.health <= 0):
-                self.remove(mine)
-                continue
-            for at in range(mine.last_tick + 1, tick + 1):
-                if mine.normal is not None or mine.removing:
-                    break
-                self.advance(mine, at)
-            mine.last_tick = tick
-            snap = mine.body_script.advance(tick)
-            if mine.armed:
-                self.trigger(mine)
-            if mine.removing:
-                self.remove(mine)
-                continue
-            self.deliver(mine)
-            for viewer in self.fight.match.players:
-                if viewer.client is not None and mine.viewers.get(viewer.slot) is viewer.client:
-                    viewer.client.queue_entities([world.EntityUpdate(
-                        mine.body, movement=world.Movement(mine.position, velocity=mine.velocity))])
-                    if snap is not None:
-                        viewer.client.queue_bot_live(mine.body, snap)
+            self._update_mine(mine, tick)
+
+    def _update_mine(self, mine, tick):
+        if tick < mine.last_tick:
+            raise ValueError("Minefield world clock moved backwards")
+        if (mine.owner.gone or mine.owner.body != mine.source or mine.component.fault is not None
+                or mine.health <= 0):
+            self.remove(mine)
+            return
+        for at in range(mine.last_tick + 1, tick + 1):
+            if mine.normal is not None or mine.removing:
+                break
+            self.advance(mine, at)
+        mine.last_tick = tick
+        snap = mine.body_script.advance(tick)
+        if mine.armed:
+            self.trigger(mine)
+        if mine.removing:
+            self.remove(mine)
+            return
+        self.deliver(mine)
+        for viewer in self.fight.match.players:
+            if viewer.client is not None and mine.viewers.get(viewer.slot) is viewer.client:
+                viewer.client.queue_entities([world.EntityUpdate(
+                    mine.body, movement=world.Movement(mine.position, velocity=mine.velocity))])
+                if snap is not None:
+                    viewer.client.queue_bot_live(mine.body, snap)
 
     def visible_targets(self, mine, instance, node, *, centre=None):
         from ow174.game import combat
@@ -510,7 +519,7 @@ class Mines:
         if mine.triggered or mine.health <= 0 or mine.removing or not mine.armed:
             return
         primary = mine.body_script.primary()
-        from ow174.game import barriers, combat
+        from ow174.game import barriers
 
         node = primary.graph.node(52)
         centre = primary.evaluate(node.field('m_05BE62DD'))
@@ -542,7 +551,8 @@ class Mines:
             if barriers.protect_body(self.fight, target, amount, attacker=mine.source) is not None:
                 continue
             self.fight._damage(
-                mine.owner, target, amount, False, loadout.guid, tick, world_tick=tick, source_scaled=True, source_entity=mine.source, award_ult=False,
+                mine.owner, target, amount, False, loadout.guid, tick, world_tick=tick,
+                source_scaled=True, source_entity=mine.source, award_ult=False,
             )
             if (not self.fight.vitals_of(target).dead
                     and not self.fight._has_protection(target, {0x02E00000000000DD: (0x05FE, 35)})
@@ -554,4 +564,6 @@ class Mines:
                 impulse = (horizontal * dx/distance if distance > 1e-9 else 0.0,
                            max(0.0, vertical-vy),
                            horizontal * dz/distance if distance > 1e-9 else 0.0)
-                self.fight.knockbacks.apply(target, expr.Vec3(*impulse), impact_frame=tick)
+                self.fight.knockbacks.apply(
+                    target, expr.Vec3(*impulse), impact_tick=tick, source_entity=mine.source,
+                )

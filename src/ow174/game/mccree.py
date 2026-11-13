@@ -177,7 +177,7 @@ def apply_velocity(owner, frame, *, controlled=False):
 
 def _roll_active(owner):
     script = owner.body_script
-    if owner.hero.guid != HERO or script is None or owner.match.game_map.map_guid != RIALTO:
+    if owner.hero.guid != HERO or script is None:
         return False
     for instance in script.component.instances.values():
         if instance.graph.index == ROLL:
@@ -222,9 +222,14 @@ def _npc_peer_contacts(owner, reach):
 
 
 def step_rialto_pose(owner, command, seconds, tick, *, controlled=False, speed_scale=1.0):
-    """Include nearby living hostile Rialto NPCs in McCree's movement sweep."""
+    """Include manual enemy NPC contacts in McCree's existing movement sweep.
+
+    The native owner collides with these bodies in Practice Range too. Restricting
+    the server contacts to Rialto let it pass through an NPC while the client
+    stopped, leaving subsequent visible attacks behind the authoritative target.
+    """
     mover = owner.mover
-    if controlled or owner.hero.guid != HERO or owner.match.game_map.map_guid != RIALTO:
+    if controlled or owner.hero.guid != HERO:
         mover.step_pose(command, seconds, tick, speed_scale=speed_scale)
         return
     vx, _, vz = mover.velocity
@@ -306,6 +311,39 @@ def flashbang_direction(state, forward):
     cfg = (state.node.field('m_5EC1EB38') or {}).get('m_22CE7F30')
     lift = expr.to_float(state.evaluate(cfg, watch=False)) if cfg is not None else 0.0
     return weapon_spread.launch_direction(forward, lift)
+
+
+def flashbang_launch_tick(shooter, shot_frame, world_tick):
+    """Map the authored shot frame using the body's immutable birth epoch.
+
+    Packet endpoints and receipt times can jitter independently of the command
+    clock. This explicit server reconstruction retains the actual birth pair,
+    without changing the owner VM or another hero's clock.
+    """
+    from ow174.game import projectiles
+
+    clock = flashbang_clock(shooter)
+    if clock is None:
+        return world_tick
+    return projectiles.owner_to_world(clock, shot_frame)
+
+
+def flashbang_clock(shooter):
+    script = shooter.body_script
+    birth = getattr(script, 'mccree_birth', None)
+    return (*birth, script.frame_ms) if birth is not None else None
+
+
+def advance_flashbang(fight, rocket):
+    """Opt one admitted Cassidy flight into the physical impact-clock helper."""
+    if (getattr(getattr(rocket.shooter, 'hero', None), 'guid', None) != HERO
+            or rocket.source_graph != 0x01E9 or rocket.definition != 0x040000000000037D
+            or rocket.last_tick is None):
+        return False
+    from ow174.game import projectile_clock
+
+    projectile_clock.advance_accepted(fight, rocket)
+    return True
 
 
 def fan_direction(shooter, state, forward, number: int, time: int, activation):

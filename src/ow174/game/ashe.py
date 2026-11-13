@@ -18,7 +18,7 @@ volley and rate-wait graph. Native controls and full ultimate fidelity remain op
 
 import math
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 TICK = 0.016
 FUSE = 2.0
@@ -35,6 +35,15 @@ BURN_SECONDS, BURN_TOTAL = 5.0, 100.0
 BURN_STEP = 0.25
 BURN_END_FLAGS = (6604, 8440, 530, 531, 478)  # 150F/node2
 LOADOUT = 0x0B9000000000020B
+
+
+def view_world_tick(script, command, quanta):
+    """Translate only view-history queries; owner attack/report labels stay untouched."""
+    birth = getattr(script, 'ashe_birth', None)
+    if birth is None:
+        return None
+    world, owner, frame_ms = birth
+    return world + (command.frame - owner) * frame_ms / (TICK * 1000) - command.view_delay(quanta) / TICK
 
 
 def coach_shove_direction(limiter, shooter):
@@ -142,6 +151,7 @@ class Grenade:
     bounces: int = 0
     absorb_damage: float = 0.0
     matrix_absorbable: bool | None = None
+    poses: dict[int, tuple] = field(default_factory=dict)
 
 
 @dataclass
@@ -155,6 +165,8 @@ class Burn:
     damage: float
     pulses: int = 0
     tags: tuple[int, ...] = ()
+    script: object = None
+    instance: int | None = None
 
 
 @dataclass
@@ -202,7 +214,8 @@ class Impulses:
     def __init__(self, combat):
         self.combat = combat
 
-    def queue(self, owner, vector, *, apply_resistance=False, reset_velocity=False, victim_source=None):
+    def queue(self, owner, vector, *, apply_resistance=False, reset_velocity=False, victim_source=None,
+              source_entity=None):
         from ow174.game.combat import _source_entity
         from ow174.game.mover import Mod, intent, statescript_mods
         from ow174.game.script import expr
@@ -222,9 +235,9 @@ class Impulses:
             vector = tuple(axis * scale for axis in vector)
         from ow174.game.bots import Bot
 
-        # Source requests act on the next pose, never the contact pose.
-        impact = fight.tick if isinstance(owner, Bot) else fight.tick + 1
-        applied = fight.knockbacks.apply(target, expr.Vec3(*vector), impact_frame=impact)
+        # The shared host maps physical contact time to the recipient's next pose.
+        applied = fight.knockbacks.apply(target, expr.Vec3(*vector), impact_tick=fight.tick,
+                                         source_entity=source_entity)
         if victim_source is not None:
             source, instigator = victim_source
             fight.knockbacks.schedule_victim(target, source, instigator)
@@ -256,7 +269,7 @@ class Impulses:
         horizontal = math.cos(elevation)
         speed = magnitude * scale
         self.queue(player, (speed * math.sin(yaw) * horizontal, speed * math.sin(elevation),
-                            speed * math.cos(yaw) * horizontal))
+                            speed * math.cos(yaw) * horizontal), source_entity=instance.component.entity)
 
 
     def coach_targets(self, shooter, hits, state, *, reflected):
@@ -309,7 +322,8 @@ class Impulses:
             length = math.hypot(*vector)
             if length > 0:
                 fraction = min(1.0, cap / length) * pellets / count
-                self.queue(target.owner, tuple(axis * fraction for axis in vector), apply_resistance=True)
+                self.queue(target.owner, tuple(axis * fraction for axis in vector), apply_resistance=True,
+                           source_entity=_source_entity(shooter))
 
 
 
@@ -377,7 +391,8 @@ class Companions:
     def actor_for(self, entity):
         return next((actor for actor in self.active.values() if actor.bot.entity == entity), None)
 
-    def summon(self, owner, *, charge_seconds=4.0, gun_seconds=10.0, charge_instigator=None):
+    def summon(self, owner, *, charge_seconds=4.0, gun_seconds=10.0, charge_instigator=None,
+               position=None, charge_yaw=None):
         from ow174.game import npc
         from ow174.game.mover import MOVERS_PATH, Mover, load_mover_bundle
         from ow174.game.script import graph
@@ -397,11 +412,12 @@ class Companions:
             self.unavailable_reason = "invalid B.O.B. phase duration"
             return None
         definition = npc.Definition(0x02E000000000021D, 0x04000000000025C3, "B.O.B.", 1200)
-        # Deployment offset is reconstructed; native hardpoint/placement is open.
-        yaw = owner.mover.yaw * 2 * math.pi / 65536
-        x, y, z = owner.mover.position
-        bot = npc.spawn(fight.match, definition, (x + math.sin(yaw) * 2, y, z + math.cos(yaw) * 2),
-                        team=owner.team, yaw=owner.mover.yaw)
+        # 1536/22 stores body position plus (0, -0.5, 0) for factory 11.
+        if position is None:
+            x, y, z = owner.mover.position
+            position = (x, y - 0.5, z)
+        charge_yaw = owner.mover.yaw if charge_yaw is None else charge_yaw
+        bot = npc.spawn(fight.match, definition, tuple(position), team=owner.team, yaw=charge_yaw)
         bot.spawner["manual_spawn"] = False
         bot.spawner["combat_companion"] = True
         bot.combat_owner = owner
@@ -419,9 +435,9 @@ class Companions:
         # Phase arbitration, contact selection and one-second settle are reconstructed.
         charge_until = at + math.ceil(charge_seconds / TICK)
         ready = charge_until + math.ceil(1.0 / TICK)
-        mover = Mover(bot.position, owner.mover.yaw, fight._collision(), profiles["bob_charge"])
+        mover = Mover(bot.position, charge_yaw, fight._collision(), profiles["bob_charge"])
         actor = Bob(owner, owner.body, bot, at, ready, ready + math.ceil(gun_seconds / TICK), gun,
-                    mover, profiles["bob_idle"], charge_until, at, owner.mover.yaw, gun_seconds,
+                    mover, profiles["bob_idle"], charge_until, at, charge_yaw, gun_seconds,
                     charge_instigator=owner.body if charge_instigator is None else charge_instigator)
         self.active[owner.body] = actor
         bot.impulse_mover = mover
@@ -629,6 +645,7 @@ class Companions:
                             target.owner, launch if launch is not None else (0.0, 0.0, 0.0),
                             apply_resistance=modify is not None, reset_velocity=reset,
                             victim_source=victim_source,
+                            source_entity=bot.entity,
                         )
             elif wall_hit is not None:
                 point, piece = wall_hit
@@ -709,23 +726,40 @@ class Dynamite:
         self.burns = {}
         self.last_tick = 0
 
-    def fired(self, shooter, origin, direction, speed, shot=None, *, fuse_seconds, absorb_damage=0.0):
+    def fired(self, shooter, origin, direction, speed, shot=None, *, fuse_seconds, absorb_damage=0.0,
+              launch_tick=None):
         tick = self.combat.tick
         self.last_tick = max(self.last_tick, tick)
+        born = tick if launch_tick is None else min(tick, launch_tick)
         grenade = Grenade(shooter, shooter.body, shooter.team, tuple(origin),
-                          tuple(speed * axis for axis in direction), tick,
-                          tick + math.ceil(fuse_seconds / TICK), shot, absorb_damage=absorb_damage)
+                          tuple(speed * axis for axis in direction), born,
+                          born + math.ceil(fuse_seconds / TICK), shot, absorb_damage=absorb_damage)
         definition = 0x0400000000002533
         grenade.matrix_absorbable = (definition in self.combat.matrix_definitions
             if self.combat.matrix_definitions is not None else self.combat.projectile_tags.admitted(definition))
         self.grenades.append(grenade)
+        grenade.poses[born] = grenade.position
+        # Owner prediction starts at the volley command, not packet reception or
+        # confirmation ACK. Catch up a delayed throw before later commands aim at it.
+        saved = self.combat.now, self.combat.tick
+        try:
+            for at in range(born + 1, min(tick, grenade.fuse) + 1):
+                self.combat.now, self.combat.tick = saved[0] - (tick - at) * TICK, at
+                self._move(grenade)
+                if grenade not in self.grenades:
+                    break
+                if at >= grenade.fuse:
+                    self.detonate(grenade)
+        finally:
+            self.combat.now, self.combat.tick = saved
         return grenade
 
     def retire(self, body):
         active = self.grenades[:]
         self.grenades[:] = [item for item in self.grenades if item.body != body]
-        self.burns = {key: item for key, item in self.burns.items()
-                      if item.source != body and item.target != body}
+        for key, burn in tuple(self.burns.items()):
+            if burn.source == body or burn.target == body:
+                self._end_burn(key)
         for item in active:
             shot = item.shot
             # Deflect changes the combat body while the delivery keeps the launch body.
@@ -734,17 +768,26 @@ class Dynamite:
                 if shot in self.combat.projectiles.shots:
                     self.combat.projectiles.intercepted(shot, self.combat.tick)
 
-    def ray_hit(self, shooter, origin, direction, reach):
+    def ray_hit(self, shooter, origin, direction, reach, *, shot_frame=None):
         """Closest owned grenade on the ray, without mutating it."""
         from ow174.game.combat import ray_capsule
+        from ow174.game.sombra_replay import world_frame
 
+        script = getattr(shooter, 'body_script', None)
+        anchor = getattr(script, 'world_frame_anchor', None)
+        at = world_frame(script, shot_frame) if anchor is not None and shot_frame is not None else None
         best = None
         for item in self.grenades:
             # 1502/28-29 accepts the hit source only if it matches the owner.
             # Its 0.3 s wait starts with the explosion, after that check.
             if item.shooter is not shooter:
                 continue
-            distance = ray_capsule(origin, direction, item.position, item.position, RADIUS)
+            # The owner predicts its projectile at command time, independently
+            # of the observer view delay. A packet may contain an older click.
+            position = item.position if at is None or at >= self.combat.tick else item.poses.get(at)
+            if position is None:
+                continue
+            distance = ray_capsule(origin, direction, position, position, RADIUS)
             if distance is not None and distance <= reach and (best is None or distance < best[0]):
                 best = (distance, item)
         return best
@@ -772,6 +815,14 @@ class Dynamite:
             self.last_tick = tick
 
     def _move(self, item):
+        shooter = item.shooter
+        self._move_step(item)
+        if item in self.grenades:
+            if item.shooter is not shooter:
+                item.poses.clear()
+            item.poses[self.combat.tick] = item.position
+
+    def _move_step(self, item):
         from ow174.game import contacts
         from ow174.game.collision import MOVER
         from ow174.game.combat import aim, ray_capsule
@@ -876,14 +927,42 @@ class Dynamite:
             own = target.owner is item.shooter and target.entity == item.body
             for key in tuple(self.burns):
                 if key[1] == target.entity:
-                    del self.burns[key]
-            self.burns[item.body, target.entity] = Burn(
+                    self._end_burn(key)
+            burn = Burn(
                 item.shooter, item.body, target.entity, fight.tick,
                 fight.tick + math.ceil(BURN_SECONDS / TICK),
                 fight.tick + math.ceil(BURN_STEP / TICK), BURN_TOTAL * (0.5 if own else 1.0) / 20,
                 tags=burn_tags,
             )
+            self.burns[item.body, target.entity] = burn
+            self._start_burn_effect(burn, target)
         return True
+
+    @staticmethod
+    def _start_burn_effect(burn, target):
+        from ow174.game.script import expr, graph
+
+        script = getattr(target.owner, "body_script", None)
+        definition = graph.graph(0x150F)
+        if script is None or definition is None or script.component.entity != target.entity:
+            return
+        instance = script.component.play_loaded_graph(
+            definition, source=burn.source, instigator=burn.source, policy=3,
+            params=((0x0A400000000000F2, burn.damage / BURN_STEP),
+                    (0x0A4000000000002B, BURN_SECONDS),
+                    (0x0A400000000004A2, expr.Entity(burn.source))),
+        )
+        if instance is not None:
+            burn.script, burn.instance = script, instance.id
+            script.component.run_now()
+
+    def _end_burn(self, key):
+        burn = self.burns.pop(key, None)
+        if burn is not None and burn.script is not None:
+            component = burn.script.component
+            instance = component.instances.get(burn.instance)
+            if instance is not None:
+                component.destroy(instance)
 
     def _visible(self, origin, target):
         collision = self.combat._collision()
@@ -917,7 +996,7 @@ class Dynamite:
             target = targets.get(burn.target)
             if (target is None or fight.vitals_of(target).dead or self._burn_ends(target)
                     or (target.owner is not burn.shooter and not (fight.match.game_map.free_for_all or target.team != burn.shooter.team))):
-                self.burns.pop(key, None)
+                self._end_burn(key)
                 continue
             if tick >= burn.next_damage and burn.pulses < 20:
                 fight._damage(burn.shooter, target, burn.damage, False, LOADOUT, tick,
@@ -926,7 +1005,7 @@ class Dynamite:
                 # Absolute phase avoids accumulating ceil(0.25 / 0.016) rounding error.
                 burn.next_damage = burn.start + math.ceil((burn.pulses + 1) * BURN_STEP / TICK)
             if burn.pulses >= 20 or tick >= burn.until or fight.vitals_of(target).dead:
-                self.burns.pop(key, None)
+                self._end_burn(key)
 
 
 def coach_directions(state, direction) -> tuple:

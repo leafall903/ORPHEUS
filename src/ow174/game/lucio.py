@@ -19,6 +19,18 @@ SPAWN_ULTIMATE_READY = 0x32E0
 CHARGE_ACTIVE = 0x0240000000000694
 
 
+def advance_projectile(fight, rocket):
+    """Advance an accepted 0776/05FF flight through its physical world ticks."""
+    state = rocket.source_state
+    if (rocket.source_graph != 0x0776 or rocket.definition != 0x04000000000005FF
+            or rocket.last_tick is None or state is None or state.instance.component.world.hero != HERO):
+        return False
+    from ow174.game.projectile_clock import advance_accepted
+
+    advance_accepted(fight, rocket)
+    return True
+
+
 def charge_player(world, component):
     """Resolve the active owner through the host's current player binding."""
     match = world.match

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "projectile-owner-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/projectiles.py"],
+    "note": "Synthetic optional epoch adapter and existing native release writer. The source-owner frame remains the lease/activation label; only server deadlines map to world ticks. Release labels map back to the captured owner epoch before the original 4096-frame lead."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending for distinct native owner/world epochs; encrypted Client delivery verified separately",
+  "input": {
+    "clock_origin_layout": ["birth_world_tick", "birth_owner_frame", "owner_frame_ms"],
+    "world_frame_ms": 16,
+    "cases": [
+      {"clock_origin": null, "owner_frame": 1200, "release_world_tick": 1210},
+      {"clock_origin": [1020, 9000, 16], "owner_frame": 9004, "release_world_tick": 1045},
+      {"clock_origin": [1020, 9000, 32], "owner_frame": 9004, "release_world_tick": 1045}
+    ]
+  },
+  "expected": [
+    {"world_tick": 1200, "native_release_frame": 5306, "release_hex": "feffffffdf2e050000000000007ac400000000e00000"},
+    {"world_tick": 1024, "native_release_frame": 13121, "release_hex": "feffffff9fd00c0000000000007ac400000000e00000"},
+    {"world_tick": 1028, "native_release_frame": 13108, "release_hex": "feffffff5fcd0c0000000000007ac400000000e00000"}
+  ]
+}

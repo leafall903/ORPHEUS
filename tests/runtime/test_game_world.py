@@ -72,7 +72,7 @@ def read_movement(reader: BitReader, frame: int, *, parent: int | None = None) -
             if reader.bit():
                 state["flags"] |= reader.bits(8) << (8 * k)
     assert reader.bit() == 0  # +4: 1/1024 m, the velocity on the wire
-    state["frame"] = frame - _frames_back(reader)  # +8
+    state["frame"] = (frame - _frames_back(reader)) & 0xFFFFFFFF  # native uint32 +8
     assert _frame_field(reader, 0) == 0  # +12
     state["pitch"] = _field(reader, (8, 10, 16))
     state["air_ticks"] = _field(reader, (4, 10))

@@ -1,0 +1,33 @@
+Moira healing-orb status clock, original104319
+
+One real Ana0267 grenade installs the original0C71 ->0C72 received-healing
+filter at world1026. Its actual component timer is due at world1276 (20416ms).
+One real Moira10E4 healing volley releases at owner1267. With a recipient at
+40HP, sample at world1293: both per-frame and32-command arrival now end at
+58.72HP, consuming18.72 of the orb budget. The18 eligible pulses include1276.
+Previously per-frame ended57.68HP (one stale-status boundary pulse) while
+batch32 ended66HP (the expired filter history had already been discarded).
+
+Healing orb slices query their physical world endpoint through the existing
+Combat._heal_pools and HealingEffects.factor(end_tick) path. The optional
+world_tick also selects Vitals.healing_factor's physical time. Omitted arguments
+retain the prior current-time behavior for other callers. No shared combat
+clock is rewound. Before querying pulses, the existing Ana status host publishes
+its due transitions at the current world tick; it is not recreated or rewound.
+
+Statuses.prune_filters keeps its one existing ledger. Moira contributes only a
+finite retention floor: MAX_COMMANDS mapped through live body quantum duration,
+plus the last physical tick of any still-live admitted healing orb. Recipient
+body retirement and normal pruning remain responsible for releasing entries.
+There is no second filter evaluator or per-hero status-history copy.
+
+The minimal real-input checks retain the original no-status26HP healing, owner
+volley1267,0.416s flight position, natural retirement1705, one accepted cast
+despite duplicate command packets, and one destroy per observer. Expired status
+history is absent by retirement. Three existing orb health/budget/repeated-tick
+checks pass. Two old Baptiste selected-status fixtures fail before status
+installation on both unchangedff400 and the repair; they are not accepted here.
+
+Scope: offline real-input reconstruction. This patch does not accept native
+visuals, moving-target history, damage-orb historical defenses, or other healing
+consumers. The frozenff400 source and running r2 service are unchanged.

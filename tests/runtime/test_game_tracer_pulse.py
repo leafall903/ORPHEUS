@@ -1,12 +1,14 @@
 """Actual Tracer ultimate input drives reconstructed bomb physics/damage lifecycle."""
 
+import json
 import unittest
 from dataclasses import replace
+from pathlib import Path
 
 import test_game_tracer as tracer_tests
 
 from ow174.game import combat, stats, tracer
-from ow174.game.collision import World
+from ow174.game.collision import StaticCollisionProvider, World
 from ow174.game.commands import CROUCH, Command
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.script import expr
@@ -460,3 +462,90 @@ class PulseBombTests(tracer_tests.TracerCommandFixture, unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class PulseBatchClockTests(unittest.TestCase):
+    def scenario(self, batch, world_offset, *, body_contact):
+        run, player, enemy, _ = tracer_tests.TracerPistolTests().fight()
+        for _ in range(100):
+            run.step({})
+        match, fight = run.match, run.match.combat
+        match.update((run.frame + world_offset) * combat.TICK, run.frame + world_offset)
+        self.assertTrue(match.switch_hero(player, player.hero))
+        player.body_script.ult_seconds = 0
+        if not body_contact:
+            empty = World([])
+            match.collision_world = empty
+            match.collision_provider = StaticCollisionProvider(empty)
+            for actor in run.players:
+                actor.mover.world = empty
+                actor.mover.body = None
+            player.mover.position[:] = (0, 100, 0)
+            player.mover.velocity = (0, 0, 0)
+            enemy.mover.position[:] = (100, 100, 0)
+        else:
+            fight.vitals[enemy.body] = combat.Vitals(enemy.body, 1000)
+        script = player.body_script
+        script.set_ult_charge(script.component.entity_var(338).value())
+        start = run.frame
+        commands = [Command(start + offset, buttons=32 if offset == 1 else 0) for offset in range(1, 65)]
+        for first in range(0, len(commands), batch):
+            group = commands[first:first + batch]
+            tick = group[-1].frame + world_offset
+            match.update(tick * combat.TICK, tick)
+            player.take_commands(group)
+        query = start + 65 + world_offset
+        match.update(query * combat.TICK, query)
+        bomb, = fight.pulse_bombs.bombs
+        state = (bomb.position, bomb.flown, bomb.left, bomb.fuse_left)
+        match.update(query * combat.TICK, query)
+        self.assertEqual((bomb.position, bomb.flown, bomb.left, bomb.fuse_left), state)
+        result = {
+            "event": bomb.shot.frame - start,
+            "born": bomb.started_tick - start - world_offset,
+            "position": bomb.position,
+            "flown": bomb.flown,
+            "life": bomb.left,
+            "fuse": bomb.fuse_left,
+            "attached": bomb.attached == enemy.body,
+        }
+        end = start + (140 if body_contact else 400) + world_offset
+        match.update(end * combat.TICK, end)
+        self.assertFalse(fight.pulse_bombs.bombs)
+        result["health"] = fight.vitals[enemy.body].total
+        result["hits"] = tuple(
+            (hit["+0x78"]["+0x4"], hit["+0x84"] - start - world_offset)
+            for hit in player.client.messages(combat.HIT)
+        )
+        return result
+
+    def test_pulse_release_and_timeout_use_command_clock_across_packet_batches(self):
+        path = Path(__file__).resolve().parents[2] / "fixtures/behavior/tracer-pulse-clock-v1.json"
+        expected = json.loads(path.read_text(encoding="utf-8"))["expected"]
+        for world_offset in (0, 100):
+            reference = None
+            for batch in (1, 8, 32):
+                with self.subTest(world_offset=world_offset, batch=batch):
+                    result = self.scenario(batch, world_offset, body_contact=False)
+                    self.assertEqual(result["event"], expected["release_command_offset"])
+                    self.assertEqual(result["born"], expected["release_command_offset"])
+                    self.assertAlmostEqual(result["flown"], expected["flight_seconds"], places=9)
+                    self.assertAlmostEqual(result["position"][2], expected["forward_metres"], places=7)
+                    self.assertIsNone(result["fuse"])
+                    self.assertEqual(result["hits"], ())
+                    if reference is None:
+                        reference = result
+                    self.assertEqual(result, reference)
+
+    def test_pulse_contact_fuse_damage_and_retirement_agree_across_packet_batches(self):
+        for world_offset in (0, 100):
+            reference = None
+            for batch in (1, 8, 32):
+                with self.subTest(world_offset=world_offset, batch=batch):
+                    result = self.scenario(batch, world_offset, body_contact=True)
+                    self.assertTrue(result["attached"])
+                    self.assertGreater(result["fuse"], 0)
+                    self.assertEqual(result["health"], 645)
+                    self.assertEqual(tuple(amount for amount, _ in result["hits"]), (5, 350))
+                    if reference is None:
+                        reference = result
+                    self.assertEqual(result, reference)

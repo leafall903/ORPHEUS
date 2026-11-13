@@ -8,7 +8,7 @@ from unittest.mock import patch
 import test_game_moira as fixtures
 from test_game_combat import KANEZAKA_DM, Run, aim, in_world
 
-from ow174.game import absorption, combat, deflection
+from ow174.game import absorption, combat, deflection, interception, world
 from ow174.game.collision import World
 from ow174.game.content import SOLDIER, find_hero, heroes
 from ow174.game.script.driver import ULT_COST
@@ -23,7 +23,7 @@ class MoiraAbsorptionTests(unittest.TestCase):
         source, sigma = run.players[:2]
         match.switch_hero(source, heroes()[fixtures.MOIRA])
         source.body_script.component.set(12918, 0)  # isolate health-based credit from passive pulses
-        match.switch_hero(sigma, heroes()[absorption.HERO])
+        match.switch_hero(sigma, heroes()[absorption.SIGMA])
         sigma.team = source.team if ally else 1 - source.team
         x, y, z = source.mover.position
         sigma.mover.position = [x + offset, y, z + distance]
@@ -59,10 +59,15 @@ class MoiraAbsorptionTests(unittest.TestCase):
                 return
         self.fail('active Grasp never consumed the real orb')
 
+    @staticmethod
+    def shields(health):
+        return {p.identifier: p for p in health.extra.values()
+                if p.kind == combat.SHIELDS_POOL and not p.removed}
+
     def grant(self, run, source, sigma, health):
         for _ in range(200):
-            if absorption.SHIELD_TAG in health.temporary_shields:
-                return health.temporary_shields[absorption.SHIELD_TAG]
+            if absorption.SHIELD_TAG in self.shields(health):
+                return self.shields(health)[absorption.SHIELD_TAG]
             self.step(run, source, sigma)
         self.fail('authored Grasp end did not request tagged shields')
 
@@ -73,7 +78,15 @@ class MoiraAbsorptionTests(unittest.TestCase):
                 orb = self.launch(run, source, sigma, healing=healing)
                 nominal = 0 if healing else 100  # actual emitted cfg; not300/200 aura budget
                 self.assertEqual(orb.absorption_amount, nominal)
+                self.assertIsNotNone(orb.shot)
+                shot = orb.shot
                 self.consume(run, source, sigma, orb)
+                for _ in range(3):
+                    self.step(run, source, sigma)
+                for delivery in shot.observers:
+                    self.assertTrue(delivery.finished)
+                    self.assertEqual(sum(u.entity == delivery.record.ids[0] and u.op == world.OP_DESTROY
+                                         for u in delivery.client.entities), 1)
                 self.assertEqual(instance.vars[21312].value(), nominal)
                 self.assertEqual(instance.vars[6584].value(), nominal)
                 self.assertEqual(orb.healing, healing)
@@ -89,13 +102,12 @@ class MoiraAbsorptionTests(unittest.TestCase):
                     pool = self.grant(run, source, sigma, health[1])
                     self.assertAlmostEqual(pool.now, 60, places=4)  # actual0.6 conversion request
                     before = pool.now
-                    self.assertTrue(sigma.body_script.world.play_compatible_script(instance,
-                                                                                    instance.graph.node(34)))
+                    sigma.body_script.world.play_compatible_script(instance, instance.graph.node(34))
                     self.assertEqual(pool.now, before)
                 else:
                     for _ in range(150):
                         self.step(run, source, sigma)
-                    self.assertNotIn(absorption.SHIELD_TAG, health[1].temporary_shields)
+                    self.assertNotIn(absorption.SHIELD_TAG, self.shields(health[1]))
 
     def test_grasp_protects_moira_from_actual_control_projectiles_and_helix(self):
         if any(guid not in deflection.tags() for guid in (0x04000000000015E8, 0x040000000000037D,
@@ -115,7 +127,7 @@ class MoiraAbsorptionTests(unittest.TestCase):
                     sigma_x = 2.5 if scenario == 'off_axis' else 0.85
                     for player, hero, team, position in (
                         (source, heroes()[caster], 0, [0, 1, 0]),
-                        (sigma, heroes()[absorption.HERO], sigma_team, [sigma_x, 1, 5]),
+                        (sigma, heroes()[absorption.SIGMA], sigma_team, [sigma_x, 1, 5]),
                         (recipient, heroes()[fixtures.MOIRA], 1, [0, 1, 6.5]),
                     ):
                         self.assertTrue(match.switch_hero(player, hero))
@@ -145,7 +157,7 @@ class MoiraAbsorptionTests(unittest.TestCase):
                     asleep = False
                     rocket = None
                     with (patch.object(fight, '_collision', return_value=world),
-                          patch.object(absorption, 'absorbed', wraps=absorption.absorbed) as consume,
+                          patch.object(interception, 'absorbed', wraps=interception.absorbed) as consume,
                           patch.object(fight, '_landed', wraps=fight._landed) as landed):
                         for frame in range(65):
                             self.step(run, source, sigma, button if frame == 0 else 0)
@@ -172,7 +184,7 @@ class MoiraAbsorptionTests(unittest.TestCase):
                         pool = self.grant(run, source, sigma, sigma_health)
                         self.assertAlmostEqual(pool.now, damage * 0.6, places=4)
                     else:
-                        self.assertNotIn(absorption.SHIELD_TAG, sigma_health.temporary_shields)
+                        self.assertNotIn(absorption.SHIELD_TAG, self.shields(sigma_health))
 
     def test_ally_and_off_axis_orbs_are_not_consumed(self):
         for ally, offset in ((True, 0), (False, 3)):

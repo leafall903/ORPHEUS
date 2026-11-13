@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-sonic-presentation-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/sonic.py", "tests/runtime/test_game_hanzo_sonic.py"],
+    "provenance": "Synthetic command scenario; original status graph metadata is supplied externally and is not included."
+  },
+  "evidence": "headless-runtime-and-protocol",
+  "client_acceptance": "pending",
+  "input": {
+    "hero": "Hanzo",
+    "target": "hostile player five metres ahead",
+    "tick_ms": 16,
+    "order": ["select Sonic Arrow", "release selection", "hold primary five frames", "release primary", "advance 25 frames", "advance past beacon expiry"],
+    "modes": ["teams 0 versus 1", "FFA team 4", "FFA map with source team 0"],
+    "packet_loss": "none",
+    "seed": "no randomized operation in the scenario"
+  },
+  "expected": {
+    "status_graph": 270,
+    "source_variable": 40,
+    "viewers_variable": 13431,
+    "effect_node": 1,
+    "ffa_message_node": 7,
+    "source_value": "caster body entity",
+    "viewers_value": ["caster body entity"],
+    "effect": "active and present in decoded observer full frame",
+    "ffa_message": "active only when original node8 source-team condition equals 4",
+    "global_reveal_stack": "active only when original node8 condition is false; node7 and node9 are exclusive",
+    "expiry": "status instance removed and owned reveal flag released"
+  }
+}

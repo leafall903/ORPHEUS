@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "case_id": "genji-melee-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/genji.py"
+    ],
+    "provenance": "Adapted the existing Ball/76 identity-exchange case to actual Genji quick-melee input;15 original NPCs retained. No screenleft inference."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "attack_offset": 41,
+    "swap_after": 33,
+    "view_delay_ms": 128,
+    "button": 2048,
+    "attacker_position": [
+      1000,
+      0,
+      1000
+    ],
+    "target_a_initial": [
+      1000,
+      0,
+      1001.8
+    ],
+    "target_b_initial": [
+      1003,
+      0,
+      1001.8
+    ]
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "target_identity": "A",
+    "health_a": 170,
+    "health_b": 200,
+    "damage": 30,
+    "owner_hit_frames": [
+      1041,
+      9041
+    ],
+    "NPCs_retained": 15
+  },
+  "fractional": {
+    "birth": [
+      1000,
+      9000
+    ],
+    "frame_ms": 15,
+    "command_frame": 9041,
+    "view_delay_ms": 8,
+    "quanta_us": 15000,
+    "world_view_tick": 1037.9375
+  },
+  "scope": "Only Genji0043 target history query is mapped. Owner HIT and attack/velocity delivery timestamps are not changed; canonical knockback receiver/frame/ACK remains a separate dependency."
+}

@@ -24,6 +24,7 @@ from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
 from ow174.game.ball_mines import MineWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
+from ow174.game.accretion import RockWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
 from ow174.game.orisa_supercharger import DeviceWorld
@@ -80,8 +81,7 @@ _SCRIPT = frozenset((
     "winston_charge_ms", "winston_charge_tick", "winston_primal_clock",
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
-_SCRIPT_OPTIONAL = ("charge_clock", "passive_ult_deadline", "passive_ult_last_command_tick",
-                    "orisa_pose_anchor", "orisa_fortify_pending", "grapple_interrupt_frame", "ball_birth", "cryo_birth")
+_SCRIPT_OPTIONAL = ('moira_birth', 'moira_neutral_window', 'charge_clock', 'passive_ult_deadline', 'passive_ult_last_command_tick', 'orisa_pose_anchor', 'orisa_fortify_pending', 'grapple_interrupt_frame', 'ball_birth', 'cryo_birth', 'mercy_birth', 'winston_birth', 'symmetra_birth', 'genji_birth', 'roadhog_birth', 'junkrat_birth', 'dva_birth', 'ana_birth', 'soldier_birth', 'orisa_birth', 'brigitte_birth', 'ashe_birth', 'echo_birth', 'sigma_birth', 'mccree_birth', 'torbjorn_birth')
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
@@ -149,9 +149,9 @@ _STATE_LAYOUTS = {
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ("world_used",)),
     nodes.WeaponVolley: (
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "spread_decay", "links", "reported", "last_values"),
-        ("max_shots", "min_shots", "shot_spread"),
+        ("max_shots", "min_shots", "shot_spread", "spread"),
     ),
-    nodes.GrappleCast: (("cast",), ()),
+    nodes.GrappleCast: (("cast", "started_at"), ()),
     nodes.MoveTo: (("movement",), ()),
     nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
@@ -589,7 +589,7 @@ class _Export:
                     "fields": self.fields(obj, volskaya.SCENE_FIELDS,
                                           exclude=volskaya.SCENE_FIELDS - local)}
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld,
+                    PackWorld, ExperimentalBarrierWorld, RockWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
             if obj is not self.component.world:
@@ -614,6 +614,8 @@ class _Export:
                 fields.update(("match", "entity"))
             if kind is ExperimentalBarrierWorld:
                 fields.add("barrier")
+            if kind is RockWorld:
+                fields.add("rocket")
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
             if kind in (SupportWorld, StatusWorld):
@@ -643,7 +645,7 @@ class _Export:
                 fields.update(("fight", "body"))
                 optional = ("auto_scene", "auto_target", "sample")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier", "mine"})}
+                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier", "mine", "rocket"})}
         if kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
             return {"class": "builtins.dict.get", "identity": self.identity(obj),
                     "owner": self.value(obj.__self__)}

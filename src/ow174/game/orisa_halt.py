@@ -113,6 +113,14 @@ class HaltPhysicsExplosion(runtime.State):
         world = self.instance.component.world
         if isinstance(world, PullQuery):
             world.dispatch_explosion(self)
+        elif (self.instance.graph.index, self.node.pos) == (0x0636, 64):
+            from ow174.game import ice_wall
+
+            ice_wall.pillar_physics_explosion(self)
+        elif (self.instance.graph.index, self.node.pos) in ((0x0F7C, 52), (0x0F7C, 54)):
+            from ow174.game import moira
+
+            moira.fade_physics_explosion(self)
 
 
 class PullQuery(runtime.World):

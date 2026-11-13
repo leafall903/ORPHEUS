@@ -22,6 +22,48 @@ def pillar_actors(fight):
                  if actor.definition == PILLAR and not actor.owner.gone)
 
 
+def pillar_physics_explosion(state):
+    """Forward 0636/64's explicit rigid-body pulse on the actual pillar VM.
+
+    This does not select living characters or synthesize a character impulse.
+    The existing prop host retains its verified spherical recipient scope.
+    """
+    component = state.instance.component
+    world = component.world
+    match = getattr(world, 'match', None)
+    if (match is None or getattr(world, 'hero', None) != MEI
+            or (state.instance.graph.index, state.node.pos) != (PILLAR_GRAPH, 64)):
+        return False
+    actor = match.combat.deployables.get(component.entity)
+    if (actor is None or actor.definition != PILLAR
+            or not isinstance(actor.body_script, actors.PillarScript)
+            or actor.body_script.component is not component or actor.owner.gone):
+        return False
+    entity = state.evaluate(state.node.field('m_position'), watch=False)
+    if not isinstance(entity, expr.Entity) or entity.id != actor.entity:
+        return False
+    # This entry is the authored directionless spherical request. Do not admit
+    # a future directed provider through the narrower existing prop service.
+    if state.node.field('m_direction') is not None:
+        return False
+    values = []
+    for field in ('m_6EFD110C', 'm_radius', 'm_65438EEB', 'm_D80AEDB1'):
+        cfg = state.node.field(field)
+        if (not isinstance(cfg, dict) or cfg.get('$') not in ('STUConfigVarInt', 'STUConfigVarFloat')
+                or 'm_value' not in cfg):
+            return False
+        value = expr.to_float(state.evaluate(cfg, watch=False))
+        if not math.isfinite(value):
+            return False
+        values.append(value)
+    from ow174.game.orisa_halt import ExplosionRequest
+
+    # Pillar components are born and advanced on world ticks, unlike owner VMs.
+    request = ExplosionRequest(actor.entity, state.start, expr.Vec3(*actor.position), *values)
+    match.combat.orisa._dispatch_halt_explosion(request)
+    return True
+
+
 def movement_world(fight, tick):
     base = fight.match.collision_world
     pillars = tuple((actor.position, actor.radius, actor.height) for actor in pillar_actors(fight)
@@ -172,20 +214,35 @@ def spawn(fight, instance, node):
         return NotImplemented
     direction = value(instance, 3192)
     axis = tuple(direction) if isinstance(direction, expr.Vec3) else None
-    return expr.Entity(_spawn_actor(fight, player, tuple(point), duration, width, height, axis=axis).entity)
+    pet_source = instance.evaluate(node.field('m_D749D7D8'))
+    if not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id):
+        return NotImplemented
+    return expr.Entity(_spawn_actor(fight, player, tuple(point), duration, width, height, axis=axis,
+                                    pet_owner=pet_source.id).entity)
 
 
-def _spawn_actor(fight, player, point, duration, width, height, *, axis=None):
+def _spawn_actor(fight, player, point, duration, width, height, *, axis=None, pet_owner=None):
     from ow174.game import volskaya
+    from ow174.game.script.driver import BodyWorld
 
     host = fight.match.scene_host
     lift = host.lift if isinstance(host, volskaya.LiftHost) else None
     health = graph.graph(PILLAR_GRAPH).node(1).field("m_amount")["m_value"]
     actor = fight.create_deployable(player, PILLAR, "Ice Wall pillar", tuple(point), health=health,
-                                    radius=width / 2, height=height, seconds=duration, publish=lift is None)
-    actor.body_script = actors.PillarScript(runtime.Component(actor.entity))
-    actor.body_script.component.run_frame(fight.tick)
+                                    radius=width / 2, height=height, seconds=duration, publish=lift is None,
+                                    pet_owner=pet_owner)
+    child_world = BodyWorld(player.hero.guid, fight.match.game_map.mode_guid, actor.entity, PILLAR)
+    child_world.match = fight.match
+    component = runtime.Component(actor.entity, world=child_world)
+    actor.body_script = actors.PillarScript(component)
+    component.run_frame(fight.tick)
     actor.body_script.set_health(health, health)
+    # 0932's definition starts 25B4 before the ability plays 0636 on this actor.
+    # Keep its original allocation source and world services on the same VM.
+    initial = component.create(graph.graph(0x25B4), init=False)
+    initial.set_source_entity(player.body)
+    initial.init()
+    component.run_now()
     if lift is not None:
         if axis is not None:
             angle = math.atan2(-axis[2], axis[0])
@@ -196,6 +253,7 @@ def _spawn_actor(fight, player, point, duration, width, height, *, axis=None):
         # Publish this same actor once, after its original parent pose is known.
         for viewer in fight.match.players:
             if viewer.spawned and viewer.client is not None:
+                viewer.seen[actor.entity] = False
                 viewer.client.queue_entities([fight.deployable_create(actor)])
     return actor
 
@@ -241,7 +299,11 @@ def geometry_actor(fight, instance, point, axis, *, anchor=None):
     duration, width, height = (value(instance, var) for var in (567, 6274, 1165))
     if not all(type(v) in (int, float) and math.isfinite(v) and v > 0 for v in (duration, width, height)):
         return None
-    actor = _spawn_actor(fight, player, point, duration, width, height, axis=axis)
+    pet_source = instance.evaluate(node.field('m_D749D7D8'))
+    if not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id):
+        return None
+    actor = _spawn_actor(fight, player, point, duration, width, height, axis=axis,
+                         pet_owner=pet_source.id)
     instance.write(slot, expr.Entity(actor.entity))
     for pos in _PLAY_NODES:
         call = instance.graph.node(pos)

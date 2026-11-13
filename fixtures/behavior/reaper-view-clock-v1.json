@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "case_id": "reaper-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "provenance": "Adapted from006E Soldier identity-swap case. Actual Reaper hero switch, command ingestion, authored20-pellet shell, target histories and owner HIT. Original15 NPCs retained. A/B denote identities, not screen positions.",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/script/driver.py"]
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "shot_offset": 41,
+    "swap_after": 33,
+    "view_delay_ms": 128,
+    "target_a_position": [997, 0, 1008],
+    "target_b_position": [1003, 0, 1008]
+  },
+  "expected": {
+    "world_view_tick": 1033,
+    "target_identity": "A",
+    "target_b_health": 200,
+    "pellet_submissions": 20,
+    "hit_frame_offset": 41
+  }
+}

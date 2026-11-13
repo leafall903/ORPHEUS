@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-visor-pose-angles-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "native_entry": "CCC8E0",
+    "image_sha256": "e7ce15c45774dc9f3865dc059a5f789790f0e4e19a0024218a341af689b79e8d",
+    "boundary": "Supplied context and evaluated child vectors; CRT atan2f/asinf via Python math rounded f32; vector writer preserves native tag6. Normalization and angle wrapping execute original instructions."
+  },
+  "evidence": "synthetic-vectors-through-native-arithmetic",
+  "client_acceptance": "pending",
+  "tolerance": 3e-05,
+  "cases": [
+    {
+      "target": [
+        0,
+        0,
+        1
+      ],
+      "view": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        1,
+        0,
+        2
+      ],
+      "view": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        -26.565052032470703,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        -1,
+        0,
+        2
+      ],
+      "view": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        26.565052032470703,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        0,
+        1,
+        2
+      ],
+      "view": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        0.0,
+        26.565052032470703,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        0,
+        -1,
+        2
+      ],
+      "view": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        0.0,
+        -26.565052032470703,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        1,
+        2,
+        -3
+      ],
+      "view": [
+        -2,
+        1,
+        3
+      ],
+      "expected": [
+        164.74488830566406,
+        16.81017303466797,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        1,
+        0,
+        -100
+      ],
+      "view": [
+        -1,
+        0,
+        -100
+      ],
+      "expected": [
+        1.1458871364593506,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        0,
+        0,
+        0
+      ],
+      "view": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "target": [
+        0,
+        0,
+        1
+      ],
+      "view": [
+        0,
+        0,
+        0
+      ],
+      "expected": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}

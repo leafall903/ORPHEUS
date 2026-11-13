@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-owned-character-identity-v1",
+  "target_build": "104319",
+  "source": {"revision": "ea47294324376ff0317780d7f6df12d28672b647", "paths": ["src/ow174/game/match.py", "tests/runtime/test_dva_character_identity.py"]},
+  "evidence": "synthetic-reference-backed-by-local-native-observation",
+  "client_acceptance": "pending-retest",
+  "input": {"hero": "02E000000000007A", "body": "0400000000000407", "owner_present": true, "operation": "owned mech OP_CREATE"},
+  "expected": {"component_123": {"field_0": "02E000000000007A"}, "ordinary_npc_143E": "omit component123", "unowned_body": "omit component123"},
+  "provenance": "Read-only original104319 runtime confirmed a123 component on the owned0407 but its hero was null, while pilot and successful ordinary player bodies held their selected hero. Component tables, native IDs and entity backreferences were validated. Visual resolution still requires a fresh candidate client."
+}

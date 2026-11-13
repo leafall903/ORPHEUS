@@ -13,7 +13,7 @@ import test_lucio_combat as fixtures
 
 from ow174.game import lucio_movement
 from ow174.game.commands import Command
-from ow174.game.mover import IN_AIR
+from ow174.game.mover import IN_AIR, SET
 from ow174.game.script import expr, graph
 
 
@@ -53,13 +53,14 @@ class LucioWallJumpTests(unittest.TestCase):
                 self.assertEqual(actor.velocity, before)
                 self.assertEqual(len(actor.velocity_changes), 2)
                 scalar, vector = actor.velocity_changes
+                self.assertEqual(scalar.op, SET)  # Actual STU_9AF0FA80, not multiply.
                 self.assertEqual((scalar.frame, vector.frame), (frame + 1, frame + 1))
                 key = (instance.id << 48) | (node.rid << 32) | (((frame + 1) & 65535) << 16)
                 self.assertEqual((scalar.key, vector.key), (key, key | 1))
                 for actual, wanted in zip(vector.value, expected, strict=True):
                     self.assertAlmostEqual(actual, wanted, delta=2e-5)
                 actor.step_pose(Command(frame + 1, pitch=8192), .016, frame + 1)
-                target = (expected[0], (3. - 17.5 * .016) * 1.15 + expected[1], 4. + expected[2])
+                target = (expected[0], actor.data.jump_speed * 1.15 + expected[1], 4. + expected[2])
                 for actual, wanted in zip(actor.velocity, target, strict=True):
                     self.assertAlmostEqual(actual, wanted, delta=.002)
                 self.assertGreater(actor.position[2], 0.)

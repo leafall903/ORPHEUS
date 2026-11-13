@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "case_id": "mei-melee-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/mei.py", "tests/runtime/test_mei_melee_view_clock.py"],
+    "provenance": "Adapted the original Ball/76 distinct target identity swap to actual Mei quick-melee commands; original15NPCs retained."
+  },
+  "evidence": "synthetic-production-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "frame_ms": 16,
+    "shot_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "viewed_target_offset": [0, 0, 2],
+    "other_target_offset": [8, 0, 2],
+    "npc_count": 15,
+    "seed": null,
+    "packet_loss": [],
+    "order": "Write A/B positions then advance each world tick; submit neutral source input through offset40; press actual quick melee at offset41. A and B exchange their positions after offset33."
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "A_health": 170,
+    "B_health": 200,
+    "hit_target": "A",
+    "hit_owner_frame_offset": 41,
+    "fractional_view_probe": {"owner_offset": 33.5, "world_tick": 1033.5},
+    "npc_count_after": 15
+  },
+  "limits": "Repairs only Mei melee target-history lookup. Source HIT and network identity labels stay in owner domain. Physical projectiles and Blizzard do not traverse this raw owner hitscan lookup. Knockback recipient clocks/transport and native presentation remain separately unaccepted."
+}

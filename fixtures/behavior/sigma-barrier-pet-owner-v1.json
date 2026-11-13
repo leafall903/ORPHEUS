@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-barrier-pet-owner-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/sigma_presentation.py", "src/ow174/game/world.py"],
+    "reference": "1B55/node6 Pet source m_D749D7D8 resolves current controller. 2D25 declares STUPetComponent;1A2A/node13 compares F76C486C(self) with local player. NativeF525E0 maps2BD49D74 to72;CE2CF0/D1BEE0 query its entity."
+  },
+  "evidence": "synthetic encrypted create and original expression; engine query outputs supplied explicitly",
+  "client_acceptance": "pending; no native model, sound, material or wire-to-runtime storage claim",
+  "input": {"neutral_world_steps": 12, "step_ms": 16, "viewers": 2, "packet_loss": "none", "seed": "no random relation selection"},
+  "expected": {"component": 72, "field": 0, "source": "authored Pet controller identity, distinct from source body", "owner_branch": true, "observer_branch": false}
+}

@@ -397,6 +397,10 @@ class BodyWorld(runtime.World):
         ability = getattr(match.combat, "orisa", None)
         if ability is not None and (entity in ability.orbs or entity in ability.superchargers.active):
             return entity_queries.Target(entity, None)
+        from ow174.game import accretion
+
+        if accretion.lookup(match.combat, entity) is not None:
+            return entity_queries.Target(entity, None)
         return None
 
     def _lookup_body_owner(self, entity):
@@ -611,6 +615,11 @@ class BodyWorld(runtime.World):
         if self.match is None or entity == runtime.GAME_MODE_ENTITY:
             return NotImplemented
         component = self._body_component(entity)
+        if (self.hero == regeneration.MERCY and var == 653 and component is not None
+                and entity != self.body):
+            slot = component.entity_var(var, create=False)
+            if slot is None or slot.value() is None:
+                return NotImplemented  # Keep the existing corpse owner_dead binding.
         return component.entity_var(var, create=create) if component is not None else None
 
     def entity_var(self, entity, var):
@@ -743,6 +752,8 @@ class BodyWorld(runtime.World):
         if sigma_flux.play_flux_request(self, instance, node):
             return
         fight = self.match.combat
+        if fight.hooks.play_victim(self, instance, node):
+            return
         if self.hero == 0x02E0000000000009 and instance.graph.index == 0x00FA and node.pos == 2:
             world_barriers = fight.barriers.world
             if any(actor.source_component is instance.component for actor in world_barriers.actors.values()):
@@ -1048,6 +1059,25 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
+        if self.match is not None and instance is not None:
+            hooks = self.match.combat.hooks
+            for resolve in (lambda: hooks.caster_native(self, instance, cfg),
+                            lambda: hooks.victim_native(instance, cfg)):
+                result = resolve()
+                if result is not NotImplemented:
+                    return result
+        if self.hero == 0x02E0000000000007:
+            from ow174.game import reinhardt_charge
+
+            selected = reinhardt_charge.capture_body_query(self, cfg, instance)
+            if selected is not NotImplemented:
+                return selected
+        if self.hero == 0x02E000000000006E:
+            from ow174.game import soldier_visor
+
+            result = soldier_visor.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if instance is not None and self.match is not None:
             from ow174.game import sigma_flux
 
@@ -1079,6 +1109,23 @@ class BodyWorld(runtime.World):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
         cls = cfg.get("$")
+        if (self.hero == regeneration.MERCY and self.match is not None and instance is not None
+                and instance.graph.index == 0x006E and cls == "STU_71A87E92"
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            return self.position(self.body)
+        if (self.hero == regeneration.MERCY and self.match is not None and instance is not None
+                and instance.graph.index == 0x006E and cls == "STU_309B0570"
+                and cfg.get("m_5B94EDB8") is None
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            mover = self.match._script_body_mover(self.body, self.body)
+            return Vec3(*mover.velocity) if mover is not None else None
+        if (cls == "STU_21A13145" and self.match is not None and instance is not None
+                and self.hero == 0x02E0000000000040 and instance.graph.index == 0x01C8
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            owner = self.match.script_player_body(self.body, self.body)
+            if owner is not None:
+                # The Hook graph needs its typed origin before ChaseVar enters.
+                return Vec3(*self.match.combat._eye(owner))
         if self.match is not None and instance is not None:
             if cls == "STU_8CBDD81C":
                 position = self.match.script_body_position(expr.to_entity(instance.evaluate(cfg.get("m_entity"))), self.body)
@@ -1093,6 +1140,9 @@ class BodyWorld(runtime.World):
             owner = ball.passive_owner(self, cfg, instance)
             if owner is not NotImplemented:
                 return owner
+            pitch = ball.body_pitch(self, cfg, instance)
+            if pitch is not NotImplemented:
+                return pitch
             if cls in {"STU_8CBDD81C", "STU_71A87E92"}:
                 entity = instance.evaluate(cfg.get("m_entity"))
                 if isinstance(entity, Entity) and self.match is not None:
@@ -1286,6 +1336,12 @@ class BodyWorld(runtime.World):
         result = mccree.native(self, cfg, instance)
         if result is not NotImplemented:
             return result
+        if self.hero == 0x02E0000000000206:
+            from ow174.game import echo_movement
+
+            result = echo_movement.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if self.match is not None and instance is not None and instance.graph.index == 0x1B55:
             from ow174.game import sigma_barrier
 
@@ -1734,6 +1790,11 @@ class BodyWorld(runtime.World):
         return resource, alias.guid, category.guid if category is not None else 0
 
     def animation_duration(self, instance: runtime.Instance, node: graph.Node) -> float | None:
+        from ow174.game import ball
+
+        duration = ball.animation_duration(self, instance, node)
+        if duration is not NotImplemented:
+            return duration
         key = self._wheel_animation_key(instance, node)
         if key is None or not key[1]:
             return None if key is None else 0.0
@@ -1901,6 +1962,14 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        if (self.hero == regeneration.MERCY and self.match is not None
+                and instance.graph.index == 0x006E and node.pos == 73):
+            mover = self.match._script_body_mover(self.body, self.body)
+            if mover is not None:
+                # This authored jump cancellation hands MoveTo velocity to the next pose.
+                mover.driven = False
+            return NotImplemented
+
         from ow174.game import sigma_flux
         if sigma_flux.flux_velocity(instance, node):
             return True
@@ -2035,11 +2104,21 @@ class BodyWorld(runtime.World):
                 duration = 10.0 * expr.to_float(self.ruleset(13032), 1.0)
                 instance.write((expr.INSTANCE, 14669), duration)
                 inherited = instance.source_entity()
+                factory = instance.graph.node(11)
+                position = instance.evaluate(factory.field("m_position"))
+                direction = instance.evaluate(factory.field("m_AD8E614B"))
+                if not isinstance(position, Vec3) or not isinstance(direction, Vec3):
+                    return False
+                charge_yaw = round(math.atan2(direction.x, direction.z) * 65536 / (2 * math.pi))
                 self.match.combat.companions.summon(player, charge_seconds=charge, gun_seconds=duration,
-                    charge_instigator=inherited if expr.valid_entity(inherited) else self.body)
+                    charge_instigator=inherited if expr.valid_entity(inherited) else self.body,
+                    position=tuple(position), charge_yaw=charge_yaw)
             return True
 
         if self.match is not None and self.hero == photon_barrier.HERO:
+            portal = self.match.combat.portals.play(instance, node)
+            if portal is not NotImplemented:
+                return portal is True
             return self.match.combat.photon_barriers.play(instance, node) is True
         if self.match is not None and self.hero == 0x02E000000000023B:
             return self.match.combat.absorption.play(instance, node)
@@ -2494,11 +2573,63 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.world_frame_anchor: tuple[int, int] | None = None
+        if hero == 0x02E0000000000006 and match is not None:
+            self.torbjorn_birth = (match.tick, start_frame, self.frame_ms)
+        if hero == regeneration.MERCY and match is not None:
+            self.mercy_birth = (match.tick, start_frame)
+        if hero == 0x02E0000000000009 and match is not None:
+            self.winston_birth = (match.tick, start_frame)  # immutable body/world epoch, not input admission
+        if hero == 0x02E0000000000016 and match is not None:
+            self.symmetra_birth = (match.tick, start_frame)
+        if hero == 0x02E0000000000029 and match is not None:
+            self.genji_birth = (match.tick, start_frame)
+        if hero == 0x02E0000000000040 and match is not None:
+            self.roadhog_birth = (match.tick, start_frame)
+        if hero == 0x02E0000000000065 and match is not None:
+            self.junkrat_birth = (match.tick, start_frame)
+        if hero == 0x02E000000000007A and match is not None:
+            self.dva_birth = (match.tick, start_frame)
+        if hero == 0x02E000000000013E and match is not None:
+            self.orisa_birth = (match.tick, start_frame)
+        if hero == 0x02E0000000000195 and match is not None:
+            self.brigitte_birth = (match.tick, start_frame)  # Fixed epoch, independent of input admission.
+        if hero == 0x02E00000000001A2 and match is not None:
+            self.moira_birth = (match.tick, start_frame)
+            self.moira_neutral_window = None
+        if hero == 0x02E0000000000200 and match is not None:
+            self.world_frame_anchor = match.tick, start_frame
+            self.ashe_birth = (match.tick, start_frame, self.frame_ms)
+        if hero == 0x02E0000000000206 and match is not None:
+            self.echo_birth = (match.tick, start_frame)  # immutable projectile source epoch
+        if hero == 0x02E000000000023B and match is not None:
+            self.sigma_birth = (match.tick, start_frame)
+        if hero == 0x02E0000000000042 and match is not None:
+            self.mccree_birth = (match.tick, start_frame)  # immutable body/command epoch for Flashbang
         if hero == 0x02E00000000000DD and match is not None:
             self.cryo_birth = (match.tick, start_frame)  # immutable body epoch; no input lease
+        if hero == 0x02E000000000006E and match is not None:
+            self.soldier_birth = (match.tick, start_frame)  # fallback before the first accepted packet
         if hero == 0x02E00000000001CA and match is not None:
             self.ball_birth = (match.tick, start_frame)  # immutable actual epoch pair; not an input lease
-        if hero in (0x02E0000000000002, 0x02E0000000000008, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
+        if hero == 0x02E000000000013B and match is not None:
+            self.ana_birth = (match.tick, start_frame)
+        if (hero in (
+                0x02E0000000000002,
+                0x02E0000000000003,
+                0x02E0000000000005,
+                0x02E0000000000008,
+                0x02E0000000000009,
+                0x02E000000000000A,
+                0x02E0000000000015,
+                0x02E0000000000016,
+                0x02E0000000000020,
+                0x02E0000000000065,
+                0x02E0000000000068,
+                0x02E0000000000079,
+                0x02E000000000012E,
+                0x02E0000000000206,
+                0x02E0000000000221,
+        ) and match is not None):
             self.world_frame_anchor = match.tick, start_frame
         if ult_seconds is None and hero == 0x02E000000000023B and match is not None:
             from ow174.game import sigma_charge
@@ -3412,6 +3543,8 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        if self.hero == 0x02E00000000001CA and self.world.match is not None:
+            self.world.match.combat.clear_temporary_shields(self.entity)
         if getattr(self.world, "hanzo_climb", None) is not None:
             self.world.hanzo_climb.active = False
             self.world.hanzo_climb.mantle = None
@@ -3611,6 +3744,13 @@ def create_body_graphs(
             raise ValueError(f"body weapon graph is unavailable for slot {slot}")
         if weapon is not None:
             created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
+    # These are allocation roots on their own bodies. 1536's subsequent
+    # PlayScript inherits Ashe as the charge instigator; 153B fires as B.O.B.
+    source_graph = {0x02E0000000000200: 0x1536, 0x02E000000000021D: 0x153B}.get(
+        getattr(component.world, 'hero', None))
+    for instance in created:
+        if instance.graph.index == source_graph:
+            instance.set_source_entity(component.entity)
     return created
 
 

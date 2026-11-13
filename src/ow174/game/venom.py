@@ -2,20 +2,22 @@
 
 Numbers come from 0056 (throw), 0057 (mine), 0073 (poison), and projectile
 00AF's m_A0D912A2=-30. The server simulation/attachment/target-filter semantics
-are reconstructed. Networked deployed-mine presentation and the complete native
-per-target graph host remain unimplemented; this module does not claim them.
+are reconstructed. Deployed entities use the authored 00AE definition. The
+complete native per-target graph host and client presentation need acceptance.
 """
 
 import math
 from dataclasses import dataclass
 from functools import cached_property
 
+from ow174.game import world
 from ow174.game.script import expr, graph
 
 HERO = 0x02E000000000000A
 FRAME_SECONDS = 0.016
 GRAVITY = -30.0
 DEFINITION = 0x04000000000000AF
+MINE_DEFINITION = 0x04000000000000AE
 
 
 @dataclass
@@ -28,6 +30,7 @@ class Flight:
     shot: object
     team: int | None = None
     matrix_absorbable: bool | None = None
+    last_tick: int | None = None
 
 
 @dataclass
@@ -39,6 +42,8 @@ class Mine:
     ready: int
     health: float
     wall: int | None = None
+    normal: tuple = (0.0, 1.0, 0.0)
+    last_tick: int | None = None
 
 
 @dataclass
@@ -49,6 +54,7 @@ class Poison:
     remaining: float
     rate: float
     pending: float = 0.0
+    last_tick: int | None = None
 
 
 class _PoisonAmount(expr.Context):
@@ -76,6 +82,41 @@ class Mines:
         self.poison: list[Poison] = []
         self.next_number = 1  # server-local handle, never a guessed network entity ID
         self.last_tick = None
+        self.replicas = {}
+
+    def sync_models(self):
+        live = {mine.number: mine for mine in self.mines}
+        for number in tuple(self.replicas):
+            if number in live:
+                continue
+            entity, viewers = self.replicas.pop(number)
+            for viewer in self.combat.match.players:
+                if viewer.client is not None and viewers.get(viewer.slot) is viewer.client:
+                    viewer.client.queue_entities([world.EntityUpdate(entity, world.OP_DESTROY)])
+        for number, mine in live.items():
+            if number not in self.replicas:
+                self.replicas[number] = self.combat.allocate_combat_entity(), {}
+            entity, viewers = self.replicas[number]
+            nx, ny, nz = mine.normal
+            quaternion = (nz, 0.0, -nx, 1.0 + ny)
+            length = math.sqrt(sum(axis * axis for axis in quaternion))
+            rotation = (tuple(axis / length for axis in quaternion) if length > 1e-9
+                        else (1.0, 0.0, 0.0, 0.0))
+            position = mine.position
+            theme, _ = mine.owner.skin
+            for viewer in self.combat.match.players:
+                if (not viewer.spawned or viewer.client is None
+                        or viewers.get(viewer.slot) is viewer.client):
+                    continue
+                viewers[viewer.slot] = viewer.client
+                viewer.client.queue_entities([world.EntityUpdate(
+                    entity, world.OP_CREATE,
+                    lambda origin, position=position, rotation=rotation, theme=theme: world.create(
+                        origin, MINE_DEFINITION, {},
+                        flags=world.WITH_TRANSFORM | world.WITH_SCALE,
+                        position=position, rotation=rotation, skin=(theme, False),
+                    ),
+                )])
 
     @cached_property
     def properties(self):
@@ -93,17 +134,23 @@ class Mines:
             "duration": duration, "rate": total / duration, "loadout": loadout.guid,
         }
 
-    def throw(self, owner, state, origin, direction, shot):
+    def throw(self, owner, state, origin, direction, shot, *, frame=None):
         if (owner.hero.guid != HERO or state.instance.graph.index != 0x56 or state.index != 0):
             return False
         self.mines[:] = [mine for mine in self.mines if mine.body != owner.body]
+        self.sync_models()
         speed = float(state.evaluate(state.node.field("m_projectileSpeed"), watch=False))
         lifetime = float(state.evaluate(state.node.field("m_projectileLifetime"), watch=False))
+        from ow174.game import sombra_replay
+
+        born = (sombra_replay.world_frame(owner.body_script, frame)
+                if frame is not None else None)
         self.flights.append(Flight(
             owner, owner.body, tuple(origin), tuple(axis * speed for axis in direction), lifetime, shot,
             team=owner.team, matrix_absorbable=(DEFINITION in self.combat.matrix_definitions
                 if self.combat.matrix_definitions is not None else
                 self.combat.projectile_tags.admitted(DEFINITION)),
+            last_tick=self.combat.tick if born is None else born,
         ))
         return True
 
@@ -111,6 +158,7 @@ class Mines:
         self.flights[:] = [flight for flight in self.flights if flight.body != body]
         self.mines[:] = [mine for mine in self.mines if mine.body != body]
         self.poison[:] = [poison for poison in self.poison if poison.body != body and poison.target != body]
+        self.sync_models()
 
     def _shield_hit(self, shooter, origin, direction, reach, *, team=None):
         """Use the combined server's existing barrier managers, never old duplicates."""
@@ -151,6 +199,9 @@ class Mines:
         if self.last_tick is not None and tick <= self.last_tick:
             return
         first = tick if self.last_tick is None else max(self.last_tick + 1, tick - 624)
+        pending = [flight.last_tick + 1 for flight in self.flights if flight.last_tick is not None]
+        if pending:
+            first = min(first, min(pending))
         self.last_tick = tick
         fight = self.combat
         now, current_tick = fight.now, fight.tick
@@ -161,12 +212,16 @@ class Mines:
                 self._step(frame)
         finally:
             fight.now, fight.tick = now, current_tick
+        self.sync_models()
 
     def _step(self, tick):
         if not (self.flights or self.mines or self.poison):
             return
         fight = self.combat
         for flight in list(self.flights):
+            if flight.last_tick is not None and tick <= flight.last_tick:
+                continue
+            flight.last_tick = tick
             if flight.owner.body != flight.body or not flight.owner.has_body:
                 self.flights.remove(flight)
                 continue
@@ -240,6 +295,8 @@ class Mines:
                         self.next_number, flight.owner, flight.body, position,
                         tick + self.properties["arm"], self.properties["health"],
                         wall.entity if wall is not None else None,
+                        tuple(hit.normal),
+                        tick,
                     )
                     self.next_number += 1
                     self.mines[:] = [old for old in self.mines if old.body != flight.body]
@@ -266,6 +323,9 @@ class Mines:
                     fight.projectiles.absorbed(flight.shot)
 
         for mine in list(self.mines):
+            if mine.last_tick is not None and tick <= mine.last_tick:
+                continue
+            mine.last_tick = tick
             if mine.owner.body != mine.body or not mine.owner.has_body:
                 self.mines.remove(mine)
                 continue
@@ -292,6 +352,9 @@ class Mines:
 
         targets = {target.entity: target for target in fight._targets()}
         for poison in list(self.poison):
+            if poison.last_tick is not None and tick <= poison.last_tick:
+                continue
+            poison.last_tick = tick
             target = targets.get(poison.target)
             if (target is None or poison.owner.body != poison.body or fight.vitals_of(target).dead):
                 self.poison.remove(poison)
@@ -357,6 +420,7 @@ class Mines:
         mine.health -= amount
         if mine.health <= 0:
             self.mines.remove(mine)
+            self.sync_models()
 
     def explode(self, shooter, point, blast, *, visible_from):
         """Selected host splash geometry; native deployable filters remain open."""

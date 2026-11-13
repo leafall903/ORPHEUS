@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-hand-cannon-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/doomfist.py"],
+    "provenance": "Synthetic encrypted command schedule; expected flight age and lifetime from the unchanged single-command schedule, not native client observation."
+  },
+  "evidence": "synthetic-regression",
+  "client_acceptance": "pending",
+  "epoch_offset_case": {"world_gap_ticks": 53, "fire_after_body_frames": 1},
+  "input": {
+    "first_frame": 1002,
+    "last_frame": 1560,
+    "fire_frame": 1110,
+    "query_world_tick": 1160,
+    "batch_sizes": [1, 8, 32],
+    "target_distances": [600, 15],
+    "packet_loss": [],
+    "input_order": "Neutral at every command frame except one primary press; contiguous commands delivered oldest first at the end of each batch; update world before delivery.",
+    "seed": "Fresh DoomfistFixture: fixed entity, graph instance and activation counter for every case; no clock, weapon resource or spread override."
+  },
+  "expected": {
+    "launch_world_tick": 1110,
+    "pellets": 11,
+    "query_miss_flight_seconds": 0.8,
+    "all_retired_world_tick": 1501,
+    "far_target_health": 200,
+    "near_target_health": 152,
+    "direction_and_far_position_equal_across_batches": true
+  }
+}

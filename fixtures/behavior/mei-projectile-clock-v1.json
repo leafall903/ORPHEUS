@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "case_id": "mei-projectile-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/mei.py", "src/ow174/game/mei_blizzard.py", "src/ow174/game/combat.py", "tests/runtime/test_mei_projectile_clock.py"]
+  },
+  "evidence": "synthetic-production-command-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "scene": "Two stationary players in the existing synthetic flat arena, initialized Mei; no input pose displacement",
+    "frame_ms": 16,
+    "birth_pair": [1000, 1000],
+    "replacement_case": {
+      "operation": "Advance world without commands to 1200, then switch to a fresh Mei body and warm its actual input by 30 frames",
+      "birth_pair": [1200, 1030],
+      "command_start": 1060,
+      "world_start": 1230,
+      "batch_size": 32,
+      "query_world": 1295
+    },
+    "start_world": 1030,
+    "command_frames": [1031, 1094],
+    "pressed_frames": [1033, 1037],
+    "query_world": 1095,
+    "batch_sizes": [1, 8, 32],
+    "seed": null,
+    "spread": "Existing authored single-shot paths, unchanged",
+    "packet_loss": [],
+    "order": "Advance world to each batch endpoint, then submit every Command in that batch through Player.take_commands; query once at world1095"
+  },
+  "expected": {
+    "float_tolerance": 1e-9,
+    "blizzard": {"release_command": 1064, "flown_seconds": 0.496},
+    "icicle": {"release_command": 1058, "flown_seconds": 0.592},
+    "batch_invariants": ["flight count", "position", "remaining lifetime", "retirement world tick", "Blizzard landing position and area start/end/retirement"],
+    "icicle_body_hit": {"damage": 75, "owner_hit_notices": 1, "remaining_flights": 0},
+    "replacement_case": {
+      "icicle": {"release_command": 1088, "flown_seconds": 0.592},
+      "blizzard": {"release_command": 1094, "flown_seconds": 0.496}
+    }
+  },
+  "limits": "Stationary synthetic collision targets; does not establish moving-target historical collision equivalence or original-client rendering. No fixed frame adjustment, spread or damage change."
+}

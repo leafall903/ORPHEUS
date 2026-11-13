@@ -1,0 +1,17 @@
+{
+  "schema": "orpheus.orisa-barrier-health.v1",
+  "provenance": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "source": "104319 14A1 health component and 0BD8 entity-health material input; synthetic two-peer Soldier impact",
+    "scope": "Initial health, damage update, original ModelLook remote entity253 input, team and inherited projectile source on the wire",
+    "original_client_render_acceptance": "pending"
+  },
+  "pool_id": 1,
+  "pool_type": 0,
+  "maximum": 600.0,
+  "initial": 600.0,
+  "after_one_hit": 580.0,
+  "look_health_variable": 253,
+  "source_variable": 27,
+  "caller_variable": 40
+}

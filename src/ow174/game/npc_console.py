@@ -10,6 +10,7 @@ from pathlib import Path
 from ow174.game import bots, combat, npc, npc_control
 from ow174.game.collision import MOVER, NOT_GROUND
 from ow174.game.contacts import CharacterBody
+from ow174.game.content import find_hero, heroes
 from ow174.game.mover import mover_data
 
 
@@ -28,7 +29,11 @@ class Console:
         self.catalog = dict(catalog)
         self.menu_open = False
 
-    def press(self, key: str, match, player):
+    def press(self, key: str, match, player, *, hero: str | None = None):
+        if key == 'heroes':
+            return {'handled': True, 'action': 'hero_menu',
+                    'choices': [{'guid': f'0x{item.guid:016X}', 'name': item.name}
+                                for item in sorted(heroes().values(), key=lambda item: item.name)]}
         if key == '=':
             self.menu_open = True
             return {'handled': True, 'action': 'menu', 'menu_open': True,
@@ -36,7 +41,7 @@ class Console:
         if key == 'Escape':
             self.menu_open = False
             return {'handled': True, 'action': 'close_menu', 'menu_open': False}
-        if key not in ('-', '0', '{', '}') and not (self.menu_open and key in self.catalog):
+        if key not in ('-', '0', '{', '}', 'hero') and not (self.menu_open and key in self.catalog):
             return {'handled': False, 'menu_open': self.menu_open}
         if (match.ended or player not in match.players or player.gone or not player.spawned
                 or player.client is None or not player.has_body):
@@ -51,10 +56,23 @@ class Console:
             return {'handled': True, 'action': 'start', 'entity': npc_control.start(match, player)}
         if key == '}':
             return {'handled': True, 'action': 'strike', 'entity': npc_control.strike(match, player)}
-        definition = self.catalog[key]
+        hero_target = key == 'hero'
+        if hero_target:
+            from ow174.game import pools
+            from ow174.game.script import graph
+
+            selected = find_hero(hero) if isinstance(hero, str) else None
+            if selected is None or selected.body not in graph.bodies():
+                raise ValueError('Select a hero with prepared body data')
+            health, armour, shields = pools.active_pools(selected.guid, selected.body)
+            definition = npc.Definition(selected.guid, selected.body, selected.name, health, armour, shields,
+                                        mover=mover_data(selected.body))
+        else:
+            definition = self.catalog[key]
         position = self.spawn_position(match, player, definition.body)
         team = 1 if player.team == 0 else 0
-        bot = npc.spawn(match, definition, position, team=team, yaw=player.mover.yaw + 32768)
+        bot = npc.spawn(match, definition, position, team=team, yaw=player.mover.yaw + 32768,
+                        hero_target=hero_target)
         return {'handled': True, 'action': 'spawn', 'entity': bot.entity, 'name': bot.name}
 
     @staticmethod

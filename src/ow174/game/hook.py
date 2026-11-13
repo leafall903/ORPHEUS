@@ -3,8 +3,8 @@
 Ordinary graphs own input/windup/cooldown. This consumer bridges the missing
 TrackTargets/PlayScript services at the real launch state, with resource-backed
 range, sweep radius, speed, damage, minimum separation and recovery. Capsule
-sweeps, horizontal relative destination and phase timing remain reconstructed;
-native target filters, competing controls and defense services remain open.
+sweeps remain reconstructed; admitted victim VMs supply the original relative
+MoveTo request. Native target filters, Clamp and client adoption remain open.
 """
 
 import math
@@ -14,6 +14,26 @@ from ow174.game import bots, defenses
 from ow174.game.commands import Command
 from ow174.game.mover import Mover, mover_data
 from ow174.game.script import expr, graph, nodes
+
+
+def event_tick(script, time):
+    """Map Roadhog's authored event milliseconds through its immutable body epoch."""
+    from ow174.game.combat import TICK
+
+    birth = getattr(script, "roadhog_birth", None)
+    if birth is None:
+        return None
+    world, frame = birth
+    return world + math.floor((time - frame * script.frame_ms) / (TICK * 1000))
+
+
+def view_world_tick(script, command, quanta):
+    """Sample world target history at Roadhog's reported view time, without rounding."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.roadhog_birth
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
 
 
 @dataclass
@@ -34,12 +54,15 @@ class Flight:
     limit: float
     last_tick: int
     launch_tick: int
+    latch_delay: float = 0.0
     travelled: float = 0.0
     target: object = None
     caught_at: float = 0.0
     arrived_at: float | None = None
     npc_mover: object = None
     player_driven: bool = False
+    victim_instance: object = None
+    contact_published: bool = False
 
 
 class Hooks:
@@ -108,7 +131,10 @@ class Hooks:
             offset = move.field("m_865F3D01")["m_configVars"][2]
             separation = offset["m_expression"]["m_D99EF254"][0]
             gap = offset["m_configVars"][0]["m_expression"]["m_D99EF254"][0]
-            recovery = definition._by_pos[7].field("m_timeout")["m_value"]
+            # Wait7 is the initial hit stun, preceding 50 -> 71 -> MoveTo0.
+            # MoveTo's end sends C6, then Wait30 owns the release interval.
+            latch_delay = definition._by_pos[7].field("m_timeout")["m_value"]
+            recovery = definition._by_pos[30].field("m_timeout")["m_value"]
             limit = definition._by_pos[5].field("m_timeout")["m_value"]
             direct = combat.hit_def(launch, {
                 "m_modifyHealth": instance.graph._by_pos[19].field("m_modifyHealth"),
@@ -120,10 +146,13 @@ class Hooks:
             radius = expr.to_float(launch.evaluate(instance.graph._by_pos[17].field("m_radius"), watch=False))
             if direct is None or min(reach, speed, pull, separation, limit) <= 0 or radius < 0:
                 continue
+            launched = event_tick(player.body_script, launch.start)
+            launched = self.combat.tick if launched is None else launched
             self.flights[player.body] = Flight(
                 player, player.body, instance, self.combat._eye(player), combat.aim(*command.aim()),
                 reach, speed, radius, direct, pull, separation, gap, recovery, limit,
-                self.combat.tick, self.combat.tick,
+                launched, launched,
+                latch_delay=latch_delay,
             )
             flight = self.flights[player.body]
             endpoint = combat._along(flight.origin, flight.direction, flight.reach)
@@ -134,12 +163,25 @@ class Hooks:
             instance.write((0, 10534), expr.Vec3(*flight.origin))
             instance.write((0, 433), expr.Vec3(*flight.direction))
             self.present(flight, flight.origin)
+            for at in range(launched + 1, self.combat.tick + 1):
+                if player.body not in self.flights:
+                    break
+                self.update(at, only_body=player.body)
 
     @staticmethod
     def present(flight, position):
         """Feed the authored hook/chain cosmetic through the existing body stream."""
         point = expr.Vec3(*position)
-        flight.instance.write((0, 431), point)
+        instance = flight.instance
+        chase = next((state for state in instance.states.values()
+                      if state.node.pos == 136 and isinstance(state, nodes.ChaseVar)
+                      and state.active and state.var is not None), None)
+        if chase is not None:
+            before = chase.var.value()
+            chase.cur = point
+            instance.changed(chase.var, before)
+        else:
+            instance.write((0, 431), point)
 
     @property
     def fight(self):
@@ -150,11 +192,162 @@ class Hooks:
             if flight.target is not None and flight.target.entity == entity:
                 self.cancel_owner(body)
 
+    def play_victim(self, world, instance, node):
+        """Deliver 01C8's authored impact request to the selected victim VM."""
+        if (world.hero != 0x02E0000000000040 or instance.graph.index != 0x01C8
+                or node.pos != 14):
+            return False
+        flight = self.flights.get(world.body)
+        if flight is None or flight.instance is not instance or flight.target is None:
+            return True
+        from ow174.game.script import play
+
+        resource = play.resolve_resource(instance, node)
+        if resource is None or resource.guid != 0x05800000000001C9:
+            return True
+        request = play.resolve_request(instance, node, resource,
+            context_provider=lambda: play.InvocationContext(world.body, world.body, instance.source_entity()))
+        script = flight.target.owner.body_script
+        if (request is None or request.targets != (flight.target.entity,)
+                or script is None or flight.victim_instance is not None):
+            return True
+        component = script.component
+        if (component.entity != flight.target.entity or component.fault is not None or component.owner_dead
+                or component.strict or getattr(component.world, "match", None) is not self.combat.match):
+            return True
+        flight.victim_instance = component.play_loaded_graph(
+            graph.graph(0x01C9), source=request.context.caller, instigator=request.context.instigator,
+            params=request.params, overrides=resource.overrides, policy=request.policy)
+        component.run_now()
+        return True
+
+    def victim_actor(self, component, entity):
+        for flight in self.flights.values():
+            victim = flight.victim_instance
+            if victim is None or victim.component is not component:
+                continue
+            if entity == flight.body:
+                return flight.owner
+            if entity == flight.target.entity:
+                return flight.target.owner
+        return None
+
+    def victim_position(self, component, entity):
+        actor = self.victim_actor(component, entity)
+        if actor is None:
+            return NotImplemented
+        return expr.Vec3(*(actor.position if isinstance(actor, bots.Bot) else actor.mover.position))
+
+    def victim_native(self, instance, cfg):
+        if instance.graph.index != 0x01C9:
+            return NotImplemented
+        from ow174.game.script import play
+
+        entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
+        actor = self.victim_actor(instance.component, entity)
+        if actor is None:
+            return NotImplemented
+        if cfg.get("$") == "STU_E72F6348":
+            return any(target.entity == entity and not self.combat.vitals_of(target).dead
+                       for target in self.combat._targets())
+        if cfg.get("$") == "STU_71A87E92":
+            return self.victim_position(instance.component, entity)
+        if cfg.get("$") == "STU_21A13145":
+            return expr.Vec3(*self.combat._eye(actor))
+        if cfg.get("$") == "STU_FDBB0B67":
+            mover = (actor.control_mover or actor.impulse_mover) if isinstance(actor, bots.Bot) else actor.mover
+            return mover.body_scale if mover is not None else 1.0
+        if cfg.get("$") == "STU_F7FD94F9":
+            target = next((t for t in self.combat._targets() if t.entity == entity), None)
+            return expr.f32(target.radius) if target is not None else expr.EVALUATION_FAILED
+        if cfg.get("$") == "STU_021D01CD":
+            from ow174.game.combat import aim
+
+            yaw = actor.yaw if isinstance(actor, bots.Bot) else actor.mover.yaw
+            return expr.Vec3(*aim(yaw, 0))
+        if cfg.get("$") == "STU_588FF314":
+            return self.pull_basis(instance, cfg, actor)
+        return NotImplemented
+
+    def caster_native(self, world, instance, cfg):
+        if (instance.graph.index != 0x01C8 or world.hero != 0x02E0000000000040
+                or cfg.get("$") not in ("STU_2200A66D", "STU_66F3B89E")):
+            return NotImplemented
+        from ow174.game.combat import aim
+        from ow174.game.script import play
+
+        entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
+        actor = next((p for p in self.combat.match.players if p.has_body and p.body == entity), None)
+        if (entity != world.body or actor is None or actor.body_script is None
+                or actor.body_script.component is not instance.component):
+            return NotImplemented
+        if cfg.get("$") == "STU_2200A66D":
+            return expr.Vec3(*aim(actor.mover.yaw, actor.mover.pitch))
+        if cfg.get("$") == "STU_66F3B89E":
+            return expr.Vec3(*aim(actor.mover.yaw + 16384, 0))
+        return NotImplemented
+
+    def pull_basis(self, instance, cfg, actor):
+        # Reuse SceneWorld's original CEB820-bound relative-basis interpretation.
+        # This supplies a config query; the victim's original MoveTo owns motion.
+        from ow174.game import props
+        from ow174.game.script import play
+
+        basis = cfg.get("m_64E06CA4") or {}
+        if (basis.get("$") != "STU_0762B33A" or basis.get("m_E26E5E09") is not None
+                or cfg.get("m_AEE599AA") != 0 or cfg.get("m_1FDD7084") is not None
+                or cfg.get("m_hardPoint") is not None):
+            return NotImplemented
+        forward = play.evaluate_scalar(instance, basis.get("m_32B00625"))
+        heading = expr._index(play.evaluate_scalar(instance, basis.get("m_3661BC45")), 0)
+        limit = play.evaluate_scalar(instance, basis.get("m_5023B9B0"))
+        if not isinstance(forward, expr.Vec3) or not isinstance(heading, expr.Vec3) or type(limit) not in (int, float):
+            return expr.EVALUATION_FAILED
+        yaw = math.atan2(heading.x, heading.z)
+        desired = math.atan2(heading.y, math.hypot(heading.x, heading.z))
+        current = math.atan2(forward.y, math.hypot(forward.x, forward.z))
+        limit = math.radians(limit)
+        pitch = max(desired - limit, min(current, desired + limit))
+        direction = (math.sin(yaw) * math.cos(pitch), math.sin(pitch), math.cos(yaw) * math.cos(pitch))
+        actor_yaw = actor.yaw if isinstance(actor, bots.Bot) else actor.mover.yaw
+        half = actor_yaw * math.pi / 65536
+        return expr.Vec3(*(expr.f32(a) for a in props.place(direction, (0, 0, 0), (1, 1, 1),
+                                                          (0, -math.sin(half), 0, math.cos(half)))))
+
+    def victim_move(self, flight):
+        """Evaluate the active original MoveTo relative to its actual caster."""
+        from ow174.game import props
+        from ow174.game.script import play
+
+        victim = flight.victim_instance
+        if victim is None or victim.component.instances.get(victim.id) is not victim:
+            return None
+        move = victim.states.get(victim.graph.node(0).state)
+        if not isinstance(move, nodes.MoveTo) or not move.active:
+            return None
+        entity = expr.to_entity(play.evaluate_scalar(victim, move.node.field("m_destinationEntity")))
+        actor = self.victim_actor(victim.component, entity)
+        if actor is None:
+            return None
+        offset = move.evaluate(move.node.field("m_865F3D01"), watch=False)
+        speed = move.evaluate(move.node.field("m_speed"), watch=False)
+        if (not isinstance(offset, expr.Vec3) or not all(map(math.isfinite, offset))
+                or type(speed) not in (float, int) or not 0 < speed < math.inf):
+            return None
+        feet = actor.position if isinstance(actor, bots.Bot) else actor.mover.position
+        yaw = actor.yaw if isinstance(actor, bots.Bot) else actor.mover.yaw
+        half = yaw * math.pi / 65536
+        destination = props.place(tuple(offset), tuple(feet), (1, 1, 1),
+                                  (0, math.sin(half), 0, math.cos(half)))
+        return destination, speed
+
     def forced_move(self, player):
         for flight in self.flights.values():
             if (flight.target is not None and flight.target.entity == player.body
-                    and flight.arrived_at is None):
-                return self.destination(flight), flight.pull_speed
+                    and flight.arrived_at is None
+                    and self.combat.now >= flight.caught_at + flight.latch_delay):
+                return (self.victim_move(flight) if flight.victim_instance is not None
+                        else (self.destination(flight), flight.pull_speed))
         return None
 
     def controlled(self, entity):
@@ -163,6 +356,19 @@ class Hooks:
     def cancel_owner(self, entity):
         """An interrupted caster releases its own flight/pull immediately."""
         flight = self.flights.pop(entity, None)
+        if flight is not None:
+            flight.instance.write((0, 375), ())
+            if flight.contact_published:
+                from ow174.game.script import runtime
+
+                # 01C9's MoveTo completion sends C6 to release the caster's
+                # impact phase. The reconstructed mover owns that completion.
+                runtime.send_instance_message(flight.instance, 0x02400000000000C6,
+                                              {}, flight.target.entity)
+        if flight is not None and flight.victim_instance is not None:
+            victim = flight.victim_instance
+            if victim.component.instances.get(victim.id) is victim:
+                victim.component.destroy(victim)
         if (flight is not None and flight.npc_mover is not None
                 and self.drive_allowed(flight.target.entity, flight.target.owner)):
             # No ordinary player command follows a manual NPC's forced pose.
@@ -214,20 +420,25 @@ class Hooks:
                     state.end(False)
         script.component.shots.clear()
 
-    def update(self, tick=None):
+    def update(self, tick=None, *, only_body=None):
         from ow174.game import combat
 
         fight = self.combat
         tick = fight.tick if tick is None else tick
+        now = fight.now - (fight.tick - tick) * combat.TICK
         targets = {t.entity: t for t in fight._targets()}
         for body, flight in list(self.flights.items()):
+            if only_body is not None and body != only_body:
+                continue
+            if tick < flight.launch_tick:
+                continue
             if body not in self.flights:
                 continue
             if (flight.owner.body != body or body not in targets
                     or fight.vitals_of(targets[body]).dead or self.controlled(body)
                     or fight.is_stunned(flight.owner, tick=tick)
                     or (tick - flight.launch_tick) * combat.TICK
-                    > flight.reach / flight.speed + flight.limit):
+                    > flight.reach / flight.speed + flight.latch_delay + flight.limit + flight.recovery):
                 self.cancel_owner(body)
                 continue
             elapsed = max(0, tick - flight.last_tick) * combat.TICK
@@ -267,7 +478,7 @@ class Hooks:
                     if flight.travelled >= flight.reach:
                         self.cancel_owner(body)
                     continue
-                flight.target, flight.caught_at = best[1], fight.now
+                flight.target, flight.caught_at = best[1], now
                 if fight.damage_immune(flight.target.owner):
                     self.cancel_owner(body)
                     continue
@@ -284,6 +495,12 @@ class Hooks:
                 # other shared physical owners retain their existing priority.
                 fight.knockbacks.retire_whole_hog(flight.target.entity, forget=False)
                 self.interrupt(flight.target)
+                # Publish the actual contact through the original graph. This
+                # advances its impact branch and authored victim PlayScript;
+                # the host above remains the sole authoritative damage owner.
+                flight.contact_published = True
+                flight.instance.write((0, 375), (expr.Entity(flight.target.entity),))
+                flight.instance.component.run_now()
                 if isinstance(flight.target.owner, bots.Bot):
                     bot = flight.target.owner
                     from ow174.game.collision import MOVER, TEAM0, TEAM1
@@ -293,6 +510,7 @@ class Hooks:
                     if flight.npc_mover is None:
                         flight.npc_mover = Mover(bot.position, round(bot.yaw), fight._collision(),
                                                 mover_data(bot.body), category=category)
+                    bot._pause(tick)
             target = targets.get(flight.target.entity)
             if (target is not None and (fight.damage_immune(target.owner)
                     or fight._control_immune(target)
@@ -300,7 +518,8 @@ class Hooks:
                     or (not fight.match.game_map.free_for_all and target.team == flight.owner.team))):
                 self.cancel_owner(body)
                 continue
-            if target is None or fight.vitals_of(target).dead or fight.now - flight.caught_at >= flight.limit:
+            if (target is None or fight.vitals_of(target).dead
+                    or now - flight.caught_at >= flight.latch_delay + flight.limit + flight.recovery):
                 self.cancel_owner(body)
                 continue
             # Maintain the link to the capsule center, with ordinary static occlusion.
@@ -318,7 +537,23 @@ class Hooks:
                 if wall is not None or shield is not None:
                     self.cancel_owner(body)
                     continue
-            destination = self.destination(flight)
+            if flight.victim_instance is not None and flight.arrived_at is None:
+                request = self.victim_move(flight)
+                if request is None:
+                    victim = flight.victim_instance
+                    move = victim.states.get(victim.graph.node(0).state)
+                    if (victim.component.instances.get(victim.id) is not victim
+                            or (move is not None and (move.active or move.counter > 0))):
+                        self.cancel_owner(body)  # Invalid/retired original motion cannot retain control.
+                    continue  # The original victim VM, not a parallel timer, owns pull admission.
+                destination, flight.pull_speed = request
+            else:
+                pull_at = flight.caught_at + flight.latch_delay
+                if now <= pull_at:
+                    continue
+                elapsed = min(elapsed, now - pull_at)
+                destination = self.destination(flight)
+            outcome = None
             if (flight.npc_mover is not None and elapsed > 0 and flight.arrived_at is None
                     and self.drive_allowed(target.entity, target.owner)):
                 mover = flight.npc_mover
@@ -330,24 +565,45 @@ class Hooks:
                     if pilot is not None:
                         self.track_cutoff(target.entity, pilot.quanta, tick)
                     mover.driven = True
-                    mover._move_to(elapsed, destination, flight.pull_speed)
+                    outcome = mover._move_to(elapsed, destination, flight.pull_speed)
                 else:
                     command = Command(tick, yaw=round(target.owner.yaw), pitch=round(target.owner.pitch))
                     ground = fight.walls.ground(mover) if fight.walls.pieces else None
-                    mover.step_pose(command, elapsed, tick, move_to=(destination, flight.pull_speed), ground_override=ground)
+                    outcome = mover.step_pose(command, elapsed, tick, move_to=(destination, flight.pull_speed), ground_override=ground)
                     mover.last_command = command
                 if fight.walls.pieces:
                     fight.walls.move_mover(mover, before)
                 target.owner.last_tick = target.owner.moved_tick = tick
                 flight.target.owner.position = tuple(mover.position)
                 flight.target.owner.velocity = mover.velocity
+                history = fight.history.get(target.entity)
+                if history:
+                    latest = history[-1]
+                    history[-1] = (latest[0], tuple(mover.position), *latest[2:])
             elif not isinstance(target.owner, bots.Bot):
-                self.move_player(flight, target, destination, tick, elapsed)
-            feet = (flight.target.owner.position if flight.npc_mover is not None
-                    else flight.target.owner.mover.position)
-            if flight.arrived_at is None and math.dist(feet, destination) < 0.15:
-                flight.arrived_at = fight.now
-            if flight.arrived_at is not None and fight.now - flight.arrived_at >= flight.recovery:
+                outcome = self.move_player(flight, target, destination, tick, elapsed)
+            if outcome is False:
+                if flight.victim_instance is not None:
+                    from ow174.game.script import runtime
+
+                    victim = flight.victim_instance
+                    move = victim.states.get(victim.graph.node(0).state)
+                    if move is not None and move.active:
+                        move.request(runtime.ABORT)
+                        victim.component.run_now()
+                self.cancel_owner(body)
+                continue
+            if flight.arrived_at is None and outcome is True:
+                flight.arrived_at = now
+            if flight.arrived_at is not None and flight.victim_instance is not None:
+                victim = flight.victim_instance
+                move = victim.states.get(victim.graph.node(0).state)
+                if move is not None and move.active:
+                    # The host mover reached the target. Retire the same native
+                    # MoveTo phase before its post-movement wait is replicated.
+                    move.request_finish()
+                    victim.component.run_now()
+            if flight.arrived_at is not None and now - flight.arrived_at >= flight.recovery:
                 self.cancel_owner(body)
 
     def move_player(self, flight, target, destination, tick, elapsed):
@@ -367,16 +623,18 @@ class Hooks:
         flight.player_driven = True
         self.player_pose_ticks[target.entity] = tick
         mover.throttles = (0, 0)
+        outcome = None
         if elapsed > 0 and flight.arrived_at is None:
             before = tuple(mover.position)
             mover.use(world=fight._collision())
             mover.driven = True
-            mover._move_to(elapsed, destination, flight.pull_speed)
+            outcome = mover._move_to(elapsed, destination, flight.pull_speed)
             fight.walls.move_mover(mover, before)
             history = fight.history.get(target.entity)
             if history:
                 latest = history[-1]
                 history[-1] = (latest[0], tuple(mover.position), *latest[2:])
-        if math.dist(mover.position, destination) < 0.15 or flight.arrived_at is not None:
+        if outcome is not None or flight.arrived_at is not None:
             mover.velocity = (0.0, 0.0, 0.0)
             mover.driven = False
+        return outcome

@@ -4,18 +4,22 @@ Geometry and hook-engine phases are explicitly reconstructed, not client proof.
 """
 
 import math
+import json
 import unittest
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, Run, aim, flat_world, in_world
 
-from ow174.game import bots, combat
+from ow174.game import bots, combat, observers, world
 from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
-from ow174.game.script import expr
+from ow174.game.script import expr, graph
+from ow174.game.script.decode import ClientBody
+from ow174.game.statescript import chunk
 
 ROADHOG = 0x02E0000000000040
 
@@ -81,9 +85,124 @@ def assert_competing_hooks(test, run, casters, victim, entity):
 
 
 class HookTests(unittest.TestCase):
+    def test_authored_hit_wait_precedes_pull_and_arrival_finishes_victim_move(self):
+        run, hog, enemy, _, pool = self.session()
+        self.step(run, hog, enemy, shift=True)
+        for _ in range(70):
+            self.step(run, hog, enemy)
+            if run.match.combat.hooks.controlled(enemy.body):
+                break
+        flight = run.match.combat.hooks.flights[hog.body]
+        victim = flight.victim_instance
+        start = tuple(enemy.mover.position)
+        for _ in range(10):
+            self.step(run, hog, enemy, enemy_buttons=1, forward=-127)
+            self.assertEqual(tuple(enemy.mover.position), start)
+            self.assertTrue(victim.state(victim.graph.node(7).state).active)
+        self.assertAlmostEqual(flight.latch_delay, 0.3)
+        self.assertAlmostEqual(flight.recovery, 0.4)
+        for _ in range(70):
+            self.step(run, hog, enemy)
+            if flight.arrived_at is not None:
+                break
+        self.assertIsNotNone(flight.arrived_at)
+        self.assertGreaterEqual(flight.arrived_at - flight.caught_at, flight.latch_delay)
+        self.assertFalse(victim.state(victim.graph.node(0).state).active)
+        self.assertTrue(victim.state(victim.graph.node(30).state).active)
+        self.assertTrue(run.match.combat.hooks.controlled(enemy.body))
+        self.advance(run, hog, enemy, 40)
+        self.assertFalse(run.match.combat.hooks.controlled(enemy.body))
+        self.assertEqual(pool.total, 170)
+
+    def test_contact_plays_and_retires_original_victim_graph_without_extra_damage(self):
+        contract = json.loads((Path(__file__).resolve().parents[2] / "fixtures" / "behavior"
+                               / "roadhog-hook-contact-v1.json").read_text(encoding="utf-8"))
+        expected = contract["expected"]["health_after_contact_and_release"]
+        run, hog, enemy, _, pool = self.session(distance=contract["input"]["target_distance"])
+        self.assertEqual(pool.total, contract["input"]["initial_health"])
+        self.step(run, hog, enemy, shift=True)
+        for _ in range(70):
+            self.step(run, hog, enemy)
+            if run.match.combat.hooks.controlled(enemy.body):
+                break
+        flight = run.match.combat.hooks.flights[hog.body]
+        victim = flight.victim_instance
+        self.assertIsNotNone(victim)
+        self.assertEqual(victim.graph.index, 0x01C9)
+        self.assertEqual(victim.source_entity(), hog.body)
+        self.assertTrue(victim.state(victim.graph.node(1).state).active)
+        self.assertEqual(pool.total, expected)
+        self.assertTrue(flight.instance.state(flight.instance.graph.node(28).state).active)
+        remote = ClientBody.for_hero(enemy.hero.guid)
+        remote.apply(world.EntityUpdate(enemy.body, chunk=chunk(
+            observers.full_frame(enemy.body_script, observers.snapshot(enemy.body_script)), 0, 0)))
+        self.assertEqual(remote.instances[victim.id], 0x01C9)
+        self.assertTrue(any(on for (instance, _), on in remote.states.items() if instance == victim.id))
+        self.advance(run, hog, enemy, contract["input"]["release_observation_frames_after_contact"])
+        self.assertNotIn(victim.id, victim.component.instances)
+        self.assertFalse(run.match.combat.hooks.controlled(enemy.body))
+        self.assertEqual(pool.total, expected)
+
+    def test_pulled_training_bot_history_matches_published_pose_and_remains_hittable(self):
+        run = Run()
+        match = run.match
+        hog, = run.players
+        match.switch_hero(hog, heroes()[ROADHOG])
+        run.step({})
+        run.step({})
+        bot = match.bots[0]
+        self.assertIsNotNone(bot.body_script, "requires the extracted practice-bot body supplement")
+        match.bots[:] = [bot]
+        match._pending_bot_scripts.clear()
+        x, y, z = hog.mover.position
+        bot.position = (x, y, z + 10)
+        bot.route = ()
+        bot.target = None
+        bot.team = 1
+        caught = False
+        victim = None
+        saw_native_move = False
+        pool = match.combat.vitals_of(next(t for t in match.combat._targets() if t.owner is bot))
+        initial_health = pool.total
+        for frame in range(140):
+            run.step({hog: (0, 0, 8 if frame == 0 else 0)})
+            self.assertEqual(bot.body_script.frame, run.frame)
+            if match.combat.hooks.controlled(bot.entity):
+                caught = True
+                flight = match.combat.hooks.flights[hog.body]
+                victim = flight.victim_instance
+                self.assertIsNotNone(victim)
+                self.assertEqual(victim.graph.index, 0x01C9)
+                alive = victim.graph.node(48).field("m_condition")["m_configVars"][0]
+                self.assertTrue(victim.evaluate(alive))
+                remote = ClientBody([row["graph"] for row in graph.entity_body(bot.body)["graphs"]])
+                remote.apply(world.EntityUpdate(bot.entity, chunk=chunk(
+                    observers.full_frame(bot.body_script, observers.snapshot(bot.body_script)), 0, 0)))
+                self.assertEqual(remote.instances[victim.id], 0x01C9)
+                if not saw_native_move and victim.state(victim.graph.node(0).state).active:
+                    saw_native_move = True
+                    distance = math.dist(bot.position, hog.mover.position)
+                    self.assertGreater(distance, 3)
+                    self.assertAlmostEqual(victim.find_var(0, 10535).value(), distance, places=2)
+                    self.assertAlmostEqual(remote.vars[(victim.id, 10535)], distance, places=2)
+                self.assertEqual(match.combat.history[bot.entity][-1][1], bot.movement(run.frame).position)
+        self.assertTrue(caught)
+        self.assertTrue(saw_native_move)
+        self.assertEqual(pool.total, initial_health - 30)
+        self.assertFalse(match.combat.hooks.controlled(bot.entity))
+        self.assertIsNotNone(victim)
+        self.assertNotIn(victim.id, victim.component.instances)
+        target = next(t for t in match.combat._targets() if t.owner is bot)
+        low, high = target.segment()
+        look = aim(match.combat._eye(hog), tuple((a + b) / 2 for a, b in zip(low, high, strict=True)))
+        for frame in range(45):
+            run.step({hog: (*look, 1 if frame == 0 else 0)})
+        self.assertLess(pool.total, initial_health - 30)
+
     def test_hook_native_cosmetic_gets_world_positions_through_flight(self):
         run, hog, enemy, _, _ = self.session(distance=30)
         seen = []
+        decoded_wire = False
         for frame in range(75):
             self.step(run, hog, enemy, shift=frame == 0)
             flight = run.match.combat.hooks.flights.get(hog.body)
@@ -92,7 +211,29 @@ class HookTests(unittest.TestCase):
             point = flight.instance.find_var(0, 431).value()
             self.assertIsInstance(point, expr.Vec3)
             self.assertIsInstance(flight.instance.find_var(0, 1179).value(), expr.Vec3)
+            chase = flight.instance.state(flight.instance.graph.node(136).state)
+            self.assertFalse(chase.interrupted)
+            # Native graph time can reach the endpoint in the final world step.
+            if flight.travelled + 2 * flight.speed * combat.TICK < flight.reach:
+                self.assertTrue(chase.active)
+                self.assertIsNotNone(chase.var)
+                self.assertEqual(chase.cur, point)
+                if not decoded_wire:
+                    script = hog.body_script
+                    tree, base = script.tree_frame()
+                    owner = ClientBody.for_hero(hog.hero.guid)
+                    owner.apply(world.EntityUpdate(hog.body, chunk=chunk(tree, 0, 0)))
+                    delta, _, snapshot = script.delta(base, set(), script.frame, True)
+                    owner.apply(world.EntityUpdate(hog.body, chunk=chunk(delta, 1, 0)))
+                    observer = ClientBody.for_hero(hog.hero.guid)
+                    remote = observers.full_frame(script, snapshot)
+                    observer.apply(world.EntityUpdate(hog.body, chunk=chunk(remote, 0, 0)))
+                    for viewer in (owner, observer):
+                        self.assertTrue(viewer.states[(flight.instance.id, chase.index)])
+                        self.assertIsInstance(viewer.vars[(flight.instance.id, 431)], expr.Vec3)
+                    decoded_wire = True
             seen.append(tuple(point))
+        self.assertTrue(decoded_wire)
         self.assertGreater(len(seen), 2)
         self.assertGreater(math.dist(seen[0], seen[-1]), 5)
         self.assertFalse(run.match.combat.hooks.flights)
@@ -219,9 +360,10 @@ class HookTests(unittest.TestCase):
         self.assertEqual(vitals.total, 170)
         own = run.match.combat.vitals_of(next(t for t in run.match.combat._targets() if t.owner is hog))
         before = own.total
+        caught_position = tuple(enemy.mover.position)
         self.advance(run, hog, enemy, 10, enemy_buttons=1, forward=-127)
         self.assertEqual(own.total, before)  # Forced victim input cannot shoot the hook owner.
-        self.assertLess(math.dist(enemy.mover.position, hog.mover.position), 10)
+        self.assertEqual(tuple(enemy.mover.position), caught_position)  # Authored initial hit wait.
         self.advance(run, hog, enemy, 60)
         self.assertFalse(hooks.controlled(enemy.body))
         self.assertAlmostEqual(math.dist(enemy.mover.position, hog.mover.position), 3, places=2)
@@ -257,7 +399,8 @@ class HookTests(unittest.TestCase):
                 self.step(run, hog, enemy, shift=True)
                 fight = run.match.combat
                 controlled = False
-                for _ in range(100):
+                # Full-range flight + initial hit wait + pull + release wait.
+                for _ in range(120):
                     self.step(run, hog, enemy)
                     controlled |= fight.hooks.controlled(enemy.body)
                 self.assertEqual(vitals.total, 170 if delta < 0 else 200)

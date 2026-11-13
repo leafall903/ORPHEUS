@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "case_id": "reinhardt-fire-strike-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/knockback.py", "src/ow174/game/combat.py"],
+    "description": "Use the existing immutable body constructor epoch, not packet processing time, for Fire Strike's flight cursor. The reference starts this flight anew at each batch's admission time."
+  },
+  "evidence": "synthetic-production-protocol-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "seed": "ServerJournal FixedSource",
+    "quanta_us": 16000,
+    "scene": "flat ground, Reinhardt at [0,0,0], enemy at [0,0,20]",
+    "warmup_neutral_frames": 30,
+    "base_world_tick": 1042,
+    "first_command_frame": 1035,
+    "press_offset": 4,
+    "press_buttons": 16,
+    "neutral_after_press": true,
+    "command_frames": 96,
+    "batch_sizes": [1, 8, 32, 96],
+    "packet_loss": [],
+    "query_world_tick": 1138
+  },
+  "expected": {
+    "volley_frame": 1069,
+    "flight_birth_tick": 1069,
+    "position": [0, 1.8, 27.6],
+    "flown_seconds": 1.104,
+    "enemy_health": 100,
+    "damage_events": 1,
+    "contact_world_tick": 1116,
+    "retire_world_tick": 1319
+  }
+}

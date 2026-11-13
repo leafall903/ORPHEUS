@@ -53,13 +53,15 @@ class BobChargeTests(unittest.TestCase):
     def test_enemy_contact_deals_one_uppercut_then_launches_and_fires(self):
         run, owner, enemy = self.setup()
         actor = self.begin(run, owner)
+        initial_z = actor.bot.position[2]
         for _ in range(10):
             run.step({})
-        self.assertGreater(actor.bot.position[2], 3)
+        self.assertGreater(actor.bot.position[2] - initial_z, 2)
         self.assertEqual(run.match.combat.vitals[enemy.body].total, 10000)
         self.assertEqual(actor.shots, 0)
         fight = run.match.combat
-        with patch.object(fight, "_damage", wraps=fight._damage) as damage:
+        with (patch.object(fight, "_damage", wraps=fight._damage) as damage,
+              patch.object(fight.impulses, "queue", wraps=fight.impulses.queue) as launches):
             self.stop(run, actor)
         damage.assert_called_once()
         hit = damage.call_args
@@ -69,8 +71,9 @@ class BobChargeTests(unittest.TestCase):
                          (0x0D80000000004489, 0x0D80000000000644, 0x0D80000000004D2B))
         self.assertEqual(actor.stopped_reason, "enemy")
         self.assertEqual(actor.uppercut_target, enemy.body)
-        impulse, = fight.impulses.pending[enemy.body]
-        self.assertEqual(impulse.vector, (0, 15, 0.5))
+        launches.assert_called_once()
+        self.assertIs(launches.call_args.args[0], enemy)
+        self.assertEqual(launches.call_args.args[1], (0, 15, 0.5))
         self.assertEqual(run.match.combat.vitals[enemy.body].total, 9880)
         self.assertEqual(owner.stats.value(stats.HERO_DAMAGE), 120)
         self.assertEqual(owner.body_script.component.entity_var(342).value(), 0)

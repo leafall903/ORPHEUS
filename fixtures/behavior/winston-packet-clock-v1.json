@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "winston.encrypted-command-packet-clock.v1",
+  "target_build": 104319,
+  "source_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+  "evidence": "production-encrypted-Peer-through-Player.take_commands-and-authored-VM",
+  "client_acceptance": "pending",
+  "input": {"packet_frames": [1, 8, 32], "query_steps": [32, 64, 128, 160], "pitch": -16384},
+  "before": {"sphere_expiry_world_ticks": [1579, 1583, 1607]},
+  "expected": {
+    "sphere_born_world_tick": 1008,
+    "sphere_expiry_world_tick": 1571,
+    "jump_cast_command_frame": 1005,
+    "jump_landing_command_frame": 1147,
+    "landing_enemy_health": 155.25638455913455,
+    "packet_invariant": ["query_pose", "query_velocity", "landing_damage", "sphere_VM_clock", "sphere_expiry", "destroy"]
+  }
+}

@@ -7,8 +7,8 @@ export class NpcConsoleClient {
     this.queue = Promise.resolve();
     this.attackEpoch = 0;
   }
-  send(key, name = '') {
-    if (!['=', '-', '0', '{', 'Escape', ...'123456789'].includes(key)) {
+  send(key, name = '', hero = '') {
+    if (!['=', '-', '0', '{', 'Escape', 'heroes', 'hero', ...'123456789'].includes(key)) {
       return Promise.resolve({handled: false});
     }
     if (key === '=') this.menuRequested = true;
@@ -18,9 +18,11 @@ export class NpcConsoleClient {
       if (key === '0' && attackEpoch !== this.attackEpoch) {
         return {handled: false, canceled: true};
       }
+      const body = {key, name, menu_open: this.menuOpen};
+      if (key === 'hero') body.hero = hero;
       const response = await this.request('/api/npc_console', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({key, name, menu_open: this.menuOpen}),
+        body: JSON.stringify(body),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
@@ -38,12 +40,21 @@ if (typeof document !== 'undefined') {
   const log = document.querySelector('#log');
   const choices = document.querySelector('#choices');
   const account = document.querySelector('#account');
+  const hero = document.querySelector('#enemy-hero');
   const write = text => {
     status.textContent = text;
     log.textContent = `${new Date().toLocaleTimeString()} ${text}\n${log.textContent}`.slice(0, 16000);
   };
   const client = new NpcConsoleClient(globalThis.fetch.bind(globalThis), data => {
-    if (data.action === 'menu') {
+    if (data.action === 'hero_menu') {
+      hero.replaceChildren();
+      for (const choice of data.choices) {
+        const option = document.createElement('option');
+        option.value = choice.guid;
+        option.textContent = choice.name;
+        hero.append(option);
+      }
+    } else if (data.action === 'menu') {
       choices.replaceChildren();
       for (const choice of data.choices) {
         const button = document.createElement('button');
@@ -64,6 +75,9 @@ if (typeof document !== 'undefined') {
     else if (data.action === 'stop') write(`已向 ${data.count} 个手动敌人发送停止指令。`);
   });
   const send = key => client.send(key, account.value.trim()).catch(error => write(`操作失败：${error.message}`));
+  document.querySelector('#spawn-enemy-hero').addEventListener('click', () =>
+    client.send('hero', account.value.trim(), hero.value).catch(error => write(`操作失败：${error.message}`)));
+  send('heroes');
   document.querySelectorAll('[data-key]').forEach(button =>
     button.addEventListener('click', () => send(button.dataset.key)));
   document.addEventListener('keydown', event => {

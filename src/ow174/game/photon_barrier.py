@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
-from ow174.game import bots, contacts, pools
+from ow174.game import bots, contacts, observers, pools, world
 from ow174.game.collision import World
 from ow174.game.script import expr, graph, play, play_queue, runtime
 from ow174.game.sigma_barrier import view_basis
@@ -97,6 +97,7 @@ class Shield:
     health: float
     expires: int
     component: object = None
+    pet_owner: int | None = None
 
 
 class BarrierWorld(runtime.World):
@@ -117,6 +118,43 @@ class Barriers:
         self.geometry = Geometry(Path(override)) if override else None
         self.actors = {}
         self.casts = {}
+        self.wire_entities = set()
+
+    def projection(self, entity):
+        actor = next((actor for actor in self.actors.values() if actor.body == entity), None)
+        return observers.SceneBody(actor.component) if actor is not None else None
+
+    def sync(self):
+        live = {actor.body: actor for actor in self.actors.values()}
+        self.wire_entities.update(live)
+        for viewer in self.fight.match.players:
+            client = viewer.client
+            if client is None or not viewer.spawned or viewer.gone:
+                continue
+            for entity in self.wire_entities - live.keys():
+                if entity in viewer.seen:
+                    del viewer.seen[entity]
+                    client.queue_entities([world.EntityUpdate(entity, world.OP_DESTROY)])
+            for entity, actor in live.items():
+                if entity not in viewer.seen:
+                    half = actor.yaw / 2
+                    rotation = (0.0, math.sin(half), 0.0, math.cos(half))
+                    components = {26: [0x800000 << actor.team]}
+                    if actor.pet_owner is not None:
+                        components[72] = [actor.pet_owner]
+                    components.update(world.health(actor.health, 4000))
+                    viewer.seen[entity] = False
+                    client.queue_entities([world.EntityUpdate(
+                        entity, world.OP_CREATE,
+                        lambda origin, c=components, pos=actor.position, rot=rotation:
+                            world.create(origin, BODY, c, position=pos, rotation=rot),
+                    )])
+                elif client.bot_create_acked(entity):
+                    client.queue_body_health(entity, world.health(actor.health, 4000))
+                client.queue_bot_live(entity, self.projection(entity).latest_live)
+        self.wire_entities.intersection_update(
+            set(live) | {entity for viewer in self.fight.match.players for entity in viewer.seen}
+        )
 
     def confirm(self, world, state):
         """Original0016 plane confirmation on the same cast/health/lifecycle host."""
@@ -163,6 +201,9 @@ class Barriers:
         watchdog = expr.to_float(instance.evaluate(graph.graph(ACTOR_GRAPH).node(42).field("m_timeout")))
         if not all(math.isfinite(value) and value > 0 for value in (health, lifetime, watchdog)):
             return NotImplemented
+        pet_source = state.evaluate(node.field("m_D749D7D8"), watch=False)
+        if pet_source != expr.Entity(owner.entity):
+            return NotImplemented
         body = self.fight.next_bot
         if not bots.BOT_ENTITY <= body < 0xD0000000:
             raise ValueError("Photon Barrier entity allocator exhausted")
@@ -179,11 +220,18 @@ class Barriers:
             elapsed = (instance.component.frame - confirmed_frame) * instance.component.frame_ms
             deployed = min(deployed, confirmed_tick + math.ceil(elapsed / (TICK * 1000)))
         actor = Shield(owner, source, body, owner.team, tuple(position), yaw, health,
-                       deployed + math.ceil(min(lifetime, watchdog) / TICK))
+                       deployed + math.ceil(min(lifetime, watchdog) / TICK), pet_owner=pet_source.id)
         actor.component = runtime.Component(body, frame_ms=16,
                                             world=BarrierWorld(self.fight.match.game_map.mode_guid, actor))
         actor.component.frame = deployed
         actor.component.now = actor.component.frame * 16
+        actor.component.set(253, health)
+        from ow174.game.script.driver import create_initial_graphs
+
+        for initial in create_initial_graphs(actor.component, definition):
+            initial.set_source_entity(source)
+            initial.init()
+        actor.component.run_now()
         self.actors[source] = actor
         return body
 
@@ -204,6 +252,7 @@ class Barriers:
         queue = play_queue.Queue(actor.component, lambda _: play_queue.Load("ready", graph.graph(0x156C)))
         queue.submit(request)
         actor.component.run_now()
+        self.sync()
         return True
 
     def retire(self, source):
@@ -211,6 +260,7 @@ class Barriers:
         if actor is not None:
             for instance in tuple(actor.component.instances.values()):
                 actor.component.destroy(instance)
+            self.sync()
 
     def update(self, tick):
         from ow174.game.combat import TICK
@@ -238,6 +288,7 @@ class Barriers:
                 continue
             if tick > actor.component.frame:
                 actor.component.run_frame(tick)
+        self.sync()
 
     def end(self, actor):
         self.retire(actor.source_body)
@@ -317,6 +368,7 @@ class Barriers:
 
     def damage(self, actor, amount):
         actor.health = expr.f32(max(0, actor.health - max(0, amount)))
+        actor.component.set(253, actor.health)
         if actor.health <= 0:
             self.end(actor)
 

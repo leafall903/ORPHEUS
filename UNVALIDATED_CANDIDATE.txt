@@ -1,0 +1,10 @@
+PARTIAL CONSOLIDATED PYTHON SOURCE DELIVERY
+
+Upstream parent:3dd55725c706c405cb989b5cc9d6f5d655b8cbc8.
+This separate source-only checkout commits the reviewed735 assembly and
+subsequent focused owner increments. Private comparison/snapshot commits are
+not ancestry. See docs/CONSOLIDATED_DELIVERY_20261113.md for scope and limits.
+
+The running frozen735 server is a separate checkout. Native results apply only
+to their recorded frozen source. This delivery is not full hero acceptance.
+Game assets, prepared runtime profiles, logs, captures and binaries stay external.

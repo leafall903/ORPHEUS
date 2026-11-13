@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-knockback-r2-producers-v1",
+  "target_build": "104319",
+  "source": {
+    "canonical_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "original_actions": ["1513/20-21 recoil", "1513/41 Coach victim", "1537/17 uppercut", "0043/10 quick melee"]
+  },
+  "evidence": "synthetic offline production command-to-damage-and-force checks with restricted original graphs; no original-client acceptance",
+  "client_acceptance": "pending shared 0042 native ticket",
+  "input": {
+    "world_birth": 1000,
+    "source_epoch_offsets": [0, 4000],
+    "recipient_birth": 9000,
+    "original_npcs_preserved": 15,
+    "coach_button": 8,
+    "melee_button": 2048,
+    "ultimate_button": 32,
+    "step_seconds": 0.016
+  },
+  "expected": {
+    "coach_force_count": 2,
+    "coach_health": 110,
+    "melee_vector": [0, 0, 1],
+    "bob_vector": [0, 15, 0.5],
+    "impact_clock": "physical contact world tick; shared host selects recipient next pose",
+    "coach_source": "actual caster or reflector body",
+    "bob_source": "actual BOB entity; original summon instigator remains separate",
+    "bob_control_return": "17F6 ends after landing, entity17932 false"
+  },
+  "unproven": ["native client adoption", "Dynamite1502/50 physics target applicability", "BOB1537/184-185 marked-entity force consumer"]
+}

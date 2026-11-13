@@ -149,6 +149,11 @@ class Recalls:
             vitals.now[HEALTH_POOL] = health
             vitals.changed.add(HEALTH_POOL)
             self.fight._sync_body_health(player, vitals)
+        from ow174.game import tracer
+
+        # Finish runs before the recipient's next pose. Never select a retained
+        # pre-restore snapshot as the first owner correction.
+        tracer.correct_pose(player, player.body_script.component.frame + 1)
 
 
 def prelude(state):

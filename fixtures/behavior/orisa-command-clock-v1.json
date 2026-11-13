@@ -1,0 +1,16 @@
+{
+  "schema": "orpheus.orisa-command-clock.v1",
+  "provenance": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "source": "Synthetic fixed16ms two-epoch command partition reproduction through the original Orisa body VM",
+    "original_client_acceptance": "pending"
+  },
+  "world_birth": 1000,
+  "body_birth": 7000,
+  "input_frame": 7040,
+  "halt_event_ms": 112740,
+  "halt_launch_tick": 1046,
+  "query_tick": 1096,
+  "halt_elapsed_seconds": 0.8,
+  "halt_distance": 20.0
+}

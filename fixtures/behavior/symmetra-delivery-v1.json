@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-delivery-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/photon_barrier.py", "src/ow174/game/projectiles.py", "src/ow174/game/symmetra_turrets.py"]
+  },
+  "evidence": "synthetic-command-and-packet-regression",
+  "client_acceptance": "pending-original-client-session",
+  "input": {
+    "orb_charge_commands": 90,
+    "initial_enemy_health": 200,
+    "barrier_damage": 100,
+    "world_tick_seconds": 0.016
+  },
+  "expected": {
+    "orb_count": 1,
+    "orb_lifetime_seconds": 25,
+    "orb_authoritative_delivery": true,
+    "orb_viewers": 2,
+    "enemy_health_after_orb": 80,
+    "barrier_health_after_damage": 3900,
+    "portal_endpoints": 2,
+    "sentry_retired_output_entity": 0
+  }
+}

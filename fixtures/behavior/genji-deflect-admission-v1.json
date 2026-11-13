@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "genji-deflect-projectile-admission-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/deflections.py"],
+    "reproduction": "The shared interception route reflected every front-facing projectile despite the eligibility check in the Genji-specific route."
+  },
+  "evidence": "synthetic-command-path-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "simulation_frame": 1000,
+    "tick_seconds": 0.016,
+    "genji_position": [0, 1, 0],
+    "attacker_position": [0, 1, 4],
+    "deflect_start_frames": 5,
+    "flight_frames": 10,
+    "projectile_position": [0, 2, 2],
+    "projectile_direction": [0, 0, -1],
+    "projectile_speed": 60,
+    "projectile_lifetime": 1
+  },
+  "cases": [
+    {"name": "excluded_direct", "deflectable": false, "override": null, "direct": 10, "blast": 0, "expected": {"genji_health": 190, "attacker_health": 200, "damage_owner": "attacker"}},
+    {"name": "eligible_direct", "deflectable": true, "override": null, "direct": 10, "blast": 0, "expected": {"genji_health": 200, "attacker_health": 190, "damage_owner": "genji"}},
+    {"name": "explicit_exclusion", "deflectable": true, "override": false, "direct": 10, "blast": 0, "expected": {"genji_health": 190, "attacker_health": 200, "damage_owner": "attacker"}},
+    {"name": "explicit_admission", "deflectable": false, "override": true, "direct": 10, "blast": 0, "expected": {"genji_health": 200, "attacker_health": 190, "damage_owner": "genji"}},
+    {"name": "splash_without_direct", "deflectable": false, "override": null, "direct": 0, "blast": 80, "expected": {"genji_health": 120, "attacker_health": 200, "damage_owner": "attacker"}}
+  ]
+}

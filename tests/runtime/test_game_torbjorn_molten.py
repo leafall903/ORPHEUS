@@ -82,6 +82,25 @@ class TorbjornMoltenTests(unittest.TestCase):
         self.assertTrue(burn.scope_entered)
         self.assertTrue(instance.states[2].active)
 
+    def test_pool_effect_snapshot_preserves_the_launch_source(self):
+        from ow174.game import observers
+        from ow174.game.script import expr
+
+        run, owner, _, pool, _ = self.arena()
+        instance = pool.script.component.instances[pool.instance]
+        self.assertEqual(instance.source_entity(), owner.body)
+        snapshot = observers.snapshot(pool.script)
+        self.assertEqual(snapshot.vars[pool.instance, 27][0], expr.Entity(owner.body))
+        self.assertGreater(observers.full_frame(pool.script, snapshot).count, 0)
+        source_body = owner.body
+        self.assertTrue(run.match.switch_hero(owner, heroes()[SOLDIER]))
+        self.assertTrue(run.match.switch_hero(owner, heroes()[molten_core.HERO]))
+        self.assertNotEqual(owner.body, source_body)
+        replacement = molten_core.create_pool(run.match.combat, owner, pool.position,
+                                              source_body=source_body)
+        replacement_instance = replacement.script.component.instances[replacement.instance]
+        self.assertEqual(replacement_instance.source_entity(), source_body)
+
     def test_empty_ultimate_charge_rejects_actual_press(self):
         run, owner, _, pool, _ = self.arena()
         molten_core.end_pool(run.match.combat, pool)

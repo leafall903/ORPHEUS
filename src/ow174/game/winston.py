@@ -19,6 +19,25 @@ PVE_CHARGE_TAG = 0x0D600000000003C3
 ROADHOG_CHARGE_TAG = 0x0D6000000000011E
 
 
+def world_tick_at_body(script, frame):
+    """Map an authored event through the immutable body creation pair."""
+    from ow174.game.combat import TICK
+
+    world, body = script.winston_birth
+    quantum = round(TICK * 1000)
+    elapsed = (frame - body) * script.frame_ms
+    return world + (elapsed + quantum - 1) // quantum
+
+
+def view_world_tick(script, command, quanta):
+    """Translate the viewed owner time to fractional world history time."""
+    from ow174.game.combat import TICK
+
+    world, body = script.winston_birth
+    elapsed_ms = (command.frame - body) * script.frame_ms
+    return world + (elapsed_ms - command.view_delay(quanta) * 1000) / round(TICK * 1000)
+
+
 class _DamageChargeContext(runtime.InstanceContext):
     def __init__(self, instance, amount, target, tags):
         super().__init__(instance, None)
@@ -466,13 +485,13 @@ def tesla_walls(fight, shooter, origin, direction, reach, angle, amount, barrier
 
 
 class JumpPack:
-    """Reconstructed physics driven by the authored cast branch.
+    """Contact bookkeeping driven by the authored cast and movement branches.
 
     010A's accepted Ability starts Wait st26 alongside the movement state
     and the six/two-second cooldown write. Its start identifies the cast
     even when the existing movement state is still active in the air.
-    Native launch-angle interpretation, impact falloff and impulses remain
-    inferred. No strict native VM behavior is changed by this bridge.
+    Launch velocity comes from 010A's original velocity action. Impact falloff
+    and impulses remain inferred. No strict native VM behavior is changed here.
     """
 
     def __init__(self, combat):
@@ -535,19 +554,10 @@ class JumpPack:
             # After retiring that flight, give this cast a fresh effect lifetime.
             state.begin()
             instance.component.run_now()
-        # Resource node85 supplies 90/25 degree bounds; legacy initialization
-        # retains speed30 in var1262. Interpret bounds as elevation above ground.
-        config = instance.graph.node(85).field('m_value')['m_configVars'][0]
-        lower = expr.to_float(instance.evaluate(config['m_E26E5E09']))
-        upper = expr.to_float(instance.evaluate(config['m_5023B9B0']))
-        speed = expr.to_float(instance.find_var(0, 1262).value())
-        yaw, pitch = command.aim()
-        elevation = math.radians(max(lower, min(upper, -pitch * 360 / 65536)))
-        heading = yaw * 2 * math.pi / 65536
-        horizontal = speed * math.cos(elevation)
+        # 010A's velocity action has already queued the authored launch for
+        # the next movement frame. Keep this bridge limited to flight/contact
+        # bookkeeping; a second angle interpretation changes the launch twice.
         mover = player.mover
-        mover.velocity = (math.sin(heading) * horizontal, speed * math.sin(elevation),
-                          math.cos(heading) * horizontal)
         mover.flags_word = mover.flags_word & ~FELL | JUMPED | REAL_JUMP
         mover.air_ticks = 0
         mover.landed = False
@@ -603,24 +613,46 @@ class JumpPack:
             if affected:
                 damaged_bodies.add(target.entity)
             if affected and not self.combat.vitals_of(target).dead:
-                self.knockback(player, target, definition, scalar)
+                self.knockback(player, target, definition, scalar, owner_frame=frame)
         _hit_walls(self.combat, player, origin, centre, centre, radius,
                    amount * _outgoing(self.combat, player), falloff=landing, excluded=damaged_bodies)
 
-    def knockback(self, player, target, definition, scalar):
-        from ow174.game import fortify
+    def knockback(self, player, target, definition, scalar, *, owner_frame=None):
+        from ow174.game import defenses, fortify
 
         if fortify.control_immune(target.owner):
             return
+        # Knockback uses its own authored rings, not the damage falloff scalar.
+        # These Winston/0043 rows each have one flat ring with unit weights.
         horizontal = expr.to_float(definition.evaluate(
-            definition.node.field('m_modifyHealth.m_E33EFEE1'), watch=False)) * scalar
-        vertical = expr.to_float(definition.evaluate(
-            definition.node.field('m_modifyHealth.m_583C208B'), watch=False)) * scalar
+            definition.node.field('m_modifyHealth.m_E33EFEE1'), watch=False))
+        minimum_config = definition.node.field('m_modifyHealth.m_583C208B')
+        # D853A0 calls the provider with -FLT_MAX when this field is absent.
+        minimum = (expr.to_float(definition.evaluate(minimum_config, watch=False))
+                   if minimum_config is not None else -3.4028234663852886e38)
+        upward = expr.to_float(definition.evaluate(
+            definition.node.field('m_modifyHealth.m_10399AE7'), watch=False))
         dx, dz = (target.feet[0] - player.mover.position[0],
                   target.feet[2] - player.mover.position[2])
         distance = math.hypot(dx, dz)
         x, z = ((dx / distance, dz / distance) if distance else (0., 0.))
-        self.combat.knockbacks.apply(target, expr.Vec3(x * horizontal, vertical, z * horizontal))
+        dy = target.feet[1] - player.mover.position[1]
+        length = math.hypot(distance, dy)
+        vertical = upward * dy / length if length else 0.0
+        mover = getattr(target.owner, 'mover', None)
+        current = mover.velocity if mover is not None else getattr(target.owner, 'velocity', (0, 0, 0))
+        # Original D6DADE..D6DAFB raises to a minimum velocity; it does not
+        # add the full minimum again to an already ascending recipient.
+        vertical = max(vertical, minimum - current[1])
+        resistance = defenses.knockback_scale(target.owner)
+        event_frame = definition.instance.component.frame if owner_frame is None else owner_frame
+        # Keep owner HIT/activation labels separate from physical world time.
+        # The shared recipient host maps this event onto the actual victim body.
+        return self.combat.knockbacks.apply(
+            target,
+            expr.Vec3(x * horizontal * resistance, vertical * resistance, z * horizontal * resistance),
+            impact_tick=world_tick_at_body(player.body_script, event_frame), source_entity=player.body,
+        )
 
 
 class PrimalPunches:
@@ -737,7 +769,8 @@ class PrimalPunches:
             if affected:
                 damaged_bodies.add(target.entity)
             if affected and not self.combat.vitals_of(target).dead:
-                self.combat.winston_jump.knockback(player, target, health, 1.0)
+                self.combat.winston_jump.knockback(
+                    player, target, health, 1.0, owner_frame=command.frame)
         HostedBarriers(self.combat).hit_capsule(player, a, b, radius, definition.amount, origin)
         _hit_walls(self.combat, player, origin, a, b, radius,
                    definition.amount * _outgoing(self.combat, player), excluded=damaged_bodies)

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "ball-static-hook-position-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/ball.py"],
+    "provenance": "14E4 CosmeticEntity node93 reads instance432 as its position; nodes77/78/105/106 transform it as a point. Synthetic static wall commands exercise the production bridge."
+  },
+  "evidence": "synthetic-command-regression-with-original-graph-consumers",
+  "client_acceptance": "pending",
+  "input": {
+    "hero": "02E00000000001CA",
+    "static_wall_distance": 12,
+    "held_buttons": 2,
+    "frames_to_attach": 5,
+    "attached_followup_frames": 20
+  },
+  "expected": {
+    "instance432_type": "vec3",
+    "instance432_equals": "static_contact",
+    "pendulum_rope_type": "float",
+    "rolling_while_held": true,
+    "released_tether_present": false
+  }
+}

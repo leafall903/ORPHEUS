@@ -28,6 +28,12 @@ def is_pulse(shooter, state):
             and state.instance.graph.index == GRAPH and state.node.pos == 1)
 
 
+def clock_origin(script):
+    """Capture the Pulse owner's accepted birth clock before any body replacement."""
+    anchor = script.world_frame_anchor
+    return None if anchor is None else (*anchor, script.frame_ms)
+
+
 def launch_direction(state, forward):
     """Apply the authored vertical launch bias before projectile speed."""
     launch = state.node.field("m_5EC1EB38") or {}
@@ -158,11 +164,11 @@ class PulseBombs:
     def sampled(self, target):
         if self.context is None:
             return target
-        sample = self.poses.get((target.entity, self.context))
+        sample = self.poses.get((target.entity, self.combat.tick))
         return sample[0] if sample is not None else target
 
     def recalling(self, target):
-        sample = self.poses.get((target.entity, self.context)) if self.context is not None else None
+        sample = self.poses.get((target.entity, self.combat.tick)) if self.context is not None else None
         return sample[1] if sample is not None else self.combat.recalls.active(target.owner)
 
     def _deflecting(self, owner):
@@ -180,10 +186,25 @@ class PulseBombs:
 
         if target is None:
             return None
-        sample = self.poses.get((target.entity, self.context)) if self.context is not None else None
+        sample = self.poses.get((target.entity, self.combat.tick)) if self.context is not None else None
         facing = sample[2] if sample is not None else (
             aim(target.owner.mover.yaw, target.owner.mover.pitch) if self._deflecting(target.owner) else None)
         return facing if facing is not None and sum(a * b for a, b in zip(facing, incoming)) < -1e-7 else None
+
+    def advance(self, bomb):
+        """Resolve delayed Pulse flight and contact-fuse frames in world order."""
+        from ow174.game import projectile_clock
+
+        fight = self.combat
+        context = self.context
+        try:
+            self.context = fight.tick
+            if bomb.last_tick is None:
+                fight._fly_current(bomb)
+            else:
+                projectile_clock.advance_accepted(fight, bomb)
+        finally:
+            self.context = context
 
     def update(self, tick):
         """Keep the delivered idempotent world-clock entry point."""

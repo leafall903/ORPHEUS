@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-command-batches-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/commands.py", "src/ow174/game/match.py", "src/ow174/game/combat.py"]
+  },
+  "evidence": "synthetic-input-with-external-runtime",
+  "client_acceptance": "pending",
+  "input": {
+    "start_frame": 1000,
+    "end_frame": 1200,
+    "press_frame": 1100,
+    "batch_sizes": [1, 8, 32],
+    "position": [0, 10, 0],
+    "ground_height": -1000,
+    "world_frame_ms": 16,
+    "seed": 1,
+    "packet_loss": []
+  },
+  "cases": [
+    {"button": 2, "expected": {"shot_frame": 1100, "launch_tick": 1100, "distance": 80.0}},
+    {"button": 16, "expected": {"shot_frame": 1125, "launch_tick": 1125, "distance": 67.02973970532025}}
+  ]
+}

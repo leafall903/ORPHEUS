@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "echo-flight-force-r2-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "parent_source_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "paths": ["src/ow174/game/echo_movement.py", "src/ow174/game/match.py", "src/ow174/game/mover.py"],
+    "provenance": "Synthetic actual Echo graph commands. Original 1BB6 node26 declares vertical SET0 followed by ADD direction*28; native kind16 dispatch leaves C31870 enabled. Existing shared force API handles actual enemy0043 contact."
+  },
+  "evidence": "original-resource-and-native-dispatch-backed-host-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "launch": {"button": 8, "right": 127, "yaw": 0, "pitch": 0},
+    "world_birth": 1000,
+    "victim_owner_birth": 9000,
+    "attacker_owner_birth": 5000,
+    "enemy_action": "actual quick melee 0043 node10",
+    "impact_world_tick": 1051
+  },
+  "expected": {
+    "self_velocity_delta": [-28, 0, 0],
+    "self_force_applications": 1,
+    "self_damage": 0,
+    "melee_damage": 30,
+    "melee_force_applications": 1,
+    "recipient_next_frame": 9052,
+    "owner_hit_frame": 5051,
+    "control_after_cancel": "Flight inactive; ordinary gravity and landing return",
+    "limits": "No source-specific force is added to primary, Sticky contact/blast, Beam or own Duplicate heal. Immunity/resistance and receiver transport remain shared; native full adoption not asserted."
+  }
+}

@@ -189,7 +189,7 @@ class MoiraBeamGeometryTests(unittest.TestCase):
                 with patch.object(fight, "_collision", return_value=collision):
                     for _ in range(20):
                         run.step(crouch)
-                self.assertTrue(fight.cryo_actors)
+                self.assertTrue(cryo.active(mei))
                 self.assertGreaterEqual(front.total, before[0])
                 self.assertAlmostEqual(friendly.total - before[1], 0 if wall else 44.8, places=4)
                 self.assertAlmostEqual(hostile.total - before[2], 0 if wall else -22.4, places=4)

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-projectile-delivery-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["tests/runtime/test_game_hanzo_projectile_delivery.py", "src/ow174/game/projectiles.py"],
+    "provenance": "Synthetic stationary two-player scene; production GameServer/Client encryption, owner reports and ACK delivery. No game data included."
+  },
+  "evidence": "headless-encrypted-production-delivery",
+  "client_acceptance": "pending",
+  "input": {
+    "body_birth_world_tick": 1020,
+    "body_birth_owner_frame": 9000,
+    "owner_frame_ms": 16,
+    "seed": "identical fresh body/entity identities and authored default seed",
+    "commands": "20 neutral setup frames; 70 primary frames; release; neutral until offset180",
+    "target": "hostile player five metres ahead on synthetic floor",
+    "variants": ["immediate ACK", "owner ACK held until offset100", "confirmation ACK held beyond64-tick grace; replace caster body and deliver old ACK at offset150; resume ACK at165"]
+  },
+  "expected": {
+    "target_health": 75,
+    "owner_hit_amounts": [125],
+    "physical": "arrow removed after hit",
+    "delivery": "Shot and observer delivery removed; every created owner alias and observer proxy receives destroy",
+    "native_release": "captured owner clock plus original release offset; no explosion release for unacknowledged owner creates",
+    "body_replacement": "Shot retains old body birth clock; late ACK cannot resurrect a retired entity",
+    "network_identity": "source command frame, activation and lease labels preserved"
+  }
+}

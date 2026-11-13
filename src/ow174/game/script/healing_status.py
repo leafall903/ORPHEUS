@@ -195,12 +195,24 @@ class Statuses:
 
     def prune_filters(self, frame):
         # Any current Mercy may still submit a heal from her next command
-        # frame. Keep the filter state at that boundary and all newer changes.
+        # frame. Keep that boundary and the bounded Moira orb-admission window.
         if not self.filter_history:
             return
-        oldest = min((p.body_script.frame for p in self.match.players
-                      if p.body_script is not None and not p.gone and p.body_script.hero == regeneration.MERCY),
-                     default=frame)
+        oldest = frame
+        for player in self.match.players:
+            script = player.body_script
+            if (script is None or player.gone or script.retired
+                    or script.hero != regeneration.MERCY):
+                continue
+            pending_world = regeneration.healing_world_tick(script, script.frame)
+            if pending_world is None:
+                # An unresolved body epoch cannot justify deleting world-time
+                # history. Keep it until this body's clock is observed/retired.
+                return
+            oldest = min(oldest, pending_world)
+        from ow174.game import moira
+
+        oldest = min(oldest, moira.orb_history_tick(self.match, frame))
         for entity, history in list(self.filter_history.items()):
             boundary = bisect_right(history, oldest, key=lambda row: row[0]) - 1
             if boundary >= 0:

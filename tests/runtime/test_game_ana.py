@@ -174,6 +174,16 @@ class AnaRifleTests(unittest.TestCase):
 
 
 def status_until(fight, vitals, *, allied):
+    expected = 0x0B99 if allied else 0x0C72
+    for applied in fight.healing.applied.values():
+        if applied.target != vitals.entity:
+            continue
+        for instance in applied.component.instances.values():
+            if instance.graph.index == expected:
+                wait = instance.node_state(instance.graph.node(1))
+                if wait is not None and wait.active:
+                    seconds = float(wait.evaluate(wait.node.field("m_timeout"), watch=False))
+                    return wait.start / 1000 + seconds
     effects = fight.healing.amp if allied else fight.healing.anti
     effect = effects.get(vitals.entity)
     if effect is not None:
@@ -270,6 +280,9 @@ class AnaGrenadeTests(unittest.TestCase):
                         self.assertEqual(vitals.total, before)
                     self.assertGreaterEqual(fight.now, deadline)
                     self.assertIn(field, fight.projectiles.shots)
+                    self.assertEqual(vitals.total, before)
+                    self.assertEqual(fight.healing.factor(entry), 1)
+                    run.step({})
                     self.assertAlmostEqual(vitals.total, before + rate)
 
     def test_grenade_uses_release_team_after_thrower_changes_team(self):

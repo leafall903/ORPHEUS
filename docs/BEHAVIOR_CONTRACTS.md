@@ -1,5 +1,13 @@
 # Shared behavior contracts
 
+Echo Flight force contract (`echo-flight-force-r2-v1.json`)
+records the original1BB6 node26 vertical SET0 followed by direction*28 ADD.
+The runtime consumer exercises actual Flight input and actual enemy0043 melee:
+one30 damage, one force, world1051 -> recipient9052, owner HIT5051 unchanged.
+The kind16 dispatch evidence establishes that this hook does not suppress the
+velocity queue; finite host steering, native transform equality and real client
+adoption remain bounded separately. This is not a native acceptance fixture.
+
 Python behavior fixes should leave an executable contract that Rust can consume. Include a small fixture describing the changed input and expected result in behavior-changing pull requests. Use a synthetic case or material approved for publication. Pin the reference revision and state what the evidence establishes, including any original-client acceptance still pending.
 
 Backfill older behavior as it is investigated or changed. When a behavior needs restricted data or an unavailable client observation, record the reproduction, missing prerequisite and follow-up instead of inventing a public fixture or a passing result. A focused fix can proceed with its available regression and an explicit evidence gap.
@@ -65,6 +73,26 @@ Keep each fixture tied to a concrete behavior. For time-dependent gameplay, also
 
 ## Contribution checklist
 
+Mei's [scriptless frost fixture](../fixtures/behavior/mei-scriptless-frost-v1.json)
+pins the damage-register input and expected status for an enemy with no body
+script. `tests/runtime/test_mei_scriptless_frost.py` consumes it and separately
+exercises actual spray commands and owner HIT feedback. The ice presentation
+regression checks single creates, existing-VM stream identity, live snapshots
+for both viewers and retirement. Original-client presentation remains pending.
+The [ice wire fixture](../fixtures/behavior/mei-ice-wire-v1.json) also checks
+decoded component51 initial/damaged pools, team/filter bits, the original
+25B4 startup graph, and typed builtin001B owner source in H=0 chunks.
+The [projectile clock fixture](../fixtures/behavior/mei-projectile-clock-v1.json)
+submits the same production commands in 1/8/32-frame batches, compares the
+same world query and lifecycle deadlines, and separately checks a real body
+replacement with unequal world/command epochs. Floating trajectory comparisons
+allow 1e-9 rounding error; release, landing and retirement ticks must agree.
+The [encrypted delivery fixture](../fixtures/behavior/mei-projectile-delivery-v1.json)
+separately checks physical flight, Shot and owner/observer proxy retirement
+with unequal epochs, delayed ACKs and body replacement. Ch2 release decoding
+uses the original source-owner labels; protocol success is not native rendering
+acceptance.
+
 - State the behavior being changed and link the closest shared fixture or documented reproduction.
 - Record its reference revision, evidence category and expected result.
 - Run the affected implementation against that result and report any skips or failures.
@@ -72,3 +100,32 @@ Keep each fixture tied to a concrete behavior. For time-dependent gameplay, also
 - Keep credentials, runtime game data, full captures and private paths in local storage. Share synthetic or approved fixtures with enough provenance to repeat the check.
 
 Use the [public source checks](../CONTRIBUTING.md#public-source-checks) for the Python lane and the [Rust parity checklist](https://github.com/leafall903/ORPHEUS/blob/rust/docs/RUST_PARITY.md) for migration acceptance.
+
+
+<!-- Integrated owner delta: mei-rigid; original patch fd9ad2587c7c1148b0aebea23a5ea6d1e2a765f9af6b35fe41b2befd8e4c2838 -->
+
+
+## Mei force producers on 1.74
+
+`fixtures/behavior/mei-force-producers-174-v1.json` records the authored force
+inventory. `tests/runtime/test_mei_force_producers_174.py` drives actual ability
+commands and checks damage/healing separately from force delivery. The new
+0636/node64 bridge forwards each live pillar's explicit entry request through
+the existing rigid-body host. It does not add a character impulse or duplicate
+the shared0043 melee producer. Pillar VM start times are already world time.
+The verified host covers its existing spherical rigid-body class only; native
+registration, repetition, complete prop association and live-client acceptance
+remain open. The shared r2 API and transport are owned by0042.
+
+<!-- Integrated Pet-only v2; rejected v1 is not applied. -->
+
+
+## Mei ice Pet owner
+
+`mei-ice-wire-v1.json` additionally requires component72 to contain the explicit
+creation provider m_D749D7D8 value. The original05FE/node21 and all five0622
+creation nodes resolve this to the player controller entity. This is distinct
+from their combat/PlayScript body source. Capture it once at allocation and do
+not infer it from a later owner body. The decoded owner/observer create and
+destroy regressions establish protocol inputs only; native model visibility
+and the original frozen-effect chain remain unaccepted.

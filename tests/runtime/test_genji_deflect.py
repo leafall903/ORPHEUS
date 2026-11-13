@@ -1,7 +1,9 @@
 """Reconstructed Deflect authority through real player commands and volleys."""
 
+import json
 import unittest
 from dataclasses import replace
+from pathlib import Path
 
 from test_game_combat import aim
 from test_genji_combat import GENJI, GenjiFixture
@@ -14,6 +16,36 @@ from ow174.game.script.expr import INSTANCE
 
 
 class GenjiDeflectTests(GenjiFixture):
+    def test_projectile_admission_contract(self):
+        path = Path(__file__).resolve().parents[2] / "fixtures/behavior/genji-deflect-admission-v1.json"
+        contract = json.loads(path.read_text(encoding="utf-8"))
+        inputs = contract["input"]
+        for case in contract["cases"]:
+            with self.subTest(case=case["name"]):
+                run, genji, source = self.start()
+                direct = (combat.HitDef(case["direct"], None, deflectable=case["deflectable"],
+                                       deflect_override=case["override"]) if case["direct"] else None)
+                blast = (combat.HitDef(case["blast"], None, rings=((3, 1),))
+                         if case["blast"] else None)
+                fight = run.match.combat
+                fight.rockets.append(combat.Rocket(
+                    source, source.team, tuple(inputs["projectile_position"]),
+                    tuple(inputs["projectile_direction"]), inputs["projectile_speed"],
+                    inputs["projectile_lifetime"], direct, blast,
+                ))
+                for _ in range(inputs["flight_frames"]):
+                    run.step({})
+                expected = case["expected"]
+                self.assertEqual(self.health(run, genji), expected["genji_health"])
+                self.assertEqual(self.health(run, source), expected["attacker_health"])
+                attacker, victim = ((genji, source) if expected["damage_owner"] == "genji"
+                                    else (source, genji))
+                hits = [notice["+0x78"] for notice in attacker.client.messages(combat.HIT)]
+                self.assertEqual([(hit["+0x0"]["+0x0"], hit["+0x4"]) for hit in hits],
+                                 [(victim.body, case["direct"] or case["blast"])])
+                self.assertFalse(victim.client.messages(combat.HIT))
+                self.assertFalse(fight.rockets)
+
     def start(self, distance=4, facing=0, projectile=False, lateral=0):
         run, genji = self.spawn(distance)
         source = run.players[1]
@@ -55,7 +87,7 @@ class GenjiDeflectTests(GenjiFixture):
                 mei = run.players[1]
                 run.match.switch_hero(mei, heroes()[0x02E00000000000DD])
                 mei.mover.position[:] = [0, 1, 4]
-                yaw, pitch = aim(run.match.combat._eye(mei), (0, 2, 0))
+                yaw, pitch = aim(run.match.combat._eye(mei), (0, 1.75, 0))
                 for frame in range(60):
                     run.step({genji: (facing, 0, 16 if frame == 0 else 0),
                               mei: (yaw, pitch, button if 5 <= frame < 25 else 0)})
@@ -90,8 +122,12 @@ class GenjiDeflectTests(GenjiFixture):
                     run.step({})
                 fight = run.match.combat
                 if blocker == "bubble":
-                    yaw, pitch = aim(fight._eye(protector), fight._eye(rear))
+                    recipient = next(target for target in fight._targets() if target.owner is rear)
+                    x, y, z = recipient.feet
+                    yaw, pitch = aim(fight._eye(protector), (x, y + recipient.height / 2, z))
                     run.step({protector: (yaw, pitch, 16)})
+                    for _ in range(12):
+                        run.step({protector: (yaw, pitch, 0)})
                     bubble, = fight.barriers.scripted.values()
                     self.assertIs(bubble.recipient, rear)
                 run.step({genji: (-32768, 0, 16)})
@@ -113,8 +149,8 @@ class GenjiDeflectTests(GenjiFixture):
                 hits = [notice["+0x78"]["+0x0"]["+0x0"] for notice in mei.client.messages(combat.HIT)]
                 self.assertEqual(hits, [target.body for target in contacted])
                 if blocker is None:
-                    self.assertEqual(fight.frost_hits[rear.body].sources[mei.body][1],
-                                     fight.frost_hits[far.body].sources[mei.body][1])
+                    self.assertEqual(fight.frost_hits[rear.body].sources[mei.body, 0][0][1],
+                                     fight.frost_hits[far.body].sources[mei.body, 0][0][1])
                 if blocker == "bubble":
                     self.assertEqual(bubble.vitals.total, 197.25)
                     self.assertAlmostEqual(protector.body_script.component.entity_var(87).value(), 0.55)

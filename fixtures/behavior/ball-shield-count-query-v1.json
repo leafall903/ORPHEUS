@@ -1,0 +1,12 @@
+{
+  "hero": "Wrecking Ball 01CA",
+  "graph": "1566/state9 count; state6 pool",
+  "input": 16,
+  "radius": 8,
+  "cases": [
+    {"enemyFeetDistance": 8.25, "count": 1, "totalHealth": 775},
+    {"enemyFeetDistance": 8.75, "count": 0, "totalHealth": 700}
+  ],
+  "purpose": "Keep graph feedback and existing eye/capsule pool query consistent at the radius boundary.",
+  "limits": "Native filtering and full training-range E acceptance remain open."
+}

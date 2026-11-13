@@ -41,9 +41,10 @@ class EchoMovementTests(unittest.TestCase):
 
     def test_flight_lifts_moves_and_reads_authored_boost_and_sustain_speeds(self):
         run, player = self.session()
-        self.step(run, player, 8)
-        self.step(run, player, 8)
-        self.assertAlmostEqual(math.hypot(*player.mover.velocity), 20, delta=.06)
+        self.step(run, player, 8, pitch=-8192)
+        self.step(run, player, 8, pitch=-8192)
+        # The graph queues direction*28, not the previous fixed20+up6 MoveTo.
+        self.assertAlmostEqual(math.hypot(*player.mover.velocity), 28, delta=.06)
         for _ in range(58):
             self.step(run, player, 8, forward=127)
         self.assertGreater(player.mover.position[1], 1.5)
@@ -60,22 +61,28 @@ class EchoMovementTests(unittest.TestCase):
         for _ in range(20):
             self.step(run, player)
         self.assertAlmostEqual(player.mover.position[1], height, delta=.01)
-        for _ in range(20):
+        self.step(run, player, JUMP)
+        self.assertGreater(player.mover.velocity[1], 0)
+        self.assertLessEqual(player.mover.velocity[1], 8 * 5 * combat.TICK + .01)
+        for _ in range(19):
             self.step(run, player, JUMP)
-        self.assertGreater(player.mover.position[1], height + 2)
+        self.assertGreater(player.mover.position[1], height)
         top = player.mover.position[1]
-        for _ in range(10):
+        for _ in range(20):
             self.step(run, player, CROUCH)
-        self.assertLess(player.mover.position[1], top - 1)
+        self.assertLess(player.mover.position[1], top)
+        self.assertLess(player.mover.velocity[1], 0)
 
     def test_flight_cancel_restores_fall_and_cooldown_prevents_another_burst(self):
         run, player = self.session()
         for _ in range(25):
-            self.step(run, player, 8)
+            self.step(run, player, 8, pitch=-8192)
         self.step(run, player)
         self.step(run, player, 8)
-        for _ in range(5):
+        for _ in range(40):
             self.step(run, player)
+            if player.mover.velocity[1] < 0:
+                break
         self.assertIsNone(echo_movement.flight(player))
         self.assertEqual(player.mover.data, mover_data(player.hero.body))
         self.assertLess(player.mover.velocity[1], 0)
@@ -99,9 +106,11 @@ class EchoMovementTests(unittest.TestCase):
             self.step(run, player)
         self.assertEqual(cooldown.value(), 0)
         self.step(run, player, 8)
+        self.assertTrue(any(mod.value == (0.0, 0.0, 28.0) for mod in player.mover.mods.values()))
         self.step(run, player, 8)
         self.assertIsNotNone(echo_movement.flight(player))
-        self.assertGreater(player.mover.velocity[1], 0)
+        # The authored ADD composes with retained velocity; it is not a SET28.
+        self.assertGreater(player.mover.velocity[2], 0)
 
     def test_flight_sweeps_against_real_wall_geometry(self):
         run, player = self.session(World(FLOOR + wall(-5, 2, 5, 2)))

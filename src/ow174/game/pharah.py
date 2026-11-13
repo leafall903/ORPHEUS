@@ -17,11 +17,53 @@ CONCUSSIVE_INPUT = 0x10
 CONCUSSIVE_BUTTON = 36
 CONCUSSIVE_ENTITY = 0x040000000000010F
 PRIMARY = (0x0023, 8)
+PRIMARY_ENTITY = 0x0400000000000033
 PRIMARY_LOADOUT = 0x0B9000000000000F
 BARRAGE = 0x002B
 BARRAGE_BUTTON = 37
 BARRAGE_ENTITY = 0x0400000000000052
 BARRAGE_LOADOUT = 0x0B9000000000000B
+
+
+def primary_projectile_default(state):
+    """Recover the 104319 prefab default omitted by the extracted 0023 asset."""
+    if (state.instance.graph.index, state.node.pos) != PRIMARY:
+        return None
+    projectile = state.node.field("m_projectileEntity") or {}
+    definition = projectile.get("m_entityDef") or {}
+    if (projectile.get("$") == "STUStatescriptWeaponProjectileEntity"
+            and definition.get("$") == "STU_8556841E"
+            and definition.get("m_entityDef") is None
+            and definition.get("m_resourceKey") is None
+            and not definition.get("m_EE729DCB")):
+        # Native default writer 16323A4 and prefab initializer 1632D90.
+        return PRIMARY_ENTITY
+    return None
+
+
+def view_world_tick(script, command, quanta):
+    """Query history in world time using this original body's recorded birth.
+
+    Keep fractional view delay; the command and HIT retain their owner frame.
+    BodyScript records this anchor when constructing the original Pharah body.
+    """
+    from ow174.game.combat import TICK
+
+    world, owner = script.world_frame_anchor
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
+def projectile_clock_origin(player, state, definition):
+    """Capture this original Pharah body's birth clock before it can be replaced."""
+    script = getattr(player, "body_script", None)
+    if (script is None or script.hero != HERO or script.component is not state.instance.component
+            or (state.instance.graph.index, state.node.pos, definition) not in (
+                (*PRIMARY, PRIMARY_ENTITY), (*CONCUSSIVE, CONCUSSIVE_ENTITY), (BARRAGE, 2, BARRAGE_ENTITY))
+            or script.world_frame_anchor is None):
+        return None
+    world, owner = script.world_frame_anchor
+    return world, owner, script.frame_ms
 
 
 def _owner(world, instance):
@@ -179,6 +221,8 @@ class RocketImpulse:
     rings: tuple
 
     def scales(self, distance):
+        if not self.rings:
+            return 1., 1.
         first = self.rings[0]
         if distance < first[0]:
             return first[1:]

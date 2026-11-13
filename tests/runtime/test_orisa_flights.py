@@ -8,6 +8,7 @@ import test_orisa_combat as orisa_fixture
 from ow174.game import combat
 from ow174.game.commands import Command
 from ow174.game.content import find_hero
+from ow174.game.script.expr import f32
 
 
 class OrisaFlightTests(unittest.TestCase):
@@ -79,12 +80,17 @@ class OrisaFlightTests(unittest.TestCase):
         run, _, _, rocket = self.cast(16, pitch=-8192)
         run.step({})  # admit at an explicit world tick before measuring catch-up
         position = rocket.position
-        velocity = tuple(axis * rocket.speed for axis in rocket.direction)
+        velocity = rocket.velocity
+        expected_y = position[1]
+        expected_vy = velocity[1]
+        acceleration = f32(f32(rocket.gravity) * f32(combat.TICK))
         for _ in range(10):
+            expected_vy = f32(f32(expected_vy) - acceleration)
+            expected_y += expected_vy * combat.TICK
             run.step({})
         seconds = 10 * combat.TICK
-        self.assertAlmostEqual(rocket.position[1],
-                               position[1] + velocity[1] * seconds - 0.5 * 9.8 * seconds ** 2, places=6)
+        # D71ACD rounds the velocity update to float32 before each position step.
+        self.assertAlmostEqual(rocket.position[1], expected_y, places=6)
         self.assertAlmostEqual(rocket.position[2], position[2] + velocity[2] * seconds, places=6)
 
     def test_gravity_sweep_after_world_gap_matches_contiguous_ticks(self):

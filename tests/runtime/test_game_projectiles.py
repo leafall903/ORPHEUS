@@ -2,6 +2,7 @@
 the other clients get, and the Biotic Field's entity, frame and heal; the other bodies' statescript
 (observers.py)."""
 
+import json
 import math
 import struct
 import sys
@@ -16,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ow174.game import bodytrace, bots, combat, movelog, observers, projectiles, world
 from ow174.game.bits import BitReader
+from ow174.game.collision import flat_world
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, find_hero, heroes
 from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
@@ -218,7 +220,11 @@ class ProjectileRangeTests(unittest.TestCase):
         self.assertAlmostEqual(before - vitals.total, 66.0)
 
     def test_hand_cannon_flight_retires_on_hero_switch_or_leave(self):
-        for retirement in ("switch", "leave"):
+        fixture = json.loads((Path(__file__).resolve().parents[2] / "fixtures" / "behavior"
+                              / "doomfist-hand-cannon-retirement-v1.json").read_text())
+        for case in fixture["cases"]:
+            retirement = case["input"]["retirement"]
+            expected = case["expected"]
             with self.subTest(retirement=retirement):
                 run = Run(KANEZAKA_DM, ("Shooter", "Target"))
                 shooter, victim = run.players
@@ -248,11 +254,17 @@ class ProjectileRangeTests(unittest.TestCase):
                     match.leave(shooter)
 
                 self.assertFalse(any(rocket.shooter is shooter for rocket in fight.rockets))
+                self.assertEqual(sum(rocket.shooter is shooter for rocket in fight.rockets),
+                                 expected["owned_flights"])
+                self.assertEqual(len(other_rockets), expected["other_player_flights"])
+                self.assertEqual(sum(rocket.shooter is bot for rocket in fight.rockets),
+                                 expected["npc_flights"])
                 self.assertEqual(fight.rockets, [*other_rockets, npc_rocket])
                 before = vitals.total
-                for step in range(1, 9):
+                for step in range(1, fixture["initial_state"]["frames_after_retirement"] + 1):
                     fight.update((run.frame + step) * combat.TICK, run.frame + step, frames=False)
                 self.assertEqual(vitals.total, before)
+                self.assertEqual(before - vitals.total, expected["target_damage_after_retirement"])
 
     def test_hand_cannon_flight_survives_death_until_body_retirement(self):
         run = Run(KANEZAKA_DM, ("Shooter", "Target"))
@@ -1127,6 +1139,104 @@ class ObserverProjectileDeliveryTests(unittest.TestCase):
 
 
 class BioticFieldTests(unittest.TestCase):
+    def test_field_frame_preserves_original_entity_initialization(self):
+        from ow174.game.script import expr, graph
+        from ow174.game.script.bot import BotScript
+        from ow174.game.statescript import Stream
+
+        path = Path(__file__).resolve().parents[2] / 'fixtures/behavior/biotic-field-initial-frame-v1.json'
+        contract = json.loads(path.read_text())
+        expected = contract['expected']
+        record = graph.entity_body(projectiles.FIELD_ENTITY)
+        self.assertIsNotNone(record, "prepared original 03DC entity metadata is required")
+        script = BotScript(
+            projectiles.FIELD_ENTITY, SOLDIER, projectiles.FIELD_FIRST,
+            contract['input']['frame'], PRACTICE_RANGE.mode_guid, 1.0, record=record,
+        )
+        self.assertIsNone(script.component.fault)
+        initial = observers.snapshot(script)
+        expected_states = {key for key, (_, active, _) in initial.states.items() if active}
+        expected_vars = {key: value for key, (value, _) in initial.vars.items() if key[0] == 1}
+        # These are independent original-VM outputs, including the CosmeticEntity
+        # handle used by the canister's authored DataFlowMapping.
+        self.assertEqual(expected_states, {(1, index) for index in expected['active_states']})
+        fixed_vars = {(1, int(var)): value for var, value in expected['variables'].items()}
+        fixed_vars[(1, expected['cosmetic_variable'])] = expr.Handle(*expected['cosmetic_handle'])
+        self.assertEqual(expected_vars, fixed_vars)
+        client = ClientBody(initial=(projectiles.FIELD_GRAPH,))
+        stream = Stream(projectiles.FIELD_FIRST)
+        client.apply(stream.full_frame(projectiles.field_frame()))
+        self.assertEqual(client.on(), expected_states)
+        self.assertEqual(client.vars, expected_vars)
+        client.apply(stream.full_frame(projectiles.field_frame(faded=True)))
+        self.assertEqual(client.on(), {(1, index) for index in expected['faded_active_states']})
+        self.assertEqual(client.vars, expected_vars)
+
+    def test_delayed_prediction_aliases_do_not_multiply_the_landed_area(self):
+        path = Path(__file__).resolve().parents[2] / 'fixtures/behavior/biotic-field-area-aliases-v1.json'
+        contract = json.loads(path.read_text())
+        run = Run(KANEZAKA_DM, ('Owner', 'Observer'))
+        owner, observer = run.players
+        for _ in range(20):
+            run.step({})
+        run.step({owner: (0, 0, contract['input']['ability_button'])})
+        for _ in range(80):
+            run.step({})
+        shot, = run.match.combat.projectiles.shots
+        for alias in range(contract['input']['extra_confirmed_prediction_aliases']):
+            arrival = shot.created[0xA0100000 + alias] = projectiles._ProjectileArrival()
+            arrival.arrived(0)
+            run.match.combat.projectiles._deliver_field(shot)
+        for viewer in (owner, observer):
+            creates = [item for item in viewer.client.entities
+                       if item.op == OP_CREATE and item.entity >> 16 == 0xA008]
+            self.assertEqual(len(creates), contract['expected']['landed_area_actors_per_viewer'])
+            self.assertIn((viewer.slot, None), shot.field_ids)
+
+    def test_field_source_team_and_healing_agree_for_owner_ally_and_enemy(self):
+        from tests.runtime.test_game_repeated_lifecycles import components
+
+        run = Run(PRACTICE_RANGE, ("Owner", "Ally", "Enemy"))
+        run.match.bots.clear()
+        run.match._pending_bot_scripts.clear()
+        owner, ally, enemy = run.players
+        ally.team, enemy.team = owner.team, 1 - owner.team
+        run.match.collision_world = flat_world(0)
+        for player, position in zip(run.players, ([0, 0, 0], [1, 0, 0], [1, 0, 1]), strict=True):
+            player.mover.position = position
+            player.mover.body = None
+        for _ in range(20):
+            run.step({})
+        pools = []
+        for player in run.players:
+            target = next(item for item in run.match.combat._targets() if item.owner is player)
+            vitals = run.match.combat.vitals_of(target)
+            vitals.damage(100)
+            pools.append(vitals)
+        run.step({owner: (0, 0, ABILITY_2)})
+        for _ in range(80):
+            run.step({})
+        shot, = run.match.combat.projectiles.shots
+        self.assertEqual(shot.filter_bits, owner.team_bit)
+        self.assertGreater(pools[0].total, 100)
+        self.assertGreater(pools[1].total, 100)
+        self.assertEqual(pools[2].total, 100)
+        for viewer in run.players:
+            creates = [item for item in viewer.client.entities
+                       if item.op == OP_CREATE and item.entity >> 16 == 0xA008]
+            self.assertTrue(creates)
+            for item in creates:
+                record = item.build(0)
+                reader = bits_of(record)
+                self.assertEqual((reader.bit(), reader.bit(), reader.bits(12)), (0, 1, 0x03DC))
+                flags = reader.bits(8)
+                self.assertFalse(flags & world.WITH_SKIN)
+                reader.bits(10 * 32)
+                if flags & world.WITH_MOVEMENT:
+                    read_movement(reader, world.CREATE_BASE, parent=next(iter(shot.created)))
+                self.assertEqual(components(reader), {26: {0: shot.filter_bits}, 72: {0: shot.body}})
+                self.assertEqual(reader.pos, record.count)
+
     def test_other_deployables_do_not_spawn_a_biotic_field(self):
         cases = (("Torbjörn", ABILITY_1, 0x28B7), ("Zarya", ULTIMATE, 0x03E2))
         for name, button, spawn in cases:
@@ -1208,10 +1318,9 @@ class BioticFieldTests(unittest.TestCase):
                                         continue
                                     parent = parents[item.build]
                                     if viewer is owner:
-                                        self.assertIsNotNone(parent)
-                                        self.assertTrue(shot.created[parent].received)
-                                    else:
-                                        self.assertIsNone(parent)
+                                        self.assertTrue(any(
+                                            arrival.received for arrival in shot.created.values()))
+                                    self.assertIsNone(parent)
                                     creates[viewer.slot].setdefault(item.entity, offset)
                             link.send(now=now)
 
@@ -1226,16 +1335,17 @@ class BioticFieldTests(unittest.TestCase):
         self.assertGreater(healthy[delayed_ack - 1], healthy[0])
         self.assertAlmostEqual(healthy[-1], 1 + (projectiles.FIELD_TICKS - 1)
                                * projectiles.HEAL_PER_SECOND * combat.TICK)
-        self.assertTrue(owner_creates)
+        self.assertEqual(len(owner_creates), 1)
         self.assertEqual(len(observer_creates), 1)
         for resume in (delayed_ack, horizon - 4):
             with self.subTest(ack_resume=resume):
                 timing, health, owner_fields, observer_fields = cast(resume)
                 self.assertEqual(timing, normal)
                 self.assertEqual(health, healthy)
+                self.assertEqual(len(observer_fields), 1)
                 self.assertEqual(tuple(observer_fields.values()), tuple(observer_creates.values()))
                 if resume == delayed_ack:
-                    self.assertTrue(owner_fields)
+                    self.assertEqual(len(owner_fields), 1)
                     self.assertGreaterEqual(min(owner_fields.values()), resume)
                 else:
                     self.assertEqual(owner_fields, {})
@@ -1370,7 +1480,7 @@ class BioticFieldTests(unittest.TestCase):
             run.step({})
         [shot] = run.match.combat.projectiles.shots
         self.assertTrue(shot.created)
-        for viewer, parents in ((owner, shot.created), (observer, [None])):
+        for viewer, parents in ((owner, [None]), (observer, [None])):
             with self.subTest(viewer=viewer.name):
                 creates = [
                     item for item in viewer.client.entities
@@ -1394,7 +1504,9 @@ class BioticFieldTests(unittest.TestCase):
                         self.assertEqual(position, (0.0, 0.0, 0.0))
                         movement = read_movement(reader, world.CREATE_BASE, parent=parent)
                         self.assertEqual(movement["flags"], projectiles.KEEP_ROTATION)
-                    self.assertEqual(reader.bits(8), 0)  # no components
+                    from tests.runtime.test_game_repeated_lifecycles import components
+
+                    self.assertEqual(components(reader), {26: {0: owner.team_bit}, 72: {0: shot.body}})
                     self.assertEqual(reader.pos, record.count)
 
     def test_the_canister_the_field_entity_its_frame_and_the_heal(self):
@@ -1423,7 +1535,7 @@ class BioticFieldTests(unittest.TestCase):
         decoded = read_chunk(frames[0].chunk.getvalue(), frames[0].chunk.count, {1: projectiles.FIELD_GRAPH})
         self.assertEqual(decoded.instances[1].graph, projectiles.FIELD_GRAPH)
         on = {index for index, (active, _) in decoded.instances[1].states.items() if active}
-        self.assertEqual(on, {2, 3, 5})
+        self.assertEqual(on, {2, 3, 5, 8})
         self.assertTrue(
             [item for item in b.client.entities if item.op == OP_CREATE and item.entity >> 16 == 0xA008]
         )
@@ -1434,7 +1546,7 @@ class BioticFieldTests(unittest.TestCase):
         destroyed = {item.entity for item in a.client.entities if item.op == OP_DESTROY}
         self.assertTrue({item.entity for item in field_creates} <= destroyed)
 
-    def test_gap_across_field_opening_keeps_only_retained_healing(self):
+    def test_gap_after_field_opening_settles_elapsed_healing_once(self):
         def launch():
             run = Run(KANEZAKA_DM)
             player, = run.players
@@ -1448,8 +1560,11 @@ class BioticFieldTests(unittest.TestCase):
                     break
                 run.step({})
             field, = fight.projectiles.shots
-            run.step({})  # admit the canister on the world clock before the gap
-            self.assertIsNone(field.field_tick)
+            # This case starts after flight and windup. The opening-gap case
+            # above separately preserves the complete admitted flight interval.
+            for _ in range(80):
+                run.step({})
+            self.assertIsNotNone(field.field_tick)
             return run, field, vitals
 
         normal, field, vitals = launch()
@@ -1458,8 +1573,7 @@ class BioticFieldTests(unittest.TestCase):
                 break
             normal.step({})
         start = normal.frame
-        self.assertEqual(field.field_tick, start)
-        self.assertEqual(vitals.total, 1.0)  # no healing on the opening tick
+        self.assertLess(field.field_tick, start)
         health = [vitals.total]
         for _ in range(combat.COMBAT_CATCH_UP + 5):
             normal.step({})
@@ -1468,12 +1582,13 @@ class BioticFieldTests(unittest.TestCase):
         for elapsed in (5, combat.COMBAT_CATCH_UP + 5):
             with self.subTest(elapsed=elapsed):
                 skipped, field, vitals = launch()
-                self.assertLess(skipped.frame, start)
+                self.assertEqual(skipped.frame, start)
                 endpoint = start + elapsed
                 skipped.match.update(endpoint * combat.TICK, endpoint)
-                self.assertEqual(field.field_tick, start)
-                retained = min(elapsed, combat.COMBAT_CATCH_UP)
-                self.assertAlmostEqual(vitals.total, 1.0 + health[elapsed] - health[elapsed - retained])
+                self.assertLess(field.field_tick, start)
+                self.assertAlmostEqual(vitals.total, health[elapsed])
+                skipped.match.update(endpoint * combat.TICK, endpoint)
+                self.assertAlmostEqual(vitals.total, health[elapsed])
 
 
 

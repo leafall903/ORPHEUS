@@ -156,7 +156,11 @@ class SonicAmplifierTests(unittest.TestCase):
                 self.assertFalse(run.match.combat.rockets)
 
     def test_primary_terminal_sweep_includes_exact_capsule_contact(self):
-        for distance, expected_damage in ((100.5, 80), (100.5 + 1 / 1024, 0)):
+        # The integrated sweep includes 0776's authored 0.15 projectile extent
+        # in addition to this target's 0.5 capsule radius and 100-unit reach.
+        # Select adjacent representable poses across the contact boundary.
+        contact_distance = int((100 + 0.5 + 0.15) * 1024) / 1024
+        for distance, expected_damage in ((contact_distance, 80), (contact_distance + 1 / 1024, 0)):
             with self.subTest(distance=distance):
                 helper, run, source, enemy, weapon = self.scenario()
                 enemy.mover.position[:] = (0, 1, distance)

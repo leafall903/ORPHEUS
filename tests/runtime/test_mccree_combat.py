@@ -1,5 +1,6 @@
 """Actual McCree commands against player and training-NPC collision fixtures."""
 
+import dataclasses
 import unittest
 from dataclasses import replace
 

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-projectile-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/script/driver.py", "src/ow174/game/combat.py"],
+    "change": "Sigma-only immutable body/world birth mapping and per-flight-step event clock"
+  },
+  "evidence": "synthetic-production-input-and-encrypted-protocol",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "body_birth": 5000,
+    "world_step_ms": 16,
+    "seed": "no random trajectory inputs",
+    "input_order": "neutral commands before one primary press at shot_frame",
+    "packet_loss": [],
+    "cases": [
+      {"quanta_us": 15000, "shot_frame": 5001, "expected_world_tick": 1000},
+      {"quanta_us": 16000, "shot_frame": 5001, "expected_world_tick": 1001},
+      {"quanta_us": 17000, "shot_frame": 5001, "expected_world_tick": 1001},
+      {"quanta_us": 15000, "shot_frame": 5031, "expected_world_tick": 1029},
+      {"quanta_us": 16000, "shot_frame": 5031, "expected_world_tick": 1031},
+      {"quanta_us": 17000, "shot_frame": 5031, "expected_world_tick": 1032}
+    ]
+  },
+  "expected": {
+    "birth_immutable": true,
+    "other_hero_input_anchors_unchanged": true,
+    "batch_sizes": [1, 8, 32],
+    "invariant_fields": ["position", "flown", "remaining_lifetime", "HIT_event_tick", "damage"],
+    "delivery_time": "A packet arriving after an event may deliver it later; event time is distinct from receipt time."
+  }
+}

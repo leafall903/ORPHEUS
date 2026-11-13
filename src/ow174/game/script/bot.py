@@ -292,6 +292,10 @@ class BotWorld(runtime.World):
         return sniper_special.search(self, state)
 
     def position(self, entity):
+        if self.match is not None and self.component is not None:
+            value = self.match.combat.hooks.victim_position(self.component, entity)
+            if value is not NotImplemented:
+                return value
         if self.hero == 0x02E00000000001B8 and self.match is not None:
             value = self.match.script_body_position(entity, entity)
             if value is not None:
@@ -370,6 +374,26 @@ class BotWorld(runtime.World):
         self.component: runtime.Component | None = None
         self.controller_inputs: dict[int, int] = {}
         self.heavy_counter_stuns: list[tuple[int, float]] = []
+
+    def constant_native(self, cfg, instance):
+        # These inputs are fixed by this stock Practice host's construction.
+        # Health, buttons, timers, filters and every other live query still poll.
+        if (self.mode != PRACTICE_RANGE_MODE or self.hero not in PRACTICE_BOT_HEROES
+                or self.control_context is not None):
+            return NotImplemented
+        cls = cfg.get('$')
+        if cls == 'STU_A77AC2AC':
+            return False  # This namespace's mode cannot become Tutorial.
+        if cls == 'STU_A3DEF368' and graph.mode_variables(self.mode) is not None:
+            return expr.Entity(runtime.GAME_MODE_ENTITY)
+        if cls == 'STU_AC829876' and instance.graph.index == PRACTICE_NAMEPLATE_PARENT:
+            owner, target_filter = cfg.get('m_entity'), cfg.get('m_filter')
+            if (owner in ({'$': 'STU_B5A0CAF0'}, {'$': 'STU_B5A0CAF0', 'm_EE729DCB': 0})
+                    and isinstance(target_filter, dict)
+                    and {key: value for key, value in target_filter.items() if value not in (None, 0)}
+                    == PRACTICE_NAMEPLATE_FILTER):
+                return True  # Same fixed nameplate gate as native() below.
+        return NotImplemented
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         if self.control_context is not None and self.control_context.send(target, message, params, sender):
@@ -659,6 +683,11 @@ class BotWorld(runtime.World):
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, npc_context, npc_shields, orisa_halt
 
+        if instance is not None and self.match is not None:
+            value = self.match.combat.hooks.victim_native(instance, cfg)
+            if value is not NotImplemented:
+                return value
+
         if self.control_context is not None and self.control_context.target_host is not None:
             value = self.control_context.native(cfg, instance)
             if value is not NotImplemented:
@@ -819,6 +848,12 @@ class BotWorld(runtime.World):
         if self.control_context is not None:
             return self.control_context.play_script_context(instance, node)
         return super().play_script_context(instance, node)
+
+    def session_script_entities(self, instance):
+        if (self.hero == 0x02E0000000000016 and self.match is not None
+                and instance.graph.index == 0x157D):
+            return tuple(expr.Entity(player.entity) for player in self.match.players if not player.gone)
+        return super().session_script_entities(instance)
 
     def submit_script_request(self, instance, node, request):
         from ow174.game import assassin
@@ -988,6 +1023,8 @@ class BotScript(ReplicatedBody):
         if record is None:
             raise ValueError(f"no statescript data for entity body {body:016X}")
         self.frame = frame
+        if hero == 0x02E000000000007A and match is not None:
+            self.dva_birth = (match.tick, frame)
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing_position is not None else None
@@ -1122,7 +1159,9 @@ class BotScript(ReplicatedBody):
                 if instance is not self.behavior and instance is not self.flashbang_weapon_stack)
 
     def show_damage_nameplate(self, sender: int) -> None:
-        if not self.component.world.manual_nameplate:
+        world = self.component.world
+        if not (world.manual_nameplate
+                or (world.mode == PRACTICE_RANGE_MODE and world.hero in PRACTICE_BOT_HEROES)):
             return
         snapshot = self.latest_live
         child = practice_nameplate(snapshot)

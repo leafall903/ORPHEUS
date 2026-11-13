@@ -150,7 +150,7 @@ class Translocators:
 
     def recall_blocked_by_graviton(self, entity):
         owner = self._owner(entity)
-        if owner is None or not owner.body in self.combat.zarya_gravitons.pulled:
+        if owner is None or owner.body not in self.combat.zarya_gravitons.pulled:
             return False
         return any(actor.owner is owner and actor.source_body == entity for actor in self.entries.values())
 
@@ -175,7 +175,7 @@ class Translocators:
         selected = selector.result[0] if selector is not None else None
         valid = (owner is not None and not self.combat.is_dead(owner)
                  and not self.combat.is_stunned(owner) and owner.body not in self.combat.sombra_controls.locks
-                 and not owner.body in self.combat.zarya_gravitons.pulled
+                 and owner.body not in self.combat.zarya_gravitons.pulled
                  and getattr(selector, "ever_valid", False) and isinstance(point, expr.Vec3)
                  and isinstance(selected, expr.Vec3)
                  and math.dist(tuple(point), tuple(selected)) < 0.01 and self.fits_destination(owner, point))
@@ -190,7 +190,7 @@ class Translocators:
         self.recall_poses.add(owner.body)
         return True, point
 
-    def fire(self, owner, state, definition, origin, direction, activation):
+    def fire(self, owner, state, definition, origin, direction, activation, *, launch_frame=None):
         """Handle only the authored non-predicted Sombra volley, without a lease."""
         if definition != DEFINITION or not accepted_volley(state):
             return False
@@ -216,17 +216,23 @@ class Translocators:
         if output is None or speed <= 0 or seconds <= 0:
             return True
         match = self.combat.match
+        launch_tick = match.tick
+        received_frame = owner.commands.last_frame
+        if launch_frame is not None and received_frame is not None and launch_frame <= received_frame:
+            # The receive window ends at match.tick even while earlier commands are simulated.
+            elapsed_ms = (received_frame - launch_frame) * state.instance.component.frame_ms
+            launch_tick -= math.ceil(elapsed_ms / 16)
         entity = self.combat.allocate_combat_entity()
         actor = Translocator(entity, owner, owner.body, state.instance, output, activation,
                              tuple(origin), tuple(speed * axis for axis in direction), gravity,
-                             match.tick + math.ceil(seconds / 0.016), match.tick, digest, health=health)
+                             launch_tick + math.ceil(seconds / 0.016), launch_tick, digest, health=health)
         self.entries[entity] = actor
         self.combat.deployables[entity] = actor
         script = actor.body_script = BotScript.__new__(BotScript)
         actor_world = BodyWorld(owner.hero.guid, match.game_map.mode_guid, entity, DEFINITION)
         actor_world.match = match
         try:
-            BotScript.__init__(script, DEFINITION, owner.hero.guid, entity, match.tick,
+            BotScript.__init__(script, DEFINITION, owner.hero.guid, entity, launch_tick,
                                match.game_map.mode_guid, health, record=record, world=actor_world,
                                resolve_graph=lambda index: definitions.get(index) or graph.graph(index),
                                source_entity=owner.body, match=match)
@@ -345,10 +351,22 @@ class Translocators:
                 actor.last_tick += 1
                 if not actor.settled:
                     self._move(actor, 0.016)
-                actor.body_script.advance_live(actor.last_tick)
+                actor.body_script.advance_live(actor.last_tick, actor.position)
                 if actor.entity not in self.entries:
                     retired_earlier |= actor.last_tick < tick
                     break
+            if actor.entity in self.entries:
+                for viewer in self.combat.match.players:
+                    client = viewer.client
+                    if client is None or not viewer.spawned:
+                        continue
+                    if client.bot_create_acked(actor.entity):
+                        update = world.EntityUpdate(
+                            actor.entity, movement=world.Movement(actor.position, velocity=actor.velocity),
+                        )
+                        update.resend = False
+                        client.queue_entities([update])
+                    client.queue_bot_live(actor.entity, actor.body_script.latest_live)
         return retired_earlier
 
     def _move(self, actor, seconds):

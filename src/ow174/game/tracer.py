@@ -29,6 +29,14 @@ def recalling(owner):
     return match is not None and match.combat.recalls.locked(owner)
 
 
+def correct_pose(player, first_frame):
+    """Deliver an authored relocation through the finite current-body owner lease."""
+    from ow174.game import correction
+
+    return correction.request_motion(player, first_frame=first_frame, body=player.body,
+                                     first_valid_frame=first_frame)
+
+
 def hold_pose(player, command):
     """Preserve delivered Recall translation freeze while accepting view changes."""
     mover = player.mover
@@ -111,4 +119,5 @@ def blink(world, instance, node):
     # The action runs after the normal pose. Replace its same-frame correction
     # snapshot instead of leaving the owning client at the pre-Blink position.
     mover.history[-1] = mover.snapshot(component.frame)
+    correct_pose(player, component.frame)
     return True

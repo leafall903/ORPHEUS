@@ -33,7 +33,12 @@ def evaluate(state, modify):
         return None
 
     def number(config):
-        value = expr.to_float(state.evaluate(config, watch=False))
+        if config is None:
+            raise ValueError('missing Whole Hog force expression')
+        value = state.evaluate(config, watch=False)
+        if type(value) not in (int, float):
+            raise ValueError('unresolved Whole Hog force expression')
+        value = expr.to_float(value)
         if not math.isfinite(value) or value < 0:
             raise ValueError('invalid Whole Hog force input')
         return value
@@ -55,3 +60,28 @@ class Motion:
     velocity: tuple
     tick: int
     npc_mover: object = None
+
+
+def volley_impulse(direction, distance, spec, *, current=(0.0, 0.0, 0.0)):
+    """Bound the live recipient velocity, submitting only its additive delta.
+
+    The shared receiver owns decay, landing and replay. Reading its actual
+    velocity prevents repeated volleys from replacing the old capped channel
+    with an unbounded sum, without creating a second motion integrator.
+    """
+    size = math.hypot(direction[0], direction[2])
+    if size <= 1e-9:
+        return None
+    horizontal, vertical, cap = spec.scale(distance)
+    if not horizontal and not vertical:
+        return None
+    x, y, z = current
+    x += direction[0] / size * spec.force * horizontal
+    z += direction[2] / size * spec.force * horizontal
+    flat = math.hypot(x, z)
+    limit = spec.cap * cap
+    if flat > limit:
+        x, z = x / flat * limit, z / flat * limit
+    y = min(spec.lift_cap * cap, y + spec.lift * vertical)
+    return expr.Vec3(*(expr.f32(after - before) for before, after in
+                       zip(current, (x, y, z), strict=True)))

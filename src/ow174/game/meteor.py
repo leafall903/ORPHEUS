@@ -207,6 +207,11 @@ class Meteors:
                     length = math.hypot(dx, dz) or 1
                     velocity = (dx / length * horizontal, up, dz / length * horizontal)
                     if any(velocity):
-                        self.combat._launch(target.entity, velocity)
+                        from ow174.game.doomfist import Slams
+
+                        scale = Slams._target_impulse_scale(target)
+                        impulse = expr.Vec3(*(axis * scale for axis in velocity))
+                        self.combat.knockbacks.apply(
+                            target, impulse, impact_tick=self.combat.match.tick, source_entity=player.body)
         instance.write((0, 39), len(ordered))
         cast.hit, cast.damage = tuple(found), tuple(amounts)

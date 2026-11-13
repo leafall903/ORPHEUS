@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "case_id": "moira-orb-batch-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/moira.py",
+      "src/ow174/game/match.py",
+      "src/ow174/game/script/driver.py"
+    ]
+  },
+  "evidence": "synthetic real command path; same volley activation and direction",
+  "client_acceptance": "pending",
+  "input": {
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "ability_at": 1,
+    "choice_until": 8,
+    "commands_until": 96,
+    "query_at": 112,
+    "healing": [
+      false,
+      true
+    ],
+    "budget_scalar": 0.015625,
+    "direction": [
+      0,
+      0,
+      1
+    ]
+  },
+  "expected": {
+    "casts": 1,
+    "event_frame_offset": 7,
+    "same_event_epoch": true,
+    "same_query_position": true,
+    "same_health_and_budget": true,
+    "same_grasp_absorption": true,
+    "same_lifetime_retirement_tick": true,
+    "single_destroy_per_viewer": true,
+    "duplicate_commands_do_not_repeat_cast": true,
+    "replay_window_command_count": 32
+  }
+}

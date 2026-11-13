@@ -343,6 +343,7 @@ class Stream:
 WRITERS = {
     spray_placement.CODEC,
     "linked_target",
+    "start",
     "none", "switch", "stack", "anim", "chase", "button", "ability", "targets", "volley", "subscript",
     "message", "send", "link", "hits", "flags13", "frames", "counter2", "pulser", "two_bits", "value_slot",
 }  # fmt: skip
@@ -610,7 +611,9 @@ def write_payload(
     """A state's payload in an owner frame (H = 1, a delta). `frame_time` is 16 * CmFD: the client takes
     the volley's start and the chase's and ability's last tick relative to it."""
     kind = family(cls)
-    if kind == "switch":
+    if kind == "start":
+        signed_var(out, frame_time - payload["start"])
+    elif kind == "switch":
         out.bit(payload.get("current", False))
     elif kind == "value_slot":
         out.bit(payload["which"])
@@ -1065,7 +1068,7 @@ def remote_fields(cls: str, payload: dict) -> dict:
         return {"link": get("link")}
     if kind in ("frames", "value_slot"):
         return dict(payload)
-    if kind in ("none", "stack", "send", "subscript", "targets"):
+    if kind in ("none", "stack", "send", "subscript", "targets", "start"):
         return {}
     if kind == spray_placement.CODEC:
         return spray_placement.wire_fields(payload)

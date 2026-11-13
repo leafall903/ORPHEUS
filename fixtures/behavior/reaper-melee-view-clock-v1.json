@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "reaper-melee-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "provenance": "Synthetic identity exchange via actual Reaper0043 melee command, damage and shared Knockbacks.apply. Distinct world/owner epochs; all15 stock NPCs retained. Original authored ring remains100/1/0. No native adoption claim.",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/knockback.py"]
+  },
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "action_offset": 41,
+    "swap_after": 33,
+    "view_delay_ms": 128,
+    "source": [1000, 0, 1000],
+    "near": [1000, 0, 1001.5],
+    "far": [1006, 0, 1001.5]
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "impact_world_tick": 1041,
+    "damage_by_identity": [30, 0],
+    "impulse": [0, 0, 1],
+    "force_calls": 1,
+    "hit_frame_offset": 41
+  }
+}

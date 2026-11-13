@@ -1,16 +1,18 @@
 """Actual Halt creates original0CCE; native force/continuous search remain open."""
 
+import json
 import math
 import os
 import unittest
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 import test_orisa_barrier as barrier_fixture
 import test_orisa_halt as fixture
-from test_game_combat import SOLDIER, in_world
+from test_game_combat import SOLDIER, Run, in_world
 
-from ow174.game import orisa_halt
+from ow174.game import correction, orisa_halt
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import find_hero
 from ow174.game.script import expr
@@ -18,6 +20,88 @@ from ow174.game.script import expr
 
 @unittest.skipUnless(os.environ.get("ORPHEUS_ORISA_HALT"), "original Halt graph supplement required")
 class OrisaHaltGraphTests(unittest.TestCase):
+    def test_actual_halt_genji_uses_one_finite_receiver_without_second_force(self):
+        helper = fixture.HaltTests()
+        run, caster, target = helper.arena()
+        run.match.switch_hero(target, find_hero("Genji"))
+        x, floor, z = caster.mover.position
+        helper.place(run, target, (x, floor, z + 5))
+        fight = run.match.combat
+        health = fight.vitals_of(fight.player_target(target)).total
+        peak, records = floor, 0
+        orb = pull = None
+        with patch.object(correction, "request_motion", wraps=correction.request_motion) as receiver:
+            for index in range(200):
+                run.step({caster: (0, 0, 2 if index in (0, 25) else 0)})
+                if orb is None and fight.orisa.orbs:
+                    orb = next(iter(fight.orisa.orbs.values()))
+                if target.body in fight.orisa.pulls:
+                    pull = fight.orisa.pulls[target.body]
+                peak = max(peak, target.mover.position[1])
+                records += correction.own_record(target, run.match.tick) is not None
+            self.assertEqual(receiver.call_count, 1)
+            self.assertIs(receiver.call_args.args[0], target)
+            self.assertEqual(receiver.call_args.kwargs["body"], target.body)
+        self.assertIsNotNone(orb)
+        self.assertIsNotNone(pull)
+        self.assertEqual(pull.script.vars[40].value(), expr.Entity(orb.entity))
+        self.assertGreater(records, 0)
+        self.assertLess(records, 200)  # common receiver expires; no permanent hero opt-in
+        self.assertEqual(fight.knockbacks.serial, 0)
+        self.assertEqual(fight.vitals_of(fight.player_target(target)).total, health)
+        self.assertGreater(peak, floor + .5)
+        self.assertAlmostEqual(target.mover.position[1], floor, delta=1 / 1024)
+        self.assertNotIn(target.body, fight.orisa.pulls)
+        self.assertFalse(fight.orisa.controls(target.body))
+        self.assertFalse(target.body_script.component.entity_var(23186).value())
+        self.assertFalse(correction._eligible(target))
+        start = tuple(target.mover.position)
+        for _ in range(12):
+            self.step(run, target, forward=127)
+        self.assertGreater(math.dist(start, target.mover.position), .5)
+
+    def test_static_training_victim_advances_control_falls_and_publishes_release(self):
+        root = Path(os.environ.get("ORPHEUS_BEHAVIOR_FIXTURES")
+                    or Path(__file__).resolve().parents[2] / "fixtures/behavior")
+        case = json.loads((root / "orisa-native-followup-v1.json").read_text())["static_training_victim"]
+        run = Run()
+        caster, = run.players
+        run.match.switch_hero(caster, find_hero("Orisa"))
+        bot = next(bot for bot in run.match.bots if bot.name == "Training Bot")
+        run.match.bots[:] = [bot]
+        run.match._pending_bot_scripts.clear()
+        x, floor, z = caster.mover.position
+        bot.position = bot.start = (x, floor, z + case["ahead_metres"])
+        bot.route, bot.firing, bot.last_tick = [], False, run.frame
+        bot.team = 1 - caster.team
+        if bot.body_script is None:
+            run.match._prepare_bot_script(bot)
+        peak = floor
+        pulled = False
+        effect_sources = set()
+        published_orb_ids = set()
+        for index in range(case["observe_frames"]):
+            run.step({caster: (0, 0, case["button"] if index in case["press_offsets"] else 0)})
+            peak = max(peak, bot.position[1])
+            pulled |= bot.entity in run.match.combat.orisa.pulls
+            for orb in run.match.combat.orisa.orbs.values():
+                for delivery in orb.rocket.shot.observers:
+                    published_orb_ids.update(delivery.record.ids)
+            pull = run.match.combat.orisa.pulls.get(bot.entity)
+            if pull is not None:
+                source = expr.to_entity(pull.script.find_var(expr.INSTANCE, 40).value())
+                effect_sources.add(source)
+                self.assertIn(source, published_orb_ids)
+        self.assertTrue(pulled)
+        self.assertEqual(len(effect_sources), 1)
+        self.assertGreater(peak, floor + case["minimum_rise_metres"])
+        self.assertAlmostEqual(bot.position[1], floor, delta=case["floor_tolerance_metres"])
+        self.assertNotIn(bot.entity, run.match.combat.orisa.pulls)
+        self.assertEqual(run.match.combat.vitals[bot.entity].total, bot.health - case["damage"])
+        self.assertFalse(run.match.combat.orisa.controls(bot.entity))
+        self.assertFalse(any(item[0] == 0xCCE for item in bot.body_script.latest_live.instances.values()))
+        self.assertFalse(bot.body_script.component.entity_var(23186).value())
+
     def cast(self, *, target_orisa=False):
         helper = fixture.HaltTests()
         run, caster, target = helper.arena()

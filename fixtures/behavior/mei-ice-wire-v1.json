@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "mei-ice-wire-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/ice_wall.py", "src/ow174/game/mei_presentation.py", "tests/runtime/test_mei_ice_presentation.py"],
+    "provenance": "Original 090B/0932 entity definitions and 0623/0636/25B4 graphs; private asset hashes recorded in the local repair receipt."
+  },
+  "evidence": "decoded-runtime-wire-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "scene": "Two active viewers in a synthetic flat arena, initialized Mei and an enemy",
+    "simulation": {"frame_ms": 16, "warmup_frames": 30, "seed": null, "packet_loss": []},
+    "cryo": "One ability-1 press, then release",
+    "wall": "One ability-2 press/release, primary confirm/release at ground three metres ahead",
+    "damage": {"target": "first enemy wall pillar", "amount": 75},
+    "wire": "Decode actual ch4 create/update records and an H=0 full statescript chunk"
+  },
+  "expected": {
+    "cryo_count_per_viewer": 1,
+    "cryo_has_component51": false,
+    "cryo_graphs": [1571],
+    "pillar_count_per_viewer": 5,
+    "pillar_graphs": [9652, 1590],
+    "pillar_maximum": 400,
+    "pillar_initial_health": 400,
+    "pillar_damaged_health": 325,
+    "component26": "owner team/filter bits",
+    "component72": "explicit m_D749D7D8 result: player controller entity, not body source",
+    "builtin001B": "typed owner body entity on every ice script",
+    "pillar_world": "same match and pillar entity, on its existing component"
+  },
+  "limits": "Confirms decoded protocol inputs and VM context. Does not establish native rendering, animation, effects, sound or live-client acceptance."
+}

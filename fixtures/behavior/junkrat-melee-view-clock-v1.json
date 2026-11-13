@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-melee-view-clock-v1",
+  "build": 104319,
+  "provenance": "Synthetic distinct A/B identities exchanged after world1040; actual Junkrat0043 input ingestion, damage and ownerHIT. All15 original NPC identities retained. No original client acceptance.",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "command_offset": 41,
+    "view_delay_ms": 128,
+    "swap_after_offset": 40,
+    "target_a_initial": [
+      999.5,
+      0,
+      1001.4
+    ],
+    "target_b_initial": [
+      1004,
+      0,
+      1001.4
+    ]
+  },
+  "expected": {
+    "world_view_tick": 1033,
+    "health_a": 170,
+    "health_b": 200,
+    "hit_identity": "A",
+    "hit_owner_frame_offset": 41
+  },
+  "fractional": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "frame_ms": 15,
+    "command_frame": 9041,
+    "delay_ms": 8,
+    "expected_world_view": 1037.9375
+  }
+}

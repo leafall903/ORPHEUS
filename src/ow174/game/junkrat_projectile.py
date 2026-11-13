@@ -7,6 +7,15 @@ from ow174.game.script import expr
 HERO = 0x02E0000000000065
 
 
+def catch_up(fight, rocket):
+    """Account for a received Junkrat release on its original world ticks."""
+    from ow174.game import projectile_clock
+
+    if rocket.last_tick is None:
+        return
+    projectile_clock.advance_accepted(fight, rocket)
+
+
 def profile(state):
     if state.instance.component.world.hero != HERO:
         return None

@@ -23,6 +23,8 @@ HOST_PREFIX = 0xFFFFFFFF00000000
 
 def quick_melee_ring(state):
     """Capture 0043's single flat ring at activation."""
+    if state.instance.graph.index != 0x0043 or state.node.pos != 10:
+        return None
     modify = state.node.field("m_modifyHealth") or {}
     rings = modify.get("m_knockbackRings") or ()
     if len(rings) != 1:
@@ -68,36 +70,58 @@ class Knockbacks:
         self.whole_hog_seen = {}
         self.whole_hog_motion = {}
 
-    def apply(self, target, impulse, *, impact_frame: int | None = None):
-        from ow174.game import bots
+    def apply(self, target, impulse, *, impact_frame: int | None = None,
+              impact_tick: int | None = None, source_entity: int | None = None):
+        """One force entry. impact_tick is world time; no source-clock conversion.
+
+        impact_frame retains the old ambiguous contract for unmigrated callers.
+        New producers must supply impact_tick and preserve HIT owner labels apart.
+        """
+        from ow174.game import bots, correction
+        from ow174.game.combat import TICK
 
         if (not isinstance(impulse, expr.Vec3) or not all(map(math.isfinite, impulse))
                 or not any(impulse) or self.combat.vitals_of(target).dead):
             return False
         owner = target.owner
         match = self.combat.match
-        if isinstance(owner, bots.Bot):
+        if impact_tick is not None and (type(impact_tick) is not int or impact_tick < 0):
+            raise ValueError('impact_tick must be a nonnegative world tick')
+        controller = self._controlled_receiver(owner) if isinstance(owner, bots.Bot) else owner
+        controlled = controller is not None and controller is not owner
+        if isinstance(owner, bots.Bot) and owner.control_mover is not None and not controlled:
+            return False  # invalid possession must not fall back onto a second NPC mover
+        if isinstance(owner, bots.Bot) and not controlled:
             if (owner not in match.bots or owner.entity != target.entity or owner.dead
                     or self.combat.junkrat.rooted(target.entity, max(match.tick, impact_frame or 0))):
                 return False
-            frame = max(match.tick, impact_frame or 0) + 1
+            frame = max(match.tick, impact_frame or 0) + 1 if impact_tick is None else impact_tick + 1
         else:
-            script = getattr(owner, 'body_script', None)
-            if (owner not in match.players or not owner.has_body or owner.body != target.entity
+            script = getattr(controller, 'body_script', None)
+            if (controller not in match.players or not controller.has_body
+                    or (not controlled and controller.body != target.entity)
                     or script is None or script.retired
-                    or any(isinstance(state, nodes.MoveTo) and state.active
+                    or (not controlled and any(isinstance(state, nodes.MoveTo) and state.active
                            for instance in script.component.instances.values()
-                           for state in instance.states.values())):
+                           for state in instance.states.values()))):
                 return False
-            mover = owner.mover
+            mover = owner.control_mover if controlled else owner.mover
             # The recipient may still have poses to replay before the attack.
             # If it already processed the impact pose, use its next one.
-            frame = max(script.component.frame + 1, match.tick, impact_frame or 0)
+            if impact_tick is None:
+                frame = max(script.component.frame + 1, match.tick, impact_frame or 0)
+            else:
+                mapped = self.body_frame(controller, impact_tick, TICK)
+                if mapped is None:
+                    return False  # no fabricated equal-epoch anchor
+                current = (mover.last_command.frame if controlled and mover.last_command is not None
+                           else script.component.frame)
+                frame = max(current + 1, mapped + 1)
         if not 0 <= frame <= 0xFFFFFFFF or self.serial >= 0xFFFFFFFF:
             return False
         self.retire_whole_hog(target.entity, forget=False)
         key = HOST_PREFIX | (self.serial + 1)
-        if isinstance(owner, bots.Bot):
+        if isinstance(owner, bots.Bot) and not controlled:
             if frame - 1 > match.tick:
                 if not hasattr(self, "pending_npc"):
                     self.pending_npc = {}
@@ -107,9 +131,27 @@ class Knockbacks:
             else:
                 self._start_npc(owner, frame - 1, key, impulse)
         else:
+            expires = max(match.tick, impact_tick if impact_tick is not None else match.tick)
+            expires += (correction.IMPULSE_WINDOW_US - 1) // round(TICK * 1_000_000)
+            if not correction.request_motion(controller, first_frame=frame, body=target.entity,
+                                             expires_tick=expires):
+                return False
             self._enqueue(target.entity, mover, frame, key, impulse)
+            if not controlled:
+                self.record_launch(target, source_entity=source_entity)
         self.serial += 1
         return True
+
+    def _controlled_receiver(self, bot):
+        """Resolve the actual native local body; ordinary NPCs have no owner lease."""
+        from ow174.game import correction
+
+        for player in self.combat.match.players:
+            if getattr(player, 'controlled_mech', None) is bot:
+                current = correction._target(player)
+                if current is not None and current[0] == bot.entity and current[1] is bot.control_mover:
+                    return player
+        return None
 
     def observe_body(self, player, script, tick):
         """Keep the actual constructor pair, without enabling an input lease."""
@@ -153,6 +195,24 @@ class Knockbacks:
             return None
         at, frame = pair
         return frame + (tick - at) * round(dt * 1000) // script.frame_ms
+
+    def world_frame(self, player, frame, dt):
+        """Inverse of the observed recipient clock; source labels stay separate."""
+        from ow174.game.sombra_replay import world_frame
+        script = player.body_script
+        if script is None:
+            return None
+        mapped = world_frame(script, frame, round(dt * 1000))
+        if mapped is not None:
+            return mapped
+        previous = self.body_epochs.get(player.body)
+        if previous is None or previous[0] is not script:
+            return None
+        pair = previous[2] if previous[2] is not None else previous[1]
+        if pair is None:
+            return None
+        at, owner = pair
+        return at + (frame - owner) * script.frame_ms // round(dt * 1000)
 
     def record_launch(self, target, *, source_entity=None):
         """Retain an accepted player impulse on this same physical host."""
@@ -222,9 +282,14 @@ class Knockbacks:
         finally:
             match.tick, fight.tick, fight.now = scheduled
 
-    def whole_hog_hit(self, target, direction, distance, spec, packet):
-        """Original per-volley force on the sole target movement host."""
-        from ow174.game import bots, reinhardt_charge
+    def whole_hog_hit(self, target, direction, distance, spec, packet, *,
+                      impact_tick, source_entity):
+        """Submit one capped authored volley through the common recipient host.
+
+        Damage remains per pellet. The legacy cap/ring interpretation is retained
+        here as producer policy; native force/mass conversion is still unaccepted.
+        """
+        from ow174.game import defenses, reinhardt_charge, whole_hog
 
         fight = self.combat
         entity = target.entity
@@ -237,50 +302,24 @@ class Knockbacks:
         key = (*packet, entity)
         if key in self.whole_hog_seen:
             return False
-        size = math.hypot(direction[0], direction[2])
-        if size <= 1e-9:
-            return False
-        horizontal, vertical, cap = spec.scale(distance)
+        from ow174.game import bots
+
         owner = target.owner
-        if not isinstance(owner, bots.Bot) and (owner not in fight.match.players
-                or not owner.has_body or owner.body != entity):
-            return False  # Damageable devices have no player impulse capsule.
-        if entity in self.active or self.has_pending(entity):
-            return False  # Preserve the existing native queue's physical priority.
-        from ow174.game import whole_hog
-
-        motion = self.whole_hog_motion.get(entity)
-        if isinstance(owner, bots.Bot):
-            mover = owner.control_mover or owner.impulse_mover
-            if mover is None:
-                from ow174.game import npc_navigation
-
-                if owner.navigation is not None:
-                    npc_navigation.stop(owner)
-                category = MOVER if fight.match.game_map.free_for_all or owner.team not in (0, 1) else (TEAM0, TEAM1)[owner.team]
-                mover = owner.ensure_manual_mover(fight.tick, fight._collision(), category)
-                if mover is None:
-                    mover = Mover(owner.position, round(owner.yaw), fight._collision(),
-                                  owner.movement_data or mover_data(owner.body), category=category)
-                    mover.velocity = owner.velocity
-                    owner.impulse_mover = mover
-            if motion is None:
-                motion = whole_hog.Motion(owner, entity, (0.0, 0.0, 0.0), fight.tick, mover)
-        elif motion is None:
-            motion = whole_hog.Motion(owner, entity, (0.0, 0.0, 0.0), fight.tick)
-        current = motion.velocity
-        x, y, z = current
-        x += direction[0] / size * spec.force * horizontal
-        z += direction[2] / size * spec.force * horizontal
-        flat = math.hypot(x, z)
-        limit = spec.cap * cap
-        if flat > limit:
-            x, z = x / flat * limit, z / flat * limit
-        y = min(spec.lift_cap * cap, y + spec.lift * vertical)
-        motion.velocity = tuple(expr.f32(value) for value in (x, y, z))
-        self.whole_hog_motion[entity] = motion
+        mover = self.active.get(entity)
+        if mover is None:
+            mover = ((owner.control_mover or owner.impulse_mover) if isinstance(owner, bots.Bot)
+                     else owner.mover)
+        current = mover.velocity if mover is not None else owner.velocity
+        impulse = whole_hog.volley_impulse(direction, distance, spec, current=current)
+        if impulse is None:
+            return False
+        scale = defenses.knockback_scale(target.owner)
+        impulse = expr.Vec3(*(axis * scale for axis in impulse))
+        # Consume the volley even when resistance is zero or the receiver declines:
+        # the other damaging pellets must not retry the physical submission.
         self.whole_hog_seen[key] = fight.tick
-        return True
+        return self.apply(target, impulse, impact_tick=impact_tick,
+                          source_entity=source_entity)
 
     def whole_hog_velocity(self, entity):
         motion = self.whole_hog_motion.get(entity)
@@ -490,7 +529,8 @@ class Knockbacks:
         match = self.combat.match
         live = {player.body: player.mover for player in match.players
                 if player.has_body and not self.combat.is_dead(player)}
-        npc_movers = {bot.entity: bot.impulse_mover for bot in match.bots if not bot.dead}
+        npc_movers = {bot.entity: (bot.control_mover if self._controlled_receiver(bot) is not None
+                                  else bot.impulse_mover) for bot in match.bots if not bot.dead}
         live.update(npc_movers)
         for entity, mover in tuple(self.active.items()):
             if (live.get(entity) is not mover or (not mover.velocity_changes

@@ -97,6 +97,40 @@ class TorbjornTurretTests(unittest.TestCase):
         self.assertIsNotNone(turret.actor.body_script)
         self.assertEqual(turret.actor.combat_owner, owner)
 
+    def test_landed_throw_retires_prediction_aliases_and_has_one_actor(self):
+        run, owner, enemy, _ = self.arena(100.0, deploy=False)
+        fight = run.match.combat
+        run.step({owner: (0, 4000, 8)})
+        shot = None
+        for _ in range(35):
+            run.step({})
+            if fight.rockets:
+                shot = fight.rockets[0].shot
+                break
+        self.assertIsNotNone(shot)
+        self.assertEqual(shot.definition, 0x0400000000002931)
+        self.assertEqual({delivery.viewer for delivery in shot.observers}, {enemy})
+        self.advance(run, 100)
+        turret = fight.turrets[owner.entity]
+        self.assertEqual([bot.entity for bot in run.match.bots], [turret.actor.entity])
+        self.assertNotIn(shot, fight.projectiles.shots)
+        self.assertFalse(fight.rockets)
+        self.assertTrue(shot.created)
+        for entity in shot.created:
+            destroys = [update for update in owner.client.entities
+                        if update.entity == entity and update.op == world.OP_DESTROY]
+            self.assertEqual(len(destroys), 1)
+            self.assertIsNone(destroys[0].ch2)
+        for delivery in shot.observers:
+            self.assertTrue(delivery.finished)
+            self.assertTrue(delivery.launch_arrival.received)
+            self.assertTrue(any(update.entity == delivery.record.ids[0]
+                                and update.op == world.OP_DESTROY
+                                for update in enemy.client.entities))
+        self.advance(run, 150)
+        self.assertEqual([bot.entity for bot in run.match.bots], [turret.actor.entity])
+        self.assertEqual(fight.vitals[turret.actor.entity].total, 250.0)
+
     def test_airborne_throw_lands_and_fires_after_owner_is_killed(self):
         run, owner, enemy, _ = self.arena(8, deploy=False)
         fight = run.match.combat

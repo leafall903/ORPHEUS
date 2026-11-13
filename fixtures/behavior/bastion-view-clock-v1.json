@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "case_id": "bastion-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647 plus frozen Bastion clock and melee repair increments",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py"
+    ],
+    "provenance": "Adapted existing Ball/Soldier identity-exchange regression to actual Bastion Recon/Sentry inputs. All 15 original NPC identities remain. A/B describe identities, not screen sides."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "target_a_position": [
+      997,
+      0,
+      1008
+    ],
+    "target_b_position": [
+      1003,
+      0,
+      1008
+    ],
+    "shot_offset_after_mode_setup": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "packet_loss": [],
+    "seed": "Production volley seed unchanged"
+  },
+  "weapons": [
+    {
+      "mode": "Recon",
+      "source_graph": "012E",
+      "damage": 20,
+      "view_world_tick": 1033,
+      "owner_hit_frame": 9041
+    },
+    {
+      "mode": "Sentry",
+      "source_graph": "013A",
+      "damage": 15,
+      "view_world_tick": 1174,
+      "owner_hit_frame": 9182
+    },
+    {
+      "mode": "Melee",
+      "source_graph": "0043",
+      "damage": 30,
+      "buttons": 2048,
+      "view_delay_ms": 256,
+      "view_world_tick": 1025,
+      "owner_hit_frame": 9041,
+      "target_a_position": [
+        999,
+        0,
+        1001.4
+      ],
+      "target_b_position": [
+        1001,
+        0,
+        1001.4
+      ]
+    }
+  ],
+  "expected": {
+    "damaged_identity": "TargetA",
+    "target_b_health": 200,
+    "original_npc_count": 15
+  }
+}

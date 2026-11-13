@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "tracer-motion-activation-v1",
+  "target_build": "104319",
+  "source": {
+    "provenance": "Synthetic owner9000/world1000 command fixture, actual001A Recall and0024 Blink graphs; their authored displacement/health behavior is retained. Only bounded owner correction activation is changed.",
+    "shared_candidate_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a"
+  },
+  "input": {
+    "owner_birth": 9000,
+    "history_steps": 200,
+    "incoming_damage": 70,
+    "recall_button": 16,
+    "blink_button": 8
+  },
+  "expected": {
+    "restored_health": 150,
+    "blink_distance": 7.5,
+    "first_recall_record": "First actual recipient pose after authored restore, never a retained pre-restore pose",
+    "first_blink_record": "Actual same-frame post-Blink pose",
+    "create_ack_gate": true,
+    "finite_window_expires": true,
+    "replacement_body_retires_window_and_token": true
+  },
+  "limits": "No native client PASS. Requires provisional canonical0042 first_valid_frame API; the same existing-lease actualRecall now rejects old9280 and waits for true9281. No new damage force or gameplay movement added."
+}

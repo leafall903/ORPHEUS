@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-practice-damage-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/bot.py"
+    ]
+  },
+  "evidence": "synthetic-input-with-external-runtime",
+  "client_acceptance": "pending",
+  "input": {
+    "training_bodies": [
+      "1403",
+      "143E",
+      "14ED"
+    ],
+    "initial_health": {
+      "1403": 200,
+      "143E": 225,
+      "14ED": 200
+    },
+    "shooter_position": [
+      0,
+      0,
+      0
+    ],
+    "target_position": [
+      0,
+      0,
+      10
+    ],
+    "aim_height": 0.8,
+    "buttons": [
+      1,
+      0,
+      0
+    ],
+    "simulation_frame_ms": 16,
+    "seed": 1,
+    "packet_loss": []
+  },
+  "expected": {
+    "target_health": {
+      "1403": 180,
+      "143E": 205,
+      "14ED": 180
+    },
+    "owner_hit_damage": [
+      20
+    ],
+    "nameplate_enabled": true
+  }
+}

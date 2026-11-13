@@ -656,6 +656,8 @@ class BotStatescriptTests(unittest.TestCase):
         self.match.bots.append(living)
         for bot in self.match.bots:
             bot.body_script = NameplateScript(definitions, self.shooter.body)
+            bot.body_script.component = runtime.Component(
+                bot.entity, world=runtime.World(bot.hero, self.match.game_map.mode_guid))
 
         for peer in (self.watching_peer, self.shooting_peer):
             client = peer.client

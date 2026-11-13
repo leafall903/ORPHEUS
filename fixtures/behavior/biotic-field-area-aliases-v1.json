@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "biotic-field-area-aliases-v1",
+  "target_build": 104319,
+  "evidence": "synthetic-input-with-external-runtime",
+  "client_acceptance": "pending",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/projectiles.py"]
+  },
+  "input": {
+    "owner_and_observer": true,
+    "ability_button": 16,
+    "extra_confirmed_prediction_aliases": 19
+  },
+  "expected": {
+    "landed_area_actors_per_viewer": 1,
+    "transform": "authoritative_world_landing",
+    "owner_requires_canister_ack": true,
+    "healing_and_expiry_independent_of_alias_count": true
+  },
+  "limits": "Actor de-duplication contract; this does not establish native response latency or weapon pose."
+}

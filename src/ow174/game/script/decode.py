@@ -258,7 +258,10 @@ def _meaning(name: str, fields: dict, frame_time: int, frame_ms: int) -> dict:
     out: dict = {}
     if get("link"):
         out["link"] = fields["link"]
-    if name == "switch":
+    if name == "start":
+        if "t" in fields:
+            out["start"] = frame_time - fields["t"]
+    elif name == "switch":
         out["current"] = bool(fields["current"])
     elif name == "stack":
         if "top" in fields:

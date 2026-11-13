@@ -10,7 +10,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 
-from ow174.game import bots, orisa_charge, orisa_halt, wraith
+from ow174.game import bots, correction, orisa_charge, orisa_clock, orisa_halt, projectiles, wraith
 from ow174.game.commands import Command
 from ow174.game.mover import Mover, mover_data
 from ow174.game.orisa_barrier import Barriers
@@ -36,6 +36,7 @@ class Orb:
     requested: int | None = None
     pulled: bool = False
     query: orisa_halt.PullQuery | None = None
+    origin: tuple | None = None
 
 
 @dataclass
@@ -47,6 +48,7 @@ class Pull:
     last_tick: int
     mover: Mover | None = None
     script: runtime.Instance | None = None
+    motion_requested: bool = False
 
 
 class Orisa:
@@ -64,12 +66,14 @@ class Orisa:
     def admit(self, rocket) -> None:
         if rocket.source_graph != HALT_GRAPH:
             return
-        entity = self.fight.next_bot
-        if not bots.BOT_ENTITY <= entity < 0xD0000000:
-            raise ValueError("ability entity allocator exhausted")
-        self.fight.next_bot += 1  # shared monotonic NPC/dynamic-body allocator
+        entity = getattr(rocket.shot, "entity", None)
+        if entity is None:
+            entity = self.fight.next_bot
+            if not bots.BOT_ENTITY <= entity < 0xD0000000:
+                raise ValueError("ability entity allocator exhausted")
+            self.fight.next_bot += 1  # fallback for a flight without client delivery
         rocket.entity = entity
-        self.orbs[entity] = Orb(entity, rocket)
+        self.orbs[entity] = Orb(entity, rocket, origin=rocket.position)
         state = rocket.source_state
         output = expr.lvalue(state.node.field("m_505472EF"))
         state.instance.write(output, expr.Entity(entity))
@@ -86,7 +90,25 @@ class Orisa:
         if vitals is not None and vitals.dead:
             return False
         if orb.requested is None:
-            orb.requested = self.fight.tick
+            script = rocket.shooter.body_script
+            at = orisa_clock.event_tick(script, script.component.now)
+            cursor = rocket.last_tick
+            if at < cursor and orb.origin is not None:
+                # An airborne Halt has no body damage or impacts to undo. Replay
+                # its straight flight to the accepted detonation event's time.
+                rocket.position = orb.origin
+                rocket.left += rocket.flown
+                rocket.flown = rocket.travelled = 0.0
+                rocket.direction = rocket.launch_direction
+                cursor = rocket.started_tick
+                rocket.last_tick = cursor
+            for tick in range(cursor + 1, at + 1):
+                if rocket not in self.fight.rockets:
+                    break
+                rocket.last_tick = tick
+                self.fight._fly_step(rocket, min(TICK, rocket.left))
+            if orb.requested is None:
+                orb.requested = at
         return True
 
     def position(self, entity: int):
@@ -102,9 +124,12 @@ class Orisa:
 
     def landed(self, rocket) -> None:
         self.superchargers.landed(rocket)
+        if rocket.source_graph == 0x0CF5 and rocket.shot is not None:
+            rocket.shot.release_at = (orisa_clock.impact_tick(rocket, self.fight.tick)
+                                      + projectiles.RELEASE_MARGIN)
         orb = self.orbs.get(rocket.entity)
         if orb is not None and orb.requested is None:
-            orb.requested = self.fight.tick
+            orb.requested = orisa_clock.impact_tick(rocket, self.fight.tick)
 
     def retire(self, body: int) -> None:
         self.barriers.retire(body)
@@ -116,8 +141,14 @@ class Orisa:
 
     def _drop(self, entity):
         pull = self.pulls.pop(entity, None)
-        if pull is not None and pull.script is not None and not pull.script.stopped:
+        if pull is not None and pull.script is not None:
             pull.script.component.destroy(pull.script)
+            if isinstance(pull.owner, bots.Bot) and not pull.owner.firing and not pull.owner.dead:
+                body = pull.owner.body_script
+                if body is not None and body.frame < self.fight.tick:
+                    # Passive training bodies leave the weapon scheduler again
+                    # after this pull. Publish the removed control namespace now.
+                    body.advance_live(self.fight.tick, pull.owner.position)
 
     @staticmethod
     def interrupt_supercharger_cast(owner) -> None:
@@ -263,7 +294,7 @@ class Orisa:
                      else owner in self.fight.match.players and owner.has_body
                      and owner.spawned and owner.client is not None))
 
-    def movement(self, player):
+    def movement(self, player, *, command_frame=None):
         pull = self.pulls.get(player.body)
         if pull is None:
             return None
@@ -278,6 +309,13 @@ class Orisa:
                 and player.body not in self.fight.pins.values()):
             self.fight.knockbacks.retire(player.body)
             player.mover.retire_impulses()
+            if command_frame is not None and not pull.motion_requested:
+                # This original foreign MoveTo changes the existing body mover.
+                # Publish its actual command poses through the common finite
+                # receiver; do not synthesize another impulse or owner epoch.
+                pull.motion_requested = correction.request_motion(
+                    player, first_frame=command_frame, body=pull.entity,
+                )
         # The normal player MoveTo path consumes the actual0CCE state request
         # and reports arrival/abort to that same state. No forced50-speed path.
         return None
@@ -329,7 +367,14 @@ class Orisa:
                 continue
             self.fight.knockbacks.retire(entity)
             if pull.mover is None:
-                pull.mover = Mover(bot.position, int(bot.yaw), self.fight._collision(), mover_data(bot.body))
+                pull.mover = bot.impulse_mover
+                if pull.mover is None:
+                    pull.mover = Mover(bot.position, int(bot.yaw), self.fight._collision(),
+                                       bot.movement_data or mover_data(bot.body), category=bot.category)
+                pull.mover.retire_impulses()
+                # The same body solver must resume gravity when authored MoveTo
+                # ends; a detached pull-only mover leaves static victims in air.
+                bot.impulse_mover = pull.mover
             destination, speed = request
             pull.destination = tuple(destination)
             for at in range(max(pull.last_tick + 1, tick - 63), tick + 1):

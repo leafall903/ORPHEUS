@@ -78,6 +78,9 @@ class OrisaCombatTests(unittest.TestCase):
                 expected = weapon_spread.direction((0, 0, 1), math.radians(degrees), base, index)
                 for axis, value in zip(rocket.launch_direction, expected, strict=True):
                     self.assertAlmostEqual(axis, value, places=6)
+                for delivery in rocket.shot.observers:
+                    self.assertEqual(delivery.record.shot, index)
+                    self.assertEqual(delivery.record.direction, rocket.launch_direction)
         self.assertEqual(volley.instance.vars[53].value(), 145)
 
     def test_fusion_driver_command_can_kill_a_retained_training_bot(self):

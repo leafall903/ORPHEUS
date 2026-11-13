@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-hand-cannon-retirement-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "tests/runtime/test_game_projectiles.py"],
+    "provenance": "Synthetic two-player command scenario and pre-existing retirement assertions; no captured game data."
+  },
+  "evidence": "synthetic-regression",
+  "client_acceptance": "pending",
+  "initial_state": {
+    "players": 2,
+    "hero": "Doomfist",
+    "separation_meters": 8,
+    "seed": "production activation seed",
+    "input_order": ["shooter primary", "victim primary", "retire shooter body"],
+    "packet_loss": [],
+    "frames_after_retirement": 8
+  },
+  "cases": [
+    {"input": {"retirement": "switch"}, "expected": {"owned_flights": 0, "other_player_flights": 11, "npc_flights": 1, "target_damage_after_retirement": 0}},
+    {"input": {"retirement": "leave"}, "expected": {"owned_flights": 0, "other_player_flights": 11, "npc_flights": 1, "target_damage_after_retirement": 0}}
+  ]
+}

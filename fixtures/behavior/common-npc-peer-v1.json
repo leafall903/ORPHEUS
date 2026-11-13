@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "case_id": "common-npc-peer-v1",
+  "target_build": 104319,
+  "evidence": "synthetic-input-with-external-runtime",
+  "client_acceptance": "pending",
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "paths": ["src/ow174/game/match.py", "src/ow174/game/npc_contacts.py"]
+  },
+  "input": {
+    "heroes": ["Ashe", "Mei"],
+    "target_hero": "Soldier: 76",
+    "target_kinds": ["enemy", "none", "ally", "dead"],
+    "owner_position": [0, 0, 0],
+    "target_position": [0, 0, 3],
+    "first_frame": 1001,
+    "commands": 80,
+    "forward": 127,
+    "yaw": 0,
+    "ground_height": 0
+  },
+  "expected": {
+    "enemy_stop_z": 2.0048828125,
+    "unobstructed_z": 6.9814453125,
+    "temporary_peer_contacts_removed": true
+  },
+  "limits": "Ordinary movement representatives and existing exclusion paths; no native acceptance of every hero or special movement ability."
+}

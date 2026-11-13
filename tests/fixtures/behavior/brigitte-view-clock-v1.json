@@ -1,0 +1,11 @@
+{
+  "world_birth": 1000,
+  "owner_births": [1000, 9000],
+  "press_offset": 41,
+  "swap_after": 48,
+  "end_offset": 54,
+  "view_delay_ms": 128,
+  "target_a_position": [1000, 0, 1003],
+  "target_b_position": [1010, 0, 1003],
+  "expected_health": [165, 200]
+}

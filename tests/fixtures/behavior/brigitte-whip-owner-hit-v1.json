@@ -1,0 +1,9 @@
+{
+  "provenance": "Synthetic unequal source/world epochs; actual Whip input, unchanged70 damage and20m flight. Damage world time and owner notification labels are separate.",
+  "owner_birth": 9000,
+  "world_birth": 1000,
+  "distance": 8,
+  "damage": 70,
+  "expected_world_contact": 1019,
+  "expected_owner_hit": 9019
+}

@@ -34,7 +34,7 @@ import math
 from dataclasses import dataclass, field
 from functools import cache
 
-from ow174.game import bots, world
+from ow174.game import bots, pharah, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_MASK
 from ow174.game.script import expr, nodes
@@ -140,6 +140,7 @@ RELEASE_MARGIN = (
 CREATE_AT = (0.0, -1000.0, 0.0)  # an id the client did not shoot becomes an unflown entity here
 TALON_SNIPER_ROUND = 0x0400000000001E80
 FIELD_ENTITY = 0x04000000000003DC  # 03DC.003, the Biotic Field (0257 st1's m_projectileSpawn)
+GRAVITON_FIELD_ENTITY = 0x04000000000003E2
 FIELD_GRAPH = 0x0258  # its initial graph
 FIELD_FIRST, FIELD_SPAN = 0xA0080000, 0x00040000  # the field entities' ids
 SEEN_FIRST, SEEN_SPAN = 0xA00C0000, 0x00040000  # the server projectiles the other clients see
@@ -154,9 +155,10 @@ FIELD_STATES = {
     2: ("STU_691BFA55", {"counter": 1}),
     3: ("STUStatescriptStateCosmeticEntity", {}),
     5: ("STUStatescriptStateDataFlowMapping", {}),
+    8: ("STU_38EE1100", {}),
 }
 # 0258's remote states on: st2 Effect 0B06 (the ring), st3 CosmeticEntity 068A (the canister on the ground),
-# st5 DataFlowMapping 011E (until 4.5 s); st8 SendGameMessage and st9 Effect (under a switch) stay off.
+# st5 DataFlowMapping 011E (until 4.5 s), st8 SendGameMessage; st9 Effect's player switch stays off.
 
 
 def _sync(state) -> int:
@@ -182,6 +184,26 @@ def _sync(state) -> int:
     if number("m_projectileLifetime") < 1.19e-5 or number("m_numProjectilesPerShot", 1) > 7:
         return SHOTS_ONLY
     return PREDICTED
+
+
+def owner_to_world(clock_origin, frame: int) -> int:
+    """Map a source-owner frame; None preserves the legacy frame convention."""
+    if clock_origin is None:
+        return frame
+    tick, origin, frame_ms = clock_origin
+    return tick + (frame - origin) * frame_ms // FRAME_MS
+
+
+def world_to_owner(clock_origin, tick: int) -> int:
+    """Name a native release in the captured source-owner clock domain."""
+    if clock_origin is None:
+        return tick
+    origin, frame, frame_ms = clock_origin
+    return frame + (tick - origin) * FRAME_MS // frame_ms
+
+
+
+
 
 
 def launch_directions(
@@ -270,7 +292,10 @@ def definitions(script) -> list[int]:
                 continue
             if _sync(instance.state(node.state)) != PREDICTED:
                 continue
-            for guid in _defs(node.field("m_projectileEntity")):
+            definitions = _defs(node.field("m_projectileEntity"))
+            if not definitions and (default := pharah.primary_projectile_default(instance.state(node.state))):
+                definitions = [default]
+            for guid in definitions:
                 if guid not in found:
                     found.append(guid)
     return found
@@ -306,11 +331,17 @@ class Shot:
     field_ids: dict[tuple[int, int | None], int] = field(default_factory=dict)  # (viewer slot, parent) -> id
     observers: list = field(default_factory=list)  # per-viewer launches of this projectile
     authoritative: bool = False  # server-authored flights without prediction leases
+    observer_only: bool = False  # locally predicted SHOTS_ONLY flight, remote copy only
+    lease_offset: int | None = None  # one pellet, or all IDs for a single-flight volley
+    shot_index: int = 0
     field_due: int | None = None
     field_tick: int | None = None
     field_airborne: bool = False
     faded: bool = False
     arrivals: list = field(default_factory=list)  # the field entities whose create arrived
+    filter_bits: int | None = None  # source body's team/FFA bits captured with the volley
+    clock_origin: tuple[int, int, int] | None = None  # immutable world tick, owner frame, owner frame ms
+    entity: int | None = None  # shared identity for Sigma's authored projectile output
 
 
 @dataclass(frozen=True)
@@ -333,14 +364,20 @@ class _PlayerFieldInputs(expr.Context):
             return False  # this host deploys fields from player input
         return super().native(cfg)
 
-@cache
-def _field_profile(field_graph) -> _FieldProfile:
-    """Resolve 0258's player parameters and two sequential authored waits."""
+def _field_inputs(field_graph) -> _PlayerFieldInputs:
+    """Resolve the authored player branch's initial SetVars."""
     inputs = _PlayerFieldInputs()
     for position in (2, 3, 4):
         node = field_graph.node(position)
         key = expr.lvalue(node.field("m_out_Var"))
         inputs.values[key] = expr.evaluate(node.field("m_value"), inputs)
+    return inputs
+
+
+@cache
+def _field_profile(field_graph) -> _FieldProfile:
+    """Resolve 0258's player parameters and two sequential authored waits."""
+    inputs = _field_inputs(field_graph)
     fade = expr.to_float(expr.evaluate(field_graph.node(5).field("m_timeout"), inputs))
     tail = expr.to_float(expr.evaluate(field_graph.node(9).field("m_timeout"), inputs))
     radius = expr.to_float(expr.evaluate(field_graph.node(1).field("m_radius"), inputs))
@@ -362,6 +399,7 @@ class Projectiles:
         self.observed: list[_ObservedProjectile] = []
         self.next_field = 0
         self.next_seen = 0
+        self.sigma_scripts = {}  # original18B7/1EB9 components, only in admitted profiles
 
     # --- the lease ------------------------------------------------------------------------------------
 
@@ -380,13 +418,15 @@ class Projectiles:
             return None
         newest = player.commands.last_frame
         frame = self.match.tick if newest is None else newest
-        start = frame - frame % LEASE_SPAN
         blocks = []
         for index, guid in enumerate(definitions(script)[:DEFINITIONS_PER_BODY]):
+            width = self._lease_width(player, guid)
+            span = LEASE_SPAN // width
+            start = frame - frame % span
             base = self._base(player.slot, index)
             for index in range(LEASE_WINDOWS):
-                window = start + index * LEASE_SPAN
-                blocks.append((guid, window, window + LEASE_SPAN, base, 1))
+                window = start + index * span
+                blocks.append((guid, window, window + span, base, width))
         return blocks or None
 
     def lease_id(self, player, definition: int, frame: int) -> int | None:
@@ -398,13 +438,29 @@ class Projectiles:
         if definition not in available:
             return None
         base = self._base(player.slot, available.index(definition))
-        return 0xA0000000 | (base + frame % LEASE_SPAN)
+        width = self._lease_width(player, definition)
+        span = LEASE_SPAN // width
+        return 0xA0000000 | (base + (frame % span) * width)
+
+    @staticmethod
+    def _lease_width(player, definition: int) -> int:
+        # 19E5 emits all three Tri-Shot pellets during one command frame.
+        # Reserve and confirm every ID the native allocator consumes.
+        if definition == 0x0400000000002CBF and player.body_script is not None:
+            for instance in player.body_script.component.instances.values():
+                if instance.graph.index == 0x19E5:
+                    state = instance.state(3)
+                    return max(1, min(MAX_PELLETS, expr.to_int(
+                        state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False)
+                    )))
+        return 1
 
     # --- shots ----------------------------------------------------------------------------------------
 
     def fired(
         self, player, state, frame: int, definition: int, bound_seconds: float, origin=None, direction=None,
-        *, activation: tuple[int, int], snapshot: Snapshot | None = None,
+        *, activation: tuple[int, int], snapshot: Snapshot | None = None, clock_origin=None,
+        lease_offset: int | None = None, publish: bool = True, shot_index: int = 0,
     ) -> Shot | None:
         """Register a volley projectile on the owner and observer paths that apply to its source."""
         npc = isinstance(player, bots.Bot)
@@ -412,12 +468,54 @@ class Projectiles:
                       == (0x1BBB, 9, 0x04000000000018B7)
                       and not state.node.field("m_45271E8C")
                       and _sync(state) == PREDICTED)
+        fire_strike = ((state.instance.graph.index, state.node.pos, definition)
+                       == (0x00E2, 3, 0x04000000000001EA)
+                       and not state.node.field("m_45271E8C")
+                       and _sync(state) == PREDICTED)
+        ana_grenade = (not npc and player.hero.guid == 0x02E000000000013B
+                       and (state.instance.graph.index, state.node.pos, definition)
+                       == (0x0B97, 1, 0x0400000000001426))
+        ana_dart = (not npc and player.hero.guid == 0x02E000000000013B
+                    and (state.instance.graph.index, state.node.pos, definition)
+                    == (0x0BDD, 14, 0x04000000000015E8)
+                    and _sync(state) == SHOTS_ONLY)
+        moira_orb = (not npc and player.hero.guid == 0x02E00000000001A2
+                     and (state.instance.graph.index, state.node.pos, definition) in (
+                         (0x10E4, 20, 0x0400000000001E60),
+                         (0x10E4, 21, 0x0400000000001E61),
+                     ) and not state.node.field("m_45271E8C"))
+        baptiste_canister = ((state.instance.graph.index, state.node.pos, definition)
+                             == (0x1761, 21, 0x04000000000029A8)
+                             and not state.node.field("m_45271E8C")
+                             and _sync(state) == PREDICTED)
         authoritative = (not npc and (
             (player.hero.guid == 0x02E000000000013E
              and state.instance.graph.index in (0x0BD4, 0x0CCB, 0x0BD7))
-            or (player.hero.guid == 0x02E000000000023B and sigma_rock)))
-        if not authoritative and (_sync(state) != PREDICTED or (not npc and self.lease_id(player, definition, frame) is None)):
+            or (player.hero.guid == 0x02E0000000000016
+                and (state.instance.graph.index, state.node.pos, definition)
+                == (0x157C, 85, 0x04000000000026F1)
+                and not state.node.field("m_45271E8C") and _sync(state) == PREDICTED)
+            or (player.hero.guid == 0x02E000000000023B and sigma_rock)
+            or (player.hero.guid == 0x02E0000000000007 and fire_strike)
+            or (player.hero.guid == 0x02E000000000000A
+                and (state.instance.graph.index, state.node.pos, definition)
+                == (0x0056, 1, 0x04000000000000AF)
+                and not state.node.field("m_45271E8C")
+                and _sync(state) == PREDICTED)
+            or (player.hero.guid == 0x02E0000000000065
+                and (state.instance.graph.index, state.node.pos, definition)
+                == (0x09BA, 7, 0x04000000000011A9)
+                and not state.node.field("m_45271E8C") and _sync(state) == PREDICTED)
+            or ana_grenade or moira_orb
+            or (player.hero.guid == 0x02E0000000000221 and baptiste_canister)))
+        if (not authoritative and not ana_dart
+                and (_sync(state) != PREDICTED
+                     or (not npc and self.lease_id(player, definition, frame) is None))):
             return None
+        if clock_origin is not None:
+            if (not isinstance(clock_origin, tuple) or len(clock_origin) != 3
+                    or any(type(value) is not int for value in clock_origin) or clock_origin[2] <= 0):
+                raise ValueError('projectile clock requires immutable world/owner/frame-ms integers')
         spawned = _defs(state.node.field("m_49CBA3BC"))
         if npc and spawned:
             return None  # the NPC path covers ballistic projectiles
@@ -434,54 +532,94 @@ class Projectiles:
             bound=math.ceil(bound_seconds * 1000 / FRAME_MS),
             seen_reports=0 if npc else player.body_script.report_count,
             authoritative=authoritative,
+            clock_origin=clock_origin,
+            filter_bits=None if npc else player.team_bit,
+            observer_only=ana_dart,
+            lease_offset=lease_offset,
+            shot_index=shot_index,
         )
-        if not npc and not authoritative:
+        if not npc and not authoritative and not ana_dart:
             self.shots.append(shot)
-        if (shot.spawn is None or authoritative) and origin is not None and direction is not None:
+        turret_carrier = (not npc and player.hero.guid == 0x02E0000000000006
+                          and definition == 0x0400000000002931
+                          and shot.spawn == 0x04000000000028B7)
+        if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative or turret_carrier)
+                and origin is not None and direction is not None):
             self._show_others(shot, state, origin, direction, snapshot)
         return shot
 
-    def _show_others(self, shot: Shot, state, origin, direction, snapshot: Snapshot | None) -> None:
-        """Every other client with the shooter's body: a server entity of the projectile's definition (under
-        the map until a record starts it) and the shot record in the shooter's ch2 naming it."""
+    def fired_volley(self, player, state, frame, definition, bound_seconds, origin, direction,
+                     *, activation, snapshot, count, shot_index, clock_origin=None):
+        """Keep each pellet's collision and retirement independent under one native volley event."""
+        shots = tuple(self.fired(
+            player, state, frame, definition, bound_seconds, origin, direction,
+            activation=activation, snapshot=snapshot, lease_offset=pellet, publish=False,
+            shot_index=shot_index, clock_origin=clock_origin,
+        ) for pellet in range(count))
+        if any(shot is None for shot in shots):
+            raise ValueError("multi-projectile volley has no prediction lease")
+        self._show_others(shots[0], state, origin, direction, snapshot, shots=shots)
+        return shots
+
+    def _show_others(self, shot: Shot, state, origin, direction, snapshot: Snapshot | None,
+                     *, shots=None) -> None:
+        """Send all projectile IDs in one native volley event, with independent retirements."""
+        shots = (shot,) if shots is None else shots
         observers = self.combat.observers
         npc = isinstance(shot.player, bots.Bot)
+        if (shot.authoritative and state.instance.graph.index == 0x1BBB
+                and state.node.pos == 9 and shot.definition == 0x04000000000018B7):
+            # 1BBB exports this actual projectile as entity20360. Its remote
+            # graphs must resolve the same identity on every connection.
+            shot.entity = SEEN_FIRST + self.next_seen % SEEN_SPAN
+            self.next_seen += 1
+        if (shot.authoritative and state.instance.graph.index == 0x0CCB
+                and shot.definition == 0x040000000000172C):
+            # Export the actual orb ID used by the target's0CCE effect caller.
+            shot.entity = SEEN_FIRST + self.next_seen % SEEN_SPAN
+            self.next_seen += 1
         for viewer in self.match.players:
             if (viewer is shot.player and not shot.authoritative) or viewer.client is None:
                 continue
             stream = observers.projectile_stream(viewer, shot.body, npc=npc)
             if stream is None:
-                continue  # the client has no statescript stream for this body
-            entity = SEEN_FIRST + self.next_seen % SEEN_SPAN
-            self.next_seen += 1
+                continue
+            if shot.entity is not None:
+                ids = (shot.entity,)
+            else:
+                ids = tuple(SEEN_FIRST + (self.next_seen + index) % SEEN_SPAN
+                            for index in range(len(shots)))
+                self.next_seen += len(shots)
             record = ShotRecord(
-                shot.frame,
-                shot.instance,
-                shot.state,
-                shot.activation[0],
-                tuple(origin),
-                tuple(direction),
-                (entity,),
-                volleys=state.volleys & 0xFF,
+                shot.frame, shot.instance, shot.state, shot.activation[0],
+                tuple(origin), tuple(direction), ids, shot=shot.shot_index, volleys=state.volleys & 0xFF,
             )
             launch = EntityUpdate(shot.body)
             launch.ch2 = shot_events([record])
+            group = _ProjectileVolley(len(shots)) if len(shots) > 1 else None
             deadline = self.match.tick + shot.bound + DELIVERY_GRACE_TICKS
-            delivery = _ObservedProjectile(viewer, viewer.client, stream, record, launch, deadline, npc=npc)
-            activation = delivery.matching_volley(snapshot) if npc else None
-            if activation is not None:
-                cls, active, payload = activation
-                delivery.activation = cls, active, tuple(sorted(dict(payload).items()))
-                viewer.client.retain_bot_volley(delivery)
-            create = EntityUpdate(entity, OP_CREATE, confirm_record(shot.definition))
-            create.stream = delivery.creation
-            launch.stream = delivery.launch_arrival
-            shot.observers.append(delivery)
-            self.observed.append(delivery)
-            if stream.base is None:
-                delivery.pending_create = create
-            else:
-                viewer.client.queue_entities([create])
+            for member, entity in zip(shots, ids, strict=True):
+                delivery = _ObservedProjectile(
+                    viewer, viewer.client, stream, record, launch, deadline,
+                    npc=npc, entity=entity, volley=group, clock_origin=member.clock_origin,
+                )
+                if group is not None:
+                    group.creations.append(delivery.creation)
+                    delivery.launch_arrival = group.arrival
+                activation = delivery.matching_volley(snapshot) if npc else None
+                if activation is not None:
+                    cls, active, payload = activation
+                    delivery.activation = cls, active, tuple(sorted(dict(payload).items()))
+                    viewer.client.retain_bot_volley(delivery)
+                create = EntityUpdate(entity, OP_CREATE, confirm_record(member.definition))
+                create.stream = delivery.creation
+                launch.stream = delivery.launch_arrival
+                member.observers.append(delivery)
+                self.observed.append(delivery)
+                if stream.base is None or member.entity is not None:
+                    delivery.pending_create = create
+                else:
+                    viewer.client.queue_entities([create])
 
     def absorbed(self, shot: Shot) -> None:
         """Retire an intercepted projectile without impact release or spawned field."""
@@ -493,7 +631,12 @@ class Projectiles:
 
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
-        if shot.authoritative:
+        if shot.definition == 0x0400000000002931 and shot.spawn == 0x04000000000028B7:
+            # The landed actor owns construction and firing. Retire every
+            # prediction alias without asking the carrier to spawn another one.
+            self._end(shot, self.match.tick, explode=False)
+            return
+        if shot.authoritative or shot.observer_only:
             for delivery in shot.observers:
                 delivery.finish(self.match.tick, True, drain=True)
             return
@@ -506,10 +649,10 @@ class Projectiles:
             for delivery in shot.observers:
                 delivery.finish(self.match.tick, False, drain=True, visual_ticks=visual_ticks)
             return
-        if shot.spawn is not None or shot.release_at is not None:
+        if shot.spawn not in (None, GRAVITON_FIELD_ENTITY) or shot.release_at is not None:
             return
         start = next((report.cmfd for report in shot.reports if report.received is not False), shot.frame)
-        due = start + math.ceil(seconds * 1000 / FRAME_MS) + RELEASE_MARGIN
+        due = owner_to_world(shot.clock_origin, start) + math.ceil(seconds * 1000 / FRAME_MS) + RELEASE_MARGIN
         # A delayed scheduler can finish a flight after its input-frame deadline.
         # Start the delivery window no earlier than this simulation update.
         shot.release_at = max(due, self.match.tick)
@@ -529,6 +672,9 @@ class Projectiles:
         self.observed = remaining
 
     def update(self, tick: int, *, first_tick: int | None = None) -> None:
+        from ow174.game import accretion
+
+        accretion.update_scripts(self, tick)
         first_tick = tick if first_tick is None else first_tick
         for shot in list(self.shots):
             try:
@@ -581,15 +727,21 @@ class Projectiles:
             # confirms the original shot. Only an introduction supplies an alias.
             key = (shot.instance, shot.state)
             frames = [shot.frame, *(report.cmfd for report in ready if key in report.introductions)]
-        elif not shot.reports and tick >= shot.frame + UNREPORTED_TICKS and not shot.created:
+        elif (not shot.reports and tick >= owner_to_world(shot.clock_origin, shot.frame) + UNREPORTED_TICKS
+              and not shot.created):
             frames = [shot.frame]
         else:
             return
         new = []
         for frame in frames:
             entity = self.lease_id(shot.player, shot.definition, frame)
-            if entity is not None and entity not in shot.created and entity not in new:
-                new.append(entity)
+            if entity is not None:
+                offsets = (range(self._lease_width(shot.player, shot.definition))
+                           if shot.lease_offset is None else (shot.lease_offset,))
+                for offset in offsets:
+                    pellet = entity + offset
+                    if pellet not in shot.created and pellet not in new:
+                        new.append(pellet)
         if not new:
             return
         if shot.created_tick is None:
@@ -632,8 +784,8 @@ class Projectiles:
         updates = []
         for entity, arrival in shot.created.items():
             update = EntityUpdate(entity, OP_DESTROY)
-            if explode and shot.spawn is None and arrival.received:
-                update.ch2 = release(tick + RELEASE_AHEAD)
+            if explode and shot.spawn in (None, GRAVITON_FIELD_ENTITY) and arrival.received:
+                update.ch2 = release(world_to_owner(shot.clock_origin, tick) + RELEASE_AHEAD)
             updates.append(update)
         client.queue_entities(updates)
 
@@ -691,7 +843,8 @@ class Projectiles:
         for shot in self.shots:
             player = shot.player
             start = shot.field_due
-            if (shot.spawn == FIELD_ENTITY and not shot.field_airborne and start is not None and start < last_tick
+            if (shot.spawn == FIELD_ENTITY and not shot.field_airborne
+                    and start is not None and start < last_tick
                     and player.client is not None and player.has_body and player.body == shot.body
                     and player.body_script is not None):
                 fields.append((shot, start))
@@ -724,25 +877,26 @@ class Projectiles:
             )
 
     def _deliver_field(self, shot: Shot) -> None:
-        """Create each field once. Owner copies wait for their canister parent to arrive."""
+        """One landed field per viewer, independent of prediction confirmation aliases."""
         theme, _ = shot.player.skin
         for viewer in self.match.players:
             if viewer.client is None or not viewer.spawned:
                 continue
-            parents = (
-                (parent for parent, arrival in shot.created.items() if arrival.received)
-                if viewer is shot.player else (None,)
-            )
-            for parent in parents:
-                key = viewer.slot, parent
-                if key in shot.field_ids:
-                    continue
-                entity = FIELD_FIRST + self.next_field % FIELD_SPAN
-                self.next_field += 1
-                shot.field_ids[key] = entity
-                create = EntityUpdate(entity, OP_CREATE, field_create(parent, shot.where, theme))
-                create.stream = FieldArrived(shot, viewer, Stream(entity))
-                viewer.client.queue_entities([create])
+            if viewer is shot.player and not any(arrival.received for arrival in shot.created.values()):
+                continue
+            key = viewer.slot, None
+            if key in shot.field_ids:
+                continue
+            entity = FIELD_FIRST + self.next_field % FIELD_SPAN
+            self.next_field += 1
+            shot.field_ids[key] = entity
+            # Confirmation aliases identify the same predicted throw. Parenting
+            # one area to each alias multiplied the native effect under delay.
+            # Use the authoritative landing transform, as observers already do.
+            create = EntityUpdate(entity, OP_CREATE, field_create(
+                None, shot.where, theme, source_body=shot.body, filter_bits=shot.filter_bits))
+            create.stream = FieldArrived(shot, viewer, Stream(entity))
+            viewer.client.queue_entities([create])
 
 
 def field_centre(shot: Shot) -> tuple:
@@ -778,17 +932,25 @@ def confirm_record(definition: int):
     return build
 
 
-def field_create(parent: int | None, where: tuple, theme: int = 0):
+def field_create(
+    parent: int | None, where: tuple, theme: int = 0, *, source_body: int | None = None,
+    filter_bits: int | None = None,
+):
     """03DC.003's create: with the movement block that names its parent (the owner's canister), else placed
     at `where`. The caster's skin theme supplies the field's cosmetic substitutions."""
 
     skin = (theme, False)
+    components = {}
+    if source_body is not None:
+        components[72] = [source_body]
+    if filter_bits is not None:
+        components[26] = [filter_bits]
 
     def build(origin: int):
         if parent is None:
-            return world.create(origin, FIELD_ENTITY, {}, position=where, skin=skin)
+            return world.create(origin, FIELD_ENTITY, components, position=where, skin=skin)
         return world.create(
-            origin, FIELD_ENTITY, {}, movement=world.Movement((0.0, 0.0, 0.0), flags=KEEP_ROTATION),
+            origin, FIELD_ENTITY, components, movement=world.Movement((0.0, 0.0, 0.0), flags=KEEP_ROTATION),
             skin=skin, movement_parent=parent,
         )
 
@@ -800,6 +962,15 @@ def field_frame(faded: bool = False) -> BitWriter:
     frame adopts it): the ring, the canister on the ground and, until it fades, st5."""
     field_graph = graphs_data.graph(FIELD_GRAPH)
     item = InstanceWire(1, field_graph)
+    for (scope, var), value in _field_inputs(field_graph).values.items():
+        if scope == expr.INSTANCE:
+            item.vars[var] = (value, ())
+    # CosmeticEntity.output: its authored output variable identifies the child
+    # state that DataFlowMapping addresses. Full frames must retain that handle.
+    cosmetic = field_graph.states[3]
+    scope, var = expr.lvalue(cosmetic.field("m_1DEF59FA"))
+    if scope == expr.INSTANCE:
+        item.vars[var] = (expr.Handle(1, item.id, cosmetic.state, 0), ())
     for index, (cls, payload) in FIELD_STATES.items():
         if not (faded and index == 5):
             item.states[index] = StateWire(cls, True, dict(payload))
@@ -898,6 +1069,14 @@ class ShotRecord:
 
 
 @dataclass
+class _ProjectileVolley:
+    remaining: int
+    creations: list = field(default_factory=list)
+    arrival: _ProjectileArrival = field(default_factory=_ProjectileArrival)
+    queued: bool = False
+
+
+@dataclass
 class _ObservedProjectile:
     """One connection's create, shooter event and retirement for a remote projectile."""
 
@@ -908,6 +1087,8 @@ class _ObservedProjectile:
     launch: EntityUpdate
     deadline: int
     npc: bool = False
+    entity: int | None = None
+    volley: _ProjectileVolley | None = None
     pending_create: EntityUpdate | None = None  # queued only once the source baseline arrives
     activation: tuple | None = None  # an exact H=0 volley retained until launch ACK
     creation: _ProjectileArrival = field(default_factory=_ProjectileArrival)
@@ -917,6 +1098,7 @@ class _ObservedProjectile:
     finished: bool = False
     explode: bool = False
     visual_ticks: int = 0
+    clock_origin: tuple[int, int, int] | None = None
 
     def finish(self, tick: int, explode: bool, *, drain: bool = False, visual_ticks: int = 0) -> None:
         self.finished = True
@@ -937,14 +1119,18 @@ class _ObservedProjectile:
             self.launch_ack_tick = tick
         visual_done = self.launch_ack_tick is not None and tick >= self.launch_ack_tick + self.visual_ticks
         if not source_live or tick >= self.deadline or (self.finished and visual_done):
-            if self.launch_queued and not launched:
+            if self.volley is not None:
+                self.volley.remaining -= 1
+            last = self.volley is None or self.volley.remaining == 0
+            queued = self.launch_queued if self.volley is None else self.volley.queued
+            if queued and not launched and last:
                 self.client.cancel_entity_record(self.launch)
             self._release_volley()
             if self.pending_create is not None:
                 return False  # nothing about this projectile reached the client
-            update = EntityUpdate(self.record.ids[0], OP_DESTROY)
+            update = EntityUpdate(self.record.ids[0] if self.entity is None else self.entity, OP_DESTROY)
             if source_live and self.explode and launched:
-                update.ch2 = release(tick + RELEASE_AHEAD)
+                update.ch2 = release(world_to_owner(self.clock_origin, tick) + RELEASE_AHEAD)
             self.client.queue_entities([update])
             return False
         if launched:
@@ -952,8 +1138,13 @@ class _ObservedProjectile:
         if self.pending_create is not None and self.stream.base is not None:
             self.client.queue_entities([self.pending_create])
             self.pending_create = None
-        if not self.launch_queued and self.creation.received and self._volley_arrived():
+        queued = self.launch_queued if self.volley is None else self.volley.queued
+        created = (self.creation.received if self.volley is None
+                   else all(item.received for item in self.volley.creations))
+        if not queued and created and self._volley_arrived():
             self.launch_queued = True
+            if self.volley is not None:
+                self.volley.queued = True
             self.client.queue_entities([self.launch])
         return True
 

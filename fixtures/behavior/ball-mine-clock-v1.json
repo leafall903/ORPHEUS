@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "case_id": "ball-mine-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/ball_mines.py", "src/ow174/game/ball.py"]
+  },
+  "evidence": "single-command-production-reference-with-synthetic-flat-collision",
+  "client_acceptance": "pending",
+  "input": {
+    "cast_command": 1041,
+    "command_batches": [1, 8, 32],
+    "first_world_query": 1072,
+    "target_moves_to_first_landed_mine_at_world_tick": 1168,
+    "piledriver_cast_command": 1043
+  },
+  "expected": {
+    "mine_count_at_first_query": 15,
+    "first_reported_frame": 1047,
+    "first_born_tick": 1047,
+    "first_last_tick": 1072,
+    "first_mine_height_at_first_query": 6.504000663757324,
+    "target_health_after_explosion": 70,
+    "destroyed_mines": 1,
+    "flight_landing_arming_hit_and_retirement_equal_across_batches": true,
+    "piledriver_landing_frame": 1096,
+    "piledriver_air_lock": [1096, 1128]
+  }
+}

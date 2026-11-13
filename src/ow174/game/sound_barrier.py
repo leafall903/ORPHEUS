@@ -111,8 +111,11 @@ class SoundBarriers:
             if not all(math.isfinite(value) and value > 0 for value in (duration, radius, initial, rate)):
                 continue
             from ow174.game.combat import TICK
+            from ow174.game.sombra_replay import world_frame
 
-            at = (slam.start // script.frame_ms) * TICK
+            frame = slam.start // script.frame_ms
+            mapped = world_frame(script, frame, round(TICK * 1000))
+            at = (frame if mapped is None else mapped) * TICK
             wave = Wave(at + initial / rate, radius, duration, origin=self.fight._eye(player))
             self.landings.pop(player.body, None)
             if at > self.fight.now + 1e-9:

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "case_id": "reaper-input-delay-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "implementation": "src/ow174/game/combat.py::_advance_idle_protection",
+    "consumer": "tests/runtime/test_reaper_input_delay.py"
+  },
+  "evidence": "synthetic-command-reproduction",
+  "client_acceptance": "pending exclusive original-client validation",
+  "input": {
+    "hero": "02E0000000000002",
+    "body_create_acknowledged": true,
+    "tick_ms": 16,
+    "simulation_steps": 180,
+    "initial_packet_delay_frames": 3,
+    "packet_delay_from_step_60": 7,
+    "selection_steps": [100, 140],
+    "cancel_steps": [120, 150],
+    "fire_after_cancel_step": 170,
+    "separate_fire_steps": [30, 90, 150],
+    "separate_fire_target_health": 1000,
+    "wire_packet_counts": [1, 8, 32],
+    "wire_delivery_delays": [0, 7, 16, 32],
+    "other_command_buttons": 0
+  },
+  "expected": {
+    "both_selection_inputs_start_targeting": true,
+    "both_cancel_inputs_end_targeting": true,
+    "cancel_cooldown": 0,
+    "fire_after_cancel_damages_target": true,
+    "separate_shells": 3,
+    "separate_registered_pellet_hits": 60,
+    "target_health_loss_equals_sum_of_hit_amounts": true,
+    "released_buttons": 0,
+    "final_owner_frame_relative_to_start": 173
+  }
+}

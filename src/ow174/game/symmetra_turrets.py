@@ -38,7 +38,7 @@ class Turrets:
         self.combat = combat
         self.sentries: list[Sentry] = []
 
-    def fired(self, player, command, state) -> bool:
+    def fired(self, player, command, state, *, launch_tick=None) -> bool:
         if (getattr(player.hero, "guid", None) != HERO
                 or state.instance.graph.index != LAUNCH_GRAPH or state.index != 12):
             return False
@@ -56,13 +56,18 @@ class Turrets:
         movement = MoverData(stand_height=1.0, stand_radius=.2,
                              crouch_height=1.0, crouch_radius=.2,
                              run_forward=0, run_backward=0, run_strafe=0)
-        bot = npc.spawn(self.combat.match, definition, self.combat._eye(player), team=player.team)
+        bot = npc.spawn(self.combat.match, definition, self.combat._eye(player), team=player.team,
+                        source_entity=player.body)
         bot.spawner.update(manual_spawn=False, summoned=True)
         bot.combat_owner = player
         bot.combat_geometry = (movement.stand_height, movement.stand_radius, .75, False)
         speed = expr.to_float(state.evaluate(state.node.field("m_projectileSpeed"), watch=False))
-        sentry = Sentry(player, bot, aim(*command.aim()), speed, self.combat.tick)
+        released = self.combat.tick if launch_tick is None else launch_tick
+        sentry = Sentry(player, bot, aim(*command.aim()), speed, released)
+        if released < self.combat.tick:
+            bot.moved_tick = released
         self.sentries.append(sentry)
+        state.instance.write(expr.dynamic(state.node.field("m_505472EF")), expr.Entity(bot.entity))
         # Reconstructed ownership limit includes in-flight sentries, so a missed
         # infinite-lifetime launch cannot leave an unbounded actor collection.
         maximum = expr.to_int(state.instance.find_var(graph.INSTANCE, 181).value())
@@ -91,6 +96,15 @@ class Turrets:
         self._clear_slow(sentry)
         npc.remove_body(self.combat.match, sentry.bot)
         self.sentries.remove(sentry)
+        script = sentry.owner.body_script
+        if script is not None and not script.retired:
+            for instance in script.component.instances.values():
+                if instance.graph.index != LAUNCH_GRAPH:
+                    continue
+                output = expr.dynamic(instance.graph.node(30).field("m_505472EF"))
+                variable = instance.find_var(*output, create=False)
+                if variable is not None and variable.value() == expr.Entity(sentry.bot.entity):
+                    instance.write(output, expr.Entity(0))
 
     def retire_owner(self, owner):
         for sentry in tuple(self.sentries):
@@ -153,7 +167,12 @@ class Turrets:
             bot.position = tuple(p + facing * n * .01 for p, n in zip(point, normal, strict=True))
             bot.velocity = (0, 0, 0)
             sentry.attached_at = self.combat.now - elapsed * TICK + hit_distance / sentry.speed
-            bot.body_script.component.set(478, True)  # reconstructed deployed flag
+            component = bot.body_script.component
+            component.set(478, True)
+            placement = next(i for i in component.instances.values() if i.graph.index == ATTACH_GRAPH)
+            if not runtime.send_instance_message(placement, 0x02400000000005D4, {}, bot.entity):
+                raise ValueError("sentry attachment message has no authored receiver")
+            component.run_now()
         bot.moved_tick = self.combat.tick
 
     def frozen_history_candidates(self, end_tick, *, support_impacts=True):

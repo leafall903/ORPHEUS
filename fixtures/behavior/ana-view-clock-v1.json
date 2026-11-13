@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "case_id": "ana-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "pre_combat_sha256": "b5d347808f35ed389dbdb99d35f92f6bba450eab543ac8fcb9a14d4d007fbf0c",
+    "provenance": "Adapted existing Ball cannon identity-swap synthetic fixture to actual Ana scoped and0043 melee commands. Keep15 original NPC identities; exchange A/B after viewed time."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "shot_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "original_npc_count": 15
+  },
+  "expected": {
+    "view_world_tick": 1033.0,
+    "scoped_damage_to_A": 70,
+    "melee_damage_to_A": 30,
+    "damage_to_B": 0,
+    "HIT_owner_frame_offset": 41
+  },
+  "fractional_case": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "frame_ms": 15,
+    "command_frame": 9041,
+    "quanta_us": 15000,
+    "view_delay_ms": 8,
+    "expected_world_view": 1037.9375
+  }
+}

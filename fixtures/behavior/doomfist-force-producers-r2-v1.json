@@ -1,0 +1,36 @@
+{
+  "build": "1.74.0.0.104319",
+  "provenance": [
+    "punch-native-playscript-params-435.json",
+    "slam-native-close-vector-353.json",
+    "slam-native-wave-radial-388.json",
+    "meteor-native-ruleset-assets-303.json",
+    "uppercut-native-radial-geometry-375.json"
+  ],
+  "inputs": {
+    "punch": {
+      "distance": 6,
+      "button": 2,
+      "hold_frames": 30
+    },
+    "slam": {
+      "distance": 10,
+      "button": 16
+    },
+    "meteor": {
+      "distance": 5,
+      "button": 32
+    }
+  },
+  "expected": {
+    "accepted_enemy_force_count": 1,
+    "enemy_hit_count": 1,
+    "slam_wave": [
+      -3,
+      6
+    ],
+    "meteor_y": 5,
+    "fortify_force_count": 0
+  },
+  "boundary": "Real command/graph/damage producer into frozen shared receiver candidate; no original-client acceptance or complete native control/filter semantics."
+}

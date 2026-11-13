@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "case_id": "roadhog-hook-contact-lifecycle-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/hook.py", "tests/runtime/test_delivered_roadhog_hook.py"]
+  },
+  "evidence": "synthetic integration contract; external authored graphs required",
+  "client_acceptance": "pending; prior native session reported missing impact/stun and a post-pull miss",
+  "input": {
+    "initial_health": 200,
+    "target_distance": 10,
+    "simulation_tick_seconds": 0.016,
+    "hook_button_frames": [0],
+    "release_observation_frames_after_contact": 100,
+    "packet_loss": [],
+    "seed": 1
+  },
+  "expected": {
+    "health_after_contact_and_release": 170,
+    "victim_graph_present_on_contact": true,
+    "victim_graph_present_after_release": false,
+    "extra_damage_from_victim_graph": 0,
+    "health_after_second_hook": 140,
+    "initial_hit_wait_seconds": 0.3,
+    "post_movement_wait_seconds": 0.4,
+    "victim_move_active_after_host_arrival": false
+  }
+}

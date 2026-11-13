@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-force-producers-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8 plus canonicalKBff400a and declaredSigma hunks",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/sigma_flux.py"
+    ],
+    "reference": "Original187F/1BBB/1E41/1DBC parameters and existing minimum-Y native evidence; actual logical inputs with15stockNPCs"
+  },
+  "evidence": "synthetic-command-authoritative-force-regression",
+  "client_acceptance": "pending; canonical receiver native adoption not established",
+  "input": {
+    "world_birth": 1000,
+    "source_position": [
+      1000,
+      0,
+      1000
+    ],
+    "target_position": [
+      1000,
+      0,
+      1006
+    ],
+    "world_step_ms": 16,
+    "packet_loss": "none; shared wire tests not repeated",
+    "seed": "no random force selection",
+    "original_npc_count": 15
+  },
+  "cases": {
+    "E": {
+      "button": 16,
+      "owner_birth": 9000,
+      "recipient_birth": 7000,
+      "damage": 70,
+      "force_requests": 1,
+      "source": "actual sourcebody",
+      "impact_clock": "physicalworld",
+      "landed_and_stun_ended": true
+    },
+    "pair": {
+      "button": 1,
+      "damage": 110,
+      "force_requests": 2,
+      "duplicate_direct_force": false
+    },
+    "self_E": {
+      "button": 16,
+      "wall_offset_metres": 1.25,
+      "self_damage": 20,
+      "force_requests": 1,
+      "self_stun": false,
+      "self_HIT_credit": false
+    },
+    "Flux": {
+      "buttons": "chargedultimate32, then primaryconfirmation1",
+      "entry_damage": 50,
+      "landing_damage": 200,
+      "remaining_target_health": 150,
+      "changed_velocity_operations": 4,
+      "finite_motion_requests": 4,
+      "second_ADD": false,
+      "landed_effect_retired_and_forward_input_restored": true
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "orpheus.orisa-native-followup.v1",
+  "provenance": {
+    "reference": "Original104319 definitions14A1/174E and graphs0252/0BD7/0BD8/0CCC/0CCE/0D00",
+    "trigger": "Direct WIP5 native failure feedback; synthetic server replay isolates a static Practice Range victim",
+    "native_acceptance": "FAIL before repair; follow-up candidate not run in original client"
+  },
+  "static_training_victim": {
+    "ahead_metres": 10,
+    "button": 2,
+    "press_offsets": [0, 25],
+    "observe_frames": 150,
+    "minimum_rise_metres": 0.5,
+    "floor_tolerance_metres": 0.001953125,
+    "control_present_at_end": false,
+    "remote_control_namespace_present_at_end": false,
+    "damage": 0
+  },
+  "barrier_initial_graphs": [594, 9652],
+  "barrier_played_graph": 3032,
+  "supercharger_initial_health": 200,
+  "driver_wire": "Actual emitted shot index and flight direction; no independent spread payload",
+  "halt_wire": "Exported orb handle and all viewer projectile IDs name the same entity used by0CCE effects"
+}

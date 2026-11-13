@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-barrier-model-look-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/sigma_presentation.py"],
+    "reference": "Original 1A2A node19 reads entity253 / (instance587 * STU_295F1CDE); below 0.3 selects DD5A, otherwise DD59."
+  },
+  "evidence": "synthetic-health-input-and-encrypted-protocol",
+  "client_acceptance": "pending; prior client showed cracked barrier at full700HP",
+  "input": {
+    "capacity": 700,
+    "health_scale": 1,
+    "health_sequence": [700, 140, 700],
+    "packet_loss": [],
+    "scope": "The health scale is an explicit test input, not a native query observation."
+  },
+  "expected": {
+    "health_and_look": [[700, "0x098000000000DD59"], [140, "0x098000000000DD5A"], [700, "0x098000000000DD59"]],
+    "entity253_matches_component51_current": true
+  }
+}

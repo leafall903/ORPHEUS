@@ -85,7 +85,7 @@ class BarrierTests(unittest.TestCase):
         self.assertEqual(bubble.health, 700)
         self.assertEqual(bubble.radius, 5)
         self.assertAlmostEqual(expires(bubble) - self.fight.now, 9)
-        self.assertEqual(bubble.point, (0, 1.1, 0))
+        self.assertEqual(bubble.point, (0, expr.f32(1.1), 0))
         ins = next(i for i in self.owner.body_script.component.instances.values()
                    if i.graph.index == 0xFA)
         self.assertGreater(ins.states[2].remaining(), 12.9)
@@ -273,7 +273,7 @@ class BarrierTests(unittest.TestCase):
         self.move(self.ally, [.5, 1, 0])
         bubble = self.cast()
         self.fire()
-        self.assertAlmostEqual(bubble.health, 699.04)
+        self.assertEqual(bubble.health, expr.f32(699.04))
         self.assertEqual(self.health(self.owner), 500)
         self.assertEqual(self.health(self.ally), 200)
 

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "winston.target-history-owner-world-epochs.v1",
+  "target_build": 104319,
+  "provenance": "Adapted actual-input identity exchange from Ball/76 evidence; original15NPCs retained. No screen-side or native adoption inference.",
+  "client_acceptance": "pending",
+  "input": {"world_birth": 1000, "owner_births": [1000, 9000], "shot_offset": 41, "swap_after": 35, "source": [1000, 0, 1000], "a_offset": [0, 0, 1.5], "b_offset": [10, 0, 1.5]},
+  "attacks": [{"kind": "tesla", "buttons": 1, "view_delay_ms": 128, "health_a": 199.04}, {"kind": "quick_melee", "buttons": 2048, "view_delay_ms": 400, "health_a": 170}],
+  "expected": {"health_b": 200, "hit_target": "original_A", "hit_frame": "original_owner_activation_frame", "npcs_retained": 15}
+}

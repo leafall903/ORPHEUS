@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-visor-aim-publication-v1",
+  "target_build": 104319,
+  "evidence": "synthetic-input-with-external-runtime",
+  "client_acceptance": "pending",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/script/driver.py"]
+  },
+  "input": {
+    "owner_position": [0, 0, 0],
+    "enemy_position": [3, 0, 6],
+    "preceding_yaw": -32768,
+    "shot_yaw": 0,
+    "pitch": 0,
+    "press": 1,
+    "initial_ultimate_charge": "cost",
+    "shot_after_idle_refresh_frames": 1
+  },
+  "expected": {
+    "damage": 20,
+    "native_launch_target_variable": 2337,
+    "published_target": "enemy.body",
+    "weapon_handle_unchanged": true,
+    "turn_away_clears_target": true
+  },
+  "limits": "Checks the real input and owner wire publication. Native first-person weapon deflection requires original-client acceptance."
+}

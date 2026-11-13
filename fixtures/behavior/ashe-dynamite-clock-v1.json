@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe.dynamite-command-launch-clock.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/ashe.py", "src/ow174/game/combat.py", "src/ow174/game/projectiles.py"],
+    "provenance": "Synthetic command batches against production input and projectile delivery. Existing predicted entity leases and Shot.frame use the volley command frame. No game assets included."
+  },
+  "evidence": "synthetic-production-input-and-encrypted-ack-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "initial_world_frame": 1000,
+    "warmup_frames": 100,
+    "command_frames": [1101, 1148],
+    "ability_button_frames": [1101, 1105],
+    "button": 16,
+    "yaw": 0,
+    "pitch": 0,
+    "batch_sizes": [1, 8, 32],
+    "additional_command_epoch_offset": 5000,
+    "mid_packet_click_case": {"throw_pitch": -6000, "aim_sample_frame": 1140, "click_frame": 1141, "packet_end_frame": 1148},
+    "simulation_tick_seconds": 0.016,
+    "seed": "No random behavior is consumed by the asserted trajectory and timing fields",
+    "packet_loss": "No input loss; owner delivery ACKs withheld for the first five post-throw sends, then encrypted cumulative ACKs delivered"
+  },
+  "expected": {
+    "volley_command_frame": 1110,
+    "authoritative_born": 1110,
+    "authoritative_fuse": 1235,
+    "position_velocity_and_fuse_equal_across_batches": true,
+    "late_ack_changes_born_or_fuse": false,
+    "normal_viper_input_at_unbatched_dynamic_position_detonates_batched_throw": true
+  }
+}

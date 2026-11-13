@@ -85,6 +85,7 @@ class Barrier:
     position: tuple
     basis: tuple
     last: float
+    pet_source: int
     phase: int = 1
     active: bool = False
     child_request_seen: bool = False
@@ -241,6 +242,9 @@ def create_barrier(combat, world, state):
     owner = next((p for p in combat.match.players if p.has_body and p.body == world.body), None)
     if owner is None:
         return NotImplemented
+    source = state.evaluate(state.node.field("m_D749D7D8"), watch=False)
+    if not isinstance(source, expr.Entity) or source.id != owner.entity:
+        return NotImplemented  # No fabricated source when the authored query is unavailable.
     from ow174.game.combat import Vitals
 
     geometry = barrier_geometry(path)
@@ -251,7 +255,7 @@ def create_barrier(combat, world, state):
     amount = expr.to_float(state.instance.vars[587].value())
     basis = view_basis(owner.mover.yaw, owner.mover.pitch)
     combat.sigma_barriers[entity] = Barrier(entity, world.body, owner, state.instance, Vitals(entity, amount),
-                                     geometry, combat._eye(owner), basis, combat.now)
+                                     geometry, combat._eye(owner), basis, combat.now, source.id)
     return entity
 
 

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-owner-create-movement-v1",
+  "target_build": "104319",
+  "source": {"revision": "ea47294324376ff0317780d7f6df12d28672b647", "paths": ["src/ow174/game/match.py", "src/ow174/game/dva_owner.py", "src/ow174/game/body_entities.py"]},
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {"body": "0400000000000407", "hero": "02E000000000007A", "position": [4.25, 6.5, -8.75], "yaw": 8192, "packet_loss": ["withhold create ACK", "retry frozen create", "ACK create", "44 handoff"]},
+  "expected": {"owner_create_has_movement": true, "owner_create_state_frame": 4294967294, "owner_create_position": [4.25, 6.5, -8.75], "owner_create_yaw": 8192, "neutral_spring_steps": [23406, 23406], "observer_create_has_movement": false, "ordinary_npc_create_has_movement": false, "retry": "byte-identical frozen create despite later source motion"},
+  "scope_exclusions": ["unowned", "other viewer", "ordinary NPC", "dead mech", "detached bomb", "retired source body"],
+  "native_boundary": "Original78D531 skips28 movement ingestion when create state frame isFFFFFFFF;78D774 calls64A970 when present. BA2CF0 selects28 state and copies it into31. Full camera initialization, later release movement and black-screen causality remain unverified."
+}

@@ -95,12 +95,22 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
           current_health: float | None = None,
           autonomous: bool = False, acquire: bool = False, pursue: bool = False, specials: bool = False,
           authored_assassin: bool = False, authored_trooper: bool = False,
-          difficulty_index: int | None = None) -> bots.Bot:
+          difficulty_index: int | None = None, born_tick: int | None = None,
+          source_entity: int | None = None, hero_target: bool = False,
+          pet_owner: int | None = None) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
+    if born_tick is not None and (type(born_tick) is not int or not 0 <= born_tick <= match.tick):
+        raise ValueError('NPC birth tick must be an observed world tick')
     if not isinstance(definition, Definition):
         raise ValueError('NPC spawn needs a validated definition')
+    if source_entity is not None and (type(source_entity) is not int or not 0 < source_entity <= 0xFFFFFFFF):
+        raise ValueError('NPC script source needs a nonzero 32-bit entity')
+    if pet_owner is not None and (type(pet_owner) is not int or not 0 <= pet_owner <= 0xFFFFFFFF):
+        raise ValueError('NPC Pet relationship needs a 32-bit entity')
+    if type(hero_target) is not bool:
+        raise ValueError('Hero target mode must be boolean')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
     if difficulty_index is not None and (type(difficulty_index) is not int or not 0 <= difficulty_index <= 3):
@@ -131,6 +141,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if hero_target:
+        data['manual_hero_target'] = True
     if definition.controller is not None:
         data['controller_definition'] = f'0x{definition.controller:016X}'
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
@@ -145,6 +157,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
     if authored_trooper:
         data["authored_trooper"] = True
     bot = bots.Bot(entity, data, hero, {}, mover=definition.mover)
+    if pet_owner is not None:
+        bot.pet_owner = pet_owner
     if pursue:
         bot.pursuit = npc_navigation.Pursuit()
     bot.yaw = float(bots.s16(yaw))
@@ -155,7 +169,12 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         entity, definition.health, definition.armour, definition.shields)
     if current_health is not None:
         match.combat.vitals[entity].now[combat.HEALTH_POOL] = float(current_health)
-    match._prepare_bot_script(bot)
+    script_options = {}
+    if born_tick is not None:
+        script_options["born_tick"] = born_tick
+    if source_entity is not None:
+        script_options["source_entity"] = source_entity
+    match._prepare_bot_script(bot, **script_options)
     if difficulty_index is not None and bot.body_script is None:
         match.bots.remove(bot)
         match.combat.vitals.pop(entity, None)

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-possession-create-order-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/server.py", "tests/runtime/test_dva_possession_handoff.py"]
+  },
+  "evidence": "synthetic-production-record-selection",
+  "client_acceptance": "pending",
+  "input": {
+    "controller_ready": true,
+    "pilot_create_acked": true,
+    "possession_target": "mech",
+    "schedule": [
+      {"mech_create_acked": false, "queued": ["binding"]},
+      {"mech_create_acked": false, "queued": ["mech_create", "binding"]},
+      {"mech_create_acked": false, "queued": ["binding"]},
+      {"mech_create_acked": true, "queued": ["binding"]}
+    ]
+  },
+  "expected": {"selected": [[], ["mech_create", "binding"], [], ["binding"]]}
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "case_id": "winston.knockback-native-arithmetic.v1",
+  "target_build": 104319,
+  "evidence": {
+    "image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+    "consumer_rvas": ["D6D932", "D6D97A", "D6DADE", "D6DAFB"],
+    "method": "Execute original horizontal/ring/minimum-up arithmetic with controlled resolved profile and target inputs; identity/resistance services are outside the slice."
+  },
+  "client_acceptance": "pending",
+  "cases": [
+    {"graph": "00FE", "state": 35, "target_position": [0, 1, 2], "target_velocity": [0, 4, 0], "damage_scalar": 1, "expected_impulse": [0, 3, 25]},
+    {"graph": "010A", "state": 3, "target_position": [0, 1, 2], "target_velocity": [0, 0, 0], "damage_scalar": 0.25, "expected_impulse": [0, 2, 10]},
+    {"graph": "010A", "state": 7, "target_position": [0, 1, 2], "target_velocity": [0, 1.5, 0], "damage_scalar": 1, "expected_impulse": [0, 0.5, 7]},
+    {"graph": "0043", "state": 4, "target_position": [0, 1, 2], "target_velocity": [0, -4, 0], "damage_scalar": 1, "expected_impulse": [0, 0, 1]}
+  ]
+}

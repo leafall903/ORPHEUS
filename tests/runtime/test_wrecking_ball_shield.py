@@ -13,7 +13,7 @@ from tests.runtime.test_game_combat import Run
 ROLL_BUTTON = 0x08
 SHIELD_BUTTON = 0x10
 SHIELD_ID = 0x3EBB
-TEMPORARY_SLOT = SHIELDS_POOL * POOLS + 1
+TEMPORARY_SLOT = SHIELDS_POOL * POOLS + 2
 
 
 class AdaptiveShieldTests(unittest.TestCase):
@@ -30,7 +30,7 @@ class AdaptiveShieldTests(unittest.TestCase):
         return run, ball, target
 
     def pool(self, vitals):
-        raw = vitals.component(vitals.ids)[51][TEMPORARY_SLOT]
+        raw = vitals.component(vitals.most)[51][TEMPORARY_SLOT]
         return None if raw is None else struct.unpack("<IffI4B", raw)[:4]
 
     def test_cast_and_expiry_are_replicated_through_health_updates(self):
@@ -47,17 +47,19 @@ class AdaptiveShieldTests(unittest.TestCase):
         with patch.object(ball.client, "queue_body_health", wraps=ball.client.queue_body_health) as queue:
             run.step({})
             components = queue.call_args.args[1]
-            self.assertEqual(components[51][TEMPORARY_SLOT], vitals.component(vitals.ids)[51][TEMPORARY_SLOT])
+            expected = vitals.component(vitals.most)[51][TEMPORARY_SLOT]
+            self.assertEqual(components[51][TEMPORARY_SLOT], expected)
             for _ in range(550):
                 run.step({})
             self.assertEqual(vitals.total, 700.0)
             for _ in range(15):
                 run.step({})
-            self.assertEqual(self.pool(vitals), (0, 0.0, 0.0, SHIELDS_POOL))
+            self.assertEqual(self.pool(vitals), (SHIELD_ID, 0.0, 0.0, SHIELDS_POOL))
             self.assertEqual(vitals.total, 600.0)
             self.assertEqual(script.component.entity_var(HUD_MAX_HEALTH).value(), 600.0)
             components = queue.call_args.args[1]
-            self.assertEqual(components[51][TEMPORARY_SLOT], vitals.component(vitals.ids)[51][TEMPORARY_SLOT])
+            expected = vitals.component(vitals.most)[51][TEMPORARY_SLOT]
+            self.assertEqual(components[51][TEMPORARY_SLOT], expected)
             # A newer health snapshot can replace an unacknowledged removal.
             vitals.damage(20.0)
             run.step({})
@@ -85,25 +87,25 @@ class AdaptiveShieldTests(unittest.TestCase):
         self.assertEqual(self.pool(vitals), (SHIELD_ID, 175.0, 25.0, SHIELDS_POOL))
         run.match.combat._damage(near, target, 2000.0, False, None, run.frame)
         self.assertTrue(vitals.dead)
-        self.assertEqual(self.pool(vitals), (0, 0.0, 0.0, SHIELDS_POOL))
+        self.assertEqual(self.pool(vitals), (SHIELD_ID, 0.0, 0.0, SHIELDS_POOL))
 
     def test_casting_shield_preserves_roll_form(self):
         run, ball, target = self.setup_match()
         vitals = run.match.combat.vitals_of(target)
         run.step({ball: (0, 0, ROLL_BUTTON)})
         run.step({})
-        roll_profile = ball.mover.data
+        roll_profile = ball.mover.script_data
         self.assertEqual(roll_profile.run_forward, 10.0)
 
         run.step({ball: (0, 0, SHIELD_BUTTON)})
         run.step({})
         self.assertEqual(vitals.total, 700.0)
-        self.assertIs(ball.mover.data, roll_profile)
+        self.assertEqual(ball.mover.script_data, roll_profile)
 
     def test_body_retirement_clears_a_live_pool(self):
         run, ball, target = self.setup_match()
         vitals = run.match.combat.vitals_of(target)
         run.step({ball: (0, 0, SHIELD_BUTTON)})
         ball.body_script.retire()
-        self.assertEqual(self.pool(vitals), (0, 0.0, 0.0, SHIELDS_POOL))
+        self.assertEqual(self.pool(vitals), (SHIELD_ID, 0.0, 0.0, SHIELDS_POOL))
         self.assertEqual(vitals.total, 600.0)

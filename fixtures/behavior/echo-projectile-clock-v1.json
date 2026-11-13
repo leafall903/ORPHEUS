@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "case_id": "echo-projectile-command-world-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py",
+      "src/ow174/game/sombra_replay.py"
+    ],
+    "provenance": "Synthetic stationary two-player production command replay with authored Echo projectiles."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "packet_batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "event_offset": 65,
+    "sample_offsets": [
+      128,
+      144,
+      160,
+      192
+    ],
+    "command_ms": 16,
+    "world_ms": 16,
+    "aim": [
+      0,
+      0
+    ],
+    "primary_target_distance": 95,
+    "sticky_target_distance": 5
+  },
+  "expected": {
+    "primary_first_flight_seconds": 1.008,
+    "primary_first_projectiles": 3,
+    "primary_final_projectiles": 0,
+    "sticky_first_health": 170,
+    "sticky_final_health": 20,
+    "sticky_final_hit_notices": 12,
+    "sticky_final_projectiles": 0,
+    "batch_comparison_decimal_places": 9
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "case_id": "winston-jump.authored-launch.v1",
+  "target_build": 104319,
+  "evidence": "authored-010A-velocity-action-through-server-mover",
+  "client_acceptance": "pending",
+  "source_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+  "input": {"yaw": 0, "pitch": -16384, "buttons": 8},
+  "expected": {
+    "cast_frame_velocity": [0, 0, 0],
+    "next_movement_frame_velocity": [0, 28.1904296875, 10.2607421875]
+  }
+}

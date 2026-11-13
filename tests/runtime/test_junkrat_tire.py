@@ -19,6 +19,66 @@ from ow174.game.mover import Mover, mover_data
 
 
 class JunkratTireTests(unittest.TestCase):
+    def test_command_batches_preserve_actor_vm_detonation_timeout_and_recovery_clocks(self):
+        def replay(batch, timeout):
+            self.setUp()
+            run, fight = self.run, self.fight
+            x, y, z = self.player.mover.position
+            run.match.collision_world = World(box(x - 50, x + 50, y - 1, y, z - 50, z + 500))
+            for actor in (self.player, self.enemy):
+                actor.mover.use(world=run.match.collision_world)
+            self.enemy.mover.position[:] = (x + 30, y, z)
+            self.script.set_ult_charge(self.script.component.vars[338].value())
+            first = run.frame
+            births, blasts, actors = [], [], []
+            begin, explode = self.system.begin, fight._explode
+
+            def observe_begin(player, command):
+                before = set(self.system.actors)
+                result = begin(player, command)
+                for entity in set(self.system.actors) - before:
+                    tire = self.system.actors[entity]
+                    actors.append(tire)
+                    births.append((tire.created_tick, tire.drive_tick, tire.arm_tick, tire.end_tick,
+                                   tire.drive.component.frame))
+                return result
+
+            def observe_explode(rocket, point, **kwargs):
+                tire, = actors
+                self.assertFalse(tire.drive.states[12].current)
+                blasts.append((fight.tick, point, tire.drive.component.frame))
+                return explode(rocket, point, **kwargs)
+
+            horizon = 768 if timeout else 192
+            with patch.object(self.system, "begin", side_effect=observe_begin), \
+                    patch.object(fight, "_explode", side_effect=observe_explode):
+                for offset in range(batch, horizon + 1, batch):
+                    tick = first + offset
+                    run.match.update(tick * combat.TICK, tick, frames=False)
+                    frames = range(tick - batch + 1, tick + 1)
+                    self.player.take_commands([
+                        Command(frame, buttons=32 if frame == first + 1 else
+                                FIRE if not timeout and frame == first + 161 else 0)
+                        for frame in frames
+                    ])
+                    self.enemy.take_commands([Command(frame) for frame in frames])
+            tire, = actors
+            self.assertEqual(len(births), 1)
+            self.assertEqual(len(blasts), 1)
+            self.assertEqual(blasts[0][0], tire.end_tick if timeout else first + 161)
+            self.assertEqual(blasts[0][2], blasts[0][0])
+            self.assertFalse(self.system.actors)
+            self.assertNotIn(tire.entity, fight.vitals)
+            self.assertEqual(self.script.component.vars[342].value(), 0)
+            self.assertEqual(fight.tick, first + horizon)
+            return births, blasts, [entry[-1] for entry in self.system.recovery.values()], self.system.last_result
+
+        for timeout in (False, True):
+            expected = replay(1, timeout)
+            for batch in (8, 32):
+                with self.subTest(batch=batch, timeout=timeout):
+                    self.assertEqual(replay(batch, timeout), expected)
+
     health = helpers.JunkratProjectileTests.health
     place = helpers.JunkratProjectileTests.place
 

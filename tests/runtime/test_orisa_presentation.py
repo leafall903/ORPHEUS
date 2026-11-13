@@ -21,6 +21,10 @@ class OrisaPresentationTests(unittest.TestCase):
                 shot = run.match.combat.rockets[0].shot
                 self.assertIsNotNone(shot)
                 self.assertTrue(shot.authoritative)
+                if button == 2:
+                    orb, = run.match.combat.orisa.orbs.values()
+                    self.assertEqual(orb.entity, shot.entity)
+                    self.assertTrue(all(d.record.ids == (orb.entity,) for d in shot.observers))
                 delivery = next(d for d in shot.observers if d.viewer is player)
                 self.assertIs(delivery.stream, player.body_script.stream)
                 create = delivery.pending_create or next(

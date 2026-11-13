@@ -38,6 +38,7 @@ class Deployable:
     filter_bits: int = 0
     rotation: tuple = (0.0, 0.0, 0.0, 1.0)
     capsule: tuple | None = None  # model-local endpoints for an authenticated bind-pose capsule
+    pet_owner: int | None = None  # explicit evaluated Pet source, distinct from combat source_body
 
     @property
     def body(self):

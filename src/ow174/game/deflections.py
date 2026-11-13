@@ -56,6 +56,12 @@ def intercept(fight, rocket, length, excluded, *, modes=('reflect', 'absorb'), d
                 mode = 'reflect' if key == (0x3A3, 10) else 'absorb' if key == (0x1D02, 1) else None
                 if mode not in modes:
                     continue  # Other native DeflectProjectiles modes require their own consumers.
+                if mode == 'reflect':
+                    hit = rocket.direct
+                    eligible = (hit is not None and (
+                        hit.deflectable if hit.deflect_override is None else hit.deflect_override))
+                    if not eligible or fight._genji_deflect_state(target, flight_direction) is None:
+                        continue
                 definitions = getattr(fight, "matrix_definitions", None)
                 admitted = getattr(rocket, "matrix_absorbable", None)
                 if mode == 'absorb' and not (admitted if admitted is not None else

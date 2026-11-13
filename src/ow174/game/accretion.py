@@ -3,10 +3,84 @@
 import math
 
 from ow174.game import fortify
-from ow174.game.script import expr, graph, play, runtime
+from ow174.game.script import expr, graph, play, runtime, startup
 
 HERO = 0x02E000000000023B
 GRAPH = 0x1BBB
+ROCK = 0x04000000000018B7
+
+
+class RockWorld(runtime.World):
+    """The existing physical rock supplies its own script's transform queries."""
+
+    def __init__(self, rocket):
+        super().__init__(HERO)
+        self.rocket = rocket
+
+    def position(self, entity):
+        if entity == self.rocket.entity:
+            return expr.Vec3(*self.rocket.position)
+        return super().position(entity)
+
+    def native(self, config, instance):
+        if (config.get("$") == "STU_309B0570" and config.get("m_5B94EDB8") is None
+                and instance.graph.index == 0x1EB9
+                and expr.to_entity(instance.evaluate(config.get("m_entity"))) == self.rocket.entity):
+            return expr.Vec3(*self.rocket.velocity)
+        return super().native(config, instance)
+
+    def modify_health(self, state, elapsed_ms):
+        if (state.instance.graph.index, state.node.pos) == (0x1EB9, 21):
+            # Combat already owns the existing physical projectile's contacts.
+            # This component supplies the original remote visual states only.
+            return True
+        return NotImplemented
+
+
+def admit(fight, rocket):
+    """Publish the existing volley's projectile output when its flight is admitted."""
+    state = rocket.source_state
+    shot = rocket.shot
+    if (state is None or (state.instance.graph.index, state.node.pos, rocket.definition) != (GRAPH, 9, ROCK)
+            or shot is None or not shot.authoritative or shot.entity is None):
+        return
+    rocket.entity = shot.entity
+    state.instance.write(expr.lvalue(state.node.field("m_505472EF")), expr.Entity(rocket.entity))
+    record = graph.entity_body(ROCK)
+    if record is None or graph.graph(0x1EB9) is None:
+        return  # Legacy external profiles have not admitted the projectile script.
+    component = runtime.Component(rocket.entity, world=RockWorld(rocket))
+    component.frame = rocket.last_tick if rocket.last_tick is not None else fight.tick
+    component.now = component.frame * component.frame_ms
+    startup.ComponentStartup(component, record["script_component"]).start()
+    component.run_frame(component.frame)
+    fight.projectiles.sigma_scripts[rocket.entity] = component
+
+
+def update_scripts(projectiles, tick):
+    """Advance each original 1EB9 once, shared by the two observer streams."""
+    from ow174.game import observers
+
+    live = {delivery.record.ids[0] for delivery in projectiles.observed}
+    for entity, component in tuple(projectiles.sigma_scripts.items()):
+        if entity not in live:
+            for instance in tuple(component.instances.values()):
+                component.destroy(instance)
+            del projectiles.sigma_scripts[entity]
+            continue
+        if tick > component.frame:
+            component.run_frame(tick)
+        snapshot = observers.SceneBody(component).latest_live
+        for delivery in projectiles.observed:
+            if delivery.record.ids == (entity,):
+                delivery.client.queue_bot_live(entity, snapshot)
+
+
+def lookup(fight, entity):
+    """The real admitted flight, rather than a syntactically valid entity ID."""
+    return next((rocket for rocket in fight.rockets
+                 if rocket.source_graph == GRAPH and rocket.definition == ROCK
+                 and rocket.entity == entity), None)
 
 
 def launch(state, direction):

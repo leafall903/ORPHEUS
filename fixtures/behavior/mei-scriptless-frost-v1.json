@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "mei-scriptless-frost-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "tests/runtime/test_mei_scriptless_frost.py"],
+    "change": "Retain authoritative frost when the target has no statescript component."
+  },
+  "evidence": "synthetic-runtime-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "target": {"alive": true, "enemy": true, "body_script": null, "damage_immunity": false},
+    "initial_frost": null,
+    "simulation": {"frame_ms": 16, "warmup_frames": 30, "seed": null, "packet_loss": []},
+    "operation": "Register consecutive Mei spray damage hits on the same tick",
+    "hit_count": 31,
+    "damage_per_hit": 1,
+    "then": "Register one more hit during freeze; advance to the original freeze deadline"
+  },
+  "expected": {
+    "first_hit_progress": 0.2,
+    "registered_damage": 31,
+    "frozen_after_hits": true,
+    "movement_pause_matches_deadline": true,
+    "extra_hit_refreshes_deadline": false,
+    "frost_sources_after_deadline": [],
+    "movement_paused_after_deadline": false
+  },
+  "limits": "Synthetic damage-register contract. A separate runtime test exercises real spray commands against an enemy training bot. Neither establishes original-client presentation."
+}

@@ -416,7 +416,7 @@ def statescript_mover_data(component, *, mover=None, frame=None) -> MoverData | 
 
 
 def statescript_flight(component, *, mover=None, frame=None) -> float | None:
-    """Mercy's authored C1BA7545: native movement-hook kind16, parameter+18.
+    """Authored C1BA7545: native movement-hook kind16, parameter+18.
 
     Owner command-frame scheduling and original last-record arbitration are
     reconstructed. Actual movers use their existing publication ledger; a
@@ -432,7 +432,8 @@ def statescript_flight(component, *, mover=None, frame=None) -> float | None:
         return roles[-1].value if roles else None
     values = []
     for instance in component.instances.values():
-        if instance.graph.index != 0x10DA and component.world.hero != 0x02E000000000007A:
+        if (instance.graph.index not in (0x10DA, 0x1BB6)
+                and component.world.hero != 0x02E000000000007A):
             continue
         for state in instance.states.values():
             if state.active and state.node.cls == "STU_C1BA7545":
@@ -759,7 +760,8 @@ def statescript_mods(component) -> dict:
     for instance in component.instances.values():
         for state in instance.states.values():
             if (state.active and state.node.cls == "STU_C1BA7545"
-                    and (instance.graph.index == 0x10DA or component.world.hero == 0x02E000000000007A)):
+                    and (instance.graph.index in (0x10DA, 0x1BB6)
+                         or component.world.hero == 0x02E000000000007A)):
                 cfg = state.node.field("m_2166C07A")
                 value = 1.0 if cfg is None else instance.evaluate(cfg)
                 if type(value) not in (int, float, bool) or not math.isfinite(value):
@@ -1307,6 +1309,7 @@ class Mover:
         outcome = None
         if flying:
             self._flight_velocity(dt, right, forward, rise, sink, flight_scale)
+            self._apply_velocity_mods(active, (0.0, 1.0, 0.0))
             if any(change.frame == frame for change in self.velocity_changes):
                 from ow174.game.velocity import consume
 

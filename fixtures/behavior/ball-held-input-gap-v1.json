@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "ball-held-input-gap-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/match.py", "src/ow174/game/ball.py"]
+  },
+  "evidence": "synthetic-command-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "hero": "02E00000000001CA",
+    "initial_form": "cannons",
+    "steps": [
+      {"frame_delta": 1, "buttons": 8},
+      {"frame_delta": 40, "buttons": 8},
+      {"frame_delta": 70, "buttons": 8},
+      {"frame_delta": 70, "buttons": 8},
+      {"frame_delta": 1, "buttons": 0},
+      {"frame_delta": 1, "buttons": 8}
+    ]
+  },
+  "expected": {
+    "rolling_after_step": [true, true, true, true, true, false]
+  }
+}

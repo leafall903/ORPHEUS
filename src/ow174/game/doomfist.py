@@ -7,14 +7,74 @@ wall contact and control policy are reconstruction, not native filter fidelity.
 
 import math
 from dataclasses import dataclass, replace
+from types import SimpleNamespace
 
 from ow174.game import bots, contacts, defenses
 from ow174.game.mover import DECEL_GROUND, MULTIPLY, STEP
-from ow174.game.script import expr, graph, modifiers, nodes, runtime
+from ow174.game.script import expr, graph, nodes, runtime
 
 HERO = 0x02E000000000012F
 PUNCH = 0x0B90000000000107
 SLAM = 0x0B9000000000011F
+
+
+def hand_cannon_world_frame(combat, player, frame):
+    """Read the actual body birth clock without enabling an owner input lease."""
+    from ow174.game.combat import TICK
+    from ow174.game.sombra_replay import world_frame
+
+    script = player.body_script
+    epoch = combat.knockbacks.body_epochs.get(player.body)
+    if script is None or epoch is None or epoch[0] is not script or epoch[1] is None:
+        return None
+    clock = SimpleNamespace(world_frame_anchor=epoch[1], frame_ms=script.frame_ms)
+    return world_frame(clock, frame, round(TICK * 1000))
+
+
+def melee_view_world_tick(combat, player, command, quanta):
+    """Query target history in world time while keeping the owner's hit label."""
+    from ow174.game.combat import TICK
+
+    script = player.body_script
+    epoch = combat.knockbacks.body_epochs.get(player.body)
+    if script is None or epoch is None or epoch[0] is not script or epoch[1] is None:
+        return None
+    world, owner = epoch[1]
+    elapsed = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed / (TICK * 1000)
+
+
+def tracked_uppercut_hit(combat, player, target, state):
+    """Restore 0DD8/17's radial force after its tracked damage was accepted."""
+    if (player.hero.guid != HERO or (state.instance.graph.index, state.index, state.node.pos)
+            != (0x0DD8, 10, 17)):
+        return
+    health = state.node.field('m_modifyHealth')
+    loadout = state.evaluate(health.get('m_loadout'), watch=False)
+    loadout = loadout.guid if isinstance(loadout, expr.Asset) else expr.guid_of(loadout)
+    combat._doomfist_shields(player, loadout)
+    if combat.vitals_of(target).dead:
+        return
+    rings = health.get('m_knockbackRings') or ()
+    if len(rings) != 1:
+        return
+    ring = rings[0]
+    offset = tuple(b - a for a, b in zip(player.mover.position, target.feet, strict=True))
+    distance = math.hypot(*offset)
+    if distance > expr.to_float(state.evaluate(ring.get('m_radius'), watch=False)):
+        return
+    horizontal = expr.to_float(state.evaluate(health.get('m_E33EFEE1'), watch=False))
+    geometry = expr.to_float(state.evaluate(health.get('m_10399AE7'), watch=False))
+    floor = (expr.to_float(state.evaluate(health['m_583C208B'], watch=False))
+             if health.get('m_583C208B') is not None else -3.4028234663852886e38)
+    planar = math.hypot(offset[0], offset[2])
+    scale = Slams._target_impulse_scale(target)
+    horizontal *= expr.to_float(state.evaluate(ring.get('m_579D7CFF'), watch=False)) * scale
+    vertical_scale = expr.to_float(state.evaluate(ring.get('m_10399AE7'), watch=False)) * scale
+    upward = max(offset[1] / distance * geometry if distance else 0.0, floor) * vertical_scale
+    impulse = expr.Vec3(offset[0] / planar * horizontal if planar else 0.0, upward,
+                        offset[2] / planar * horizontal if planar else 0.0)
+    combat.knockbacks.apply(target, impulse, impact_tick=combat.match.tick, source_entity=player.body)
 
 
 def _two_height_visible(target, origin, collision, cryo_cover):
@@ -257,12 +317,15 @@ class Punches:
                     dx, _, dz = dash.direction
                     flat = math.hypot(dx, dz) or 1.0
                     direction = (dx / flat, 0.0, dz / flat)
-                    self.combat._launch(target.entity, tuple(v * dash.knockback for v in direction))
-                    until = self.combat.now + dash.control_seconds
-                    self._control(target, until)
-                    self.impacts.append(
-                        Impact(player, player.body, target.entity, direction, dash.wall_damage, until),
-                    )
+                    scale = Slams._target_impulse_scale(target)
+                    impulse = expr.Vec3(*(v * dash.knockback * scale for v in direction))
+                    if self.combat.knockbacks.apply(
+                            target, impulse, impact_tick=self.combat.match.tick, source_entity=player.body):
+                        until = self.combat.now + dash.control_seconds
+                        self._control(target, until)
+                        self.impacts.append(
+                            Impact(player, player.body, target.entity, direction, dash.wall_damage, until),
+                        )
             self._finish(player, instance, dash)
         elif dash.blocked or dash.arrived or not state.active:
             self._finish(player, instance, dash)
@@ -303,26 +366,26 @@ class Slams:
         self.combat = combat
         self.casts: dict[int, Slam] = {}
 
-        self.impulses: list[tuple[int, int, tuple[float, float, float]]] = []
+        self.impulses: list[tuple[int, int]] = []
 
     def retire_target(self, entity: int) -> None:
         self.impulses[:] = [record for record in self.impulses if record[1] != entity]
 
     def advance_impulses(self, tick: int) -> None:
-        """Consume each velocity record only in its scheduled server tick."""
+        """Apply finite braking after the shared receiver queued the force."""
         if not self.impulses:
             return
         pending, self.impulses = self.impulses, []
         if self.combat.match.ended:
             return
-        for scheduled, entity, velocity in pending:
+        for scheduled, entity in pending:
             if scheduled == tick:
-                mover = self.combat._launch(entity, velocity, add_vertical=True)
+                mover = self.combat.knockbacks.active.get(entity)
                 if mover is not None:
                     # The native mode-1 writer schedules 320 ms of ground braking at 1%.
                     mover.add_timed_mod(DECEL_GROUND, MULTIPLY, .01, tick, tick + 20)
             elif scheduled > tick:
-                self.impulses.append((scheduled, entity, velocity))
+                self.impulses.append((scheduled, entity))
 
     @staticmethod
     def instance(player):
@@ -427,45 +490,22 @@ class Slams:
 
     @staticmethod
     def _target_impulse_scale(target):
-        """Resolve authored literal category-26 rows from the current target body."""
+        """Use the shared live response once for the actual recipient body."""
         script = getattr(target.owner, 'body_script', None)
         if script is None or script.component.entity != target.entity:
             return 1.0
-        component = script.component
-        # Body prediction keeps numeric modifiers passive. Read its causal VM
-        # states at contact instead of keeping a second copy of their lifetime.
-        operations = {'STU_D8CC6B10': 1, 'STU_56DEE1BB': 2}
-        records = []
-        for instance in component.instances.values():
-            for state in instance.states.values():
-                if not state.active or not isinstance(state, nodes.NumericPropertyModifiers):
-                    continue
-                for index, row in enumerate(state.node.field('m_BC5E91CF') or ()):
-                    if not isinstance(row, dict) or row.get('m_A9561CA0') != 26 or row.get('$') not in operations:
-                        continue
-                    value = row.get('m_9B7A63EA')
-                    priority = row.get('m_priority')
-                    if (not value or value.get('$') not in ('STUConfigVarInt', 'STUConfigVarFloat')
-                            or priority is not None and priority.get('$') not in ('STUConfigVarInt', 'STUConfigVarFloat')):
-                        continue
-                    key = modifiers.state_key(instance.id, state.index, state.counter, index)
-                    start = (state.start // component.frame_ms) & 0xffffffff
-                    record = modifiers.Record(1, key, start, 26,
-                                              operations[row['$']], value['m_value'],
-                                              0.0 if priority is None else priority['m_value'])
-                    records.insert(modifiers.insertion_index(records, record), record)
-        scale = 1.0
-        for record in records:
-            scale = modifiers.apply(record.operation, scale, record.value)
-        return max(0.0, scale)
+        return defenses.knockback_scale(target.owner)
 
-    def _queue_impulse(self, target, impulse):
+    def _queue_impulse(self, player, target, impulse):
         if self.combat.vitals_of(target).dead:
             return
         scale = self._target_impulse_scale(target)
-        if scale > 0.0:
-            scaled = tuple(expr.f32(axis * scale) for axis in impulse)
-            self.impulses.append((self.combat.match.tick + 1, target.entity, scaled))
+        scaled = expr.Vec3(*(expr.f32(axis * scale) for axis in impulse))
+        tick = self.combat.match.tick
+        if self.combat.knockbacks.apply(target, scaled, impact_tick=tick, source_entity=player.body):
+            # The shared receiver queues the one-frame ADD now. Only braking
+            # remains deferred; never enqueue the same force a second time.
+            self.impulses.append((tick + 1, target.entity))
 
     def _close_contact(self, player, instance, cast, targets, collision, cryo_cover, frame):
         from ow174.game.combat import _dot, aim, segment_distance
@@ -493,7 +533,7 @@ class Slams:
             if self.combat._damage(player, target, cast.damage, False, SLAM, frame) > 0:
                 self.combat._doomfist_shields(player, SLAM)
                 if has_impulse:
-                    self._queue_impulse(target, impulse)
+                    self._queue_impulse(player, target, impulse)
         return admitted
 
     def command(self, player, command) -> None:
@@ -564,7 +604,7 @@ class Slams:
             if dealt > 0:
                 self.combat._doomfist_shields(player, SLAM)
                 # Queue the original world-timed additive velocity once.
-                self._queue_impulse(target, (-3 * direction[0], 6, -3 * direction[2]))
+                self._queue_impulse(player, target, (-3 * direction[0], 6, -3 * direction[2]))
         cast.hit = tuple(sorted(hit_entities))
         if radius >= reach:
             cast.finished = True

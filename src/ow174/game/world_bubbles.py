@@ -1,13 +1,14 @@
 """Scoped Winston00FA creation ->00FC host -> fixed finite world sphere.
 
 DATA:01C3/model0D02 radius5, native request params700/9 and00FC ChaseVar11.
-RECONSTRUCTED: private untransported actor identity, caster context, world-tick
+RECONSTRUCTED: actor identity, caster context, world-tick
 clock mapping, finite health bridge, area visibility and source retirement.
-Native spawn options, transforms/filter policy and actor replication remain open.
+Native spawn options and transforms/filter policy remain open.
 """
 import math
 from dataclasses import dataclass
 
+from ow174.game import winston
 from ow174.game.script import expr, graph, play, play_queue, runtime
 
 FIRST, SPAN = 0xA0140000, 0x40000
@@ -58,6 +59,7 @@ class WorldBubbles:
         self.actors = {}
         self.next_id = 0
         self.pending = []
+        self.wire_entities = set()
 
     def create(self, world, instance, node):
         if instance.component.strict:
@@ -83,8 +85,9 @@ class WorldBubbles:
                 break
         else:
             raise RuntimeError('static Winston actor identity range exhausted')
+        born = winston.world_tick_at_body(owner.body_script, instance.component.frame)
         self.actors[entity] = FixedBubble(entity,owner,instance.component,world.body,owner.team,
-                                          tuple(point),self.fight.tick,instance.component.frame,
+                                          tuple(point),born,instance.component.frame,
                                           instance.component.now)
         instance.write(target,expr.Entity(entity))
         return True
@@ -126,6 +129,7 @@ class WorldBubbles:
             hosted.write((expr.ENTITY, 253), actor.health)
             hosted.write((expr.ENTITY, 478), False)
             component.run_now()
+            self.advance(actor, self.fight.tick)
         return True
 
     def drop(self, entity):
@@ -141,6 +145,19 @@ class WorldBubbles:
             if actor.source_body == body:
                 self.drop(actor.entity)
 
+    def advance(self, actor, tick):
+        """Catch the existing VM up from the event's world tick, including packet delay."""
+        component = actor.component
+        elapsed = max(0, tick - actor.born_tick) * 16 // component.frame_ms
+        component.frame = actor.origin_frame + elapsed
+        component.now = actor.origin_ms + elapsed * component.frame_ms
+        component.update()
+        component.run_now()
+        hosted = next((i for i in component.instances.values() if i.graph.index == 0xFC), None)
+        timer = hosted.states.get(11) if hosted is not None else None
+        if actor.retired or timer is None:
+            self.drop(actor.entity)
+
     def update(self, tick):
         for actor in tuple(self.actors.values()):
             if (not self.live_source(actor)
@@ -151,22 +168,16 @@ class WorldBubbles:
                 if tick > actor.born_tick:
                     self.drop(actor.entity)
                 continue
-            elapsed = max(0,tick-actor.born_tick)
-            component = actor.component
-            component.frame = actor.origin_frame+elapsed
-            component.now = actor.origin_ms+elapsed*16
-            component.update()
-            component.run_now()
-            hosted = next((i for i in component.instances.values() if i.graph.index == 0xFC),None)
-            timer = hosted.states.get(11) if hosted is not None else None
-            if actor.retired or timer is None:
-                self.drop(actor.entity)
+            self.advance(actor, tick)
 
         pending, self.pending = self.pending, []
         for actor, params in pending:
             if self.live_source(actor) and actor.source_component.fault is None:
                 if runtime.send_message(actor.source_component, 0x0240000000000053, params, actor.entity):
                     actor.source_component.run_now()
+        from ow174.game import winston_barrier
+
+        winston_barrier.sync(self)
 
     def enemies(self, shooter, *, team=None):
         if team is None:

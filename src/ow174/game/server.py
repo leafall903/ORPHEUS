@@ -424,6 +424,10 @@ class Client:
         self._flush_bot_frames(script)
 
     def _flush_bot_frames(self, script: _BotScriptDelivery, *, replace_nameplate: bool = False) -> None:
+        from ow174.game import dva_owner
+
+        if dva_owner.flush(self, script):
+            return
         stream = script.stream
         nameplate = script.nameplate_update
         if stream.base is None or (stream.pending and (nameplate is None or not replace_nameplate)):
@@ -511,6 +515,8 @@ class Client:
             return
         for script in self._bot_scripts.values():
             stream = script.stream
+            if hasattr(script.source, "dva_birth") and stream.cmfd:
+                continue  # this connection has the controlled mech's owner projection
             if script.nameplate_update is not None:
                 # Match logic has queued this frame's health and combat updates.
                 self._flush_bot_frames(script, replace_nameplate=True)
@@ -782,12 +788,24 @@ class Client:
             mine = match.combat.ball_mines.devices.get(entity)
             script = mine.body_script if mine is not None else None
         if script is None and match.combat is not None:
-            from ow174.game import orisa_presentation, reinhardt_presentation, sigma_presentation
+            beacon = match.combat.translocators.entries.get(entity)
+            script = beacon.body_script if beacon is not None else None
+        if script is None and match.combat is not None:
+            from ow174.game import (
+                mei_presentation, orisa_presentation, reinhardt_presentation,
+                sigma_presentation, winston_barrier,
+            )
             script = reinhardt_presentation.projection(match.combat, entity)
+            if script is None:
+                script = mei_presentation.projection(match.combat, entity)
             if script is None:
                 script = orisa_presentation.projection(match.combat, entity)
             if script is None:
                 script = sigma_presentation.projection(match.combat, entity)
+            if script is None:
+                script = winston_barrier.projection(match.combat, entity)
+            if script is None:
+                script = match.combat.photon_barriers.projection(entity)
         if script is None and host is not None:
             script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)
         if bot is None and script is None:
@@ -831,6 +849,12 @@ class Client:
         controller, body = self.player.entity, self.player.body
         pending = self._pending_possessions.get(controller)
         created = self.bot_create_acked(body)
+        target = body
+        if pending is not None:
+            target = pending[0]
+        elif getattr(self.player, "controlled_mech", None) is not None:
+            target = self.player.match._possession(self.player)[44][0]
+        target_created = self.bot_create_acked(target)
         bound = pending is None and self.controller_ready
         if created and bound:
             return self.entities
@@ -841,7 +865,7 @@ class Client:
         records = []
         for item in self.entities:
             if item is possession:
-                if not created:
+                if not created or not target_created:
                     continue
                 bound = True
             elif not bound and (
@@ -851,10 +875,12 @@ class Client:
                 # The body's H0 tree is independent, but owner H1 starts after possession.
                 continue
             elif item.op == world.OP_CREATE:
+                if item.entity == target:
+                    target_created = True
                 if item.entity == body:
                     created = True
                 elif item.entity == controller:
-                    if not created:
+                    if not created or not target_created:
                         continue
                     bound = possession is None  # initial controller create also carries 44/75
             elif (
@@ -877,6 +903,9 @@ class Client:
             unreliable, entities = [], []
         else:
             self._release_body_destroys(tick)
+            from ow174.game import dva_owner
+
+            dva_owner.poll(self)
             self._flush_bot_nameplates()
             unreliable = self.unreliable[: messages.MAX_PER_KIND]
             queued = self._ready_entity_records()
@@ -1327,25 +1356,27 @@ class GameServer:
                         return match.switch_hero(player, hero)
         return False
 
-    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:
+    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False,
+                hero: str | None = None) -> dict:
         """Serialize debug-console actions with the ordinary game tick."""
         from ow174.game.npc_console import Console
 
-        if not isinstance(key, str) or key not in ('=', '-', '0', '{', 'Escape', *'123456789'):
+        if (not isinstance(key, str)
+                or key not in ('=', '-', '0', '{', 'Escape', 'heroes', 'hero', *'123456789')):
             raise ValueError('Unknown NPC console key')
         if type(menu_open) is not bool:
             raise ValueError('Invalid NPC menu state')
         with self.lock:
             console = Console(catalog)
             console.menu_open = menu_open
-            if key in ('=', 'Escape'):
+            if key in ('=', 'Escape', 'heroes'):
                 return console.press(key, None, None)
             if self._clock_ticks_left is not None:
                 raise ValueError('NPC mutations are unavailable while the game clock is frozen')
             player = self.player_of(account_lo)
             if player is None:
                 raise ValueError('The selected account has no active match')
-            return console.press(key, player.match, player)
+            return console.press(key, player.match, player, hero=hero)
 
     def skin_changed(self, account_lo: int, hero_guid: int) -> bool:
         """The lobby equipped an item of a hero (24500): a player in a match who plays that hero gets the

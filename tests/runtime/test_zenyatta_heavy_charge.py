@@ -28,7 +28,7 @@ class HeavyCharge(unittest.TestCase):
         for _ in range(35):
             run.step({})
         fight = run.match.combat
-        self.assertEqual(npc_control.start(run.match, zen, special_attack=True), bot.entity)
+        self.assertEqual(npc_control.start(run.match, zen, charge=True), bot.entity)
         future = run.frame + 4
         yaw, pitch = aim(fight._eye(zen), (x, y + 1, z + 10))
         zen.take_commands([Command(future, yaw=yaw, pitch=pitch, buttons=FIRE, extra=0)])
@@ -38,6 +38,9 @@ class HeavyCharge(unittest.TestCase):
         run.step({})
         self.assertIn(rocket, fight.rockets)
         self.assertEqual(rocket.last_tick, future)
+        self.assertEqual(rocket.flown, 0)
+        run.step({})
+        self.assertEqual(rocket.last_tick, future + 1)
         self.assertAlmostEqual(rocket.flown, combat.TICK)
 
     def test_actual_zen_orb_and_heavy_charge_resolve_before_on_and_after_impact(self):

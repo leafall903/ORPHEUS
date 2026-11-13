@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "case_id": "ball-model-animation-duration-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["tools/extract_emote_durations.py", "src/ow174/game/ball.py", "src/ow174/game/script/driver.py"],
+    "provenance": "Synthetic nested category-to-IK-to-primary tree and arbitrary durations. Existing primary-index convention F4CCA0/BB8970; nested IK F4EA30 delegates to child through F524B0. Runtime test exercises real Roll node43 using a synthetic body-context table."
+  },
+  "evidence": "synthetic-resource-and-command-contract",
+  "client_acceptance": "pending",
+  "input": {
+    "body": "0x040000000000200B",
+    "model_tree": "0x004000000000084A",
+    "alias": "0x0C800000000005A5",
+    "category": "0x028000000000006E",
+    "synthetic_durations_seconds": [0.192, 0.464],
+    "buttons_first_frame": 8,
+    "buttons_followup": 0,
+    "frame_ms": 16
+  },
+  "expected": {
+    "loop_animation_position": 42,
+    "intro_animation_position": 43,
+    "first_loop_frames": [13, 30],
+    "roll_remains_active": true,
+    "missing_table_duration": null,
+    "unsupported_ik_child_duration": null
+  }
+}

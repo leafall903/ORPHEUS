@@ -1,8 +1,8 @@
 """Explicit reconstructed Sonic attachment/search host with authored010E flag stacks.
 
-Only010E/node9 is executed, not the complete status graph. Sphere/capsule search,
-through-wall filtering, continuous refresh, attachment and viewer projection are
-host policy; native cadence, filter flags, bones and presentation remain open.
+Sphere/capsule search, through-wall filtering, continuous refresh and attachment
+are host policy. The original status presentation receives its source and viewer
+inputs alongside the reveal stack.
 """
 
 import hashlib
@@ -118,13 +118,21 @@ def advance(fight, beacon, tick):
         if definition is None:
             definition = graph.Graph(beacon.profile.status)
         instance = component.create(definition)
+        instance.set_source_entity(beacon.source_entity)
+        instance.write((expr.INSTANCE, 40), expr.Entity(beacon.source_entity))
+        instance.write((expr.INSTANCE, 13431), (expr.Entity(beacon.source_entity),))
         instance.disabled_message_entries.update(
             node.pos for node in definition.entries
             if node is not None and node.cls == "STUStatescriptEntryGameMessage"
         )
-        # Directly activate the authored flag stack. Do not claim status start/
-        # stop messages, score, effects, owner/filter services or full010E execution.
-        instance.state(definition.node(9).state).request(runtime.BEGIN)
+        # The effect's native viewer predicate reads the source (40) and the
+        # local possessed bodies allowed in free-for-all (13431).
+        instance.state(definition.node(1).state).request(runtime.BEGIN)
+        # Original node8 queries builtin27, seeded above with the caster.
+        if beacon.team == 4:
+            instance.state(definition.node(7).state).request(runtime.BEGIN)
+        else:
+            instance.state(definition.node(9).state).request(runtime.BEGIN)
         component.run_now()
         beacon.statuses[target.entity] = instance
     for entity in set(beacon.statuses) - selected:

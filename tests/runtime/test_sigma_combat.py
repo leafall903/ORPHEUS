@@ -1867,8 +1867,12 @@ class SigmaCombatTests(unittest.TestCase):
                 break
         self.assertEqual(vitals.total, 130)
         fight = run.match.combat
-        deadline = fight.stuns[enemy.body]
-        self.assertEqual(deadline - fight.tick, 50)
+        control_started = fight.tick
+        self.assertTrue(fight.is_stunned(enemy))
+        control, = (entry.instance for entry in fight.brigitte.stuns
+                    if entry.instance.component.entity == enemy.body)
+        self.assertEqual(control.graph.index, 0x224E)
+        self.assertTrue(control.states[20].active)
         self.assertTrue(enemy.mover.external_impulse)
         self.assertGreater(enemy.mover.velocity[2], 4.5)
         self.assertGreater(enemy.mover.position[1], start[1])
@@ -1880,11 +1884,10 @@ class SigmaCombatTests(unittest.TestCase):
         with patch.object(enemy.mover, "external_impulse", False):
             self.assertNotEqual(captured, snapshot_mover(enemy.mover))
         self.assertEqual(captured, snapshot_mover(enemy.mover))
-        self.assertTrue(fight.is_stunned(enemy, tick=deadline - 1))
-        self.assertFalse(fight.is_stunned(enemy, tick=deadline))
-        while run.frame <= deadline:
+        while fight.is_stunned(enemy) and fight.tick - control_started <= 50:
             run.step({})
-        self.assertNotIn(enemy.body, fight.stuns)
+        self.assertFalse(fight.is_stunned(enemy))
+        self.assertAlmostEqual(fight.tick - control_started, 50, delta=1)
         self.assertEqual(vitals.total, 130)
         self.assertGreater(enemy.mover.position[2] - start[2], 1)
         self.assertFalse(enemy.mover.external_impulse)

@@ -44,6 +44,20 @@ test('unknown keys never issue requests', async () => {
   assert.equal(count, 0);
 });
 
+test('enemy hero selection carries the selected native hero identity', async () => {
+  const requests = [];
+  const client = new NpcConsoleClient(async (_url, request) => {
+    requests.push(JSON.parse(request.body));
+    return {ok: true, json: async () => ({handled: true})};
+  });
+  await client.send('heroes', 'A');
+  await client.send('hero', 'A', '0x02E000000000006E');
+  assert.deepEqual(requests, [
+    {key: 'heroes', name: 'A', menu_open: false},
+    {key: 'hero', name: 'A', menu_open: false, hero: '0x02E000000000006E'},
+  ]);
+});
+
 test('stop supersedes queued attacks while waiting for an in-flight attack', async () => {
   const keys = [];
   let release;

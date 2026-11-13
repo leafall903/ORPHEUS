@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from ow174.game import contacts
+from ow174.game import contacts, orisa_clock
 from ow174.game.collision import World
 from ow174.game.script import expr, graph, runtime
 from ow174.paths import DATA_DIR
@@ -163,6 +163,7 @@ class Barriers:
             return
         if tick is None:
             tick = self.fight.tick
+        tick = orisa_clock.impact_tick(rocket, tick)
         if (rocket.deploy_body is not None and not rocket.shooter.gone
                 and rocket.shooter.body == rocket.deploy_body):
             due = tick + math.ceil(DEPLOY_DELAY / TICK)
@@ -197,8 +198,19 @@ class Barriers:
             if not 0xC0001000 <= entity < 0xD0000000:
                 raise ValueError("ability entity allocator exhausted")
             component = runtime.Component(entity, world=BarrierWorld(self.fight, entity, rocket.position))
-            component.now, component.frame = due * 16, due
-            script = component.create(graph.graph(0xBD8))
+            born = due - math.ceil(DEPLOY_DELAY / TICK)
+            component.now, component.frame = born * 16, born
+            # Preserve the definition's native initial namespaces before the
+            # projectile's played0BD8; do not replace initial0252 with ID1.
+            for initial in (0x252, 0x25B4):
+                definition = graph.graph(initial)
+                if definition is None:
+                    raise ValueError(f"barrier definition lacks initial graph{initial:04X}")
+                component.create(definition)
+            component.run_frame(due)  # consume0252's already elapsed placement delay once
+            script = component.create(graph.graph(0xBD8), init=False)
+            script.set_source_entity(getattr(rocket, "source_entity", rocket.deploy_body))
+            script.init()
             script.start_entries((), rocket.deploy_body)
             component.run_now()  # original start entry owns600 health and20-second initial value
             health = expr.to_float(script.find_var(graph.INSTANCE, 587).value())
@@ -280,6 +292,13 @@ class Barriers:
         barrier.health -= taken
         if barrier.component is not None:
             barrier.component.set(253, barrier.health)
+        if taken > 0:
+            from ow174.game import orisa_presentation
+
+            components = orisa_presentation.barrier_health(barrier)
+            for viewer in self.fight.match.players:
+                if viewer.client is not None and barrier.entity in viewer.seen:
+                    viewer.client.queue_body_health(barrier.entity, components)
         if barrier.health <= 0:
             self.remove(barrier.entity)
         return taken

@@ -2,6 +2,7 @@
 tools/extract_statescript_codecs.py) and the encoder against it: every payload the encoder writes must read
 back by the table, whole and with the same values."""
 
+import json
 import sys
 import unittest
 from collections import defaultdict
@@ -25,6 +26,7 @@ SPRAY_FIELDS = {
 SAMPLES = {
     "861D9015": [{}, SPRAY_PAYLOAD, {**SPRAY_PAYLOAD, "entity": 0xA0000101, "extra": 70000, "g": True}],
     "none": [{}],
+    "start": [{"start": FRAME_TIME - 160}, {"start": FRAME_TIME + 3}],
     "switch": [{"current": True}, {"current": False}],
     "stack": [{"top": True, "under": False}, {"top": False, "under": True}],
     "button": [{"counter": 0}, {"counter": 13}, {"counter": 21}],
@@ -72,6 +74,8 @@ def expected(kind: str, payload: dict) -> dict:
             return {**SPRAY_FIELDS, "has_entity": 1, "entity": payload["entity"],
                     "has_extra": 1, "extra": payload["extra"], "g": 1}
         return SPRAY_FIELDS
+    if kind == "start":
+        return {"start": payload["start"]}
     if kind == "switch":
         return {"current": get("current", False)}
     if kind == "two_bits":
@@ -209,6 +213,21 @@ class EncoderTests(unittest.TestCase):
                 self.assertEqual(got, expected(kind, payload), (cls, payload))
                 checked[kind] += 1
         self.assertEqual(set(checked), set(statescript.WRITERS))
+        fixture_path = Path(__file__).resolve().parents[2] / "fixtures/behavior/grapple-start-v1.json"
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        codec = codecs.codec("STU_4BBC5D09")
+        for case in fixture["cases"]:
+            frame_time = case["input"]["frame_time"]
+            payload = {"start": case["input"]["start"]}
+            out = BitWriter()
+            statescript.write_payload(out, codec.name, payload, frame_time, FRAME_MS)
+            fields = codecs.read(BitReader(out.getvalue()), codec.layout, owner=True, full=False)
+            self.assertEqual(fields, case["expected"]["owner_fields"])
+            remote = BitWriter()
+            statescript.write_remote_payload(remote, codec.name, payload, full=False)
+            self.assertEqual(remote.count, 0)
+            self.assertEqual(codecs.read(BitReader(remote.getvalue()), codec.layout, owner=False, full=False),
+                             case["expected"]["observer_fields"])
 
     def test_delayed_switch_remote_payload_keeps_all_three_branches(self):
         cls = "STU_B591EBFE"

@@ -150,6 +150,38 @@ def cryo_instance(actor):
     return next((i for i in body.component.instances.values() if i.graph.index == CRYO), None)
 
 
+def projectile_clock_origin(actor):
+    """Capture this actual body's birth clock; never consult its replacement later."""
+    script = getattr(actor, "body_script", None)
+    born = getattr(script, "cryo_birth", None)
+    if (script is None or script.hero != HERO or script.retired
+            or script.component.entity != actor.body or born is None):
+        return None
+    return (*born, script.frame_ms)
+
+
+def world_frame(actor, frame):
+    """Translate an authored Mei event using this body's immutable birth pair."""
+    origin = projectile_clock_origin(actor)
+    if origin is None:
+        return None
+    from ow174.game.combat import TICK
+
+    world_ms = round(TICK * 1000)
+    world, body, frame_ms = origin
+    delta = (frame - body) * frame_ms
+    return world + -(-delta // world_ms)
+
+
+def view_world_tick(actor, owner_view_frame):
+    """Historical target queries use world time, retaining fractional poses."""
+    origin = projectile_clock_origin(actor)
+    if origin is None:
+        return None
+    world, body, frame_ms = origin
+    return world + (owner_view_frame - body) * frame_ms / 16
+
+
 def cryo_world_deadline(actor):
     """Original05FE Chase6 lifetime, mapped from this actual body's birth pair."""
     instance = cryo_instance(actor)
@@ -166,12 +198,7 @@ def cryo_world_deadline(actor):
         return None
     # Keep the delivered floor in the source body domain before crossing clocks.
     deadline = (chase.start + round(lifetime * 1000)) // script.frame_ms
-    from ow174.game.combat import TICK
-
-    world_ms = round(TICK * 1000)
-    world, body = born
-    delta = (deadline - body) * script.frame_ms
-    return world + -(-delta // world_ms)
+    return world_frame(actor, deadline)
 
 
 def cryo_world_expired(actor):

@@ -1,0 +1,15 @@
+{
+  "hero": "Wrecking Ball 01CA",
+  "sourceOwnerBirth": 9000,
+  "recipientOwnerBirth": 12000,
+  "contract": "Real Ctrl landing, RMB grapple swing into Fireball, and Q mine arming/contact dispatch once through the canonical shared force API.",
+  "expected": {
+    "piledriverDamage": 100,
+    "fireballDamage": 50,
+    "mineDamage": 130,
+    "impact_tick": "physical world event tick, not source command frame",
+    "source_entity": "actual source Ball body; mine.source preserves captured caster body"
+  },
+  "rejection": "A declined shared force does not install a Piledriver air-control lock.",
+  "boundaries": "Native force direction/strength/minimumY/resistance, original geometry, owner adoption and control return remain open."
+}

@@ -208,8 +208,15 @@ class ServerSnapshotTests(unittest.TestCase):
         session, peers, players = self.scene(two=True)
         owner = players[1]
         peers[1].message(21616, pick(owner.entity, winston_barrier.HERO), now=100.8)
-        peers[1].commands(owner.body_script.frame + 1, 40, 16)
-        dome, = owner.match.combat.winston_barriers.actors.values()
+        # Winston's idle VM follows the world clock. Send commands at that
+        # clock's cadence rather than submitting forty future frames at once.
+        for step in range(1, 41):
+            now = 100.95 + step * .016
+            session.tick(now)
+            peers[1].drain()
+            peers[1].send(now=now)
+            peers[1].commands(owner.body_script.frame + 1, 1, 16, now=now)
+        dome, = owner.match.combat.barriers.world.actors.values()
         self.assertEqual(dome.health, 700)
         with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
             initial = snapshot_digest(self.capture(session))
@@ -1352,8 +1359,14 @@ class StoredJournalTests(unittest.TestCase):
         fight = player.match.combat
         peers[0].commands(player.body_script.frame + 1, 16, 2, now=100.816)
         first_packet = len(sent)
+        # This input names the next world tick. Observe its actual birth
+        # boundary before checking the stored, already-flying state.
+        session.tick(100.832)
+        self.assertEqual(len(fight.rockets), 3)
+        self.assertTrue(all(rocket.last_tick == fight.tick and rocket.flown == 0
+                            for rocket in fight.rockets))
         for tick in range(12):
-            now = 100.832 + tick * 0.016
+            now = 100.848 + tick * 0.016
             session.tick(now)
             if tick == 0:
                 self.assertEqual(len(fight.rockets), 3)

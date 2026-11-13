@@ -49,9 +49,11 @@ class AnaControlTests(unittest.TestCase):
             player.take_commands([command])
 
     def cast(self, run, ana, caster, *, own=0):
+        fight = run.match.combat
+        before = fight.vitals_of(self.entry(run, ana)).total
         self.step(run, ana, caster, own=own, flash=16)
         for _ in range(50):
-            if run.match.combat.is_stunned(ana) or run.match.combat.is_dead(ana):
+            if fight.vitals_of(self.entry(run, ana)).total < before or fight.is_dead(ana):
                 return
             self.step(run, ana, caster, own=own)
         self.fail("actual enemy Flashbang never hit Ana")
@@ -264,7 +266,7 @@ class AnaControlTests(unittest.TestCase):
                 break
             self.step(run, ana, caster)
         self.assertEqual(pool.total, 170)
-        self.assertLess(fight.now + .8, floor)
+        self.assertLess(fight.tick + 50, floor)
         self.assertEqual(pool.sleep_until, floor)
         self.assertTrue(fight.is_asleep(ana))
-        self.assertFalse(fight.is_stunned(ana))
+        self.assertLessEqual(fight.stuns.get(ana.body, 0), fight.tick)

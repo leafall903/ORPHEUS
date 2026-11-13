@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "reinhardt-fire-strike-wire-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/projectiles.py", "src/ow174/game/combat.py"],
+    "description": "Synthetic flat-ground launch. The reference server flies and damages with Fire Strike but registers no projectile delivery because its authored volley has no local prediction lease."
+  },
+  "evidence": "synthetic-server-regression",
+  "client_acceptance": "partial: original104319 Fire Strike projectile and flight observed; target damage and native impact feedback remain pending",
+  "input": {
+    "initial_frame": 1030,
+    "quanta_us": 16000,
+    "seed": null,
+    "commands": [{"frames": 1, "buttons": 16}, {"frames": 32, "buttons": 0}],
+    "packet_loss": [],
+    "owner_position": [0, 1, 0],
+    "enemy_position": [0, 1, 3],
+    "enemy_health": 200
+  },
+  "expected": {
+    "definition": "04000000000001EA",
+    "authoritative": true,
+    "projectiles_per_viewer": 1,
+    "direction": [0, 0, 1],
+    "enemy_health": 100,
+    "owner_hit_damage": 100,
+    "create_before_launch_ack": true,
+    "pending_deliveries_after_timeout": 0
+  }
+}

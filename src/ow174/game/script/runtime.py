@@ -125,6 +125,12 @@ def state_class(*names: str, strict_only: bool = False):
 
 
 def state_type(name: str, strict: bool, graph_index=None, position=None):
+    if not strict and (name, graph_index, position) == ("STU_96F1DBCF", 0x1983, 12):
+        # Exo Boots has an authored edge plug; the ordinary owner sampler
+        # rejects it. Retain the existing scoped crouch-projection host.
+        from ow174.game.script.nodes import MovementFlagProjection
+
+        return MovementFlagProjection
     if strict and (model := SCOPED_STATE_CLASSES.get((name, graph_index, position))) is not None:
         return model
     if strict and name in STRICT_STATE_CLASSES:
@@ -397,6 +403,10 @@ class InstanceContext(Context):
         from ow174.game.script import spatial_queries
 
         component = self.instance.component
+        if not component.strict:
+            constant = component.world.constant_native(cfg, self.instance)
+            if constant is not NotImplemented:
+                return constant
         if (not component.strict and self.instance.graph.index == 0x0B8B
                 and getattr(component.world, "hero", None) in (0x02E0000000000003, 0x02E00000000001CA)
                 and getattr(component.world, "body_definition", None) is not None
@@ -1201,6 +1211,10 @@ class World:
 
     def entity_filter_host(self, instance):
         """Current entity components and native filter services for this instance."""
+        return NotImplemented
+
+    def constant_native(self, cfg: dict, instance: "Instance"):
+        """Explicit lifetime-constant host input; no frame polling dependency."""
         return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):

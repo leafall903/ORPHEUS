@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "case_id": "sombra-pistol-view-clock-v1",
+  "target_build": "1.74.0.0.104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "provenance": "Adapted from original Ball/76 distinct-identity exchange case. Actual Sombra switch, command ingestion, authored pistol volley, history query, damage and HIT; original15NPCs retained. Synthetic geometry, no screen-side interpretation."
+  },
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "shot_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "target_a_health": 192,
+    "target_b_health": 200,
+    "owner_hit_frame_offset": 41,
+    "npc_count": 15
+  },
+  "client_acceptance": "pending"
+}

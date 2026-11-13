@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "case_id": "baptiste-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/baptiste.py", "src/ow174/game/combat.py"],
+    "provenance": "Original Baptiste owner adaptation of the Ball/Soldier synthetic identity exchange. Real switch, command ingestion, damage and owner HIT. All15 original Practice NPC identities remain present; A/B do not mean screen sides."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "shot_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "source_position": [1000, 0, 1000],
+    "primary_positions_A_B": [[997, 0, 1008], [1003, 0, 1008]],
+    "melee_positions_A_B": [[1000, 0, 1001.5], [1006, 0, 1001.5]],
+    "aim_height": 1.1,
+    "input_order": "40 idle owner commands, swap identities after world1033, one attack owner9041; world advances through1044 without a second attack",
+    "packet_loss": [],
+    "seed": null
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "owner_hit_frame": 9041,
+    "target_identity": "A",
+    "primary_health_A_B": [176, 200],
+    "melee_health_A_B": [170, 200],
+    "stock_npcs_retained": 15
+  }
+}

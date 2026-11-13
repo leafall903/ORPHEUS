@@ -5,6 +5,7 @@ import unittest
 import test_game_ana as ana_fixture
 from test_game_combat import aim
 
+from ow174.game import combat
 from ow174.game.collision import World
 from ow174.game.commands import Command
 
@@ -76,21 +77,21 @@ class AnaSleepTests(unittest.TestCase):
                         break
                     run.step({ana: (*direction, 0)})
                 floor = vitals.sleep_wake_floor
-                self.assertAlmostEqual(floor - fight.now, 1.5)
-                self.assertAlmostEqual(vitals.sleep_until - fight.now, 5)
+                self.assertEqual(floor - fight.tick, combat.SLEEP_WAKE_FLOOR_TICKS)
+                self.assertEqual(vitals.sleep_until - fight.tick, combat.SLEEP_TICKS)
                 if late:
-                    while fight.now < floor:
+                    while fight.tick < floor:
                         run.step({})
                 for frame in range(60):
                     if vitals.total < 195:
                         break
                     run.step({ana: (*direction, 1 if frame % 2 == 0 else 0)})
                 self.assertLess(vitals.total, 195)
-                deadline = max(floor, fight.now + .5)
+                deadline = max(floor, fight.tick + combat.SLEEP_WAKE_RECOVERY_TICKS)
                 self.assertAlmostEqual(vitals.sleep_until, deadline)
                 self.assertEqual(deadline == floor, not late)
                 start = tuple(target.mover.position)
-                while fight.now + .016 < deadline:
+                while fight.tick + 1 < deadline:
                     self.input_frame(run, target, forward=127, buttons=1)
                     self.assertEqual(vitals.sleep_until, deadline)
                     self.assertEqual(target.body_script.buttons, 0)
@@ -120,17 +121,17 @@ class AnaSleepTests(unittest.TestCase):
         fight = run.match.combat
         vitals = fight.vitals_of(entry)
         self.cast(run, ana, entry)
-        while fight.now < vitals.sleep_wake_floor:
+        while fight.tick < vitals.sleep_wake_floor:
             run.step({})
         point = (entry.feet[0], entry.feet[1] + 1, entry.feet[2])
         direction = ana_fixture.grenade_aim(run, ana, point)
         run.step({ana: (*direction, 16)})
         for _ in range(65):
-            if vitals.healing_block_until > fight.now:
+            if fight.healing.factor(entry) == 0:
                 break
             run.step({})
-        self.assertEqual(vitals.total, 145)
-        self.assertAlmostEqual(vitals.sleep_until, fight.now + .5)
+        self.assertEqual(vitals.total, 195 - fight.healing.spec.damage)
+        self.assertEqual(vitals.sleep_until, fight.tick + combat.SLEEP_WAKE_RECOVERY_TICKS)
         for _ in range(30):
             self.input_frame(run, target, forward=127)
             self.assertTrue(fight.is_asleep(target))
@@ -138,7 +139,7 @@ class AnaSleepTests(unittest.TestCase):
             self.input_frame(run, target, forward=127)
         self.assertFalse(fight.is_asleep(target))
         self.assertEqual(fight._heal(target, entry, 55), 0)
-        self.assertEqual(vitals.total, 145)
+        self.assertEqual(vitals.total, 195 - fight.healing.spec.damage)
 
     def test_ally_and_miss_receive_no_sleep_or_damage(self):
         for ally in (False, True):

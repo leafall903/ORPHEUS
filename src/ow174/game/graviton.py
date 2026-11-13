@@ -33,6 +33,7 @@ class Field:
     end_tick: int
     radius: float
     offense_scale: float = 1.0
+    entity: int | None = None
 
 
 class Gravitons:
@@ -63,15 +64,28 @@ class Gravitons:
         duration = definition.node(4).field('m_value.m_value')
         radius = definition.node(5).field('m_value.m_value')
         tick = self.fight.tick
+        actor = self.fight.create_deployable(
+            rocket.shooter, FIELD_ENTITY, "Graviton Surge", point,
+            health=0, radius=0, height=0, seconds=duration, publish=False,
+        )
+        from ow174.game.match import TEAM_BIT
+
+        actor.team = rocket.team
+        actor.filter_bits = TEAM_BIT << rocket.team
+        for viewer in self.fight.match.players:
+            if viewer.spawned and viewer.client is not None:
+                viewer.client.queue_entities([self.fight.deployable_create(actor)])
         self.fields.append(Field(rocket.shooter, rocket.source_body, rocket.team, point, tick,
                                  tick + math.ceil(duration / tick_seconds), radius,
-                                 rocket.offense_scale if rocket.offense_scale is not None else 1.0))
+                                 rocket.offense_scale if rocket.offense_scale is not None else 1.0,
+                                 actor.entity))
 
     def _includes(self, field, target):
         from ow174.game.combat import segment_distance
 
         owner = target.owner
-        if (self.fight.replacement_ticks.get(target.entity, 0) > self.fight.tick
+        if (self.fight.match.ended or getattr(field.shooter, "gone", False)
+                or self.fight.replacement_ticks.get(target.entity, 0) > self.fight.tick
                 or owner is field.shooter or target.entity == field.source_body
                 or getattr(owner, 'gone', False)
                 or self.fight.vitals_of(target).dead
@@ -128,6 +142,8 @@ class Gravitons:
         targets = self.fight._targets()
         for field in tuple(self.fields):
             if getattr(field.shooter, 'gone', False) or self.fight.match.ended:
+                if field.entity is not None:
+                    self.fight.destroy_deployable(field.entity)
                 self.fields.remove(field)
                 continue
             until = min(tick, field.end_tick)
@@ -150,6 +166,8 @@ class Gravitons:
                         and not reinhardt_charge.pinned(self.fight, target.entity)):
                     pulls.setdefault(target.entity, (target, field.position, seconds))
             if tick >= field.end_tick:
+                if field.entity is not None:
+                    self.fight.destroy_deployable(field.entity)
                 ready = self.fight.zarya_charge_ready.get(field.source_body)
                 if ready is not None:
                     self.fight.zarya_charge_ready[field.source_body] = max(ready, field.end_tick + 1)

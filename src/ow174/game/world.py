@@ -71,6 +71,7 @@ COMPONENT_FIELDS = {
     # The health component (type 0x7FF78BFE8720): 16 health, 16 armour and 16 shield pools (see pool),
     # then u32, u32, entity, u8, u8.
     51: ["blob:20"] * 48 + ["u32", "u32", "entity", "u8", "u8"],
+    72: ["entity"],  # MECPet: the source body used by the native Pet owner query.
     # MECGameModeParticipant: portrait frame (the client loads its asset, 0x7FF7894C9D90), s16, slot,
     # lfg role, u8, role queue role, can select a hero, u8, u8.
     74: ["id", "s16", "s8", "u8", "u8", "s8", "u8", "u8", "u8"],
@@ -495,14 +496,15 @@ def update(origin: int, components: dict) -> RecordWriter:
     return out
 
 
-def movement_record(state: Movement, tick: int | None = None) -> BitWriter:
+def movement_record(state: Movement, tick: int | None = None, *, allow_wrapped_frame: bool = False) -> BitWriter:
     """A ch3 record: 12 bits of length (counting themselves), a 0 bit, the movement state at the packet
     frame `tick`, or at the state's own frame (which must not be after the packet frame)."""
     frame_back = None
     if state.frame is not None and tick is not None:
         frame_back = tick - state.frame
-        if frame_back < 0:
+        if frame_back < 0 and not allow_wrapped_frame:
             raise ValueError(f"a state of frame {state.frame} cannot go in packet frame {tick}")
+        frame_back &= 0xFFFFFFFF
     body = BitWriter()
     body.bit(0)
     write_movement(body, state, frame_back, tick)
@@ -554,8 +556,10 @@ def _write_entity(out: BitWriter, item: EntityUpdate, tick: int | None = None) -
         out.append(item.ch2)
     out.bit(1)  # ch3 runs
     if item.movement is not None:
+        from ow174.game.correction import wrapped_record
+
         out.bit(1)
-        out.append(movement_record(item.movement, tick))
+        out.append(movement_record(item.movement, tick, allow_wrapped_frame=wrapped_record(item, tick)))
     else:
         out.bit(0)
     if not item.op:

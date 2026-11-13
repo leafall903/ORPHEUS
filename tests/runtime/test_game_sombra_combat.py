@@ -294,7 +294,7 @@ class SombraCombatTests(unittest.TestCase):
     def test_hack_actual_received_damage_interrupts_channel(self):
         self.press(2, 10)
         yaw_a, pitch_a = aim(self.run.match.combat._eye(self.a), (0, 1, 1.5))
-        yaw_b, pitch_b = aim(self.run.match.combat._eye(self.b), (0, 1, 0))
+        yaw_b, pitch_b = aim(self.run.match.combat._eye(self.b), (0, 0.45, 0))
         self.run.step({self.a: (yaw_a, pitch_a, 2), self.b: (yaw_b, pitch_b, FIRE)})
         self.press(2, 55)
         self.assertEqual(self.health(self.a), 180)
@@ -416,7 +416,8 @@ class SombraCombatTests(unittest.TestCase):
         self.press(0, 60)
         ability = self.camo().state(13)
         self.assertTrue(ability.flags & ability.RUNNING)
-        self.press(FIRE, shooter=self.b, target=self.a)
+        yaw, pitch = aim(self.run.match.combat._eye(self.b), (0, 0.45, 0))
+        self.run.step({self.b: (yaw, pitch, FIRE)})
         self.press(0, 65)
         self.assertEqual(self.health(self.a), 180)
         self.assertFalse(ability.flags & ability.RUNNING)
@@ -432,7 +433,8 @@ class SombraCombatTests(unittest.TestCase):
                 f.press(0, 60)
                 ability = f.camo().state(13)
                 self.assertTrue(ability.flags & ability.RUNNING)
-                f.press(FIRE, shooter=f.b, target=f.a)
+                yaw, pitch = aim(f.run.match.combat._eye(f.b), (0, .45, 0))
+                f.run.step({f.b: (yaw, pitch, FIRE)})
                 impact = f.run.frame
                 self.assertEqual(f.health(f.a), 180)
                 if gap:

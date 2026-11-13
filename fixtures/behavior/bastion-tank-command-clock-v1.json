@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "case_id": "bastion-tank-command-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py"
+    ],
+    "derivation": "Synthetic command epoch: 54 elapsed world frames at 16 ms, Tank speed 60 m/s. Reference revision reproduces the incorrect receive-time launch."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "hero": "02E0000000000015",
+    "mode": "Tank",
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "event_offset": 10,
+    "sample_offset": 64,
+    "end_offset": 128,
+    "world_frame_seconds": 0.016,
+    "order": "world update, then oldest-first Player.take_commands; only event frame presses primary",
+    "packet_loss": [],
+    "seed": null,
+    "seed_reason": "Single Tank shot has no randomized spread; default command subframe 255 and view delay 0.",
+    "initial_position": [
+      0,
+      1,
+      0
+    ],
+    "target_positions": {
+      "hit": [
+        0,
+        1,
+        60
+      ],
+      "miss": [
+        30,
+        1,
+        90
+      ]
+    },
+    "target_hero": "02E0000000000040",
+    "encrypted_delivery": {
+      "owner_origin": 9000,
+      "world_origin": 1040,
+      "warmup_frames": 20,
+      "ultimate_input": 32,
+      "ultimate_settle_frames": 110,
+      "fire_input": 1,
+      "hit_target_position": [
+        0,
+        1,
+        8
+      ],
+      "miss_target_position": [
+        30,
+        1,
+        90
+      ],
+      "late_owner_ack_steps": {
+        "hit": 20,
+        "miss": 120
+      },
+      "replacement": {
+        "step_after_fire": 10,
+        "new_owner_origin": 18000,
+        "hero": "02E000000000006E"
+      }
+    }
+  },
+  "expected": {
+    "launch_count": 1,
+    "sample_flown_seconds": 0.864,
+    "sample_distance_meters": 51.84,
+    "launch_offset": 10,
+    "last_tick_offset": 64,
+    "remaining_lifetime_seconds": 0.8026666666666666,
+    "remaining_projectiles_at_end": 0,
+    "hit": {
+      "damage": 205,
+      "owner_hit_count": 2
+    },
+    "miss": {
+      "damage": 0,
+      "owner_hit_count": 0
+    },
+    "encrypted_delivery": {
+      "fire_world_tick": 1172,
+      "shot_owner_frame": 9132,
+      "release_world_tick": {
+        "hit": 1186,
+        "miss": 1283
+      },
+      "owner_ops": [
+        "create",
+        "destroy"
+      ],
+      "observer_ops": [
+        "create",
+        "destroy"
+      ],
+      "shot_and_observer_registries_empty": true,
+      "replacement_keeps_captured_clock": [
+        1040,
+        9000,
+        16
+      ],
+      "replacement_late_ack_creates_no_owner_proxy": true,
+      "native_release_baseline": 4294967295,
+      "native_release_frame": "world_to_owner(captured_clock, release_tick) + 4096"
+    }
+  }
+}

@@ -589,6 +589,9 @@ class BrigitteCombat:
                     velocity = (dx * horizontal, vertical, dz * horizontal)
                     owner = target.owner
                     if getattr(owner, "mover", None) is not None:
+                        # ModifyHealth +80 is minimum Y, not an additive lift.
+                        vy = owner.mover.velocity[1]
+                        velocity = (velocity[0], max(0.0, vertical - vy), velocity[2])
                         owner.mover.add_external_impulse(velocity)
                     else:
                         owner.impulse(velocity, self.combat.tick, self.combat._collision(),
@@ -873,6 +876,27 @@ class BrigitteCombat:
                 prior.cleanup_at if prior is not None else None,
             )
 
+    def _whip_world_time(self, player, milliseconds):
+        from ow174.game.combat import TICK
+
+        script = player.body_script
+        birth = getattr(script, "brigitte_birth", None)
+        if birth is None:
+            return self.combat.now
+        tick, frame = birth
+        return tick * TICK + (milliseconds - frame * script.frame_ms) / 1000
+
+    @staticmethod
+    def _whip_owner_frame(player, world_tick):
+        from ow174.game.combat import TICK
+
+        script = player.body_script
+        birth = getattr(script, "brigitte_birth", None)
+        if birth is None:
+            return script.frame
+        tick, frame = birth
+        return frame + math.ceil((world_tick - tick) * TICK * 1000 / script.frame_ms - 1e-7)
+
     def _launch_whip(self, player, command, instance) -> None:
         """Use the real graph's outgoing phase and resource values, not the input edge.
 
@@ -899,7 +923,7 @@ class BrigitteCombat:
             return
         self.whips.append(WhipFlight(
             player, player.body, instance, self.combat._eye(player), aim(*command.aim()),
-            speed, reach, amount, loadout.guid, self.combat.now, 0.5,
+            speed, reach, amount, loadout.guid, self._whip_world_time(player, phase.start), 0.5,
         ))
 
     @staticmethod
@@ -913,22 +937,26 @@ class BrigitteCombat:
                    and modifier.active and not modifier.ending
                    for instance in script.component.instances.values())
 
-    def _fly_whips(self) -> None:
+    def _fly_whips(self, player_filter=None, *, through=None) -> None:
         if not self.whips:
             return
-        from ow174.game.combat import _along, _number, ray_capsule, ray_world
+        from ow174.game.combat import TICK, _along, _number, ray_capsule, ray_world
 
         combat = self.combat
+        now = combat.now if through is None else min(combat.now, through)
         for flight in list(self.whips):
             player = flight.player
+            if player_filter is not None and player is not player_filter:
+                continue
             ability = flight.instance.states.get(0)
             if (player.body != flight.body or combat.is_dead(player)
                     or player.body_script is None or ability is None or not ability.flags & 1):
                 self.whips.remove(flight)
                 continue
-            elapsed = max(0.0, combat.now - flight.last)
+            start = flight.last
+            elapsed = max(0.0, now - start)
             step = min(flight.remaining, flight.speed * elapsed)
-            flight.last = max(flight.last, combat.now)
+            flight.last = max(flight.last, now)
             if step <= 0:
                 continue
             best = None
@@ -1004,7 +1032,10 @@ class BrigitteCombat:
             if target is None:
                 continue
             before = combat.vitals_of(target).total
-            combat._damage(player, target, flight.amount, False, flight.loadout, combat.tick)
+            contact_tick = math.ceil((start + best[0] / flight.speed) / TICK - 1e-7)
+            owner_frame = self._whip_owner_frame(player, contact_tick)
+            combat._damage(player, target, flight.amount, False, flight.loadout, owner_frame,
+                           world_tick=contact_tick)
             if (combat.vitals_of(target).total < before and not combat.vitals_of(target).dead
                     and not self._fortify_blocks_whip(target.owner)):
                 # Read the authored25/3 terms and live ruleset14131 at contact.
@@ -1036,11 +1067,16 @@ class BrigitteCombat:
         if player.hero.guid != HERO or command is None:
             return
         # Local import avoids a combat module import cycle.
-        from ow174.game.combat import _dot, _number, _sub, aim, ray_world, segment_distance
+        from ow174.game.combat import TICK, _dot, _number, _sub, aim, ray_world, segment_distance
 
         combat = self.combat
         eye, direction = combat._eye(player), aim(*command.aim())
-        view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+        # Target history is keyed by world ticks; HIT labels remain owner frames.
+        world, owner = script.world_frame_anchor or getattr(
+            script, "brigitte_birth", (combat.tick, command.frame),
+        )
+        elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(player.quanta) * 1000
+        view_tick = world + elapsed_ms / round(TICK * 1000)
         live = {}
         old = self.hits.get(player.body, {})
         for instance in tuple(script.component.instances.values()):
@@ -1098,6 +1134,9 @@ class BrigitteCombat:
                     if piece.entity not in hit:
                         hit.add(piece.entity)
                         combat.walls.damage(piece, player, amount)
+        self._fly_whips(player, through=self._whip_world_time(
+            player, command.frame * script.frame_ms,
+        ))
         if live:
             self.hits[player.body] = live
         else:

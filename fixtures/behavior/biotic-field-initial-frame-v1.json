@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "case_id": "biotic-field-initial-frame-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/projectiles.py", "src/ow174/game/script/nodes.py"],
+    "reference": "Original 03DC initial 0258 graph evaluated by the existing VM; prepared metadata remains external."
+  },
+  "evidence": "decoded-projection-compared-with-original-vm",
+  "client_acceptance": "pending; preceding native candidate had invisible model",
+  "input": {"instance": 1, "graph": 600, "frame": 1000},
+  "expected": {
+    "active_states": [2, 3, 5, 8],
+    "faded_active_states": [2, 3, 8],
+    "variables": {"420": 35.0, "567": 5, "422": 5},
+    "cosmetic_variable": 2712,
+    "cosmetic_handle": [1, 1, 3, 0]
+  }
+}

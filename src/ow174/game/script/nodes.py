@@ -3246,6 +3246,11 @@ class ChaseVar(State):
 
     family = "chase"
 
+    def tracks_destination(self):
+        # Explicit persistent moving-target hosts: Junk tire and Visor's
+        # authored target direction. Other chase completion policies stay local.
+        return (self.instance.graph.index, self.node.pos) in ((0x2B72, 2), (0x0259, 64))
+
     def __init__(self, *args) -> None:
         super().__init__(*args)
         self.cur = 0.0
@@ -3315,7 +3320,7 @@ class ChaseVar(State):
         if dt <= 0:
             return
         self.last = at
-        if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):
+        if self.reached and not self.tracks_destination():
             return
         dest = self.destination()
         # This persistent chase must restart if the selected defender moves.
@@ -3360,7 +3365,7 @@ class ChaseVar(State):
                 self.world_used += dt
         if dt <= 0:
             return
-        if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):
+        if self.reached and not self.tracks_destination():
             return
         dest = self.destination()
         # This persistent chase must restart if the selected defender moves.
@@ -3698,8 +3703,10 @@ class GrappleCast(State):
     def __init__(self, *args):
         super().__init__(*args)
         self.cast = None
+        self.started_at = 0
 
     def on_begin(self):
+        self.started_at = self.now
         self.cast = self.instance.component.world.grapple_cast(self)
         if self.cast is not None:
             self.instance.write(lvalue(_field(self, "m_9E1A7C58")), False)
@@ -3726,6 +3733,9 @@ class GrappleCast(State):
         if not finished and self.cast is not None:
             self.instance.write(lvalue(_field(self, "m_9E1A7C58")), False)
         self.cast = None
+
+    def payload(self):
+        return {"start": self.started_at}
 
 
 @state_class("STUStatescriptStateMoveTo")
@@ -4898,7 +4908,8 @@ class CompatibleTrackRay(State):
             self.instance.component.unsupported(self.instance, "TrackRay complex outputs",
                                                 self.node.cls, self.node)
         self.ray_hit = result.hit
-        for key, value in (("m_692DFF72", result.entity or Entity(0)), ("m_7BA44A69", result.hit)):
+        for key, value in (("m_692DFF72", result.entity or Entity(0)), ("m_7BA44A69", result.hit),
+                           ("m_750377AA", result.hit)):
             target = lvalue(outputs.get(key))
             if target is not None:
                 self.instance.write(target, value)

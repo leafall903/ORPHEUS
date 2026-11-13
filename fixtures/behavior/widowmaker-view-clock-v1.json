@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "case_id": "widowmaker-view-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "Own repair-source-20261113, minimum hero-specific query fix",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py"
+    ],
+    "provenance": "Synthetic identity exchange through actual Widow switch and primary command ingestion; 15 original NPCs retained."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "shot_offset": 41,
+    "swap_after": 33,
+    "view_delay_ms": 128,
+    "target_a_position": [
+      997,
+      0,
+      1008
+    ],
+    "target_b_position": [
+      1003,
+      0,
+      1008
+    ]
+  },
+  "expected": {
+    "world_view_tick": 1033,
+    "health_a": 187,
+    "health_b": 200,
+    "damage": 13,
+    "hit_frame_offset": 41
+  }
+}

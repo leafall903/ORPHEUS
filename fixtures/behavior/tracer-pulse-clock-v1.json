@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "case_id": "tracer-pulse-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/pulse_bomb.py",
+      "src/ow174/game/sombra_replay.py",
+      "tests/runtime/test_game_tracer_pulse.py"
+    ]
+  },
+  "evidence": "synthetic timing regression using actual prepared Tracer graph and production Player.take_commands",
+  "client_acceptance": "pending",
+  "input": {
+    "seed": "fresh deterministic match per case",
+    "initial_command_frame": 1100,
+    "world_offsets": [
+      0,
+      100
+    ],
+    "commands": 64,
+    "ultimate_pressed_offset": 1,
+    "query_offset": 65,
+    "packet_sizes": [
+      1,
+      8,
+      32
+    ],
+    "packet_loss": 0,
+    "arrival_order": "world update at packet endpoint, followed by consecutive command batch",
+    "initial_feet": [
+      0,
+      100,
+      0
+    ],
+    "aim": [
+      0,
+      0
+    ],
+    "collision": "empty synthetic world",
+    "prerequisites": "External build-104319 runtime graph inputs"
+  },
+  "expected": {
+    "release_command_offset": 10,
+    "flight_seconds": 0.88,
+    "forward_metres": 12.943665075302142,
+    "timeout_active_bombs": 0
+  }
+}

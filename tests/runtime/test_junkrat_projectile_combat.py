@@ -18,6 +18,40 @@ from ow174.game.content import SOLDIER, find_hero
 
 
 class JunkratProjectileTests(unittest.TestCase):
+    def test_command_batches_preserve_frag_mine_and_trap_flight_clocks(self):
+        def replay(button, batch, press):
+            run, shooter, enemy = self.setup_fight()
+            fight = run.match.combat
+            first = run.frame
+            for offset in range(batch, 65, batch):
+                tick = first + offset
+                run.match.update(tick * combat.TICK, tick, frames=False)
+                frames = range(tick - batch + 1, tick + 1)
+                shooter.take_commands([
+                    Command(frame, pitch=-8192, buttons=button if frame == first + press else 0)
+                    for frame in frames
+                ])
+                enemy.take_commands([Command(frame) for frame in frames])
+            rocket, = fight.rockets
+            actor = rocket.mine
+            return (
+                rocket.last_tick, rocket.position, rocket.flown, rocket.left,
+                None if actor is None else (
+                    actor.created_tick, actor.expires_tick, actor.deadline,
+                    actor.parked,
+                    None if actor.parked_at is None else round(actor.parked_at, 12),
+                    None if getattr(actor, "armed_at", None) is None else round(actor.armed_at, 12),
+                ),
+                self.health(run, enemy).total,
+            )
+
+        for button in (FIRE, 8, 16):
+            for press in (1, 49):
+                expected = replay(button, 1, press)
+                for batch in (8, 32):
+                    with self.subTest(button=button, batch=batch, press=press):
+                        self.assertEqual(replay(button, batch, press), expected)
+
     def setup_fight(self):
         run = Run(KANEZAKA_DM, ("Junkrat", "Enemy"))
         shooter, victim = run.players
@@ -29,6 +63,38 @@ class JunkratProjectileTests(unittest.TestCase):
         for _ in range(30):
             run.step({})
         return run, shooter, victim
+
+    def test_command_batches_preserve_primary_damage_hit_feedback_and_retirement(self):
+        def replay(batch):
+            run, shooter, enemy = self.setup_fight()
+            fight = run.match.combat
+            first = run.frame
+            retirements = []
+            landed = fight._landed
+
+            def observe(rocket, *args, **kwargs):
+                retirements.append((fight.tick, rocket.position, rocket.flown))
+                return landed(rocket, *args, **kwargs)
+
+            with patch.object(fight, "_landed", side_effect=observe):
+                for offset in range(batch, 65, batch):
+                    tick = first + offset
+                    run.match.update(tick * combat.TICK, tick, frames=False)
+                    frames = range(tick - batch + 1, tick + 1)
+                    shooter.take_commands([
+                        Command(frame, buttons=FIRE if frame == first + 1 else 0) for frame in frames
+                    ])
+                    enemy.take_commands([Command(frame) for frame in frames])
+            self.assertFalse(fight.rockets)
+            self.assertEqual(self.health(run, enemy).total, 80)
+            self.assertEqual(len(shooter.client.messages(combat.HIT)), 2)
+            self.assertEqual(len(retirements), 1)
+            return retirements
+
+        expected = replay(1)
+        for batch in (8, 32):
+            with self.subTest(batch=batch):
+                self.assertEqual(replay(batch), expected)
 
     def health(self, run, actor):
         fight = run.match.combat

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "case_id": "lucio-projectile-command-world-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "world_start": 1000,
+    "command_epoch_offsets": [
+      0,
+      4000
+    ],
+    "warmup_commands": 30,
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "commands": 96,
+    "held_commands": 5,
+    "query_offset": 97,
+    "enemy_distances": [
+      90,
+      1000
+    ],
+    "tick_seconds": 0.016
+  },
+  "expected": {
+    "shot_command_offsets": [
+      1,
+      8,
+      16,
+      24
+    ],
+    "projectile_speed": 50,
+    "positions_at_query": [
+      76.8,
+      71.2,
+      64.8,
+      58.4
+    ],
+    "impact_world_offsets": [
+      113,
+      120,
+      128,
+      136
+    ],
+    "timeout_world_offsets": [
+      126,
+      133,
+      141,
+      149
+    ],
+    "hit_damage_each": 20,
+    "hit_enemy_health": 120,
+    "miss_enemy_health": 200,
+    "remaining_ammo": 16,
+    "unequal_epoch_delivery": {
+      "birth_world": 1012,
+      "birth_owner": 9000,
+      "impact_worlds": [
+        1018,
+        1025,
+        1033,
+        1041
+      ],
+      "timeout_worlds": [
+        1138,
+        1145,
+        1153,
+        1161
+      ],
+      "sync_mode": 3,
+      "shot_proxies": 0,
+      "observer_proxies": 0
+    }
+  }
+}

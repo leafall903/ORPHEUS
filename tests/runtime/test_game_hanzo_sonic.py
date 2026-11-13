@@ -1,5 +1,6 @@
 """Actual Sonic input, impact, authored reveal stack and reconstructed search/attachment."""
 
+import json
 import math
 import os
 import unittest
@@ -13,11 +14,13 @@ import test_server_snapshot as snapshot_tests
 from test_game_combat import KANEZAKA_DM, Run, aim, in_world
 from test_game_mover import box, wall
 
-from ow174.game import bodytrace, combat, movelog, npc, sonic
+from ow174.game import bodytrace, combat, movelog, npc, observers, sonic
 from ow174.game.collision import World
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.script import expr
+from ow174.game.script import decode
 from ow174.game.server_snapshot import snapshot_digest
+from ow174.game.statescript import chunk
 
 
 def profile():
@@ -38,6 +41,10 @@ class SonicPlayerTests(unittest.TestCase):
 
     def arena(self):
         run, hero, target = hero_tests.HanzoCombatTests().arena()
+        # These shared fixtures exercise the authored team reveal stack. The
+        # presentation contract below explicitly covers both native branches.
+        run.match.game_map = replace(run.match.game_map, free_for_all=False)
+        hero.team, target.team = 0, 1
         run.match.combat.configure_sonic(self.profile)
         return run, hero, target
 
@@ -73,6 +80,62 @@ class SonicPlayerTests(unittest.TestCase):
                 instance = next(i for i in target.body_script.component.instances.values()
                                 if i.graph.index == 0x10E)
                 self.assertTrue(instance.state(instance.graph.node(9).state).active)
+
+    def test_sonic_presentation_has_source_viewers_and_retires_with_reveal(self):
+        fixture = Path(__file__).resolve().parents[2] / "fixtures/behavior/hanzo-sonic-presentation-v1.json"
+        expected = json.loads(fixture.read_text(encoding="utf-8"))["expected"]
+        for free_for_all, source_team in ((False, 0), (True, 4), (True, 0)):
+            with self.subTest(free_for_all=free_for_all, source_team=source_team):
+                run, hero, target = self.arena()
+                run.match.game_map = replace(run.match.game_map, free_for_all=free_for_all)
+                hero.team, target.team = source_team, (4 if source_team == 4 else 1)
+                recipient_branch = source_team == 4
+                self.fire(run, hero, target, frames=5)
+                fight = run.match.combat
+                beacon, = fight.sonars
+                instance = beacon.statuses[target.body]
+                self.assertEqual(instance.graph.index, expected["status_graph"])
+                self.assertEqual(instance.source_entity(), hero.body)
+                self.assertEqual(instance.vars[40].value(), expr.Entity(hero.body))
+                self.assertEqual(instance.vars[13431].value(), (expr.Entity(hero.body),))
+                effect = instance.graph.node(expected["effect_node"]).state
+                recipient = instance.graph.node(expected["ffa_message_node"]).state
+                reveal = instance.graph.node(9).state
+                self.assertTrue(instance.states[effect].active)
+                self.assertEqual(bool(instance.states.get(recipient) and instance.states[recipient].active),
+                                 recipient_branch)
+                self.assertEqual(bool(instance.states.get(reveal) and instance.states[reveal].active),
+                                 not recipient_branch)
+                self.assertEqual(self.flagged(target), not recipient_branch)
+                snap = observers.snapshot(target.body_script)
+                self.assertTrue(snap.states[(instance.id, effect)][1])
+                self.assertEqual(snap.vars[(instance.id, 40)][0], expr.Entity(hero.body))
+                self.assertEqual(snap.vars[(instance.id, 13431)][0], (expr.Entity(hero.body),))
+                if recipient_branch:
+                    self.assertTrue(snap.states[(instance.id, recipient)][1])
+                # The prepared status profile supplies graph010E when the local
+                # catalog omits it; the original client already owns this graph.
+                catalog_graph = decode.graph_of
+                with patch.object(decode, "graph_of", side_effect=lambda index:
+                                  instance.graph if index == 0x10E else catalog_graph(index)):
+                    wire = chunk(observers.full_frame(target.body_script, snap), 0, 1)
+                    received = decode.read_chunk(wire.getvalue(), wire.count)
+                remote = received.instances[instance.id]
+                self.assertFalse(received.owner)
+                self.assertTrue(remote.states[effect][0])
+                self.assertEqual(remote.states[reveal][0], not recipient_branch)
+                self.assertEqual(remote.vars[40][0], expr.Entity(hero.body))
+                self.assertEqual(remote.vars[13431][0], (expr.Entity(hero.body),))
+                self.assertTrue(fight.revealed_to(hero, target))
+                self.assertFalse(fight.revealed_to(target, target))
+
+                tick = math.ceil(beacon.born + beacon.profile.duration / combat.TICK) + 1
+                run.match.update(tick * combat.TICK, tick)
+                self.assertFalse(fight.sonars)
+                self.assertTrue(instance.stopped)
+                self.assertFalse(self.flagged(target))
+                final = observers.snapshot(target.body_script)
+                self.assertNotIn(instance.id, final.instances)
 
     def test_opposing_hanzo_sonics_and_lethal_bows_keep_independent_sources(self):
         run, first, second = hero_tests.HanzoCombatTests().arena(distance=16)

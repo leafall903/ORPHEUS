@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "grapple-start-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/statescript.py", "src/ow174/game/script/nodes.py"],
+    "reader": "STU_4BBC5D09 verified codec start, owner signed_var t, observer empty"
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "cases": [
+    {
+      "input": {"frame_time": 16000, "start": 15840},
+      "expected": {"owner_fields": {"t": 160}, "observer_fields": {}}
+    },
+    {
+      "input": {"frame_time": 16000, "start": 16003},
+      "expected": {"owner_fields": {"t": -3}, "observer_fields": {}}
+    }
+  ]
+}

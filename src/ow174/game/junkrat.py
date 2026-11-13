@@ -8,7 +8,7 @@ the engine query mapping below are reconstructed; native presentation is open.
 import math
 from dataclasses import dataclass, replace
 
-from ow174.game import actors, barriers, bots, immunity
+from ow174.game import actors, barriers, bots, defenses, immunity, world
 from ow174.game.junkrat_charge import ChargeSystem
 from ow174.game.junkrat_tire import FIRST as TIRE_FIRST
 from ow174.game.junkrat_tire import Tire, TireSystem
@@ -21,11 +21,53 @@ MINE_HEALTH = 25.0  # 096B StateHealthPool/amount; target-build external XML
 MINE_RADIUS = .2  # 0F9B/50BA775C/radius; capsule height is reconstructed
 MINE_FULL_RADIUS, MINE_OUTER_RADIUS = 1.5, 3.0  # 096B setters45/46 and damage expression37
 MINE_EDGE_DAMAGE = 30.0  # 096B setter44; full damage120 is supplied by096A/8
+MINE_REMOTE_FORCE = 15.0  # 096B/2 multiplies both channels by source-body ruleset10614.
+MINE_FORCE_RULESET = {
+    "$": "STU_3832D36C",
+    "m_value": {"$": "STUConfigVarDynamic", "m_identifier": 10614, "m_60DB8F99": expr.ENTITY},
+}
 TRAP_PROJECTILE, TRAP_BODY = 0x04000000000011A9, 0x040000000000103A
 TRAP_HEALTH = 100.0  # 103A initial0033 schema override199
 TRAP_HIT_RADIUS = .25  # reconstructed damage capsule; native103A uses a model receiver
 TRAP_RELEASE_VAR = 23154  # 09BB nodes 90/91
 TRAP_EXCLUDE_VAR, TRAP_SHORT_VAR = 9588, 9161  # authored09BB filter / post-hit duration branch
+
+
+def view_world_tick(script, command, quanta):
+    """Name 0043's viewed target pose in world time, preserving fractions."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.world_frame_anchor or script.junkrat_birth
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
+def impulse_scales(rings, distance):
+    """104319 D6D87C: strict outer boundary and independent ring channels."""
+    if not rings:
+        return 1.0, 1.0
+    distance = max(0.0, distance)
+    for index, (radius, horizontal, vertical) in enumerate(rings):
+        if distance >= radius:
+            continue
+        if index == 0:
+            return horizontal, vertical
+        previous, flat, up = rings[index - 1]
+        share = (distance - previous) / max(.0001, radius - previous)
+        return flat + (horizontal - flat) * share, up + (vertical - up) * share
+    return 0.0, 0.0
+
+
+class _ImpulseBlast:
+    """Keep the shared damage definition unchanged while selecting native rings."""
+    def __init__(self, blast):
+        self.blast = blast
+
+    def __getattr__(self, name):
+        return getattr(self.blast, name)
+
+    def impulse_scales(self, distance):
+        return impulse_scales(self.blast.impulse_rings, distance)
 
 
 @dataclass(kw_only=True)
@@ -39,6 +81,7 @@ class Mine(actors.Deployable):
     force: float
     parked: bool = False
     parked_at: float | None = None
+    detonate_tick: int | None = None
 
     @property
     def creator(self):
@@ -86,6 +129,7 @@ class Junkrat:
             if mine.creator is creator:
                 self.retire(mine)
         entity, self.next_entity = self.next_entity, self.next_entity + 1
+        born = launch_tick * .016
         blast_config = state.node.field("m_D2D11CE9") or {}
         flight = Rocket(
             creator, creator.team, origin, direction, speed, lifetime, None, blast,
@@ -99,10 +143,10 @@ class Junkrat:
             entity=entity, definition=MINE, kind="junkrat-mine", team=creator.team,
             position=(origin[0], origin[1] - MINE_RADIUS, origin[2]), health=MINE_HEALTH,
             radius=MINE_RADIUS, height=MINE_RADIUS * 2, owner=creator, source_body=creator.body,
-            created_tick=self.combat.tick, expires_tick=math.ceil((self.combat.now + lifetime) / .016),
+            created_tick=launch_tick, expires_tick=math.ceil((born + lifetime) / .016),
             script=creator.body_script, instance=state.instance,
             output=expr.lvalue(state.node.field("m_505472EF")), flight=flight,
-            vitals=Vitals(entity, MINE_HEALTH), deadline=self.combat.now + lifetime,
+            vitals=Vitals(entity, MINE_HEALTH), deadline=born + lifetime,
             force=float(state.evaluate(blast_config.get("m_modifyHealth", {}).get("m_E33EFEE1"), watch=False) or 0),
         )
         flight.mine = mine
@@ -124,6 +168,7 @@ class Junkrat:
             if trap.creator is creator:
                 self.retire(trap)
         entity, self.next_entity = self.next_entity, self.next_entity + 1
+        born = launch_tick * .016
         modify = profile.node(4).field("m_modifyHealth")
         loadout = state.evaluate(modify.get("m_loadout"), watch=False)
         flight = Rocket(
@@ -137,10 +182,10 @@ class Junkrat:
             entity=entity, definition=TRAP_BODY, kind="junkrat-trap", team=creator.team,
             position=origin, health=TRAP_HEALTH, radius=TRAP_HIT_RADIUS,
             height=TRAP_HIT_RADIUS * 2, owner=creator, source_body=creator.body,
-            created_tick=self.combat.tick, expires_tick=math.ceil((self.combat.now + lifetime) / .016),
+            created_tick=launch_tick, expires_tick=math.ceil((born + lifetime) / .016),
             script=creator.body_script, instance=state.instance,
             output=expr.lvalue(state.node.field("m_505472EF")), flight=flight,
-            vitals=Vitals(entity, TRAP_HEALTH), deadline=self.combat.now + lifetime, force=0.0,
+            vitals=Vitals(entity, TRAP_HEALTH), deadline=born + lifetime, force=0.0,
             search_radius=float(state.evaluate(profile.node(2).field("m_radius"), watch=False)),
             duration=float(state.evaluate(profile.node(75).field("m_value"), watch=False)),
             short_duration=float(state.evaluate(profile.node(76).field("m_value"), watch=False)),
@@ -184,6 +229,10 @@ class Junkrat:
         x, y, z = mine.flight.position
         mine.position = (x, y, z) if isinstance(mine, Trap) else (x, y - MINE_RADIUS, z)
 
+    def trap_creates(self):
+        """Replay landed native trap entities for a newly connected viewer."""
+        return [self.combat.deployable_create(trap) for trap in self.traps.values() if trap.parked]
+
     def flight_step(self, rocket, duration, heading, step, best, range_ends):
         from ow174.game.combat import EPSILON, _along
 
@@ -202,6 +251,18 @@ class Junkrat:
             rocket.position = _along(rocket.position, heading, max(0.0, distance - 1e-4))
             rocket.mine.parked = True
             rocket.mine.parked_at = self.combat.now
+            if isinstance(rocket.mine, Trap):
+                trap = rocket.mine
+                if rocket.shot is not None:
+                    self.combat.projectiles.flown(rocket.shot, rocket.flown)
+                    rocket.shot = None
+                self.sync_pose(trap)
+                from ow174.game.match import TEAM_BIT
+
+                trap.filter_bits = getattr(trap.creator, "team_bit", TEAM_BIT << trap.team)
+                for viewer in self.combat.match.players:
+                    if viewer.spawned and viewer.client is not None:
+                        viewer.client.queue_entities([self.combat.deployable_create(trap)])
         else:
             rocket.position = _along(rocket.position, heading, step)
             rocket.flown += duration
@@ -242,6 +303,12 @@ class Junkrat:
             return False
         # Consume outside the body VM callback. No recursive damage/death while
         # its current variable/dependency traversal is still running.
+        from ow174.game import sombra_replay
+
+        frame = mine.script.component.now // mine.script.frame_ms
+        tick = sombra_replay.world_frame(mine.script, frame)
+        if message == DETONATE and mine.detonate_tick is None:
+            mine.detonate_tick = self.combat.tick if tick is None else tick
         self.pending.append((target, message, sender))
         return True
 
@@ -287,26 +354,57 @@ class Junkrat:
             if (self._source_retired(mine)
                     or (mine.parked and not isinstance(mine, Trap) and self.combat.now >= mine.deadline)):
                 self.retire(mine)
-        pending, self.pending = self.pending, []
-        for entity, message, sender in pending:
-            mine = self.mines.get(entity) or self.traps.get(entity)
-            if mine is None or sender != mine.source:
-                continue
-            if message == DETONATE and not self.combat.is_dead(mine.creator):
-                if isinstance(mine, Trap):
-                    continue  # a Steel Trap is triggered by enemies, never secondary-fire explosion
-                blast = mine.flight.blast
-                if blast is not None and blast.amount > 0:
-                    # A remote detonation uses the 096B actor's falloff curve.
-                    mine.flight.blast = replace(blast, rings=(
-                        (MINE_FULL_RADIUS, 1.0), (MINE_OUTER_RADIUS, MINE_EDGE_DAMAGE / blast.amount),
-                    ))
-                self.detonate(mine)
-            elif message == REPLACED:
-                self.retire(mine)
+        self.drain_messages()
         self.update_traps()
         self.tire.update()
         self.charge.update()
+
+    def drain_messages(self):
+        """Apply accepted messages after the body VM has returned to its caller."""
+        from ow174.game.combat import TICK
+
+        fight = self.combat
+        pending, self.pending = self.pending, []
+        for item in pending:
+            entity, message, sender = item
+            mine = self.mines.get(entity) or self.traps.get(entity)
+            if mine is None or sender != mine.source:
+                continue
+            tick = mine.detonate_tick if message == DETONATE else None
+            tick = fight.tick if tick is None else tick
+            if tick > fight.tick:
+                self.pending.append(item)
+                continue
+            if message == DETONATE:
+                mine.detonate_tick = None
+            now, endpoint = fight.now, fight.tick
+            try:
+                fight.now = now - (endpoint - tick) * TICK
+                fight.tick = tick
+                self.consume_message(mine, message)
+            finally:
+                fight.now, fight.tick = now, endpoint
+
+    def consume_message(self, mine, message):
+        if message == DETONATE and not self.combat.is_dead(mine.creator):
+            if isinstance(mine, Trap):
+                return  # a Steel Trap is triggered by enemies, never secondary-fire explosion
+            blast = mine.flight.blast
+            if blast is not None and blast.amount > 0:
+                # 096B resolves its creator's live10614, independently of
+                # Frag Launcher's10638. This body instance is the retained
+                # creator VM; retired/replaced sources are removed before here.
+                scalar = mine.instance.evaluate(MINE_FORCE_RULESET)
+                if type(scalar) not in (int, float) or not math.isfinite(scalar):
+                    raise ValueError("invalid Junkrat mine source force ruleset")
+                force = expr.f32(MINE_REMOTE_FORCE * scalar)
+                # A remote detonation uses the 096B actor's falloff curve.
+                mine.flight.blast = replace(blast, rings=(
+                    (MINE_FULL_RADIUS, 1.0), (MINE_OUTER_RADIUS, MINE_EDGE_DAMAGE / blast.amount),
+                ), horizontal_impulse=force, vertical_impulse_minimum=force)
+            self.detonate(mine)
+        elif message == REPLACED:
+            self.retire(mine)
 
     def rooted(self, entity, tick):
         return any(end > tick for end in self.roots.get(entity, {}).values())
@@ -421,44 +519,29 @@ class Junkrat:
         self.retire(mine)
         protected = set()
         self.combat._explode(mine.flight, mine.flight.position, protected_out=protected)
-        self.knockback(mine, protected)
 
-    def knockback(self, mine, protected):
-        """Reconstructed radial impulse from096A's authored15m/s magnitude.
+    def blast_impulses(self, rocket, impact, sight, protected, heading, normal):
+        """Plan only 0065's authored blasts through the existing split-axis solver."""
+        if rocket.source_graph not in (0x022B, 0x096A, 0x0233) or rocket.blast is None:
+            return ()
+        plan = self.combat._pharah_impulses(
+            replace(rocket, blast=_ImpulseBlast(rocket.blast)), impact, sight,
+            protected=protected, heading=heading,
+            normal=normal, defer=True,
+        )
+        return tuple((target, vector, rocket.source_entity) for target, vector in plan)
 
-        Self-launch deals no self damage; teammate bodies and other deployables
-        do not receive the offensive displacement. Native vector composition,
-        resistance and disabled-movement interactions remain open.
-        """
-        from ow174.game.combat import segment_distance
-
-        if mine.force <= 0 or mine.flight.blast is None:
-            return
+    def apply_impulses(self, impulses, protected):
         fight = self.combat
-        radius = max((ring[0] for ring in mine.flight.blast.rings), default=0)
-        for target in fight._targets():
-            if isinstance(target.owner, actors.Deployable) or fight.vitals_of(target).dead:
-                continue
+        for target, vector, source in impulses:
             if (target.entity in protected or self.rooted(target.entity, fight.tick)
                     or immunity.control_immune(target.owner, target.entity)
                     or immunity.phased_out(target.owner, target.entity)
                     or immunity.cryo_active(target.owner, target.entity)):
-                continue  # a radial impulse does not bypass an active trap restraint
-            if (target.owner is not mine.creator and not fight.match.game_map.free_for_all
-                    and target.team == mine.flight.team):
                 continue
-            a, b = target.segment()
-            point = mine.flight.position
-            if (segment_distance(point, a, b) - target.radius > radius
-                    or not fight._blast_visible(point, target)):
-                continue
-            centre = (target.feet[0], target.feet[1] + target.height / 2, target.feet[2])
-            offset = tuple(axis - start for axis, start in zip(centre, point, strict=True))
-            length = math.hypot(*offset)
-            vector = (
-                tuple(axis * mine.force / length for axis in offset) if length > 1e-9 else (0, mine.force, 0)
-            )
-            fight.knockbacks.apply(target, expr.Vec3(*vector), impact_frame=fight.tick)
+            scale = defenses.knockback_scale(target.owner)
+            impulse = expr.Vec3(*(axis * scale for axis in vector))
+            fight.knockbacks.apply(target, impulse, impact_tick=fight.tick, source_entity=source)
 
     def release_trap_victim(self, entity):
         for trap in list(self.traps.values()):
@@ -481,6 +564,10 @@ class Junkrat:
         storage = self.traps if isinstance(mine, Trap) else self.mines
         if storage.pop(mine.entity, None) is not mine:
             return
+        if isinstance(mine, Trap) and mine.parked:
+            for viewer in self.combat.match.players:
+                if viewer.spawned and viewer.client is not None:
+                    viewer.client.queue_entities([world.EntityUpdate(mine.entity, world.OP_DESTROY)])
         if isinstance(mine, Trap) and mine.victim_entity is not None:
             if mine.victim_status is not None:
                 mine.victim_status.component.destroy(mine.victim_status)

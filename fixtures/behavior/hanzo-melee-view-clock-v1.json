@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-melee-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "tests/runtime/test_game_hanzo_melee_view_clock.py"],
+    "provenance": "Synthetic A/B world-pose identity exchange through real Hanzo quick-melee input; original15 practice NPCs retained. No screen-coordinate inference."
+  },
+  "evidence": "headless-production-input-history-identity",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "tick_ms": 16,
+    "view_delay_ms": 500,
+    "melee_offset": 41,
+    "target_A": "world-local forward2m until offset40, then lateral8m",
+    "target_B": "lateral8m until offset40, then forward2m",
+    "packet_loss": "none",
+    "seed": "identical fresh entity/body identities and no randomized operation"
+  },
+  "expected": {
+    "world_history_query": 1009.75,
+    "health_A_B": [170, 200],
+    "hit_identity": "A",
+    "owner_hit_frames": [1041, 9041],
+    "npc_count": 15,
+    "query_mapping_only": "No owner HIT/activation/createACK/lease relabeling; no projectile current-pose rewind added."
+  }
+}

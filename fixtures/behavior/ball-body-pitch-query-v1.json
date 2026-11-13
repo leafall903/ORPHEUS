@@ -1,0 +1,13 @@
+{
+  "hero": "Wrecking Ball 01CA",
+  "nativeClass": "40AC5AE4",
+  "runtimeEvaluator": "CC8200",
+  "bodyService": "D1C220",
+  "packedPitchBranch": "C61F70",
+  "degreesConversion": "D1C972",
+  "actualInput": "RMB2 at pitch+/-8192",
+  "consumer": "14E4/node103 captures instance502; hook CosmeticEntity93 consumes502",
+  "expectedCapturedDegrees": [45, -45],
+  "wire": "Owner and observer decode the same captured502 float",
+  "limits": "No native anchor/rope/Fireball or quaternion fallback acceptance claim."
+}

@@ -1,15 +1,14 @@
-"""Echo-only movement reconstruction from the authored Flight/Glide graphs.
+"""Echo bindings for the authored Flight/Glide graphs and common kind16 mover.
 
-DATA: embedded mover values, #1002=8, #19686=20, glide limit4 and speed+.5.
-RECONSTRUCTED: interpreting those variables as sustain/boost speeds, free-flight
-input arbitration and takeoff lift. Native prediction,
-boost direction and collision/animation timing still need original-client acceptance.
+DATA: Flight node26 queues vertical SET0 then direction*28; node42 caps
+speed with the authored chase variable. Glide has limit4 and speed+.5.
+The common kind16 mover consumes the actual graph's published values.
+Native transform equality, prediction and client animation remain unaccepted.
 """
 import math
 from dataclasses import replace
 
-from ow174.game.combat import aim
-from ow174.game.commands import CROUCH, JUMP
+from ow174.game.commands import JUMP
 from ow174.game.mover import mover_data
 
 ECHO = 0x02E0000000000206
@@ -30,6 +29,27 @@ MOVER_FIELDS = {
     'B99EC983': 'ground_gravity_accel', 'CEF4898C': 'ground_gravity_decel',
     'D4A3C694': 'character_collision',
 }
+
+
+def native(world, cfg, instance):
+    """Bind 1BB6's own-body lateral basis used by its authored launch expression.
+
+    This uses the same authoritative yaw basis as the existing Roll bridge;
+    animated/native transform equivalence still requires client acceptance.
+    """
+    from ow174.game.script import expr
+
+    if (world.hero != ECHO or world.match is None or instance is None
+            or instance.graph.index != 0x1BB6 or cfg.get('$') != 'STU_66F3B89E'
+            or expr.to_entity(instance.evaluate(cfg.get('m_entity'))) != world.body):
+        return NotImplemented
+    player = next((p for p in world.match.players if p.body == world.body
+                   and p.has_body and not p.gone and p.body_script is not None
+                   and p.body_script.component is instance.component), None)
+    if player is None:
+        return NotImplemented
+    yaw = player.mover.yaw * math.tau / 65536
+    return expr.Vec3(expr.f32(math.cos(yaw)), 0.0, expr.f32(-math.sin(yaw)))
 
 
 def flight(player):
@@ -93,32 +113,3 @@ def effective_data(player):
             values = {name: fields['m_' + key] for key, name in MOVER_FIELDS.items() if 'm_' + key in fields}
             return replace(base, **values)
     return base
-
-
-def request(player, command):
-    instance = flight(player)
-    if instance is None:
-        return None
-    direction = aim(command.yaw, command.pitch)
-    # Native graph suppresses ordinary throttles during its0.15s takeoff phase.
-    burst = instance.states.get(23)
-    if burst is not None and burst.active:
-        speed = float(instance.vars[19686].value())
-        lift = effective_data(player).jump_speed
-        velocity = (direction[0] * speed, direction[1] * speed + lift, direction[2] * speed)
-        length = math.sqrt(sum(v*v for v in velocity))
-        velocity = tuple(v * speed / length for v in velocity)
-    else:
-        speed = float(instance.vars[1002].value())
-        yaw = command.yaw * math.tau / 65536
-        right = (-math.cos(yaw), 0.0, math.sin(yaw))
-        forward_input = command.forward / 127
-        right_input = command.right / 127
-        vertical = int(bool(command.buttons & JUMP)) - int(bool(command.buttons & CROUCH))
-        wish = tuple(direction[a] * forward_input + right[a] * right_input
-                     + (vertical if a == 1 else 0) for a in range(3))
-        length = math.sqrt(sum(v*v for v in wish))
-        velocity = tuple(v * speed / max(1.0, length) for v in wish)
-    speed = math.sqrt(sum(v*v for v in velocity))
-    target = tuple(p + v for p, v in zip(player.mover.position, velocity, strict=True))
-    return target, speed

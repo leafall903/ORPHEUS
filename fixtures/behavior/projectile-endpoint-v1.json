@@ -1,0 +1,16 @@
+{
+  "schema": "orpheus.projectile-endpoint.v1",
+  "provenance": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "source": "Synthetic fixed-step wall contacts reproducing Halt's five 0.4 metre steps",
+    "scope": "Python ray endpoint rounding and bounded collision distance",
+    "original_client_acceptance": "pending"
+  },
+  "wall_z": 44.1474609375,
+  "cases": [
+    {"origin_z": 43.747460937499994, "length": 0.4, "hit": true, "distance": 0.4},
+    {"origin_z": 43.7474609375, "length": 0.4, "hit": true, "distance": 0.4},
+    {"origin_z": 43.7474509375, "length": 0.4, "hit": false},
+    {"origin_z": 43.7574609375, "length": 0.4, "hit": true, "distance": 0.39}
+  ]
+}

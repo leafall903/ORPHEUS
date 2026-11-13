@@ -10,6 +10,17 @@ reconstructed server behavior; other ModifyHealth forms use their own hosts.
 from ow174.game.script import expr, runtime
 
 MERCY = 0x02E0000000000004
+
+
+def healing_world_tick(script, owner_frame):
+    """Mercy's immutable source-event epoch, independent of input arrival/poses."""
+    birth = getattr(script, 'mercy_birth', None)
+    if birth is None or script.hero != MERCY:
+        return None
+    from ow174.game.combat import TICK
+
+    world, frame = birth
+    return world + (owner_frame - frame) * script.frame_ms / (TICK * 1000)
 DAMAGED = 0x0240000000000011
 GRAPH, STATE = 0x0071, 2
 DAMAGE_WAIT = 29  #0071/node91

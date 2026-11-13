@@ -786,19 +786,21 @@ class DashboardService:
         return {"message": f"Sent {game.send_home()} game(s) back to the menu."}
 
     def npc_console(self, data: dict) -> dict:
-        """Use only an explicitly configured external catalog and the chosen account's match."""
+        """Control the chosen account's match; PvE selections use the external catalog."""
         from ow174.game.npc_console import configured_catalog
 
         game = self.lobby.game
         if game is None:
             raise ApiError('The game server is off.', 409)
-        try:
-            catalog = configured_catalog()
-        except ValueError as error:
-            raise ApiError(str(error), 409) from error
+        catalog = {}
+        if data.get('key') in ('=', *'123456789'):
+            try:
+                catalog = configured_catalog()
+            except ValueError as error:
+                raise ApiError(str(error), 409) from error
         account = self.account(data.get('name'))
         return game.npc_key(account.account_lo, data.get('key'), catalog,
-                            menu_open=data.get('menu_open', False))
+                            menu_open=data.get('menu_open', False), hero=data.get('hero'))
 
     def reconnect(self) -> dict:
         self.lobby.reconnect_own_game()

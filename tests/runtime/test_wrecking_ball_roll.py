@@ -37,16 +37,16 @@ class RollTests(unittest.TestCase):
         self.assertEqual((player.mover.data.run_forward, player.mover.data.stand_radius), (5.5, 0.7))
 
         frame(1081)
-        self.assertEqual((player.mover.data.run_forward, player.mover.data.stand_radius), (10.0, 0.5))
+        self.assertEqual((player.mover.values.run_forward, player.mover.values.stand_radius), (10.0, 0.5))
         for number in range(1082, 1130):
             frame(number, CROUCH if number >= 1090 else 0)
         self.assertAlmostEqual(speed(), 10.0, delta=0.01)
         self.assertFalse(player.mover.crouched)
 
         frame(1130, ABILITY_1)
-        self.assertEqual(player.mover.data.stand_radius, 0.5)
+        self.assertEqual(player.mover.values.stand_radius, 0.5)
         frame(1131)
-        self.assertEqual((player.mover.data.run_forward, player.mover.data.stand_radius), (5.5, 0.7))
+        self.assertEqual((player.mover.values.run_forward, player.mover.values.stand_radius), (5.5, 0.7))
         for number in range(1132, 1140):
             frame(number)
         self.assertAlmostEqual(speed(), 5.5, delta=0.01)

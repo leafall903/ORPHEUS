@@ -165,7 +165,7 @@ class GenjiShurikenTests(GenjiFixture):
         self.fire(run, player, 2)
         self.assertEqual(self.health(run, run.players[1]), 200.0)
 
-    def test_exact_flight_boundary_retires_on_next_step_without_a_second_sweep(self):
+    def test_exact_flight_boundary_retires_without_a_second_sweep(self):
         run, player = self.spawn(names=("Genji",))
         fight = run.match.combat
         for frame in range(15):
@@ -179,7 +179,7 @@ class GenjiShurikenTests(GenjiFixture):
         with patch.object(combat.interception, "absorption", wraps=combat.interception.absorption) as sweep:
             run.step({})
             self.assertEqual(sweep.call_count, 3)
-            self.assertEqual([rocket.left for rocket in fight.rockets], [0.0, 0.0, 0.0])
+            self.assertFalse(fight.rockets)
 
             sweep.reset_mock()
             run.step({})

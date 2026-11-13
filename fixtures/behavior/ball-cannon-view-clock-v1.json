@@ -1,0 +1,11 @@
+{
+ "schema_version":1,
+ "case_id":"ball-cannon-view-clock-v1",
+ "target_build":"104319",
+ "source":{"revision":"3dd55725c706c405cb989b5cc9d6f5d655b8cbc8","candidate_source_sha256":"966ef6a1a7ce82cd1b777178d3d209cfc146e9d735d6d788f11659f9f3a1e531","paths":["src/ow174/game/ball.py","src/ow174/game/combat.py"],"provenance":"Synthetic distinct target identities exchange positions after the viewed frame. Real hero-switch body creation captures each world/owner epoch; production command ingestion and actual damage/HIT are exercised."},
+ "evidence":"synthetic-command-target-history-regression",
+ "client_acceptance":"pending",
+ "input":{"world_birth":1000,"owner_births":[1000,9000],"shot_offset":41,"swap_after_offset":33,"view_delay_ms":128,"left_offset":[-3,0,8],"right_offset":[3,0,8],"aim_height":1.1},
+ "expected":{"view_world_tick":1033,"originally_left_health":195,"originally_right_health":200,"hit_target":"OriginallyLeft","hit_frame_offset":41},
+ "fractional_case":{"world_birth":1000,"owner_birth":9000,"frame_ms":15,"command_frame":9041,"quanta_us":15000,"view_delay_ms":8,"expected_world_view":1037.9375}
+}

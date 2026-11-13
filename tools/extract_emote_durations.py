@@ -115,6 +115,14 @@ def primary_tree(xml, data, node, keys, read_record, depth=0):
     if node.tag == "STU_331B7B06":
         nested = embedded_data(xml, node)
         return primary_tree(xml, nested, first_animation_node(xml, nested), keys, read_record, depth + 1)
+    if node.tag == "STU_30C2E3AE":
+        # F4EA30 delegates to its child through F524B0 before adding IK output.
+        # Category branches can contain this wrapper, not only the root node.
+        nodes = xml.field(data, "m_nodes")
+        index = int(node.get("m_38CF6CD3", "0"))
+        if nodes is None or not 0 < index < len(nodes):
+            return None
+        return primary_tree(xml, data, xml.resolve(nodes[index]), keys, read_record, depth + 1)
     if node.tag == "STU_4178508A" and node.get("m_5E009A60") == "1":
         # F4D310 picks adjacent branches. The result is deterministic only when all branches agree.
         indexes = xml.field(node, "m_540E2FC8")
@@ -246,6 +254,21 @@ def extract_records(source, category_source, read_record):
     return tables
 
 
+def body_animation_records(tables, body_definitions):
+    """Bind supported alias/category records to the body's actual model tree."""
+    bodies = {}
+    for path in sorted(body_definitions):
+        xml = StuXml(path, None)
+        refs = [ref.get("GUID") for node in xml.root.iter("STUModelComponent")
+                if (ref := xml.field(node, "m_animBlendTreeSet")) is not None]
+        if len(refs) != 1 or not refs[0] or not refs[0].endswith(".021"):
+            raise ValueError(f"{path.name}: expected one model blend tree set")
+        records = tables.get(guid_text(refs[0]), {})
+        if records:
+            bodies[guid_text(path.stem)] = records
+    return bodies
+
+
 def greeting_records(tables, body_definitions, *, clips=False):
     bodies = {}
     for path in sorted(body_definitions):
@@ -273,6 +296,8 @@ def main():
     parser.add_argument("--clips-output", type=Path, help="optional primary .006 selections")
     parser.add_argument("--scalar-output", type=Path, help="optional movement scalar tracks")
     parser.add_argument("--categories", type=Path, help="directory containing *.015.xml")
+    parser.add_argument("--body-duration-output", type=Path,
+                        help="optional supported alias/category durations keyed by body definition")
     parser.add_argument(
         "--body-definitions",
         nargs="+",
@@ -282,6 +307,10 @@ def main():
     )
     args = parser.parse_args()
     outputs = [args.output.resolve()]
+    if args.body_duration_output is not None:
+        outputs.append(args.body_duration_output.resolve())
+        if not args.body_definitions:
+            parser.error("--body-duration-output requires --body-definitions")
     if args.body_definitions:
         outputs.append(args.output.with_name(GREETING_DURATION_DATA).resolve())
     if args.clips_output is not None:
@@ -297,6 +326,11 @@ def main():
         raise SystemExit("No supported animation data found")
     greetings = greeting_records(rows, args.body_definitions)
     args.output.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
+    if args.body_duration_output is not None:
+        args.body_duration_output.write_text(
+            json.dumps(body_animation_records(rows, args.body_definitions), indent=2) + "\n",
+            encoding="utf-8",
+        )
     print(f"Wrote model animation durations from {len(rows)} blend tree sets")
     if args.clips_output is not None:
         clips = extract(args.source, args.categories, clips=True)

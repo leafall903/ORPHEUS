@@ -7,12 +7,12 @@ import math
 import unittest
 from unittest.mock import patch
 
-import test_lucio_combat as combat_fixtures
 import test_baptiste_pve as pve
 import test_game_ana_orisa_barrier as placement
+import test_lucio_combat as combat_fixtures
 
 from ow174.game import combat, knockback, npc, velocity
-from ow174.game.collision import World
+from ow174.game.collision import World, flat_world
 from ow174.game.commands import SECONDARY, Command
 from ow174.game.content import heroes
 from ow174.game.mover import FELL, mover_data
@@ -148,16 +148,21 @@ class LucioKnockbackTests(unittest.TestCase):
 
     def test_actual_sound_barrier_pools_absorb_damage_without_absorbing_unresisted_force(self):
         run, source, enemy, _ = self.scenario()
+        run.match.collision_world = flat_world(1.)
         run.match.switch_hero(enemy, heroes()[0x02E0000000000079])
         enemy.mover.position[:] = (0, 1, 4)
         enemy.body_script.ult_seconds = 0
         enemy.body_script.set_ult_charge(2940.)
-        run.step({enemy: (0, 0, 32)})
-        for _ in range(42):
-            run.step({})
         fight = run.match.combat
         target = next(t for t in fight._targets() if t.owner is enemy)
         vitals = fight.vitals_of(target)
+        run.step({enemy: (0, 0, 32)})
+        # The cast hops before landing. Wait for the actual shield grant on
+        # this fixture's ground before checking damage and unresisted force.
+        for _ in range(64):
+            run.step({})
+            if vitals.total > 900.:
+                break
         before = vitals.total
         self.assertGreater(before, 900.)
         run.step({source: (0, 0, SECONDARY)})

@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "case_id": "genji-projectile-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "src/ow174/game/script/driver.py",
+      "src/ow174/game/projectile_clock.py"
+    ],
+    "reproduction": "Real command event 1031 was admitted at different packet-batch world ticks, restarting shuriken lifetime and travel. Close-range late accepted shuriken impacts also used packet arrival as their damage/HIT time."
+  },
+  "evidence": "synthetic-command-path-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "body_birth_world_tick": 1000,
+    "body_birth_command_frames": [
+      1000,
+      5000
+    ],
+    "first_fire_world_tick": 1031,
+    "packet_batch_frames": [
+      1,
+      8,
+      32
+    ],
+    "query_world_tick": 1078,
+    "tick_seconds": 0.016,
+    "speed_metres_per_second": 60,
+    "seed": null,
+    "description": "One primary or secondary press, then neutral commands. Static origin and aim. Secondary uses the fixed authored fan. The target variant places an enemy 40 metres down the centre ray.",
+    "near_target_distance_metres": 2
+  },
+  "expected": {
+    "1": {
+      "world_launch_ticks": [
+        1031,
+        1037,
+        1044
+      ],
+      "expiry_world_ticks": [
+        1136,
+        1142,
+        1149
+      ],
+      "target_final_health": 113,
+      "target_hit_damage": [
+        29,
+        29,
+        29
+      ],
+      "near_hit_world_ticks": [
+        1033,
+        1039,
+        1046
+      ]
+    },
+    "2": {
+      "world_launch_ticks": [
+        1031,
+        1031,
+        1031
+      ],
+      "expiry_world_ticks": [
+        1136,
+        1136,
+        1136
+      ],
+      "target_final_health": 171,
+      "target_hit_damage": [
+        29
+      ],
+      "near_hit_world_ticks": [
+        1033,
+        1033,
+        1033
+      ]
+    },
+    "near_target_health_sequence": [
+      171,
+      142,
+      113
+    ]
+  }
+}

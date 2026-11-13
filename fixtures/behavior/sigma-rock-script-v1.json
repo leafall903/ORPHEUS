@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-rock-script-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/accretion.py", "src/ow174/game/sigma_presentation.py"],
+    "reference": "18B7 defines a non-client-only component with initial graph1EB9. Entry7 starts ChaseVar12 and scoped state22.22 enables client-only16->13->14->15->DataFlow8, used by model tree0757. ChaseVar12 synchronizes154 from0 to1 over0.25 seconds."
+  },
+  "evidence": "original-definition-reference-and-encrypted-observer-protocol",
+  "client_acceptance": "pending; prior native main rock missing",
+  "input": {"button": 16, "collision_triangles": [], "enemy_offset_x_m": 1000, "frames": 140, "expire_flight_at_input_step": 100, "packet_loss": []},
+  "expected": {
+    "initial_graph": 7865,
+    "initial_instance": 1,
+    "scope_state_index": 11,
+    "curve_var": 154,
+    "curve_end": 1,
+    "shared_component_for_owner_and_observer": true,
+    "component_created_before_network_create": true,
+    "component_removed_after_projectile_delivery_retirement": true
+  }
+}

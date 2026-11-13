@@ -328,7 +328,7 @@ def create_mech(match, instance, node):
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
-            viewer.client.queue_entities([match._bot_create_update(bot)])
+            viewer.client.queue_entities([match._bot_create_update(bot, viewer)])
             match.bots_shown.setdefault(viewer.slot, match.tick)
     return expr.Entity(entity)
 

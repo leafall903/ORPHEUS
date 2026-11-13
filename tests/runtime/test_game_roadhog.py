@@ -1262,7 +1262,8 @@ class WholeHogTests(unittest.TestCase):
                 enemy.mover.body = None
                 for _ in range(4):
                     run.step({})
-                with patch.object(fight.impulses, "hit", wraps=fight.impulses.hit) as impulse:
+                with patch.object(fight.knockbacks, "whole_hog_hit",
+                                  wraps=fight.knockbacks.whole_hog_hit) as impulse:
                     run.step({hog: (*angles, 32)})
                     for _ in range(100):
                         run.step({hog: (*angles, 0)})
@@ -1273,11 +1274,12 @@ class WholeHogTests(unittest.TestCase):
                     hit, = impulse.call_args_list
                     self.assertIs(hit.args[0].owner, enemy)
                     self.assertAlmostEqual(hit.args[2], 99.99, places=3)
-                    self.assertNotEqual(fight.impulses.velocity(enemy.body), (0, 0, 0))
+                    self.assertFalse(fight.knockbacks.whole_hog_motion)
+                    self.assertIn(enemy.body, fight.knockbacks.active)
                 else:
                     self.assertEqual(vitals.total, 20000)
                     impulse.assert_not_called()
-                    self.assertNotIn(enemy.body, fight.impulses.live)
+                    self.assertNotIn(enemy.body, fight.knockbacks.whole_hog_motion)
                 self.assertEqual(len(hog.client.messages(combat.HIT)), int(offset < 0))
 
     def test_charged_ultimate_miss_allies_and_triangle_wall(self):

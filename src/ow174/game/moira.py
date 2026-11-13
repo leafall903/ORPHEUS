@@ -306,7 +306,20 @@ def advance_spray_heals(fight):
             del fight.moira_hots[entity]
 
 
-def orb_fired(fight, player, state, definition, speed, lifetime, origin, direction, shot) -> bool:
+def orb_clock(player, state, definition):
+    """Capture only the original two Moira orb sources' immutable owner epoch."""
+    if (getattr(getattr(player, 'hero', None), 'guid', None) != MOIRA
+            or (state.instance.graph.index, state.node.pos, definition) not in (
+                (0x10E4, 20, HEAL_ORB), (0x10E4, 21, DAMAGE_ORB))):
+        return None
+    script = player.body_script
+    birth = getattr(script, 'moira_birth', None)
+    return (*birth, script.frame_ms) if birth is not None else None
+
+
+def orb_fired(
+    fight, player, state, definition, speed, lifetime, origin, direction, shot, *, frame=None,
+) -> bool:
     """Admit only an actual emitted Moira orb volley, not raw ability input."""
     if (getattr(player.hero, "guid", None) != MOIRA or state.instance.graph.index != 0x10E4
             or definition not in (HEAL_ORB, DAMAGE_ORB)):
@@ -322,8 +335,13 @@ def orb_fired(fight, player, state, definition, speed, lifetime, origin, directi
         scalar = component.world.ruleset(key)
     energy = expr.f32(base * expr.to_float(scalar))
     energy = max(0.0, energy) if math.isfinite(energy) else 0.0
+    script = player.body_script
+    born = fight.tick
+    if frame is not None and script is not None and hasattr(script, 'moira_birth'):
+        world, body = script.moira_birth
+        born = world + (frame - body) * script.frame_ms // round(combat.TICK * 1000)
     fight.moira_orbs.append(Orb(player, player.body, origin, direction, speed, lifetime,
-                               energy, healing, fight.tick, shot,
+                               energy, healing, born, shot,
                                absorption_amount=max(0.0, direct.amount) if direct else 0.0))
     return True
 
@@ -450,6 +468,27 @@ def _orb_move(fight, orb, distance, duration):
             return
 
 
+def orb_history_tick(match, frame):
+    """Oldest world tick still needed by an admissible orb or its next pulse.
+
+    Keep the shared status ledger; translate the protocol's command-window
+    duration through each live Moira body's quantum, never raw owner labels.
+    """
+    from ow174.game.commands import MAX_COMMANDS
+
+    oldest = frame
+    for owner in match.players:
+        script = owner.body_script
+        if (getattr(owner.hero, 'guid', None) == MOIRA and not owner.gone
+                and script is not None and not script.retired
+                and script.component.entity == owner.body):
+            oldest = min(oldest, frame - math.ceil(MAX_COMMANDS * script.frame_ms / (combat.TICK * 1000)))
+    for orb in match.combat.moira_orbs:
+        if orb.healing and orb.left > combat.EPSILON and orb.energy > combat.EPSILON:
+            oldest = min(oldest, orb.last_tick)
+    return oldest
+
+
 def advance_orbs(fight):
     """World-clock orbs survive their caster's death and stop at energy/lifetime.
 
@@ -457,11 +496,17 @@ def advance_orbs(fight):
     per-orb energy across all targets, and slow only while an eligible tether
     exists. Native aura modifiers, Deflect boxes/filters and absorption remain open.
     """
+    if any(orb.healing for orb in fight.moira_orbs):
+        # Publish due authored transitions before either current or historical
+        # pulses query the shared ledger. Never rewind/replay its live VM.
+        fight.healing.update(fight.tick)
     for orb in list(fight.moira_orbs):
         elapsed = max(0, fight.tick - orb.last_tick) * combat.TICK
+        slice_tick = orb.last_tick
         orb.last_tick = fight.tick
         while elapsed > combat.EPSILON and orb.left > combat.EPSILON and orb.energy > combat.EPSILON:
             dt = min(combat.TICK, elapsed, orb.left)
+            slice_tick = min(fight.tick, slice_tick + 1)
             targets = _orb_targets(fight, orb)
             if _orb_move(fight, orb, orb.speed * (ORB_SLOW if targets else 1.0) * dt, dt):
                 fight.moira_orbs.remove(orb)
@@ -476,7 +521,8 @@ def advance_orbs(fight):
                 before = vitals.total + (bubble.health if bubble is not None else 0.0)
                 amount = min(orb.energy, (65.0 if orb.healing else 50.0) * dt)
                 if orb.healing:
-                    given = fight._heal_pools(target.owner, vitals, amount, maximum=orb.energy, tags=HEAL_ORB_TAGS)
+                    given = fight._heal_pools(target.owner, vitals, amount, maximum=orb.energy,
+                                             tags=HEAL_ORB_TAGS, world_tick=slice_tick)
                     if given > 0 and target.owner is not orb.shooter:
                         orb.shooter.stats.add(stats.HEALING, given)
                         gain_combat_charge(orb.shooter, given, body=orb.body,
@@ -499,6 +545,48 @@ def advance_orbs(fight):
             fight.moira_orbs.remove(orb)
             if orb.shot is not None:
                 fight.projectiles.flown(orb.shot, orb.flown)
+
+
+def fade_physics_explosion(state):
+    """Dispatch only Fade's authored rigid-body pulses to the existing prop host.
+
+    This is separate from character knockback: the original physics query
+    admits dynamic rigid-body categories, not a bare team proxy. No player or
+    NPC mover is selected or given an invented Fade impulse here.
+    """
+    component = state.instance.component
+    world = component.world
+    match = getattr(world, 'match', None)
+    if (getattr(world, 'hero', None) != MOIRA or match is None
+            or (state.instance.graph.index, state.node.pos) not in ((0x0F7C, 52), (0x0F7C, 54))):
+        return False
+    owner = next((p for p in match.players if p.body == component.entity
+                  and p.body_script is not None and p.body_script.component is component), None)
+    if owner is None or owner.body_script.retired:
+        return False
+    entity = state.evaluate(state.node.field('m_position'), watch=False)
+    if not isinstance(entity, expr.Entity) or entity.id != component.entity:
+        return False
+    position = world.position(entity.id)
+    if not isinstance(position, expr.Vec3) or not all(map(math.isfinite, position)):
+        return False
+    values = []
+    for field in ('m_6EFD110C', 'm_radius', 'm_65438EEB', 'm_D80AEDB1'):
+        cfg = state.node.field(field)
+        if (not isinstance(cfg, dict) or cfg.get('$') not in ('STUConfigVarInt', 'STUConfigVarFloat')
+                or 'm_value' not in cfg):
+            return False  # Do not turn an unresolved provider into a zero force.
+        value = expr.to_float(state.evaluate(cfg, watch=False))
+        if not math.isfinite(value):
+            return False
+        values.append(value)
+    from ow174.game.orisa_halt import ExplosionRequest
+
+    tick, frame = owner.body_script.moira_birth
+    start_ms = tick * round(combat.TICK * 1000) + state.start - frame * component.frame_ms
+    request = ExplosionRequest(entity.id, start_ms, position, *values)
+    match.combat.orisa._dispatch_halt_explosion(request)
+    return True
 
 
 def transition(player) -> None:
@@ -579,9 +667,54 @@ def advance_clocks(fight):
         # Bound each advance so the VM preserves the missing prefix. Leave
         # the current pose to a real command if one arrives.
         first_pose = min(MAX_LEASE_FRAME - 1, start_frame + elapsed // script.frame_ms, script.frame + MAX_GAP)
+        if _orb_running(component):
+            continue  # Preserve the authored selection/volley for actual command input.
         if (first_pose > script.frame + 1
                 and (_active_timed_cast(component) is not None or _passive_due(component, first_pose))):
+            before = script.frame
+            signature = _orb_replay_signature(component)
             owner._advance_body_gap(first_pose)
+            if (_active_timed_cast(component) is None
+                    and signature == _orb_replay_signature(component)):
+                previous = getattr(script, 'moira_neutral_window', None)
+                low = previous[0] if previous is not None and previous[2] == signature else before + 1
+                script.moira_neutral_window = (low, script.frame, signature)
+
+
+def _orb_running(component):
+    return any(i.graph.index == 0x10E4 and any(
+        isinstance(s, nodes.Ability) and s.flags & nodes.Ability.RUNNING for s in i.states.values()
+    ) for i in component.instances.values())
+
+
+def _orb_replay_signature(component):
+    """Only reopen idle selection if neutral advancement changed no ability state."""
+    return tuple((i.id, s.index, s.active, s.counter, s.start, getattr(s, 'flags', None))
+                 for i in component.instances.values() if i.graph.index in (0x10E4, 0x0F7C, 0x1007)
+                 for s in i.states.values())
+
+
+def replay_orb_selection(owner, command):
+    """Accept an orb press in the protocol-sized passive-only neutral window.
+
+    Passive graph values/timers remain at their already-accounted deadlines;
+    this reopens only the idle body cursor for previously unsampled orb input.
+    Active casts, old beam samples and control windows cannot use this path.
+    """
+    from ow174.game.commands import MAX_COMMANDS
+
+    script = owner.body_script
+    window = getattr(script, 'moira_neutral_window', None)
+    if (window is None or not command.buttons & 16 or script.buttons & 16
+            or not max(window[0], window[1] - MAX_COMMANDS + 1) <= command.frame <= window[1]
+            or window[2] != _orb_replay_signature(script.component)
+            or _active_timed_cast(script.component) is not None or script.controlled_at(command.frame)):
+        return False
+    script.moira_neutral_window = None
+    script.frame = command.frame - 1
+    script.component.frame = script.frame
+    script.component.now = command.frame * script.frame_ms - 1
+    return True
 
 
 def fading(owner) -> bool:
@@ -660,6 +793,17 @@ def grasp_targets(world, search):
     return frame.targets(search) if script is not None and script.world is world else ()
 
 
+def view_world_tick(script, command, quanta):
+    """Translate only a Moira view query; command/HIT labels stay owner frames."""
+    birth = getattr(script, 'moira_birth', None)
+    if birth is None:
+        # Legacy synthetic worlds without a match have no constructor epoch.
+        return command.frame - command.view_delay(quanta) * 1e6 / quanta
+    tick, frame = birth
+    elapsed_ms = (command.frame - frame) * script.frame_ms - command.view_delay(quanta) * 1000
+    return tick + elapsed_ms / (combat.TICK * 1000)
+
+
 def _grasp_contact(fight, player, command, search):
     if (not command.buttons & 2 or search.instance.component.disabled.get(29)
             or fight.match.collision_world is None or fight.is_dead(player) or fight.is_stunned(player)):
@@ -694,7 +838,7 @@ def _grasp_contact(fight, player, command, search):
     tag_lists = tuple(filter_tags.collect(search.instance, filters.get(name))
                       for name in entity_filter.TAG_FIELDS) if catalog else ()
     best = None
-    view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+    view_tick = view_world_tick(player.body_script, command, player.quanta)
     for target in fight._enemies(player):
         shown = fight.seen(target, view_tick)
         if shown is None or not volume.capsule(shown.feet, shown.radius, shown.height)[0]:
@@ -868,7 +1012,7 @@ def coalescence(fight, player, command) -> None:
         if ally is not None or enemy is not None:
             collision = fight._collision()
             source = combat._source_entity(player)
-            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            view_tick = view_world_tick(player.body_script, command, player.quanta)
             ally_targets, enemy_targets = [], []
             contacts = []
             for target in fight._targets():

@@ -23,6 +23,15 @@ from ow174.game.mover import (
 GENJI = 0x02E0000000000029
 
 
+def view_world_tick(script, command, quanta):
+    """Map this body's reported view time to world target-history ticks."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.genji_birth
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
 @dataclass
 class Mobility:
     jump_held: bool = False

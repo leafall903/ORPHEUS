@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "reinhardt-charge-owner-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/reinhardt_charge.py", "src/ow174/game/correction.py"],
+    "description": "Synthetic flat-ground command fixture. The reference moves the server body but omits its owning client's movement record. Expected owner delivery is the corrected contract."
+  },
+  "evidence": "synthetic-server-regression",
+  "client_acceptance": "partial: original104319 room-to-wall Charge displacement observed; enemy contact and impact remain pending",
+  "input": {
+    "initial_position": [0.0, 1.0, 0.0],
+    "initial_frame": 1030,
+    "quanta_us": 16000,
+    "commands": [
+      {"frames": 1, "buttons": 8, "yaw": 0, "pitch": 0},
+      {"frames": 65, "buttons": 0, "yaw": 0, "pitch": 0}
+    ],
+    "seed": null,
+    "packet_loss": [],
+    "body_create_acknowledged": true
+  },
+  "expected": {
+    "frame": 1096,
+    "position": [0.0, 1.0, 7.3828125],
+    "owner_movement_records": 1,
+    "observer_movement_records": 1,
+    "record_before_create_ack": false,
+    "correction_window_after_body_replacement": null
+  }
+}

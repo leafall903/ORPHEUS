@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe.viewed-target-identity.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/ashe.py", "src/ow174/game/combat.py"],
+    "provenance": "Adapted original Ball/76 A/B identity-swap reproduction to actual Ashe Viper input. All15 original Practice NPCs remain. Synthetic positions are world coordinates, not screen sides."
+  },
+  "evidence": "production-command-target-history-and-HIT-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "shot_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "aimed_offset": [-3, 0, 8],
+    "other_offset": [3, 0, 8],
+    "seed": "Untouched first Viper activation/cone/seed path; no RNG substitution",
+    "packet_loss": "none"
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "health_A": 160,
+    "health_B": 200,
+    "HIT_owner_frame_offset": 41,
+    "retained_original_NPCs": 15
+  },
+  "fractional_case": {
+    "birth": [1000, 9000, 15], "command_frame": 9041,
+    "quanta_us": 15000, "view_delay_ms": 8, "world_view": 1037.9375
+  }
+}

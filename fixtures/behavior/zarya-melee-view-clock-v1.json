@@ -1,0 +1,20 @@
+{
+  "schema": "zarya-melee-view-clock-v1",
+  "build": "1.74.0.0.104319",
+  "provenance": "Synthetic identity exchange adapted from original Ball/76 view-clock regression; actual Zarya0043 melee input, original15 practice NPCs retained. No screen-position or native acceptance inference.",
+  "world_birth": 1000,
+  "owner_births": [1000, 9000],
+  "swap_after_offset": 35,
+  "attack_offset": 41,
+  "view_delay_ms": 128,
+  "near_position": [0, 1, 2],
+  "far_position": [0, 1, 6],
+  "expected": {
+    "view_world_tick": 1033,
+    "target": "A",
+    "health_A": 170,
+    "health_B": 200,
+    "hit_owner_frame": "owner_birth + 41",
+    "npc_count": 15
+  }
+}

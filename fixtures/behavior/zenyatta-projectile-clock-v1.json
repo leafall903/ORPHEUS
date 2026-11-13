@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "zenyatta-projectile-clock-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/script/driver.py"]
+  },
+  "evidence": "synthetic command schedule with prepared runtime execution",
+  "client_acceptance": "pending",
+  "input": {
+    "batch_sizes": [1, 8, 32],
+    "world_tick_ms": 16,
+    "primary": {"fire_offset": 1, "query_offset": 48},
+    "charged": {"hold_through_offset": 130, "query_offset": 192},
+    "timeout_query_offset": 300
+  },
+  "expected": {
+    "speed": 90,
+    "primary": {"launch_offsets": [1], "flight_ticks": [47], "body_damage": 48},
+    "charged": {
+      "launch_offsets": [131, 137, 144, 151, 158],
+      "flight_ticks": [61, 55, 48, 41, 34],
+      "body_damage": 240
+    },
+    "timeout_live_projectiles": 0
+  }
+}

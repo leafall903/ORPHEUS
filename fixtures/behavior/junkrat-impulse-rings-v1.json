@@ -1,0 +1,102 @@
+{
+  "contract": "junkrat-independent-impulse-rings-v1",
+  "units": "metres and dimensionless independent axis scales",
+  "provenance": "Original104319 offline D6D87C/D6D97A probe, 21 cases in repair-knockback-174-original-ring-probe.json",
+  "cases": [
+    {
+      "rings": [
+        [
+          0.5,
+          1,
+          1
+        ],
+        [
+          2,
+          0.75,
+          0.25
+        ]
+      ],
+      "distance": 0,
+      "expected": [
+        1,
+        1
+      ]
+    },
+    {
+      "rings": [
+        [
+          0.5,
+          1,
+          1
+        ],
+        [
+          2,
+          0.75,
+          0.25
+        ]
+      ],
+      "distance": 0.5,
+      "expected": [
+        1,
+        1
+      ]
+    },
+    {
+      "rings": [
+        [
+          0.5,
+          1,
+          1
+        ],
+        [
+          2,
+          0.75,
+          0.25
+        ]
+      ],
+      "distance": 1.25,
+      "expected": [
+        0.875,
+        0.625
+      ]
+    },
+    {
+      "rings": [
+        [
+          0.5,
+          1,
+          1
+        ],
+        [
+          2,
+          0.75,
+          0.25
+        ]
+      ],
+      "distance": 2,
+      "expected": [
+        0,
+        0
+      ]
+    },
+    {
+      "rings": [
+        [
+          0.5,
+          1,
+          1
+        ],
+        [
+          2,
+          0.75,
+          0.25
+        ]
+      ],
+      "distance": 3,
+      "expected": [
+        0,
+        0
+      ]
+    }
+  ]
+}

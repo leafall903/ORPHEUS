@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-melee-view-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/doomfist.py", "src/ow174/game/combat.py"],
+    "provenance": "Adapted existing Ball/76 synthetic identity-exchange regression to actual Doomfist0043 quick-melee input. Stock Practice Range NPCs remain; no screen-coordinate interpretation or native rendering claim."
+  },
+  "evidence": "synthetic-command-target-history-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "owner_births": [1000, 9000],
+    "strike_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "left_offset": [-1.5, 0, 1.5],
+    "right_offset": [1.5, 0, 1.5],
+    "aim_height": 1,
+    "button": 2048,
+    "frames": 82,
+    "packet_loss": [],
+    "seed": "Fresh Run with three players; normal entity and activation identities"
+  },
+  "expected": {
+    "view_world_tick": 1033,
+    "A_health": 170,
+    "B_health": 200,
+    "npc_count": 15,
+    "HIT_owner_offset": 41
+  },
+  "fractional_case": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "frame_ms": 15,
+    "command_frame": 9041,
+    "quanta_us": 15000,
+    "view_delay_ms": 8,
+    "expected_world_view": 1037.9375
+  }
+}

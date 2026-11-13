@@ -73,7 +73,7 @@ class Burn:
     scope_entered: bool = False
 
 
-def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0)):
+def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0), source_body=None, born_tick=None):
     cfg = (graph._data().get("deployables") or {}).get("molten_core")
     if not isinstance(cfg, dict) or graph.graph(cfg["status_graph"]) is None:
         raise ValueError("Molten Core requires the explicit prepared053 status bundle")
@@ -85,15 +85,23 @@ def create_pool(fight, owner, position, *, ground_normal=(0.0, 1.0, 0.0)):
     fight.projectiles.next_field += 1
     if entity in fight.molten_pools:
         raise ValueError("Molten Core entity allocation collided with a live pool")
-    script = BotScript(POOL, HERO, entity, fight.tick, fight.match.game_map.mode_guid, 1.0)
-    instance = script.component.create(graph.graph(cfg["area_graph"]))
+    from ow174.game.combat import TICK
+
+    frame = fight.tick if born_tick is None else born_tick
+    born = fight.now - (fight.tick - frame) * TICK
+    script = BotScript(POOL, HERO, entity, frame, fight.match.game_map.mode_guid, 1.0)
+    instance = script.component.create(graph.graph(cfg["area_graph"]), init=False)
+    # The original FX consumer reads Instance+234 through builtin001B.
+    # A separately created pool must retain the launcher's source identity.
+    instance.set_source_entity(owner.body if source_body is None else source_body)
+    instance.init()
     runtime.send_instance_message(instance, LANDED, {}, owner.body)
-    script.component.run_frame(fight.tick)
+    script.component.run_frame(frame)
     script.latest_live = observers.snapshot(script)
     script._produced = script.latest_live
     script._initial_frame = None
     pool = Pool(owner, owner.hero.guid, entity, position, dict(cfg), script, instance.id,
-                fight.now, fight.now, ground_normal=ground_normal)
+                born, born, ground_normal=ground_normal)
     fight.molten_pools[entity] = pool
     _deliver(fight, pool)
     return pool
@@ -167,7 +175,12 @@ def projectile_impact(fight, rocket, surface, struck):
         return
     if rocket.shooter.gone or rocket.shooter not in fight.match.players:
         return
-    create_pool(fight, rocket.shooter, surface.point, ground_normal=surface.normal)
+    from ow174.game.combat import TICK
+
+    born_tick = (rocket.launch_tick + math.ceil(rocket.flown / TICK)
+                 if rocket.launch_tick is not None else None)
+    create_pool(fight, rocket.shooter, surface.point, ground_normal=surface.normal,
+                source_body=rocket.source_body, born_tick=born_tick)
 
 
 def _contact(fight, pool, target):
@@ -264,7 +277,8 @@ def _next_pool(vitals):
             return conditional.now, kind == world.ARMOUR_POOL
         if kind == world.ARMOUR_POOL and vitals.temporary_armour > combat.EPSILON:
             return vitals.temporary_armour, True
-        if kind == world.HEALTH_POOL and vitals.wave_health is not None and vitals.wave_health.current > combat.EPSILON:
+        if (kind == world.HEALTH_POOL and vitals.wave_health is not None
+                and vitals.wave_health.current > combat.EPSILON):
             return vitals.wave_health.current, False
         if vitals.now[kind] > combat.EPSILON:
             return vitals.now[kind], kind == world.ARMOUR_POOL

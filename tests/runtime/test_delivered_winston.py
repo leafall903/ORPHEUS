@@ -1,5 +1,7 @@
 """Actual Winston weapon graph -> server health; reconstructed geometry, no client acceptance."""
+import json
 import unittest
+from pathlib import Path
 
 from test_game_combat import Run, aim
 from test_game_mover import box, wall
@@ -505,13 +507,29 @@ class TeslaTests(unittest.TestCase):
         self.enemy.mover.position = [0, 1, 100]
         self.run.step({self.winston: (0, -16384, 8)})
         for _ in range(150):
-            # Set the target at the landing point, after launch so takeoff cannot hit it.
-            self.enemy.mover.position[:] = [0, 1, 0]
+            # Track the actual authored flight instead of assuming a vertical
+            # launch. Keep the target on the floor so only landing can hit it.
+            x, _, z = self.winston.mover.position
+            self.enemy.mover.position[:] = [x, 1, z]
             self.step(0)
             if self.winston.body not in self.fight.winston_jump.flights:
                 break
         self.assertNotIn(self.winston.body, self.fight.winston_jump.flights)
-        self.assertEqual(self.health(self.enemy), 150)
+        self.assertAlmostEqual(self.health(self.enemy), 150, delta=.2)
+        self.assertEqual(len(self.winston.client.messages(combat.HIT)), 1)
+
+    def test_jump_uses_authored_launch_on_next_movement_frame(self):
+        path = Path(__file__).resolve().parents[2] / "fixtures/behavior/winston-jump-authored-launch-v1.json"
+        contract = json.loads(path.read_text(encoding="utf-8"))
+        self.enemy.mover.position[:] = [0, 1, 100]
+        inputs = contract["input"]
+        self.run.step({self.winston: (inputs["yaw"], inputs["pitch"], inputs["buttons"])})
+        # The action's launch starts on the next frame. The compatibility
+        # contact tracker must not inject its own immediate 30 m/s launch.
+        self.assertEqual(self.winston.mover.velocity, tuple(contract["expected"]["cast_frame_velocity"]))
+        self.step(0)
+        self.assertEqual(self.winston.mover.velocity,
+                         tuple(contract["expected"]["next_movement_frame_velocity"]))
 
     def test_jump_landing_in_recovered_command_frames_hits_once(self):
         self.match.collision_world = World(box(-30, 30, -1, 1, -30, 30))

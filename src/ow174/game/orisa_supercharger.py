@@ -11,7 +11,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from ow174.game import bots
+from ow174.game import bots, orisa_clock
 from ow174.game.orisa_barrier import Barriers, Geometry
 from ow174.game.script import expr, graph, message_receive, runtime
 from ow174.paths import DATA_DIR
@@ -75,19 +75,20 @@ class Superchargers(Barriers):
         if not 0xC0001000 <= entity < 0xD0000000:
             raise ValueError("ability entity allocator exhausted")
         self.fight.next_bot += 1
-        tick = self.fight.tick
+        tick = orisa_clock.impact_tick(rocket, self.fight.tick)
         component = runtime.Component(entity, world=DeviceWorld(self.fight, entity, rocket.position))
         component.now, component.frame = tick * 16, tick
-        script = component.create(self.graphs[0xD00], values={
-            (graph.INSTANCE, 40): expr.Entity(rocket.source_body),
-            (graph.INSTANCE, 27): expr.Entity(rocket.source_body),
-        })
+        script = component.create(self.graphs[0xD00], init=False)
+        script.set_source_entity(rocket.source_entity or rocket.source_body)
+        script.init()
+        script.start_entries((), rocket.source_body)
         component.create(self.graphs[0x25B4])
         component.run_now()  # original Entries set#199=200 and#215=15
         health = expr.to_float(script.find_var(graph.INSTANCE, 199).value())
         seconds = expr.to_float(script.find_var(graph.INSTANCE, 215).value())
         if health <= 0 or seconds <= 0:
             raise ValueError("authored Supercharger initialization did not set health/lifetime")
+        component.set(253, health)
         direction = rocket.launch_direction or rocket.direction
         self.active[entity] = Device(entity, rocket.shooter, rocket.source_body, rocket.team,
                                      rocket.position, math.atan2(direction[0], direction[2]),
@@ -176,6 +177,9 @@ class Superchargers(Barriers):
             else:
                 device.component.run_frame(tick)
         self.refresh()
+        from ow174.game import orisa_presentation
+
+        orisa_presentation.sync(self)
 
     def refresh(self):
         from ow174.game.combat import ray_world, segment_distance

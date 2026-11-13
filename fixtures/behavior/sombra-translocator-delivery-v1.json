@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "sombra-translocator-delivery-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": [
+      "src/ow174/game/server.py",
+      "src/ow174/game/translocators.py"
+    ]
+  },
+  "evidence": "synthetic-protocol-contract",
+  "client_acceptance": "pending",
+  "input": {
+    "hero": "0x02E000000000012E",
+    "operations": [
+      "press and release Translocator",
+      "acknowledge beacon creation on owner and observer",
+      "advance beacon flight",
+      "press recall and finish the authored movement"
+    ]
+  },
+  "expected": {
+    "registered_body_vm_per_viewer": true,
+    "device_graph": "0x0C1A",
+    "movement_matches_server_pose": true,
+    "movement_retransmission": false,
+    "destroy_scheduled_after_recall": true
+  },
+  "provenance": "Defines the required delivery contract for the reported missing beacon. Runtime tests use the external original graph and production Client queues. The decoder consumes the beacon VM's actual graph definitions. Original-client model, trajectory, effects and recall visuals await observation."
+}

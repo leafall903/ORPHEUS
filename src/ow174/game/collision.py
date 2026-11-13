@@ -671,8 +671,10 @@ class _TriangleScene:
                 start, next_x, i = next_x, next_x + delta_x, i + step_i
             else:
                 start, next_z, j = next_z, next_z + delta_z, j + step_j
-        if triangle is None or best > length:
+        if triangle is None or best > length + RAY_EPSILON:
             return None
+        # Repeated flight additions can leave an exact endpoint a few ulps short.
+        best = min(best, length)
         point = (ox + dx * best, oy + dy * best, oz + dz * best)
         nx, ny, nz = triangle[NX], triangle[NY], triangle[NZ]
         normal = (-nx, -ny, -nz) if nx * dx + ny * dy + nz * dz > 0.0 else (nx, ny, nz)

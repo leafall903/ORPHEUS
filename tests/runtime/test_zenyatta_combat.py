@@ -238,10 +238,11 @@ class ZenyattaCombatTests(unittest.TestCase):
         fight = run.match.combat
         hp = fight.vitals[enemy.body]
         before = hp.total
+        direction = aim(fight._eye(zen), fight._eye(enemy))
         for _ in range(50):
-            run.step({zen: (0, 0, SECONDARY)})
+            run.step({zen: (*direction, SECONDARY)})
         for _ in range(55):
-            run.step({})
+            run.step({zen: (*direction, 0)})
         hits = [msg["+0x78"] for msg in zen.client.messages(combat.HIT)]
         self.assertEqual([(h["+0x4"], h["+0x8"]) for h in hits], [(91, combat.CRITICAL)]*2)
         self.assertEqual(before-hp.total, 182)

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "mccree-roll-next-frame-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/mccree.py", "src/ow174/game/match.py", "tests/runtime/test_mccree_roll.py"],
+    "note": "Synthetic pose dispatch regression; authored graph inputs remain external. Expected velocity and travel bounds retain the pre-existing Roll regression. Native animation requires a separate original-client observation."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {"hero": "02E0000000000042", "position": [0, 0, 0], "yaw": 0, "buttons": 8, "next_buttons": 0, "tick_seconds": 0.016},
+  "expected": {"cast_frame_displacement": 0, "next_frame_forward_velocity": 15, "velocity_tolerance": 0.01, "request_consumed_once": true, "other_hero_request_consumed": false}
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe.deployment-and-burn.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/ashe.py", "src/ow174/game/script/driver.py"],
+    "provenance": "Synthetic coordinates; original factory 1536/11 consumes position saved by 1536/22 and charge direction. Burn graph 150F is selected by 1502/21. No game assets included."
+  },
+  "evidence": "synthetic-server-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "owner_position": [0, 1, 0],
+    "cast_yaw": 16384,
+    "post_cast_yaw": 0,
+    "burn_damage_per_pulse": 5,
+    "burn_step_seconds": 0.25,
+    "burn_seconds": 5
+  },
+  "expected": {
+    "factory_position": [0, 0.5, 0],
+    "charge_yaw": 16384,
+    "burn_graph": 5391,
+    "burn_damage_rate": 20,
+    "burn_scope_node": 24,
+    "burn_removed_on_retire": true
+  }
+}

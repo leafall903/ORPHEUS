@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "moira-orb-authoritative-delivery-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/projectiles.py", "src/ow174/game/moira.py"]
+  },
+  "evidence": "server-runtime-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "hero": "0x02E00000000001A2",
+    "ability_button": 16,
+    "sample_frames": 25,
+    "cases": [
+      {"healing": true, "selection_button": 1, "definition": "0x0400000000001E60", "state": 10},
+      {"healing": false, "selection_button": 2, "definition": "0x0400000000001E61", "state": 11}
+    ]
+  },
+  "expected": {
+    "projectiles_per_cast": 1,
+    "directions": [[0.0, 0.0, 1.0]],
+    "launch_yaw16": 32768,
+    "launch_pitch16": 32768,
+    "owner_and_observer_create_count": 1,
+    "owner_and_observer_destroy_count": 1,
+    "healing_target": "ally",
+    "damage_target": "enemy",
+    "damage_hit_notice": true,
+    "healing_hit_notice": false
+  }
+}

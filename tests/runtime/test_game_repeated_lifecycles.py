@@ -140,7 +140,20 @@ def wire_frame(packet):
                 else:
                     reader.bits(32 if reader.bit() else 8)
                 read_shot(reader)
-        assert not reader.bit()  # these scenarios use no projectile release state
+        if reader.bit():  # released projectile state against the blank baseline
+            assert reader.var_b() == 0xFFFFFFFF
+            reader.var_b()  # release frame difference
+            assert reader.bits(2) == 0  # alive, no +260
+            reader.bits(3 * 32)  # impact position
+            assert reader.bits(5) == 0  # baseline velocity and optional lists
+            assert reader.bit() == 1  # explicit impact count
+            if reader.bit():
+                reader.bits(4)
+            elif reader.bit():
+                reader.bits(8)
+            else:
+                reader.bits(32)
+            assert reader.bits(6) == 0  # baseline hit data, extensions and tail
         assert reader.bit() == 1  # ch3
         if reader.bit():
             start = reader.pos

@@ -441,16 +441,79 @@ class WidowmakerInfraSightTests(_WidowmakerMatch, unittest.TestCase):
 
 
 class WidowmakerVenomTests(_WidowmakerMatch, unittest.TestCase):
+    def test_mine_launch_clock_and_contact_are_independent_of_command_batch_size(self):
+        samples = []
+        for batch in (1, 8, 32):
+            self.setUp()
+            self.b.mover.position[:] = (50.0, 0.0, 50.0)
+            first = self.run.frame + 1
+            throw_frame = first + 49
+            phases = []
+            for begin, end in ((first, first + 99), (first + 100, first + 199)):
+                for low in range(begin, end + 1, batch):
+                    high = min(end, low + batch - 1)
+                    self.run.match.update(high * 0.016, high)
+                    self.a.take_commands([
+                        Command(frame, yaw=0, pitch=-10000,
+                                buttons=0x10 if frame == throw_frame else 0, extra=0)
+                        for frame in range(low, high + 1)
+                    ])
+                self.run.match.update((end + 1) * 0.016, end + 1)
+                mines = self.run.match.combat.venom
+                phases.append((
+                    [(flight.position, flight.velocity, flight.remaining, flight.last_tick)
+                     for flight in mines.flights],
+                    [(mine.position, mine.normal, mine.ready, mine.health) for mine in mines.mines],
+                ))
+            self.assertEqual(len(phases[0][0]), 1)
+            self.assertEqual(len(phases[1][1]), 1)
+            mine = mines.mines[0]
+            self.b.mover.position[:] = (mine.position[0], 0.0, mine.position[2] + 1.0)
+            self.run.match.update((end + 100) * 0.016, end + 100)
+            self.assertLess(self.health(self.b), 200)
+            phases.append((self.health(self.b),
+                           sum(hit["+0x78"]["+0x4"] for hit in self.a.client.messages(combat.HIT)),
+                           [(poison.remaining, poison.pending) for poison in mines.poison]))
+            samples.append(phases)
+        self.assertEqual(samples[0], samples[1])
+        self.assertEqual(samples[0], samples[2])
+
     def test_mine_arms_then_poisons_for_75_and_reveals_only_to_owner(self):
         owner_health = self.health(self.a)
         self.press(0x10)
-        self.press(0, 30)
+        self.press(0, 15)
         mines = self.run.match.combat.venom
+        self.assertEqual(len(mines.flights), 1)
+        shot = mines.flights[0].shot
+        self.assertIsNotNone(shot)
+        self.assertTrue(shot.authoritative)
+        self.assertEqual({delivery.viewer.slot for delivery in shot.observers},
+                         {self.a.slot, self.b.slot})
+        self.assertTrue(all(delivery.creation.received and delivery.launch_arrival.received
+                            for delivery in shot.observers))
+        self.press(0, 15)
         self.assertEqual(len(mines.mines), 1)
+        mine = mines.mines[0]
+        entity, viewers = mines.replicas[mine.number]
+        from ow174.game import venom, world
+
+        for player in (self.a, self.b):
+            self.assertIs(viewers[player.slot], player.client)
+            creates = [item for item in player.client.entities
+                       if item.entity == entity and item.op == world.OP_CREATE]
+            self.assertEqual(len(creates), 1)
+            with patch.object(world, "create", wraps=world.create) as create:
+                creates[0].build(0)
+            self.assertEqual(create.call_args.args[1], venom.MINE_DEFINITION)
+            self.assertEqual(create.call_args.kwargs["position"], mine.position)
         self.assertEqual(self.health(self.b), 200)
         self.assertFalse(mines.poison)
         self.press(0, 100)
         self.assertTrue(mines.poison)
+        self.assertFalse(mines.replicas)
+        for player in (self.a, self.b):
+            self.assertTrue(any(item.entity == entity and item.op == world.OP_DESTROY
+                                for item in player.client.entities))
         self.assertLess(self.health(self.b), 200)
         self.assertTrue(self.run.match.combat.revealed_to(self.a, self.b.body))
         self.assertFalse(self.run.match.combat.revealed_to(self.b, self.a.body))
@@ -460,6 +523,29 @@ class WidowmakerVenomTests(_WidowmakerMatch, unittest.TestCase):
         self.assertFalse(mines.poison)
         self.assertFalse(self.run.match.combat.revealed_to(self.a, self.b.body))
         self.assertEqual(self.health(self.a), owner_health)
+
+    def test_airborne_mine_timeout_retires_owner_and_observer_copies(self):
+        from ow174.game import world
+
+        self.run.match.collision_world = World([], name="no mine contact")
+        self.press(0x10)
+        self.press(0, 15)
+        mines = self.run.match.combat.venom
+        self.assertEqual(len(mines.flights), 1)
+        shot = mines.flights[0].shot
+        self.assertIsNotNone(shot)
+        deliveries = tuple(shot.observers)
+        self.assertEqual(len(deliveries), 2)
+        self.press(0, 330)
+        self.assertFalse(mines.flights)
+        self.assertFalse(mines.mines)
+        self.assertFalse(mines.replicas)
+        self.assertTrue(all(delivery.finished for delivery in deliveries))
+        for delivery in deliveries:
+            self.assertTrue(any(item.entity == delivery.record.ids[0] and item.op == world.OP_DESTROY
+                                for item in delivery.client.entities))
+        self.assertEqual(self.health(self.b), 200)
+        self.assertFalse(self.a.client.messages(combat.HIT))
 
     def test_allies_do_not_trigger_and_cooldown_rejects_then_allows_replacement(self):
         self.b.team = self.a.team
@@ -647,7 +733,21 @@ class WidowmakerGrappleTests(_WidowmakerMatch, unittest.TestCase):
     def test_static_hook_pulls_and_swept_mover_stops_before_wall(self):
         self.wall(5)
         self.press(8, height=combat.eye_height(self.a.hero.body))
-        self.press(0, 80, height=combat.eye_height(self.a.hero.body))
+        self.press(0, 15, height=combat.eye_height(self.a.hero.body))
+        cast = self.hook().state(0)
+        self.assertTrue(cast.active)
+        from ow174.game import statescript
+        from ow174.game.script.expr import Vec3
+
+        self.assertTrue(statescript.sendable(cast.node.cls, True))
+        self.assertGreater(cast.payload()["start"], 0)
+        self.press(0, 65, height=combat.eye_height(self.a.hero.body))
+        point = self.hook().vars[1220].value()
+        normal = self.hook().vars[434].value()
+        self.assertIsInstance(point, Vec3)
+        self.assertAlmostEqual(point.z, 5)
+        self.assertIsInstance(normal, Vec3)
+        self.assertAlmostEqual(normal.z, -1)
         self.assertGreater(self.a.mover.position[2], 4)
         self.assertLess(self.a.mover.position[2], 5)
         self.assertFalse(self.hook().state(1).active)

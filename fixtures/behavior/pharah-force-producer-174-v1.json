@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "case_id": "pharah-force-producer-174-v1",
+  "target_build": 104319,
+  "evidence": "original-config-and-consumer-backed-real-command-regression",
+  "client_acceptance": "pending",
+  "source": {
+    "revision": "shared KB r2 ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "provenance": "Original Pharah0023/007B/002B definitions, native D6D87C ring consumer and C3268A..C3275B response26 evidence. Existing r2 projectile HIT labels are pinned only against regression, not as native clock-domain acceptance."
+  },
+  "input": {"world_birth": 1000, "owner_birth": 9000, "warmup_ticks": 30, "enemy_distance": 3},
+  "expected": {
+    "primary_enemy_health": 80,
+    "primary_hit_damage": [40, 80],
+    "primary_existing_hit_frames": [1036, 1036],
+    "primary_enemy_force": [0, 6.4, 4],
+    "concussive_enemy_health": 200,
+    "concussive_enemy_force": [0, 5, 20],
+    "concussive_self_force": [0, 5, -20],
+    "force_events_per_recipient": 1,
+    "heavy_response26": 0,
+    "barrage_character_force_events": 0
+  }
+}

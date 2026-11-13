@@ -144,9 +144,30 @@ builder layout and native component index table evidence distinguish the
 and local C++ validation do not establish original-client preview acceptance.
 Native captures, probes and generated DLLs remain external to publication.
 
+The Pharah primary projectile default was recovered from build 104319's native
+prefab default writer at RVA `16323A4` and initializer at RVA `1632D90`.
+The synthetic `pharah-projectile-default-v1.json` contract records the default
+entity identity. The original executable and extracted resources remain external
+to this source tree.
+
+Pharah's explicit projectile clock opt-in reuses the optional owner/world Shot
+adapter from the original Cassidy restoration line and the accepted-flight and
+effect-time API from the original Ana restoration line. Their synthetic release
+contract accompanies the adapter. Native visual acceptance remains pending.
+
 [zichao-zhou](https://github.com/zichao-zhou) submitted the Rialto PvE and McCree
 foundation together with scoped Ana, Mei, Winston, Pharah and shared Genji work.
 The contribution was imported from [PR #16](https://github.com/leafall903/ORPHEUS/pull/16)
 at `0b262c33844fd3263fa63dd81f0251b4a579f2be`. The import credits the PR contributor.
 The [candidate verification record](HERO_SERVER_ACCEPTANCE.md) documents the original
 coverage and the work still pending.
+
+
+<!-- Integrated owner delta: pharah-producers; original patch f68db020957580a03b75dceb29239a4f20ff8a1f718d56f3b0e5d70669fa391d -->
+
+
+- **Local Pharah104319 force research** — reused the original0023/007B/002B
+  definitions, D6D87C ring selection and C3268A..C3275B response26 consumer evidence.
+  The synthetic `pharah-force-producer-174-v1` contract drives real attacks through
+  the provisional shared receiver; it does not establish native prediction adoption,
+  complete resistance services or projectile HIT clock acceptance.

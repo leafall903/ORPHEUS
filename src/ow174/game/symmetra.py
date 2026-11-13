@@ -17,6 +17,36 @@ ORB_PROJECTILE = 0x04000000000026F1
 ORB_LIFETIME = 25.0  # 104319 projectile lifetime in seconds
 
 
+def view_world_tick(script, command, quanta):
+    """Query world history through this body's actual owner/world epoch pair."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.world_frame_anchor or script.symmetra_birth
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
+def release_tick(player, authored_ms, world_tick):
+    """Map this body's authored volley frame through its existing world epoch."""
+    script = player.body_script
+    if player.hero.guid != HERO or script is None or not hasattr(script, "symmetra_birth"):
+        return None
+    anchor_tick, anchor_frame = script.symmetra_birth
+    elapsed_ms = (authored_ms // script.frame_ms - anchor_frame) * script.frame_ms
+    return min(world_tick, anchor_tick + elapsed_ms // 16)
+
+
+def catch_up_orb(fight, rocket):
+    """Replay an admitted late orb through the existing flight and hit register."""
+    if (rocket.definition != ORB_PROJECTILE
+            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) != HERO
+            or rocket.last_tick is None or rocket.last_tick >= fight.tick):
+        return
+    from ow174.game.projectile_clock import advance_accepted
+
+    advance_accepted(fight, rocket)
+
+
 
 def target_query(world, cfg, instance):
     """Supply 157C's charge and shield-ammo target queries.
@@ -69,7 +99,7 @@ def primary(combat, player, command):
         direction = aim(*command.aim()) if active else (0.0, 0.0, 1.0)
         reach = _number(instance.evaluate({"$": "STUConfigVarDynamic",
                                           "m_identifier": 1648, "m_60DB8F99": 0}), 0.0)
-        view_tick = (command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+        view_tick = (view_world_tick(script, command, player.quanta)
                      if active else combat.tick)
         selected = None
         beam_barrier = None

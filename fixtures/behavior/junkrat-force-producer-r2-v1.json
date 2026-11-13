@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-force-producer-r2-v1",
+  "target_build": 104319,
+  "source": {
+    "shared_candidate_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+    "provenance": "Original authored 022B/096A/096B/0233 force parameters, prior original ring probes, and Reinhardt 00A4 live movement modifier26. Synthetic far-away flat scene, real ability commands; all15 stock NPC identities retained."
+  },
+  "evidence": "synthetic-actual-skill-command-producer",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "source_owner_birth": 9000,
+    "recipient_owner_birth": 12000,
+    "recipient_response": 0.7
+  },
+  "expected": {
+    "frag": {"planar": 3.5, "upward": 5.6, "health_loss": 110},
+    "mine": {"planar": 10.5, "upward": 10.5, "health_loss": 115},
+    "mine_self": {"planar": 15, "upward": 15, "health_loss": 0},
+    "tire": {"planar_rule": "6 * original_ring_horizontal(distance) * 0.7", "upward": 4.2, "damaging_contacts": 1},
+    "force_calls_per_recipient": 1,
+    "clock_field": "impact_tick in physical world time",
+    "source_field": "the blast's retained actual source_entity"
+  },
+  "limits": "Shared owner-correction and native geometry/filter/rigid-body/resistance acceptance remain pending. The fixture does not establish a general native force/mass conversion."
+}

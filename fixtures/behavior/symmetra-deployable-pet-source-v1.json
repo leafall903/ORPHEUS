@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-deployable-pet-source-v1",
+  "target_build": 104319,
+  "source": {
+    "paths": ["src/ow174/game/symmetra_portals.py", "src/ow174/game/photon_barrier.py", "src/ow174/game/npc.py", "src/ow174/game/match.py"],
+    "original_graphs": ["1571/node3", "1571/node70", "156B/node17"],
+    "provenance": "Original explicit m_D749D7D8 F7262B36(self) provider, original STUPetComponent72 mapping and isolated native F76C486C getter evidence. Wire-to-runtime native adoption remains unobserved."
+  },
+  "evidence": "actual-command-and-encrypted-create-ACK",
+  "client_acceptance": "pending",
+  "input": {
+    "owner_controller_differs_from_body": true,
+    "portal_endpoint_definitions": ["040000000000272D", "04000000000026F2"],
+    "photon_definition": "04000000000026B0",
+    "viewers": 2
+  },
+  "expected": {
+    "component72_field0": "authored-controller",
+    "initial_vm_source001B": "creator-body",
+    "portal_pet_relation_before_vm_init": true,
+    "ordinary_npc_default_relation": "unknown/no72",
+    "sentry_relation": "unknown/no-guessed-source"
+  }
+}

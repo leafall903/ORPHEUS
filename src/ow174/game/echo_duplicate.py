@@ -59,7 +59,9 @@ class Duplicates:
         fight = self.combat
         origin = fight._eye(player)
         direction = combat.aim(*command.aim())
-        view = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+        from ow174.game import echo_clock
+
+        view = echo_clock.view_world_tick(player.body_script, command, player.quanta)
         candidates = []
         collision = fight._collision()
         threshold = math.cos(math.radians(angle))

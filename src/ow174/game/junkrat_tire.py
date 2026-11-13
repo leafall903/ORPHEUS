@@ -11,7 +11,7 @@ import os
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
-from ow174.game import actors
+from ow174.game import actors, sombra_replay
 from ow174.game.collision import NOT_GROUND
 from ow174.game.commands import JUMP, Command
 from ow174.game.mover import REPEAT, WORLD_GRAVITY, Mover, MoverData, statescript_mods
@@ -147,6 +147,9 @@ class TireSystem:
                 or self.combat.is_stunned(player)):
             return
         script = player.body_script
+        born = sombra_replay.world_frame(script, command.frame)
+        if born is None:
+            born = self.combat.tick
         ability = next((a for a in script.ultimates if a.flags & nodes.Ability.RUNNING), None)
         if ability is None:
             return
@@ -218,28 +221,38 @@ class TireSystem:
         maximum, minimum = value(3, "m_value"), value(26, "m_value")
         inner, outer = value(158, "m_value"), value(159, "m_value")
         loadout = ability.evaluate(profile.node(56).field("m_modifyHealth.m_loadout"), watch=False)
-        drive_tick = self.combat.tick + math.ceil(windup / TICK)
-        arm_tick = self.combat.tick + math.ceil((windup + arm_delay) / TICK)
+        modify = profile.node(56).field("m_modifyHealth")
+        force = float(ability.evaluate(modify["m_E33EFEE1"], watch=False))
+        floor = float(ability.evaluate(modify["m_583C208B"], watch=False))
+        impulse_rings = tuple(
+            (radius, *(float(ability.evaluate(row[key], watch=False))
+                       for key in ("m_579D7CFF", "m_10399AE7")))
+            for radius, row in zip((inner, outer), modify["m_knockbackRings"], strict=True)
+        )
+        drive_tick = born + math.ceil(windup / TICK)
+        arm_tick = born + math.ceil((windup + arm_delay) / TICK)
         entity, self.next_entity = self.next_entity, self.next_entity + 1
         # Evaluate the authored selector and host only its movement modifiers.
         drive_component = runtime.Component(entity)
-        drive_component.frame = self.combat.tick
-        drive_component.now = self.combat.tick * drive_component.frame_ms
+        drive_component.frame = born
+        drive_component.now = born * drive_component.frame_ms
         drive_instance = drive_component.create(profile, init=False)
         drive_instance.node_state(profile.node(32))
         drive_instance.node_state(profile.node(23)).begin()
-        mover.track_mods(statescript_mods(drive_component), self.combat.tick - 1)
+        mover.track_mods(statescript_mods(drive_component), born - 1)
         tire = Tire(
             entity=entity, definition=BODY, kind="junkrat-tire", team=player.team,
             position=tuple(mover.position), health=health, radius=data.stand_radius,
             height=data.stand_height, owner=player, source_body=player.body,
-            created_tick=self.combat.tick, expires_tick=arm_tick + math.ceil(duration / TICK),
+            created_tick=born, expires_tick=arm_tick + math.ceil(duration / TICK),
             script=script, instance=instance, ability=ability, mover=mover, vitals=Vitals(entity, health),
             drive_tick=drive_tick, arm_tick=arm_tick, end_tick=arm_tick + math.ceil(duration / TICK),
             blast=HitDef(maximum, loadout.guid if isinstance(loadout, expr.Asset) else None,
-                         rings=((inner, 1.0), (outer, minimum / maximum))),
+                         rings=((inner, 1.0), (outer, minimum / maximum)),
+                         horizontal_impulse=force, vertical_impulse_minimum=floor,
+                         impulse_rings=impulse_rings),
             recovery=float(ability.evaluate(instance.graph.node(19).field("m_timeout"), watch=False)),
-            controls=replace(command, frame=self.combat.tick, right=0, forward=0),
+            controls=replace(command, frame=born, right=0, forward=0),
             drive=drive_instance, climb=climb,
         )
         if near_body:
@@ -253,8 +266,8 @@ class TireSystem:
                 destination = (target.x, target.y, target.z)
                 speed = math.dist(position, destination) / duration
                 if speed > 0:
-                    tire.retreat = destination, speed, self.combat.tick + math.ceil(window / TICK)
-                    tire.last_retreat_tick = self.combat.tick
+                    tire.retreat = destination, speed, born + math.ceil(window / TICK)
+                    tire.last_retreat_tick = born
         self.actors[entity] = tire
         self.combat.vitals[entity] = tire.vitals
         player.mover.velocity = (0.0, 0.0, 0.0)
@@ -273,10 +286,25 @@ class TireSystem:
         tire = self.for_player(player)
         if tire is None:
             return player.body in self.recovery
+        event = sombra_replay.world_frame(player.body_script, command.frame)
+        if event is not None:
+            tick = event
         pressed = command.buttons & ~tire.controls.buttons
         tire.controls = replace(command, frame=tick)
         if tick >= tire.arm_tick and pressed & DETONATE_BUTTONS:
-            self.finish(tire, "detonated", explode=True)
+            from ow174.game.combat import TICK
+
+            endpoint, now = self.combat.tick, self.combat.now
+            pose = next((sample for sample in reversed(tire.mover.history) if sample.frame == tick), None)
+            if pose is not None:
+                tire.mover.position[:] = pose.position
+                tire.position = tuple(pose.position)
+            try:
+                self.combat.tick = tick
+                self.combat.now = now - (endpoint - tick) * TICK
+                self.finish(tire, "detonated", explode=True)
+            finally:
+                self.combat.tick, self.combat.now = endpoint, now
         elif tick >= tire.drive_tick and pressed & JUMP:
             tire.jump_pending = True
         return True
@@ -455,7 +483,7 @@ class TireSystem:
             x, y, z = tire.mover.position
             rocket = Rocket(
                 tire.creator, tire.creator.team, (x, y + .6, z), (0, 0, 1), 0, 0, None, tire.blast,
-                source_body=tire.source,
+                source_body=tire.source, source_graph=0x0233,
             )
             self.combat._explode(rocket, rocket.position)
         if not tire.instance.stopped:

@@ -167,7 +167,10 @@ def snapshots(player) -> None:
         if log.frame is None or snapshot.frame > log.frame:
             log.write("snap", tick, **_fields(snapshot))
             log.frame = snapshot.frame
-    mods = [[mod.index, mod.op, mod.value, mod.start, mod.end, mod.priority] for mod in mover.mods.values()]
+    mods = []
+    for mod in mover.mods.values():
+        value = dataclasses.asdict(mod.value) if dataclasses.is_dataclass(mod.value) else mod.value
+        mods.append([mod.index, mod.op, value, mod.start, mod.end, mod.priority])
     if mods != log.mods:
         log.mods = mods
         log.write("mods", tick, f=log.frame, mods=mods)

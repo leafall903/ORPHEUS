@@ -1,0 +1,15 @@
+{
+  "build": "1.74.0.0.104319",
+  "scope": "Mei unique producers with shared r2 character-force host; offline candidate",
+  "provenance": "Original 0043/05E6/05FE/0636/064A/065E authored graph fields; native ModifyHealth null-provider gates and spherical rigid-body packet/receiver instruction execution. Synthetic command scenes; no game assets included.",
+  "cases": [
+    {"action": "quick melee", "input": "actual 0043 activation at target2m", "damage": 30, "HIT": 1, "forceApplications": 1, "impulse": [0, 0, 1], "forceClock": "physical world impact_tick; source actual Mei body", "ringRadius": 100, "note": "Ring radius does not extend melee contact reach"},
+    {"action": "primary spray", "input": "one actual spray contact", "damage": 2.75, "HIT": 1, "forceApplications": 0},
+    {"action": "secondary icicle", "input": "actual noncritical projectile contact", "damage": 75, "HIT": 1, "forceApplications": 0},
+    {"action": "Blizzard", "input": "actual charged throw, flight, landing and first area damage", "damage": "positive area damage", "forceApplications": 0},
+    {"action": "Cryo-Freeze", "input": "actual ability at100HP", "healing": "positive", "selfDisplacement": 0, "forceApplications": 0},
+    {"action": "Ice Wall", "input": "actual five-column confirmation", "livingDamage": 0, "characterForceApplications": 0, "rigidBodyRequests": 5, "requestSource": "each actual0932 pillar", "request": {"strength": 10, "radius": 1, "parameter": 10000, "interval": 10}, "time": "pillar VM state.start, already world milliseconds", "recipients": "existing verified spherical rigid-body host only"}
+  ],
+  "open": ["Live original-client adoption", "Native class-registration chain and exact repeat scheduling beyond the verified entry pulse", "Full rigid-prop association and all shapes", "Wall overlap lift/support owner correction", "Shared immunity/resistance and controlled receivers remain under0042 verification"],
+  "excluded": "Do not add duplicate0043 hero-if, character launch from pillar PhysicsExplosion, or self-propulsion from weapon recoil."
+}

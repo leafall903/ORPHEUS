@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "case_id": "moira-view-world-history-174",
+  "target_build": "104319",
+  "source": {
+    "world_birth": 1000,
+    "owner_births": [
+      1000,
+      9000
+    ],
+    "provenance": "Actual Moira input and A/B world-slot identity exchange, original15NPCs retained; not a screen-left claim"
+  },
+  "input": {
+    "sample_offset": 41,
+    "swap_after_offset": 33,
+    "view_delay_ms": 128,
+    "actions": [
+      "grasp",
+      "coalescence",
+      "melee"
+    ]
+  },
+  "expected": {
+    "query_world_tick": 1033,
+    "hit_owner_frame": 9041,
+    "target": "EarlierA",
+    "EarlierB_health": 200,
+    "A_health": {
+      "grasp": 199.2,
+      "coalescence": 198.88,
+      "melee": 170
+    },
+    "original_npc_count": 15
+  },
+  "fractional": {
+    "world_birth": 1000,
+    "owner_birth": 9000,
+    "frame_ms": 15,
+    "quanta_us": 15000,
+    "command_frame": 9041,
+    "view_delay_ms": 8,
+    "expected_world_view": 1037.9375
+  },
+  "client_acceptance": "pending"
+}

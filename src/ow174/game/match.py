@@ -363,6 +363,7 @@ class Player:
             self.mover.use(data if data != self.mover.data else None, collision)
         if movelog.ENABLED:
             movelog.commands(self, fresh, received=commands)
+        soldier_anchor = None
         for command in fresh:
             command = self.match.combat.hooks.input(self, command)
             if self.has_body:
@@ -429,7 +430,11 @@ class Player:
 
                     if (defenses.soldier_input_recovery_active(self) or defenses.soldier_visor_running(self)
                             or defenses.soldier_field_windup(self) or ultimate.practice_passive_clock(script)):
-                        script.world_frame_anchor = (self.match.tick, script.frame)
+                        soldier_anchor = script, self.match.tick, script.frame
+        if soldier_anchor is not None and self.body_script is soldier_anchor[0]:
+            # Every command in this packet shares the preceding accepted clock.
+            # Reanchoring midway would assign the whole batch the receive tick.
+            self.body_script.world_frame_anchor = soldier_anchor[1:]
         if movelog.ENABLED:
             movelog.snapshots(self)
         return boundary
@@ -536,7 +541,9 @@ class Player:
         from ow174.game import mccree, wall_ride
 
         script = self.body_script
-        forced = self.match.combat.orisa.movement(self)
+        if self.hero.guid == mccree.HERO:
+            mccree.apply_velocity(self, command.frame, controlled=stunned or pulled)
+        forced = self.match.combat.orisa.movement(self, command_frame=command.frame)
         if forced is not None:
             self.mover.step_pose(command, seconds, tick, move_to=forced)
             self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
@@ -555,14 +562,9 @@ class Player:
                 if isinstance(state, nodes.MoveTo) and (movement := state.move_request()) is not None
             ]
         # Echo consumes its own authored flight mode through the same swept collision path.
-        echo_request = echo_movement.request(self, command)
         data = echo_movement.effective_data(self)
         if data != self.mover.data:
             self.mover.use(data)
-        if echo_request is not None and not pulled:
-            self.mover.step_pose(command, seconds, tick, move_to=echo_request)
-            self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
-            return
         # Arbitration between simultaneous world-target states is unresolved.
         slam = None if stunned or pulled else fight.slams.movement(self)
         if slam is not None:
@@ -655,8 +657,16 @@ class Player:
                 self.mover.step_pose(command, seconds, tick, movement_limit=movement_limit,
                                      speed_scale=speed_scale, flight_profile=flight_profile)
             elif movement_limit is None:
-                mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned,
-                                       speed_scale=speed_scale)
+                if self.hero.guid == SOLDIER or (self.hero.guid != mccree.HERO and not stunned):
+                    from ow174.game import npc_contacts
+
+                    # This branch has no independent dash, charge or flight
+                    # solver. Reuse NPC peers for ordinary movement; Cassidy
+                    # retains its own Roll/contact correction path below.
+                    npc_contacts.step_pose(self, command, seconds, tick, speed_scale=speed_scale)
+                else:
+                    mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned,
+                                           speed_scale=speed_scale)
             else:
                 self.mover.step_pose(command, seconds, tick, movement_limit=movement_limit,
                                      speed_scale=speed_scale)
@@ -703,7 +713,8 @@ class Player:
         script = self.body_script
         if script is not None and command.frame <= script.frame and script.hero == moira.MOIRA:
             # A late movement pose cannot resample an ability on an already evaluated body frame.
-            return
+            if not moira.replay_orb_selection(self, command):
+                return
         if self.body_script is not None:
             from ow174.game import bob_victim
             bob_victim.sample(self, self.body_script.component)
@@ -1070,10 +1081,16 @@ class Match:
             EntityUpdate(viewer.entity, OP_CREATE, lambda origin: self._player_create(origin, viewer))
         )
         updates.append(EntityUpdate(GAME_MODE_ENTITY, OP_CREATE, self._game_mode_create))
-        updates.extend(self._bot_create_update(bot) for bot in self.bots)
+        updates.extend(self._bot_create_update(bot, viewer) for bot in self.bots)
         if self.scene_host is not None:
             updates.extend(self.scene_host.spawned_entity_updates())
-        updates.extend(self.combat.deployable_create(actor) for actor in self.combat.deployables.values())
+        from ow174.game import ice_wall
+
+        for actor in self.combat.deployables.values():
+            if actor.definition == ice_wall.PILLAR:
+                viewer.seen[actor.entity] = False
+            updates.append(self.combat.deployable_create(actor))
+        updates.extend(self.combat.junkrat.trap_creates())
         if self.bots:
             self.bots_shown[viewer.slot] = self.tick
         for other in self.players:
@@ -1081,8 +1098,12 @@ class Match:
                 updates.append(self.remote_body_create(viewer, other))
         return updates
 
-    def _prepare_bot_script(self, bot: bots.Bot) -> None:
+    def _prepare_bot_script(self, bot: bots.Bot, *, born_tick: int | None = None, source_entity: int | None = None) -> None:
         record = graph.entity_body(bot.body)
+        if record is None and bot.spawner.get('manual_hero_target') is True:
+            selected = heroes().get(bot.hero)
+            if selected is not None and selected.body == bot.body:
+                record = graph.bodies().get(bot.body)
         if record is None:
             return
         try:
@@ -1094,6 +1115,9 @@ class Match:
             context = {} if components is None else {"controller_components": components}
             manual_rialto_spawn = (self.game_map.map_guid == 0x080000000000079F
                                    and bot.spawner.get("manual_spawn") is True)
+            manual_nameplate = (manual_rialto_spawn
+                                or (self.game_map.mode_guid == PRACTICE_RANGE.mode_guid
+                                    and bot.spawner.get("manual_spawn") is True))
             controller_entity = None
             association = None
             if (record.get("controller") is None and bot.spawner.get("manual_spawn") is True
@@ -1110,15 +1134,18 @@ class Match:
                     raise ValueError('NPC controller allocator exhausted or collided')
                 self.combat.next_bot += 1
             bot.body_script = BotScript(
-                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
+                bot.body, bot.hero, bot.entity, self.tick if born_tick is None else born_tick,
+                self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
-                manual_nameplate=manual_rialto_spawn,
-                nameplate_name=bot.name if manual_rialto_spawn else None,
+                manual_nameplate=manual_nameplate,
+                nameplate_name=bot.name if manual_nameplate else None,
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
                 controller_entity=controller_entity, match=self,
                 manual_controller_definition=manual_definition, body_position=bot.position,
+                source_entity=source_entity,
                 difficulty_index=bot.spawner.get("difficulty_index"),
+                record=record,
             )
             component = getattr(bot.body_script, "component", None)
             if isinstance(component, runtime.Component):
@@ -1126,20 +1153,33 @@ class Match:
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
-    def _bot_create_update(self, bot: bots.Bot) -> EntityUpdate:
+    def _bot_create_update(self, bot: bots.Bot, viewer: Player | None = None) -> EntityUpdate:
         # A later viewer cannot depend on the globally cleared health dirty bits.
         # Freeze its initial pools here so retransmitting the create keeps the same baseline.
         vitals = self.combat.vitals.get(bot.entity)
         components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.most)
         components[26] = [TEAM_BIT << bot.team]
+        if bot.pet_owner is not None:
+            components[72] = [bot.pet_owner]
+        if bot.spawner.get('manual_hero_target') is True:
+            components[123] = [bot.hero]
+        if bot.hero == dva.HERO and bot.body == dva.MECH and bot.owner is not None:
+            # Native0407 inherits CharacterBody123. Leaving its hero null breaks
+            # the possessed body's character context; ordinary NPCs lack123.
+            components[123] = [dva.HERO]
         definition, position, rotation = bot.body, bot.position, _rotation(bot.yaw)
+        from ow174.game import dva_owner
+
+        movement = deepcopy(dva_owner.create_movement(bot, viewer))
         return EntityUpdate(
             bot.entity, OP_CREATE,
-            lambda origin: self._bot_create(origin, definition, components, position, rotation),
+            lambda origin: self._bot_create(origin, definition, components, position, rotation,
+                                           movement=movement),
         )
 
     @staticmethod
-    def _bot_create(origin: int, definition: int, components: dict, position, rotation) -> world.RecordWriter:
+    def _bot_create(origin: int, definition: int, components: dict, position, rotation,
+                    *, movement: Movement | None = None) -> world.RecordWriter:
         """A training bot's body, as a player's body on another client: placed by its transform, moved
         by movement records from the next frame on. Without a player body's 123 (the hero): the bots'
         bodies have no such component, and the client fails the whole frame on one it cannot place
@@ -1147,6 +1187,7 @@ class Match:
         22, 24, 25, 26, 28, 31, 35, 39, 43, 47, 49, 51, 69, 76, 78, 83, 86, 90, 97, 115, 119, 122, 127)."""
         return world.create(
             origin, definition, components, flags=BODY_FLAGS, position=position, rotation=rotation,
+            movement=movement,
         )
 
     def publish_bot(self, bot: bots.Bot) -> None:
@@ -1154,7 +1195,7 @@ class Match:
         bot.records_from = self.tick + BOT_RECORD_DELAY
         for viewer in self.players:
             if viewer.client is not None and viewer.spawned:
-                viewer.client.queue_entities([self._bot_create_update(bot)])
+                viewer.client.queue_entities([self._bot_create_update(bot, viewer)])
                 self.bots_shown.setdefault(viewer.slot, self.tick)
 
     @staticmethod
@@ -1346,6 +1387,8 @@ class Match:
             updates.extend(self.scene_host.spawned_entity_movements(viewer))
         if client is not None and shown is not None and self.tick - shown >= BOT_RECORD_DELAY:
             for bot in self.bots:
+                if bot is viewer.controlled_mech:
+                    continue  # the current owner gets an exact command-frame correction below
                 if not client.bot_create_acked(bot.entity) or not bot.record_due(self.tick, SEND_EVERY):
                     continue
                 movement = bot.movement(self.tick)
@@ -2021,7 +2064,10 @@ class Match:
         """This tick's frames of the body's statescript: the full frame, then owner frames."""
         try:
             script = player.body_script
-            from ow174.game import defenses, ultimate
+            from ow174.game import defenses, dva_owner, ultimate
+
+            if dva_owner.park_pilot(player, client):
+                return
 
             anchor = script.world_frame_anchor
             if (anchor is not None and script.frame > anchor[1] and script.stream.cmfd >= anchor[1]

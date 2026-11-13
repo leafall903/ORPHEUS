@@ -1,5 +1,17 @@
 """Original023B Hypersphere profile on the shared Rocket host."""
+from ow174.game import projectile_clock
 from ow174.game.script import expr
+
+
+def advance(fight, rocket):
+    """Opt in only the original spheres/rock with a mapped world launch tick."""
+    if ((rocket.source_graph, rocket.definition) not in (
+            (0x187F, 0x0400000000002D35),
+            (0x187F, 0x04000000000032B4),
+            (0x1BBB, 0x04000000000018B7)) or type(rocket.last_tick) is not int):
+        return False
+    projectile_clock.advance_accepted(fight, rocket)
+    return True
 
 
 def hypersphere_motion(state):

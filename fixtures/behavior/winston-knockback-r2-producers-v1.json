@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "winston.r2-actual-force-producers.v1",
+  "target_build": 104319,
+  "dependency_digest": "ff400a0565e4ef050528d29309c81795b517666ebbb6c12e269f9bfc2f59544a",
+  "input": {"world_birth": 1000, "source_birth": 9000, "recipient_birth": 200, "fortify_recipient_birth": 1000},
+  "expected": {"source_entity": "actual caster body", "impact_tick": "world birth plus source owner frame minus source birth", "damage_and_force_dispatch": "one each per accepted activation", "quick_melee_legacy_winston_calls": 0, "tesla_force_dispatch": 0, "barrier_force_dispatch": 0},
+  "native_evidence": "Reuse prior104319 Winston force/default arithmetic, XML rows010A/00FE/0043 and same-callsite0003 defaults; no new gameplay parameters.",
+  "native_acceptance": "pending shared0042 verification; server record eligibility is not native adoption"
+}

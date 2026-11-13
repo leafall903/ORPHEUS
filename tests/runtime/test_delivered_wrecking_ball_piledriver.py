@@ -163,7 +163,8 @@ class PiledriverTests(unittest.TestCase):
         def steer_and_fire(button):
             run.frame += 1
             run.match.update(run.frame * combat.TICK, run.frame)
-            yaw, pitch = aim(fight._eye(enemy), fight._eye(player))
+            x, y, z = player.mover.position
+            yaw, pitch = aim(fight._eye(enemy), (x, y + 1.0, z))
             command = Command(run.frame, yaw=yaw, pitch=pitch, right=127, buttons=button, extra=0)
             enemy.take_commands([command])
 

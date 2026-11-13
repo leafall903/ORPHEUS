@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "mccree-flashbang-clock-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/mccree.py", "src/ow174/game/script/driver.py"],
+    "note": "Synthetic command delivery schedules on the production command queue and flight host. Birth-pair mapping is an explicit server reconstruction, without original epoch-parity evidence. Baseline restart-at-arrival behavior delayed the identical short flight by 28 ticks for a 32-command batch."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending for batched timing; original-client ordinary throw, trail, explosion and 25 damage were observed separately",
+  "input": {
+    "cast_offset": 4,
+    "commands": 40,
+    "observe_ticks": 64,
+    "cases": [
+      {"batch": 1, "jitter": 0, "command_origin": 1020},
+      {"batch": 8, "jitter": 0, "command_origin": 9000},
+      {"batch": 8, "jitter": 7, "command_origin": 9000},
+      {"batch": 32, "jitter": 7, "command_origin": 9000}
+    ]
+  },
+  "expected": {
+    "launch_world_offset": 4,
+    "flight_seconds": 0.23333333333333334,
+    "same_expiry_position": true,
+    "late_packet_restarts_flight": false,
+    "birth_pair_changes_with_packet_delivery": false,
+    "body_replacement_gets_new_birth_pair": true
+  }
+}

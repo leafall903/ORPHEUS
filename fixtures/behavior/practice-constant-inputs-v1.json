@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "practice-constant-inputs-v1",
+  "target_build": 104319,
+  "source": {"revision": "ea47294324376ff0317780d7f6df12d28672b647", "scope": "Lifetime-constant stock Practice mode inputs; live variables and other native queries retain their dependencies."},
+  "evidence": "synthetic-conditional-with-production-bot-host",
+  "client_acceptance": "pending; latency root trigger unresolved",
+  "input": {"entity_variable": 700, "values": [false, true, false], "frames_between_changes": 8},
+  "expected": {"switch_values": [false, true, false], "eligible_heroes": [363, 364, 365, 366]}
+}

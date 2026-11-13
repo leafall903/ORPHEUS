@@ -15,6 +15,15 @@ TURRET = 0x04000000000028B7
 log = logging.getLogger("ow174.game")
 
 
+def view_world_tick(script, command, quanta):
+    """Query target history in world time; leave attack/HIT owner labels intact."""
+    from ow174.game.combat import TICK
+
+    world, owner = script.world_frame_anchor or script.torbjorn_birth[:2]
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / round(TICK * 1000)
+
+
 def preserve_cast_during_control(state):
     """Selected control policy for an already-applied Overload buff.
 
@@ -180,7 +189,7 @@ def hammer(fight, player, command, script):
     if traps is not None:
         traps.melee(player, origin, centre, 1.0, amount, contacted=contacts.barrier_hit)
     contacts.hit.update(protected)
-    view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+    view_tick = view_world_tick(script, command, player.quanta)
     for target in fight._enemies(player):
         if target.entity in contacts.hit:
             continue
@@ -334,7 +343,7 @@ def _control_context(fight, turret):
     _owner_turret_var(turret.owner, turret.actor.entity)
 
 
-def deploy_turret(fight, owner, position):
+def deploy_turret(fight, owner, position, *, born_tick=None):
     """Prepared-data factory; build/selection/muzzle services are reconstructed."""
     from ow174.game import npc
     from ow174.game.script import graph
@@ -344,21 +353,26 @@ def deploy_turret(fight, owner, position):
     position = tuple(position)
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError("turret placement needs three finite coordinates")
+    if born_tick is not None and (type(born_tick) is not int or not 0 <= born_tick <= fight.match.tick):
+        raise ValueError("turret birth tick must be an observed world tick")
     config = (graph._data().get("deployables") or {}).get("turret")
     if not isinstance(config, dict) or graph.entity_body(TURRET) is None:
         raise ValueError("Torbjorn turret requires the explicit prepared deployable graph bundle")
     destroy_turret(fight, owner)
     config = dict(config)
     actor = npc.spawn(fight.match, npc.Definition(HERO, TURRET, "Torbjorn Turret", config["maximum_health"]),
-                      position, team=owner.team, current_health=config["initial_health"])
+                      position, team=owner.team, current_health=config["initial_health"], born_tick=born_tick)
     actor.spawner["manual_spawn"] = False
     actor.combat_owner = owner
     if actor.body_script is not None:
         actor.body_script.component.world.match = fight.match
     actor.combat_geometry = (config["height"], config["radius"], config["height"] * 0.75, False)
     actor.retain_corpse = True  # manager owns destruction; never schedule training-bot respawn
-    end = fight.now + config["build_seconds"]
-    turret = Turret(owner, actor, config, fight.now, end, fight.now, end)
+    from ow174.game.combat import TICK
+
+    born = fight.now if born_tick is None else fight.now - (fight.tick - born_tick) * TICK
+    end = born + config["build_seconds"]
+    turret = Turret(owner, actor, config, born, end, born, end)
     fight.turrets[owner.entity] = turret
     _owner_turret_var(owner, actor.entity)
     return turret
@@ -457,7 +471,11 @@ def projectile_impact(fight, rocket, point, struck):
     origin = (point[0], point[1] + 0.05, point[2])
     hit = fight._collision().cast_ray(origin, (0.0, -1.0, 0.0), 0.1)
     if hit is not None and abs(hit.normal[1]) >= 0.707:
-        deploy_turret(fight, rocket.shooter, hit.point)
+        from ow174.game.combat import TICK
+
+        born_tick = (rocket.launch_tick + math.ceil(rocket.flown / TICK)
+                     if rocket.launch_tick is not None else None)
+        deploy_turret(fight, rocket.shooter, hit.point, born_tick=born_tick)
 
 
 def update_turrets(fight):

@@ -66,10 +66,14 @@ class Blizzard:
         shot = self.combat.projectiles.fired(
             player, state, shot_frame, DEFINITION, lifetime, origin, direction,
             activation=activation, snapshot=snapshot,
+            clock_origin=mei.projectile_clock_origin(player),
         )
+        launch_tick = mei.world_frame(player, shot_frame)
+        if launch_tick is None:
+            launch_tick = self.combat.tick
+        damage_scale = nano.offense(self.combat, player.body) * self.combat.orisa.superchargers.scale(player)
         self.flights.append(Flight(player, player.body, origin, tuple(speed * d for d in direction),
-                                   gravity, lifetime, self.combat.tick, shot,
-                                   damage_scale=nano.offense(self.combat, player.body) * self.combat.orisa.superchargers.scale(player)))
+                                   gravity, lifetime, launch_tick, shot, damage_scale=damage_scale))
         return True
 
     def retire(self, body):

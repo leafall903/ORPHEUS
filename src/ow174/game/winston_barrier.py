@@ -3,6 +3,7 @@
 import math
 from dataclasses import dataclass
 
+from ow174.game import world
 from ow174.game.script import expr, graph, runtime
 
 HERO = 0x02E0000000000009
@@ -82,3 +83,44 @@ class DomeWorld(runtime.World):
             self.manager.pending.append((actor, dict(params)))
             return
         super().send_message(target, message, params, sender)
+
+
+def projection(fight, entity):
+    from ow174.game import observers
+
+    actor = fight.barriers.world.actors.get(entity)
+    if actor is not None and actor.component is not None:
+        return observers.SceneBody(actor.component)
+    return None
+
+
+def sync(manager):
+    """Publish the existing sphere entity and its authored 00FC component."""
+    live = {entity: actor for entity, actor in manager.actors.items()
+            if not actor.retired and actor.component is not None}
+    manager.wire_entities.update(live)
+    for viewer in manager.fight.match.players:
+        client = viewer.client
+        if client is None or not viewer.spawned or viewer.gone:
+            continue
+        for entity in manager.wire_entities - live.keys():
+            if entity in viewer.seen:
+                del viewer.seen[entity]
+                client.queue_entities([world.EntityUpdate(entity, world.OP_DESTROY)])
+        for entity, actor in live.items():
+            # #253 is derived from component 51 on the native client and is
+            # excluded from VM snapshots. The collision pool must travel too.
+            components = {26: [actor.owner.team_bit]}
+            components.update(world.health(actor.health, actor.maximum))
+            if entity not in viewer.seen:
+                viewer.seen[entity] = False
+                client.queue_entities([world.EntityUpdate(
+                    entity, world.OP_CREATE,
+                    lambda origin, c=components, point=actor.point:
+                        world.create(origin, DEFINITION, c, position=point),
+                )])
+            elif client.bot_create_acked(entity):
+                client.queue_body_health(entity, components)
+            client.queue_bot_live(entity, projection(manager.fight, entity).latest_live)
+    manager.wire_entities.intersection_update(
+        set(live) | {entity for viewer in manager.fight.match.players for entity in viewer.seen})

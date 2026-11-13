@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "case_id": "mei-projectile-delivery-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/mei.py", "src/ow174/game/mei_blizzard.py", "src/ow174/game/projectiles.py", "tests/runtime/test_mei_projectile_delivery.py"]
+  },
+  "evidence": "synthetic-encrypted-production-protocol-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "scene": "Two synthetic players; actual Mei replacement with owner frame9000 at world1030; warm up 30 accepted frames",
+    "clock_origin": [1030, 9000, 16],
+    "commands": "Encrypted Client packets: one secondary or ultimate press, then neutral commands",
+    "owner_ack": "Hold positive ACKs until step65; replay held encrypted ACKs after retirement",
+    "observer_ack": "Immediate encrypted ACKs",
+    "seed": null,
+    "packet_loss": "Delayed owner ACKs; no lost observer packets",
+    "cases": ["icicle body hit", "icicle natural range expiry", "Blizzard landing", "replace after owner create/confirmation but before Shot retirement"]
+  },
+  "expected": {
+    "final_world": 1220,
+    "pending_physical_flights": 0,
+    "pending_shots": 0,
+    "pending_observer_proxies": 0,
+    "owner_order": ["create", "destroy"],
+    "observer_order": ["create", "launch", "destroy"],
+    "retirement_bound": "release_at + DELIVERY_GRACE_TICKS + 1",
+    "native_release": "Decode original FFFFFFFF baseline plus delta to a source-owner frame ahead of Shot.frame; replacement may retire without an explosion",
+    "icicle_damage": 75,
+    "owner_hit_notices": 1,
+    "replacement": "Shot keeps the captured old-body clock and network labels",
+    "late_ack": "All created owner aliases and observer proxy retain dead client lifecycle generations"
+  },
+  "limits": "Real encryption, Client, command dispatch, transport ACKs and wire decoding with an in-memory socket. No original-client model/effect/audio acceptance."
+}

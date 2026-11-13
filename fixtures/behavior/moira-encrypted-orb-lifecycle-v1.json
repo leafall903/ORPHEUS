@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "case_id": "moira-encrypted-orb-lifecycle-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "shared_candidate": "Cassidy projectile-owner-clock 2026-11-13; opt-in Moira sources only"
+  },
+  "evidence": "encrypted GameServer Client packets and ACKs in memory, original command/volley path",
+  "client_acceptance": "pending",
+  "input": {
+    "owner_origin": 9000,
+    "world_origin": 1020,
+    "owner_frame_ms": 16,
+    "neutral_warmup": 20,
+    "natural_lifetime_seconds": 7,
+    "owner_ack_delays": [
+      445,
+      520
+    ],
+    "frames": 530,
+    "replacement_owner_origin": 20000,
+    "definitions": [
+      "0x0400000000001E60",
+      "0x0400000000001E61"
+    ]
+  },
+  "expected": {
+    "captured_clock": [
+      1020,
+      9000,
+      16
+    ],
+    "single_logical_create_destroy_per_viewer": true,
+    "native_release_in_captured_owner_epoch": true,
+    "late_ack_keeps_retired_generation_dead": true,
+    "late_ack_after_grace_has_no_launch_or_explosion_release": true,
+    "old_shot_clock_survives_body_replacement": true,
+    "shot_and_observer_registry_empty_after_retirement": true
+  }
+}

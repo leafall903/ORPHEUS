@@ -9,7 +9,7 @@ import math
 from dataclasses import replace
 
 from ow174.game import velocity
-from ow174.game.mover import ADD, MULTIPLY, TURN, f32
+from ow174.game.mover import ADD, SET, TURN, f32
 from ow174.game.script import expr
 
 HERO = 0x02E0000000000079
@@ -138,7 +138,7 @@ def action(instance, node):
             or not isinstance(vector, expr.Vec3) or not all(map(math.isfinite, vector))):
         return NotImplemented
     key = (instance.id << 48) | (node.rid << 32) | ((frame & 0xFFFF) << 16)
-    changes = (velocity.numeric(frame, 3, MULTIPLY, scalar),
+    changes = (velocity.numeric(frame, 3, SET, scalar),
                velocity.vector(frame, ADD, tuple(vector), player.mover.velocity))
     for index, change in enumerate(changes):
         velocity.enqueue(player.mover.velocity_changes, replace(change, key=key | index))

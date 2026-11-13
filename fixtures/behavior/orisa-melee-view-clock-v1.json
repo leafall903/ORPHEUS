@@ -1,0 +1,15 @@
+{
+  "schema": "orpheus.orisa-melee-view-clock.v1",
+  "provenance": "Adapted existing Ball/76 identity-exchange case to actual Orisa0043 melee input; original15NPCs retained; synthetic world positions are not screen-left/right",
+  "world_birth": 1000,
+  "owner_births": [1000, 9000],
+  "attack_offset": 41,
+  "exchange_after_offset": 36,
+  "view_delay_ms": 128,
+  "front_offset": [0, 0, 1.5],
+  "off_axis_offset": [3, 0, 1.5],
+  "expected_npcs": 15,
+  "expected_view_world_tick": 1033,
+  "expected_health": [170, 200],
+  "native_acceptance": "pending; target identity and owner HIT frame only"
+}

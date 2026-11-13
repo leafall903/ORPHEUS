@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-controlled-movement-v1",
+  "target_build": "104319",
+  "source": {"revision": "ea47294324376ff0317780d7f6df12d28672b647", "paths": ["src/ow174/game/correction.py", "src/ow174/game/match.py"]},
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {"hero": "02E000000000007A", "controlled_definition": "0400000000000407", "settle_commands": [1001, 1070], "commands": {"frames": [1071, 1078], "forward": 127, "jump_frame": 1071}, "packet_frame": 1075, "schedule": ["select record", "fail socket send", "retry same packet frame", "drop datagram ACK", "send packet frame1076", "release control", "rebind same body with new mover"]},
+  "expected": {"owner_records_per_packet": 1, "target": "current controlled mech, not parked pilot", "state_frame": 1075, "throttles": [0, 127], "position_flags_gravity_spring": "exact mover history snapshot at1075", "command_ack": 1077, "failed_send_corrected": null, "successful_send_corrected": 1075, "next_record_frame": 1076, "old_token_after_release_or_rebind": "ignored", "pilot_after_return": "normal own-body command-frame record", "missing_create_ack_dead_or_detached_current": "no owner record", "other_viewers": "existing ordinary NPC record", "npc_record_to_current_owner": "omitted"},
+  "native_provenance": "Captured original43/44 identify current0407 ownership; original ch3 local-body branch feeds controller59 and compares exact-frame prediction. This fixture verifies the production server's matching transport contract, not original-client movement, Boosters or SelfDestruct acceptance."
+}

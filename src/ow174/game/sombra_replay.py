@@ -1,7 +1,7 @@
 """Replay Sombra owner timers and accepted actions without inventing input."""
 
 from ow174.game import sombra_camo, translocators
-from ow174.game.commands import Command
+from ow174.game.commands import MAX_COMMANDS, Command
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import nodes
 
@@ -119,12 +119,16 @@ def advance_applications(match, tick):
                     component.frame, component.now = saved_frame, saved_now
 
 
-def _next_frame(script, fight, player):
+def _next_frame(script, fight, player, passive_target):
     if (player.body in fight.translocators.recall_poses or translocators.replay_pending(script)
             or _emp_pending(script)):
         return script.frame + 1
     camo = sombra_camo.next_frame(script)
     charge = fight.sombra_charge.next_passive_frame(script)
+    # Passive charge alone must not consume the acknowledged client's retained
+    # input window. Accepted ability reactions still use their original deadline.
+    if charge is not None and charge > passive_target:
+        charge = None
     if camo is None:
         return charge
     return camo if charge is None else min(camo, charge)
@@ -147,6 +151,17 @@ def world_frame(script, frame, world_ms=16):
     return at + (frame - body) * script.frame_ms // world_ms
 
 
+def view_world_tick(fight, player, command, quanta):
+    """Pistol view time from this body's captured birth pair, without rounding."""
+    script = player.body_script
+    epoch = fight.knockbacks.body_epochs.get(player.body)
+    if epoch is None or epoch[0] is not script or epoch[1] is None:
+        raise ValueError("Sombra view query requires the current body's observed birth clock")
+    world, owner = epoch[1]
+    elapsed_ms = (command.frame - owner) * script.frame_ms - command.view_delay(quanta) * 1000
+    return world + elapsed_ms / 16
+
+
 def replay_player(fight, player, tick, dt):
     """Replay accepted owner reactions through a world tick, without new input."""
     match = fight.match
@@ -159,13 +174,14 @@ def replay_player(fight, player, tick, dt):
     target = body_frame(script, tick, round(dt * 1000))
     if target is None or target >= MAX_LEASE_FRAME or target <= script.frame:
         return
+    passive_target = target - (MAX_COMMANDS if script.create_arrived else 0)
     scheduled = match.tick, fight.tick, fight.now
     mover = player.mover
     try:
         for step in range(REPLAY_STEPS):
             if player.body_script is not script or fight.is_dead(player):
                 break
-            frame = _next_frame(script, fight, player)
+            frame = _next_frame(script, fight, player, passive_target)
             if frame is None or frame > target:
                 break
             if step == 0:

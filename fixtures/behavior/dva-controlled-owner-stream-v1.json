@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-controlled-owner-stream-v1",
+  "target_build": "104319",
+  "source": {"revision": "ea47294324376ff0317780d7f6df12d28672b647", "paths": ["src/ow174/game/server.py", "src/ow174/game/script/driver.py", "src/ow174/game/dva_owner.py"]},
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "world_frame": 1000,
+    "body_frame": 1000,
+    "input_seed": 0,
+    "movement": [0, 0],
+    "schedule": ["create mech", "ACK create", "plain full script", "ACK plain full", "first owner delta", "withhold ACK", "ACK owner delta", "release control", "plain full reset", "ACK reset"],
+    "active_owner_only_example": {"graph": 1290, "state": 30, "role": "Fusion Cannons HUD presenter"}
+  },
+  "expected": {
+    "owner_flags": [true, false],
+    "owner_cmfd": 1000,
+    "owner_hud_health": {"initial": [600, 600], "on_damage": "current follows authoritative remaining pools; maximum retains authoritative maximum", "missing_health": "omit; do not fabricate", "native_derived_253": "not sent"},
+    "while_owner_unacknowledged": "retain and retry the same owner chunk; no second frame",
+    "without_new_body_frame": "no repeated CmFD",
+    "on_release": "higher chunk index plain full baseline clears owner-only HUD before remote deltas",
+    "uncontrolled_and_other_viewers": "plain observer projection"
+  },
+  "parked_primary_pilot": {
+    "evidence": "Original104319 validated43 owner is0 on parked pilot while current mech owner is the controller; production formerly continued H1 on the pilot.",
+    "while_mech_controlled": "normal H0 remote full and deltas retain authored remote states; no pilot owner CmFD",
+    "on_return": "resume pilot owner frames at its advanced body frame",
+    "on_reparking": "higher-index H0 full clears previous owner states and retains current remote states",
+    "loss": "pending full/delta ACK blocks new chunks; remote deltas retry the same chunk",
+    "scope": "Restores omitted H0 states including weapon cosmetic and EntityControl; native pilot visibility remains pending"
+  }
+}

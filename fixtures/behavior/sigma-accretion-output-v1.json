@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "sigma-accretion-output-v1",
+  "target_build": "104319",
+  "source": {
+    "reference_revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/accretion.py", "src/ow174/game/projectiles.py"],
+    "reference": "Original 1BBB node9 declares m_505472EF entity20360; node53 tests busy10473 and not Exists(20360). Its false branch aborts node31 and starts node44."
+  },
+  "evidence": "synthetic-production-flight-and-encrypted-owner-observer-delivery",
+  "client_acceptance": "pending; original session lacked main rock and retained E pose",
+  "input": {"button": 16, "target_distance_m": 6, "tick_ms": 16, "frames": 150, "packet_loss": []},
+  "expected": {
+    "health_after": 130,
+    "projectile_output_before_launch": 0,
+    "output_matches_all_delivery_entity_ids": true,
+    "flight_registered_during_validity_query": true,
+    "authored_recovery_observed": true,
+    "windup_and_recovery_inactive_after_flight": true,
+    "entity_query_absent_after_flight": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "case_id": "dva-projectile-clock-v1",
+  "target_build": "104319",
+  "source": {"revision": "ea47294324376ff0317780d7f6df12d28672b647", "paths": ["src/ow174/game/dva.py", "src/ow174/game/combat.py"]},
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "world_quantum_ms": 16,
+    "policy": "immutable body birth pair; earliest world tick reaching the authored event",
+    "cases": [
+      {"graph": 696, "birth": [100, 40], "body_quantum_ms": 16, "event_ms": 640, "launch_tick": 100},
+      {"graph": 696, "birth": [100, 40], "body_quantum_ms": 16, "event_ms": 657, "launch_tick": 102},
+      {"graph": 4392, "birth": [100, 40], "body_quantum_ms": 20, "event_ms": 820, "launch_tick": 102},
+      {"graph": 4392, "birth": [100, 40], "body_quantum_ms": 20, "event_ms": 832, "launch_tick": 102},
+      {"graph": 4392, "birth": [100, 40], "body_quantum_ms": 20, "event_ms": 832.125, "launch_tick": 103}
+    ]
+  },
+  "expected": {"batch_sizes": [1, 8, 32], "same_world_endpoint": "equal flight cursor, travelled time, remaining life, position, target health and owner HIT count"}
+}
