@@ -578,7 +578,8 @@ def _write_entity(out: BitWriter, item: EntityUpdate, tick: int | None = None) -
 
 def frame(tick: int, ack: int, reliable=(), unreliable=(), entities=(), *, entity_cache=None) -> bytes:
     """A kind-1 payload. The messages are messages.write_channel's; they are written into the frame
-    itself, because their padding is to a byte of the payload."""
+    itself, because their padding is to a byte of the payload. ``entity_cache`` is retained for caller
+    compatibility; mutable records must be encoded again on each budget attempt."""
     out = BitWriter()
     out.var_a(tick)
     messages.write_channel(out, reliable, unreliable)
@@ -592,16 +593,5 @@ def frame(tick: int, ack: int, reliable=(), unreliable=(), entities=(), *, entit
         raise ValueError("at most 127 entities per frame")
     out.bits(len(entities), 7)
     for item in entities:
-        if entity_cache is not None and type(item) is EntityUpdate and not item.op:
-            # Chunk/ch2/movement-only records have no origin-dependent builder.
-            # A send's budget trials can reuse their bits without changing offsets.
-            key = item, tick
-            encoded = entity_cache.get(key)
-            if encoded is None:
-                encoded = BitWriter()
-                _write_entity(encoded, item, tick)
-                entity_cache[key] = encoded
-            out.append(encoded)
-        else:
-            _write_entity(out, item, tick)
+        _write_entity(out, item, tick)
     return out.getvalue()

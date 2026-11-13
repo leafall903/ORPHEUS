@@ -854,3 +854,30 @@ selection, reduced roster, changed tick or native acceptance is implied.
 Running49 remains unchanged; all original hero/model/force/color/Halloween
 full-wave/native boundaries stay OPEN. Packet-budget cache exploration remains
 external qualification and is not part of56.
+
+## Mutable packet records use fresh encoding on every retry (batch57)
+
+Remove identity-only whole-record reuse in world.frame. Keep entity_cache as an
+accepted keyword for internal caller compatibility; it no longer stores/reads
+encoded results. Every record goes through the unchanged original writer, in
+the original order and at the current output offset on every budget trial.
+Builders still execute in place, including exceptions and effects on prior or
+later record data. Current Movement/chunk/ch2 values must appear after mutation;
+invalid float yaw must raise instead of matching integer1 through old cache.
+
+Exact parent56 reproduces four failing subcases in two new contract methods.
+Correctness child47333 and two existing correction/ACK-loss methods pass4 total
+with recorded elapsed3.693s including loading; composed new methods pass0.067s.
+Removing the old cache branch and
+normalizing only the frame docstring makes the complete world module AST equal
+the child. No writer/codec/builder/budget/ACK/schema/fields change is included.
+
+This deliberately withdraws an invalid optimization. Re-encoding can increase
+budget encoding cost; there is no performance improvement claim. Two external
+typed/channel cache prototypes were rejected for complete-send net regression;
+v1/v2 raw evidence and deterministic alias-backlog limits remain external. No
+typed keys, trusted windows, channel cache or speculative full-frame capture is
+included. No new20/profile is run for this correctness-only57; prior56 core
+133.8397/177.8003ms RED is not inherited as57 performance acceptance.
+Selected total331=310new+21maintained. Runtime49 remains unchanged; all original
+whole-hero/presentation/Halloween full-wave/native and16ms goals remain OPEN.
