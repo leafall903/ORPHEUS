@@ -12,7 +12,7 @@ by a game message, each scaled by ruleset keys. The cost is in the same points.
 ORPHEUS does not play those nodes. It charges by its own code, which filled every meter in 60 s.
 The passive now adds 5 points a second, as the graph does. The charge from combat is still a
 placeholder. The graph gives a point for a point of damage dealt and of healing done, and has no
-entry for an elimination.
+entry of its own for an elimination.
 
 An earlier version of this note said no graph adds charge. That was wrong: the scan behind it
 looked at a truncated list and at an XML dump that leaves expressions out.
@@ -66,36 +66,58 @@ Read from data. Four message entries add an amount the message carries:
 
 | Message | Who posts it | What it carries | What `0B8B` sets |
 |---|---|---|---|
-| `0012.025` | no graph: the engine. 124 entries in 109 graphs take it | damage dealt: the amount (`0013.0A4`), the body hit (`0015.0A4`), the hit's tags (`003D.0A4`) | node 23: `min(#338e, #342e + #336 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
-| `0148.025` | no graph. Only `0B8B` takes it | the same three parameters | node 23 too, and only when the tags hold identifier `090D` |
-| `0044.025` | no graph: the engine. 16 graphs take it | healing done: the amount (`0040.0A4`), the body healed (`003F.0A4`), a kind (`0041.0A4`) | node 32: `min(#338e, #342e + #499 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
-| `00EB.025` | eight SendGameMessage nodes: `006B` 189, `0B9E` 80, `0CBC` 28 and 135, `0D1D` 5, `0F9D` 106, `157F` 14, `22F0` 3 | an amount (`002A.0A4`) | node 19: `clamp(#342e + #499 * valueOr(#9532e, 1), 0, #338e)` |
+| `0012.025` | no graph found: native code. 139 entries across the installation's graphs take it | damage dealt: the amount (`0013.0A4`), the body hit (`0015.0A4`), the hit's tags (`003D.0A4`) | node 23: `min(#338e, #342e + #336 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
+| `0148.025` | no graph found. Only `0B8B` takes it | the same three parameters | node 23 too, and only when the tags hold identifier `090D` |
+| `0044.025` | no graph found: native code. 17 entries take it | healing done: the amount (`0040.0A4`), the body healed (`003F.0A4`), a kind (`0041.0A4`) | node 32: `min(#338e, #342e + #499 * valueOr(#9532e, 1) * valueOr(#13022e, 1))` |
+| `00EB.025` | eight SendGameMessage nodes in the bundle, listed below | an amount (`002A.0A4`) | node 19: `clamp(#342e + #499 * valueOr(#9532e, 1), 0, #338e)` |
 
-What the two engine messages are is read from their other listeners and from ORPHEUS's own code.
+"No graph found" covers the 665 bundled graphs and the XML dump of every graph of the
+installation: each mention of `0012`, `0044` and `0148` there is a message entry.
+
+What the two native messages are is read from their other listeners and from ORPHEUS's own code.
 Reaper's graphs `0016` and `0019` take `0012` and add its amount to a counter. Graph `0071` takes
 `0044`, keeps a sum by the body named in `003F.0A4` and tests that this body is not the owner.
 And `junkenstein_ai.summoner_damage_event` already feeds applied damage to the Summoner's `0B8B`
 as `0012` with exactly these parameters.
 
-The damage path, from `0012` to node 23:
+The damage path, from `0012` to node 23, node by node:
 
 1. Node 53: the body hit must pass one of four tests. It carries filter bit 0, or target tag
    `02ED`, or it is hostile and carries one more tag, or it is hostile and passes a condition.
-   Bit 0 is what the server gives a hero's body (see [TrackTargets](track-targets.md)).
+   The server gives bit 0 to players' and bots' bodies; what the bit means is a reconstruction
+   (see [TrackTargets](track-targets.md)).
 2. Nodes 30 and 36: the hit's tags must not hold identifier `01FD` or `025A`.
 3. Node 5: the body hit must not have its variable 6442 set. Node 65: `#12321e` must be off.
 4. Node 28: `STU_A58C1E63` of the body hit and the owner, the body hit without its variable 602,
-   and `!#842e`. Node 22: `#2426e`.
-5. Node 84 takes `STU_A6B80C63()` off the amount, down to zero. Then node 60 halves it or node
-   98 takes a quarter off, each under a `STU_25ECB55F` test, or neither.
-6. Node 23 adds what is left.
+   and `!#842e`. Node 22: `#2426e`. Node 17: the body hit must not have its variable 1363 set.
+5. Node 87 tests the body's variable 20682 and node 86 the tags for identifier `4FFB`; both ways
+   lead to node 83, which keeps `STU_A6B80C63()`, and node 84 takes that off the amount, down to
+   zero.
+6. Node 59, a `STU_25ECB55F` test: when it holds, node 60 halves the amount. Otherwise node 97,
+   another such test: when it holds, node 98 takes a quarter off.
+7. Node 23 adds what is left.
 
 The healing path, from `0044` to node 32: the kind must not be identifier `0292` or `025A`, the
 body healed must not have its variable 17625 set, then `!#842e` and `#2426e`.
 
-So at the default scales a point of damage dealt to a hero's body, or of healing done, is a point
-of charge, before the reductions of step 5. No entry of `0B8B` takes an elimination, and none of
-the eight senders of `00EB` was read for what it grants.
+So at the default scales a point of damage dealt to a body that passes node 53, or of healing
+done, is a point of charge, before the reductions of steps 5 and 6.
+
+The eight senders of `00EB`:
+
+| Node | To | Amount | When |
+|---|---|---|---|
+| `006B` 189 (Mercy's staff) | the owner | `#476` | `#6581 > 0 && #476 > 0` |
+| `0B9E` 80 | the entity in `#41` | `#499 * #174` | the owner is not `#536` |
+| `0CBC` 28 | the owner | half the cost | a `STU_B7D2C9C0` state begins |
+| `0CBC` 135 | the owner | the whole cost | a `STU_B7D2C9C0` state begins |
+| `0D1D` 5 | the owner | half the cost | after a `STU_3E5D9838` node |
+| `0F9D` 106 | the entity in `#6273` | -100000 | `#8236` |
+| `157F` 14 | the hero its player plays | `#336`, a damage amount | the body hit is not the owner, and more |
+| `22F0` 3 | the owner | 120 | after a `STU_6E5C5F66` node |
+
+`0B8B` has no entry of its own for an elimination. None of the eight senders is tied to one by
+what was read, but the events behind `0CBC`, `0D1D` and `22F0` are not identified.
 
 ### Full, empty and the HUD
 
@@ -162,11 +184,14 @@ Differences from the graph that remain:
 - The ruleset keys are not applied. ORPHEUS loads schema defaults only, so each would read 1.0.
 - A graph that changes the cost later keeps the time resolved at spawn.
 - The charge from combat is a placeholder in `ult_charge.py`: 380 damage fills any meter and an
-  elimination adds 20%. The graph gives a point for a point of damage dealt to a hero's body and
-  of healing done, with the tests above, and nothing for an elimination.
-- Feeding a player's `0B8B` the damage message, as the Summoner's is fed, adds nothing yet: with
-  the gate held on, one `0012` of 100 damage left the charge where it was. Node 53's filters are
-  the likely stop, since `STU_AC829876` is answered only in Hack's graph on a player's body.
+  elimination adds 20%. The graph gives a point for a point of damage dealt and of healing done,
+  with the tests above, and has no entry of its own for an elimination.
+- The graph already works on the server for two of its messages. In a match of two players on
+  opposite teams, with `#2426e` held on and the server's own passive off, one `0044` of 100 and one
+  `00EB` of 100 sent to a player's `0B8B` each raised the charge by exactly 100. One `0012` of 100
+  with the other player's body as the one hit did nothing: node 53 evaluates false, since
+  `STU_AC829876` is answered only in Hack's graph on a player's body, and node 28's
+  `STU_A58C1E63` has no answer either.
 - Reaper, Hanzo, Pharah and Winston have no ultimate state the server finds, so their passive
   never pauses while their ultimate runs. That is older than this change.
 
