@@ -1,5 +1,23 @@
 # Changelog
 
+## Tab board in Deathmatch and Team Deathmatch
+
+- The client holds its scoreboard shut until the mode's own graph posts `06DF.025`. The game mode
+  entity's full frame in Deathmatch and Team Deathmatch now lists that graph as instance 1 with the
+  posting state on, and the mode UI graph `0CB6` as its child under the state that starts it:
+  `0F60` with remote slot 0 and host state 13 for Deathmatch, `0F73` with slot 0 and host state 10
+  for Team Deathmatch (`combat.MODE_GRAPHS`). `0CB6`'s own remote state stays off in these frames.
+- Read from data: the graphs, their remote states and the host state that names `0CB6`. The
+  choice of slot and host follows the kjs branch, where the board opened in both modes.
+- A pack without a listed mode's graph keeps the plain frame. Other modes are unchanged: Assault,
+  Escort and Hybrid (`0F4A`) are left out because, with a board state on and no phase state, the
+  client drew an "UNSPECIFIED 0.0" objective header there.
+- Gap: on kjs the board's stat names also needed the stats component's GUID fields sent as ids;
+  this source still sends them as raw u64, so the board may list "UNKNOWN STAT" entries.
+- Tests: `tests/runtime/test_game_combat.py` `ModeFrameTests`, checked against a local pack.
+- Ported from the kjs branch, where the original client opened the board in both modes with every
+  stat named. Original-client acceptance on this source is pending.
+
 ## Career profile from played matches
 
 - A match from a queue card now counts for the player's career: time played, eliminations, deaths

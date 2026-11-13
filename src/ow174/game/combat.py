@@ -146,6 +146,14 @@ DEAD = 0x2000  # movement-state flag: dead (the 3P anim's dead pose)
 # 003E.025's parameters, by the low 16 bits of their 026 identifiers (01CF rid4).
 KILLER, CRIT, LOADOUT, ASSISTS = 0x0012, 0x0095, 0x03E6, 0x03E7
 MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notices 1FC0 (client-only)
+# A mode's own graph, where the server carries it on the game mode entity: (the graph, the remote slot
+# of its state that posts 06DF.025, the state the mode UI hangs from). The client holds its scoreboard
+# shut until that message is posted. Assault, Escort and Hybrid (0F4A) are not listed: with a board
+# state on and no phase state the client draws an "UNSPECIFIED 0.0" objective header.
+MODE_GRAPHS = {
+    0x023000000000001D: (0x0F60, 0, 13),  # Deathmatch
+    0x023000000000001E: (0x0F73, 0, 10),  # Team Deathmatch
+}
 
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 # 104319 FirstPerson standing and crouched fields. Unlisted bodies use the fallback.
@@ -12091,13 +12099,26 @@ def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | 
     client-only Entries make the kill feed 0DEA and the notices 1FC0) and the entity variables given (the
     PvP countdown). Every full frame of this entity has to list 0CB6, or it would destroy it.
 
+    A mode in MODE_GRAPHS gets its own graph as instance 1 with the state on that lets the scoreboard
+    open, and 0CB6 as that graph's child, as the game data nests them. 0CB6's own remote state stays off
+    there. A pack without the mode's graph keeps the plain frame.
+
     `mission` is the seconds left of Uprising's defend phase, 0 once it is over: the frame then lists
     that phase's director and the clock its box shows (pve.director)."""
     ui = graph.graph(MODE_UI)
+    values = {var: (value, ()) for var, value in entity_vars.items()}
+    index, slot, host = MODE_GRAPHS.get(mode_guid, (None, None, None))
+    script = graph.graph(index) if index is not None else None
+    if script is not None:
+        board = list(script.remote_states())[slot].state
+        instances = [
+            InstanceWire(1, script, states={board: StateWire(script.state(board).cls, True)}),
+            InstanceWire(2, ui, parent=(1, host)),
+        ]
+        return remote_full_frame(instances, values, {1: script, 2: ui})
     # EntryClientOnlySharedVars starts the mode UI's sole remote state, st21.
     shared = ui.state(21)
     instance = InstanceWire(1, ui, states={21: StateWire(shared.cls, True)})
-    values = {var: (value, ()) for var, value in entity_vars.items()}
     from ow174.game import pve
 
     entrance = pve.entrance(mode_guid, map_guid) if mode_guid is not None else None
