@@ -690,6 +690,13 @@ class BotWorld(runtime.World):
             or (self.hero == HEAVY_ASSAULT_HERO and var == 9161)
         ):
             return self.match.combat.scripted_body_var(entity, var)
+        # Use the same read-only live body registry as player recipients. The
+        # foreign body owns its slots; this creates neither a slot nor a watcher.
+        if self.match is not None and entity != runtime.GAME_MODE_ENTITY:
+            component = self._body_component(entity)
+            if component is not None:
+                slot = component.entity_var(var, create=False)
+                return slot.value() if slot is not None else None
         return super().entity_var(entity, var)
 
     def native(self, cfg: dict, instance: runtime.Instance):

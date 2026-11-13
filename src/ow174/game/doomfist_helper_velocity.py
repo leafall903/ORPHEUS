@@ -3,13 +3,14 @@
 One bridge belongs to one live recipient body and captured source body. The
 caller owns its lifetime. Graph47/48 own finite modifiers; this backend queues
 only the already formed authored enum4 request in the canonical force host.
-Original C329C0 maps it to queue0/SET2, including a real zero reset. NPCs and
-full-helper completion remain unqualified.
+Original C329C0 maps it to queue0/SET2, including a real zero reset. Prepared
+manual NPC bodies use their qualified current world clock and sole mover.
+Full-helper completion and other NPC roles remain unqualified.
 """
 
 import math
 
-from ow174.game import doomfist, doomfist_helper
+from ow174.game import bots, doomfist, doomfist_helper
 from ow174.game.script import expr
 
 
@@ -37,7 +38,7 @@ class StagedVelocityBridge:
         if (self.closed or match is None or instance.component is not component
                 or instance.graph.node(58) is not node
                 or doomfist_helper._recipient(world, instance) is not self.recipient
-                or self.recipient not in match.players
+                or self.recipient not in (*match.players, *match.bots)
                 or self.recipient.body_script is not self.recipient_script
                 or source not in match.players or source.hero.guid != doomfist.HERO
                 or not source.has_body or source.gone or source.body != self.source_body
@@ -64,8 +65,12 @@ class StagedVelocityBridge:
             return False
         target = next((t for t in match.combat._enemies(source)
                        if t.owner is self.recipient and t.entity == component.entity), None)
-        if (target is None
-                or match._script_body_mover(component.entity, component.entity) is not self.recipient.mover):
+        if target is None:
+            return False
+        if isinstance(self.recipient, bots.Bot):
+            if not match.combat.knockbacks.npc_world_set_ready(target, impact_tick=match.tick):
+                return False
+        elif match._script_body_mover(component.entity, component.entity) is not self.recipient.mover:
             return False
         key = instance
         if key in self.results:

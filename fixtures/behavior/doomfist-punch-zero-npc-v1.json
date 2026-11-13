@@ -17,8 +17,9 @@
     "count_with_trooper": 16,
     "initial_health": 200,
     "hit_count": 1,
-    "force_count": 0,
-    "finite_admissions": 1,
+    "force_count": 1,
+    "force_serial_delta": 1,
+    "finite_admissions": 0,
     "brake_frames": 20
   },
   "boundary": "Actual stationary npc.spawn body and actual Punch commands; no moving/navigation/delayed or complete original-helper/native acceptance."

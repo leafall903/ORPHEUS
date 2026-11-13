@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "body": "0x0400000000001D40",
+  "moving_velocity": [4, 0, 30],
+  "authored_enum": 4,
+  "internal_queue_mode": 0,
+  "operation": 2,
+  "frame_offset": 1,
+  "finite_frames": 20,
+  "normal16_enabled": false,
+  "health14_hook_enabled": false,
+  "native_client_accepted": false,
+  "scope": "prepared manual body and existing autonomous navigation body; canonical world-tick admission, exact normal contact; no original MoveTo/delayed/unknown-model admission"
+}

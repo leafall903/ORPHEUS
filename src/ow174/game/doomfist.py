@@ -364,9 +364,12 @@ class Punches:
                         moving = any(impulse)
                         # Authored enum4 packs internal queue0/SET2 at
                         # C329C0, not the distinct internal4 projection floor.
-                        # Only the player receiver is qualified for world SET;
-                        # the existing NPC reconstruction remains unadopted.
-                        world_set = (action['m_CFEC5F76'] == 4 and not isinstance(target.owner, bots.Bot))
+                        # Player and prepared current-clock manual NPC receivers
+                        # are qualified. Other NPC policies remain unadopted.
+                        world_set = (action['m_CFEC5F76'] == 4
+                                     and (not isinstance(target.owner, bots.Bot)
+                                          or self.combat.knockbacks.npc_world_set_ready(
+                                              target, impact_tick=self.combat.match.tick)))
                         if moving or world_set:
                             admitted = self.combat.knockbacks.apply(
                                 target, impulse, impact_tick=self.combat.match.tick,

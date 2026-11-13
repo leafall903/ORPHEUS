@@ -24,7 +24,9 @@ one actual zero reset. Native typed caller, queue insertion, consumer and out
 dispatch supersede the earlier positive-only projected interpretation. The
 existing internal queue4 projection primitive remains separate and unchanged.
 An explicit staged lease admits only an aligned current physical player/VM;
-NPCs, possession and stale clocks remain unqualified. Original47/48 retain finite
+Known prepared current-tick NPC recipients now qualify the bounded canonical
+world SET handoff below; possession, stale clocks and unqualified bodies remain
+unsupported. Original47/48 retain finite
 modifier ownership; no normal source16 or health14 hook is enabled. Normal
 invocation phase, complete320ms physical interval and full helper adoption remain
 open. The actual legacy player Punch producer uses the corrected SET request
@@ -383,3 +385,19 @@ and enemy H0 and the existing late create-ACK path retain this source. Caster
 and recipient team bits remain unchanged. These are source-identity transport
 checks; rendered friend/enemy palette selection remains unverified. Soldier76 E,
 Mei Cryo and other heroes are outside this evidence.
+
+## Prepared NPC world SET and physical-body ownership
+
+`fixtures/behavior/doomfist-npc-world-set-v1.json` covers actual Trooper contacts
+on prepared manual and autonomous-navigation bodies. Current-world-tick checks
+admit world SET, including a real zero reset, on the existing canonical body.
+An existing Navigator mover is retained while navigation drive intent stops;
+one world-tick+1 request consumes on that same mover, with one pose per frame.
+Normal legacy Punch retains one damage/HIT/passive/action and its two finite
+rows. Explicit staged58 uses original47/48 on the same physical clock for20
+frames, with no host finite copies or health/HIT producer. Live foreign body
+variables are read from existing registered slots without creating watchers or
+slots; retired identities do not resolve. These staged tests use an explicit
+target evaluator and suppress legacy side effects, and do not establish normal
+source16 or original health14 completion. Routes, active original MoveTo,
+possession, delayed clocks, unknown body data and native acceptance remain open.

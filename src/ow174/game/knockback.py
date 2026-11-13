@@ -104,8 +104,9 @@ class Knockbacks:
         if (not isinstance(impulse, expr.Vec3) or not all(map(math.isfinite, impulse))
                 or (not any(impulse) and velocity_mode != 0) or self.combat.vitals_of(target).dead):
             return False
-        if velocity_mode == 0 and isinstance(target.owner, bots.Bot):
-            return False  # NPC world SET admission needs its own backend-clock qualification.
+        if (velocity_mode == 0 and isinstance(target.owner, bots.Bot)
+                and not self.npc_world_set_ready(target, impact_tick=impact_tick)):
+            return False
         resolved = self._launch_receiver(target, impact_frame, impact_tick, launch_modifiers)
         if not resolved or self.serial >= 0xFFFFFFFF:
             return False
@@ -143,8 +144,66 @@ class Knockbacks:
         return self._apply_script_velocity(target, impulse, recipient_component=recipient_component,
                                            source_entity=source_entity, priority=priority, queue_mode=4)
 
+    def npc_world_set_ready(self, target, *, impact_tick):
+        """Prepared manual NPC body on its actual current world scheduler clock.
+
+        This read-only admission check never constructs a mover. Known stationary
+        bodies may materialize their first canonical body; existing manual or
+        navigation movers must be retained. Route/MoveTo, possession, delayed
+        clocks and unknown model data remain outside this qualification.
+        """
+        from ow174.game import bots
+        from ow174.game.mover import loaded_mover_table
+
+        owner, match = target.owner, self.combat.match
+        script = getattr(owner, 'body_script', None)
+        component = getattr(script, 'component', None)
+        if (not isinstance(owner, bots.Bot) or owner not in match.bots or owner.dead
+                or owner.entity != target.entity or owner.control_mover is not None
+                or owner.spawner.get('manual_spawn') is not True or owner.route
+                or type(impact_tick) is not int or impact_tick != match.tick
+                or owner.last_tick != impact_tick
+                or component is None or component.entity != owner.entity or component.strict
+                or component.owner_dead or component.fault is not None or component.frame != impact_tick
+                or getattr(component.world, 'match', None) is not match
+                or (owner.movement_data is None and owner.body not in (loaded_mover_table() or {}))
+                or any(isinstance(state, nodes.MoveTo) and state.active
+                       for instance in component.instances.values() for state in instance.states.values())):
+            return False
+        nav = owner.navigation
+        existing = owner.impulse_mover or (nav.mover if nav is not None else None)
+        if existing is None:
+            return not any(owner.velocity) and not owner.keys
+        return (existing.world is match.collision_world
+                and math.dist(existing.position, owner.position) <= .1
+                and (existing.last_command is None or existing.last_command.frame <= impact_tick)
+                and (nav is None or nav.last_tick is None or nav.last_tick <= impact_tick))
+
+    def pending_script_modifiers(self, bot):
+        """A live foreign helper still owns movement properties on this body."""
+        from ow174.game.mover import statescript_mods
+
+        script = bot.body_script
+        component = getattr(script, 'component', None)
+        if (component is None or component.owner_dead or component.fault is not None
+                or component.entity != bot.entity
+                or getattr(component.world, 'match', None) is not self.combat.match):
+            return False
+        owners = {i.id for i in component.instances.values() if not i.stopped and not i.teardown
+                  and i.source_entity() != component.entity}
+        return bool(owners) and any(key[0] in owners for key in statescript_mods(component))
+
     def apply_script_world_set(self, target, requested, *, recipient_component, source_entity, priority=0.0):
         """Original authored enum4: internal queue0/SET2, with a real zero reset."""
+        from ow174.game import bots
+
+        if isinstance(target.owner, bots.Bot):
+            script = target.owner.body_script
+            if (script is None or script.component is not recipient_component
+                    or not self.npc_world_set_ready(target, impact_tick=self.combat.match.tick)):
+                return False
+            return self.apply(target, requested, impact_tick=self.combat.match.tick,
+                              source_entity=source_entity, velocity_mode=0, velocity_priority=priority)
         return self._apply_script_velocity(target, requested, recipient_component=recipient_component,
                                            source_entity=source_entity, priority=priority, queue_mode=0)
 
@@ -594,9 +653,21 @@ class Knockbacks:
             mover.add_timed_mod(index, op, value, frame, frame + math.ceil(seconds / TICK),
                                 priority=priority, frame_clock=True)
 
-    def _ensure_npc_mover(self, bot, impact, *, preserve_motion=False):
+    def _ensure_npc_mover(self, bot, impact, *, preserve_motion=False, reuse_navigation=False):
         """The one canonical physical-body initialization, also used by forces."""
         mover = bot.impulse_mover
+        if mover is None and reuse_navigation and bot.navigation is not None:
+            from ow174.game import npc_navigation
+
+            mover = bot.navigation.mover
+            velocity = mover.velocity
+            npc_navigation.stop(bot)
+            # Stop navigation intent, retaining this same physical body and its
+            # pre-request momentum until the queued world SET consumes once.
+            mover.velocity = velocity
+            mover.driven = mover.horizontal_driven = False
+            bot.velocity = velocity
+            bot.impulse_mover = mover
         if mover is None:
             from ow174.game import npc_navigation
 
@@ -620,7 +691,8 @@ class Knockbacks:
 
     def _start_npc(self, bot, impact, key, impulse, velocity_mode=1,
                    velocity_priority=0.0, launch_modifiers=()):
-        mover = self._ensure_npc_mover(bot, impact)
+        mover = self._ensure_npc_mover(bot, impact, preserve_motion=velocity_mode == 0,
+                                       reuse_navigation=velocity_mode == 0)
         self._enqueue(bot.entity, mover, impact + 1, key, impulse, velocity_mode, velocity_priority, launch_modifiers)
         bot.last_tick = impact
 
@@ -687,7 +759,8 @@ class Knockbacks:
                                   else bot.impulse_mover) for bot in match.bots if not bot.dead}
         live.update(npc_movers)
         for entity, mover in tuple(self.active.items()):
+            scripted = any(bot.entity == entity and self.pending_script_modifiers(bot) for bot in match.bots)
             if (live.get(entity) is not mover or (not mover.velocity_changes
                     and ((entity not in npc_movers and mover.landed)
-                         or (not mover.airborne and not any(mover.velocity))))):
+                         or (not mover.airborne and not any(mover.velocity) and not scripted)))):
                 self.retire(entity, forget=live.get(entity) is not mover)

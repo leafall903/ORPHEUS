@@ -398,8 +398,9 @@ class Bot:
             self.last_tick = tick - 1
             self._step_manual_body(tick, seconds, collision, category, 0, walls)
             mover = self.impulse_mover
+            scripted = match is not None and match.combat.knockbacks.pending_script_modifiers(self)
             if ((self.attack_target is not None or finite_only) and not mover.airborne and not any(mover.velocity)
-                    and not mover.pending_frame_modifiers(tick)):
+                    and not mover.pending_frame_modifiers(tick) and not scripted):
                 # Preserve the existing explicit navigation owner once displacement settles.
                 self.impulse_mover = None
                 self.start = self.position

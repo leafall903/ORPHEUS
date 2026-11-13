@@ -78,17 +78,20 @@ class PunchZeroNpcTests(unittest.TestCase):
         self.assertEqual(len(source.client.messages(combat.HIT)), spec['expected']['hit_count'])
         self.assertEqual(force.call_count, spec['expected']['force_count'])
         self.assertEqual(finite.call_count, spec['expected']['finite_admissions'])
-        self.assertEqual(fight.knockbacks.serial, serial)
+        self.assertEqual(fight.knockbacks.serial-serial, spec['expected']['force_serial_delta'])
         mover = bot.impulse_mover
         self.assertIsNotNone(mover)
-        self.assertFalse(mover.external_impulse)
-        self.assertFalse(mover.velocity_changes)
-        self.assertNotIn(bot.entity, fight.knockbacks.active)
+        self.assertTrue(mover.external_impulse)
+        request, = mover.velocity_changes
+        self.assertEqual((request.mode, request.value), (0, (0., 0., 0.)))
+        self.assertIs(fight.knockbacks.active[bot.entity], mover)
         self.assertTrue(fight.punches.controlled(bot.entity))
         mods = [m for key, m in mover.mods.items() if key[0] == -3]
         self.assertEqual({(m.index, m.op, m.priority, m.end-m.start) for m in mods},
                          {(4, MULTIPLY, 0, 20), (7, MULTIPLY, 1, 20)})
         run.step({})
+        self.assertFalse(mover.velocity_changes)
+        self.assertFalse(mover.external_impulse)
         self.assertAlmostEqual(mover.values.decel_ground_base,
                                mover.data.decel_ground_base * .01, delta=1e-6)
         self.assertEqual(mover.values.decel_air_base, 0)
@@ -125,4 +128,4 @@ class PunchZeroNpcTests(unittest.TestCase):
                 self.assertEqual(fight.vitals_of(t).total, other_health[t.entity])
         self.assertAlmostEqual(before-fight.vitals_of(target).total, damage[0])
         self.assertEqual(len(source.client.messages(combat.HIT)), 1)
-        self.assertEqual(fight.knockbacks.serial, serial)
+        self.assertEqual(fight.knockbacks.serial-serial, spec['expected']['force_serial_delta'])
