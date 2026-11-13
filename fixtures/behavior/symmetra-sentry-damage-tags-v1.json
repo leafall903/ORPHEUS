@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-sentry-damage-tags-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "130a8d45fd1321bab1cf0e98f50b35adda73a86a",
+    "provenance": "Original1590/node3 ModifyHealth static identifier tags, passed through the existing damage/received-damage service; synthetic actual-command regression."
+  },
+  "evidence": "synthetic-host-contract-with-authored-health-operation",
+  "client_acceptance": "pending",
+  "input": {"launch_button": 8, "graph": 5520, "modify_node": 3},
+  "expected": {
+    "health_tags": ["0x0D800000000007E4", "0x0D800000000009AB", "0x0D80000000002D6A", "0x0D80000000004D6E"],
+    "received_damage_parameter": 61,
+    "loadout": "0x0B90000000000036",
+    "damage_per_second": 40,
+    "extra_damage_producers": 0
+  },
+  "limits": "Keep existing owner/source credit, target choice, timing, damage amount and actor/VM identity. No Sentry TrackRay/beam graph activation or native model/color claim."
+}

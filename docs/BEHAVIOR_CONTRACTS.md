@@ -1,5 +1,15 @@
 # Shared behavior contracts
 
+## Authored Sentry damage metadata
+
+`symmetra-sentry-damage-tags-v1.json` pins1590/node3's four static health-operation
+identifiers. Actual launch/attach/beam commands deliver them to Sombra's existing
+received-damage003D parameter. The regression retains40DPS, HIT and owner charge
+without adding another damage producer or changing actor/VM/source identity.
+This restores metadata in the current world damage path. Original1590 logical
+input20, target536, TrackRay535/hardpoint and beam/effect service activation,
+portal camera initialization and native model/Photon visibility remain open.
+
 ## Actual Piledriver poses, staged projected admission and current binding order
 
 `ball-piledriver-pose-sample-v1.json` excludes missing physical poses from the

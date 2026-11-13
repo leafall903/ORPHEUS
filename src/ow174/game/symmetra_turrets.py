@@ -580,7 +580,7 @@ class Turrets:
         self, damage_starts, cryo_expiries, barrier_cover_ends, *,
         replay_ice=False, replay_owners=(), replay_frozen=(),
     ):
-        from ow174.game.combat import COMBAT_CATCH_UP, TICK
+        from ow174.game.combat import COMBAT_CATCH_UP, TICK, health_tags
 
         retained = replay_ice or bool(replay_owners) or bool(replay_frozen)
         for sentry in tuple(self.sentries):
@@ -678,7 +678,8 @@ class Turrets:
             loadout = beam.evaluate(modify["m_loadout"])
             self.combat._damage(owner, target, amount, False,
                                 loadout.guid if isinstance(loadout, expr.Asset) else None,
-                                self.combat.tick, world_tick=self.combat.tick, beam=True)
+                                self.combat.tick, world_tick=self.combat.tick, beam=True,
+                                hit_tags=health_tags(None, modify))
             if self.combat.vitals_of(target).dead:
                 self._clear_slow(sentry)
 
