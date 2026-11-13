@@ -1061,6 +1061,11 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
+        from ow174.game import doomfist_helper
+
+        response = doomfist_helper.native(self, cfg, instance)
+        if response is not NotImplemented:
+            return response
         if self.match is not None and instance is not None:
             hooks = self.match.combat.hooks
             for resolve in (lambda: hooks.caster_native(self, instance, cfg),

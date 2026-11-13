@@ -693,7 +693,11 @@ class BotWorld(runtime.World):
         return super().entity_var(entity, var)
 
     def native(self, cfg: dict, instance: runtime.Instance):
-        from ow174.game import assassin, npc_context, npc_shields, orisa_halt
+        from ow174.game import assassin, doomfist_helper, npc_context, npc_shields, orisa_halt
+
+        response = doomfist_helper.native(self, cfg, instance)
+        if response is not NotImplemented:
+            return response
 
         if instance is not None and self.match is not None:
             value = self.match.combat.hooks.victim_native(instance, cfg)

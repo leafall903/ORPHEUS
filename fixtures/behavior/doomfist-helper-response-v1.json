@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "doomfist-helper-response-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "6e9aac613150c6d785ac9c9c75690d1f090a2853",
+    "paths": ["src/ow174/game/defenses.py", "src/ow174/game/doomfist.py"],
+    "provenance": "Synthetic host contract for the existing modifier26 response policy. Restricted original0D07 condition66 queries recipient self; its action58 separately consumes caller10959. No extracted asset data is embedded."
+  },
+  "evidence": "synthetic-host-contract-with-local-authored-graph-consumer",
+  "client_acceptance": "pending",
+  "input": {
+    "recipient": ["ordinary-player", "actual-fortify-player", "actual-heavy-assault", "retired-player-component"],
+    "caller10959": [0, 5],
+    "recipient_velocity": [3.0, 4.0, 5.0],
+    "fortify_expiry_frames": 280
+  },
+  "expected": {
+    "ordinary": 1.0,
+    "fortify": 0.0,
+    "heavy": 0.0,
+    "expired_fortify": 1.0,
+    "retired": "evaluation-failed",
+    "damage_delta": 0,
+    "force_serial_delta": 0
+  },
+  "limits": "Original helper query and condition evaluation only. Untagged physical velocity uses the recipient's existing sole mover; optional boolean-mode variants remain unsupported. Queries never initialize ordinary NPC motion. Entries, damage14, velocity58, lifecycle completion, source375 and native response timing are not accepted."
+}
