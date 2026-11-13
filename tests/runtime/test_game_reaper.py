@@ -139,9 +139,9 @@ class ReaperTests(unittest.TestCase):
                      if i.graph.index == 0x19).state(6)
         rays = reaper.shotgun_directions(owner, state, (0, 0, 1))
         self.assertEqual(len(rays), 20)
-        self.assertEqual(rays[0], (0, 0, 1))
+        self.assertNotEqual(rays[0], (0, 0, 1))  # authored0.6-degree jitter also moves the centre pellet
         self.assertEqual(len(set(rays)), 20)
-        self.assertTrue(all(abs(sum(v * v for v in ray) - 1) < 1e-10 for ray in rays))
+        self.assertTrue(all(abs(sum(v * v for v in ray) - 1) < 3e-7 for ray in rays))
         x, y, z = owner.mover.position
         victim.mover.position = [x + 0.9, y, z + 10]
         for _ in range(2):

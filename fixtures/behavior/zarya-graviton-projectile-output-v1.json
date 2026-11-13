@@ -1,0 +1,10 @@
+{
+  "schema": "zarya-graviton-projectile-output-v1",
+  "provenance": "Original104319 AE60F0 reads the last actually created projectile record and writes its Entity through F66C80(type10) into authored volley m505472EF.025F node1 selects ENTITY1752. Offline native producer execution is retained outside Git.",
+  "input": "Actual Q, including owner epoch9000 versus world epoch1000, normal owner confirmation and body replacement.",
+  "output": 1752,
+  "expected": "The admitted physical Q flight exports the identity allocated by its existing source-owner lease; owner confirmation and observer events/create resolve that same ID. It is not the caster body. Old source output cannot bind a replacement body.",
+  "native_visibility_accepted": false,
+  "field_spawn_12f_binding_proven": false,
+  "limits": "Original0260/0261 birth and native model/FX remain separate open work. Shot encoding and owner ACK aliases are retained; this Q's observers share its actual source lease identity."
+}

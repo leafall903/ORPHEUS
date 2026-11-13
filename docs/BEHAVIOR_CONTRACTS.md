@@ -1,5 +1,23 @@
 # Shared behavior contracts
 
+## Original Reaper ring arithmetic and Zarya accepted projectile output
+
+`reaper-native-ring-v1.json` compares all20 directions from one actual primary
+with original D80310 sampling under declared host seed identities and scalar
+math adapters. The Reaper0019/10/state6 caller reuses the existing Fusion ring
+kernel with authored6-degree spread,0.6-degree jitter, explicit phase0 and actual
+activation/shot identity. Damage/HIT/ammo and per-pellet registration stay in the
+existing path. Native handle seeds, muzzle transforms and rendering are open.
+
+`zarya-graviton-projectile-output-v1.json` checks accepted025F/1 Q flights export
+a typed projectile Entity through1752. This producer uses the existing source
+owner lease ID explicitly so all peer records resolve the exported identity;
+only accepted flights publish it and captured source-body guards isolate later
+replacement bodies. Native instruction evidence establishes typed last-created
+projectile selection, not client alias adoption or0260/0261 field birth/12F
+binding. Actual encrypted creation, late ACK and retirement are distinct from
+native model/FX acceptance; secondary identity policy remains unchanged.
+
 ## Observed recipient clocks and original caster launch observations
 
 `roadhog-victim-invocation-clock-v1.json` compares paced and32-command delivery

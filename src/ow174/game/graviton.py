@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from ow174.game import bots, heavy_assault, immunity, moira, orisa_fortify, reinhardt_charge, sigma_flux
 from ow174.game.mover import Mover, mover_data
-from ow174.game.script import graph
+from ow174.game.script import expr, graph
 
 FIELD_ENTITY = 0x04000000000003E2
 INPUT_LOCK = "graviton"
@@ -21,6 +21,22 @@ DAMAGE_TAGS = (
     0x0D8000000000025A, 0x0D80000000000990, 0x0D80000000002D60,
     0x0D80000000003FCE, 0x0D80000000004D29, 0x0D80000000004D61,
 )  # 0261/node2 ModifyHealth
+
+
+def publish_projectile_output(fight, rocket):
+    """AE60F0 exports the accepted volley's actual projectile, not its caster."""
+    state, shot = rocket.source_state, rocket.shot
+    if (state is None or shot is None or isinstance(rocket.shooter, bots.Bot)
+            or (state.instance.graph.index, state.node.pos, rocket.definition)
+            != (0x025F, 1, 0x04000000000008CE)
+            or state.instance.stopped or state.instance.component.entity != rocket.source_body
+            or shot.body != rocket.source_body or rocket.shooter.body != rocket.source_body):
+        return
+    entity = shot.entity
+    if entity is None:
+        return
+    rocket.entity = entity
+    state.instance.write(expr.lvalue(state.node.field("m_505472EF")), expr.Entity(entity))
 
 
 @dataclass

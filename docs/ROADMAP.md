@@ -579,3 +579,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Observed victim invocation clocks and original caster launch checks with11 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Original Reaper ring arithmetic and accepted Zarya projectile output with8 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

@@ -1,9 +1,8 @@
 """Reaper's reconstructed combat consumers for build 104319.
 
-The graph supplies pellet damage, count and four spread rings. Ring angle is
-interpreted in degrees; zero phase and a tangent-plane projection are explicit
-server reconstructions pending original-client trajectory comparison. This is
-scoped to Hellfire Shotguns rather than changing other heroes' spread policy.
+The graph supplies pellet damage, count and four spread rings. Hellfire uses
+original104319 ring rotations and jitter with declared server seed identities.
+Native handle parity, muzzle transforms and rendered trajectories remain open.
 """
 
 import math
@@ -240,13 +239,47 @@ def intangible(actor) -> bool:
     )
 
 
-def shotgun_directions(actor, state, direction):
-    """Use the authored1/5/6/8 rings for Reaper's reviewed profile."""
-    if not is_reaper(actor) or state.instance.graph.index != SHOTGUN_GRAPH:
+def shotgun_directions(actor, state, direction, *, number=0, counter=None):
+    """Original D80310 on the authored0019/10 ring profile, aspect one."""
+    if (not is_reaper(actor)
+            or (state.instance.graph.index, state.node.pos, state.index) != (SHOTGUN_GRAPH, 10, 6)):
         return (direction,)
-    from ow174.game.shot_patterns import ring_directions
+    from ow174.game import fusion_spread, weapon_aim
 
-    return ring_directions(state, direction)
+    cfg = state.node.field("m_5EC1EB38") or {}
+    if cfg.get("$") != "STU_613BDDB0":
+        raise ValueError("unexpected Reaper shotgun launch profile")
+    spread = state.evaluate(cfg.get("m_spread"), watch=False)
+    jitter_field, phase_field = cfg.get("m_92308789"), cfg.get("m_391F15AF")
+    jitter = state.evaluate(jitter_field, watch=False) if jitter_field is not None else 0
+    degrees = state.evaluate(phase_field, watch=False) if phase_field is not None else None
+    count = state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False)
+    rings = []
+    for ring in cfg.get("m_0D30E40C") or ():
+        radius = state.evaluate(ring.get("m_6425FFB9"), watch=False)
+        size = state.evaluate(ring.get("m_B19BD35D"), watch=False)
+        if (type(radius) not in (int, float) or not math.isfinite(radius) or radius < 0
+                or type(size) is not int or size < 1):
+            raise ValueError("invalid Reaper shotgun ring")
+        rings.append((radius, size))
+    if (type(spread) not in (int, float) or not math.isfinite(spread) or spread < 0
+            or type(jitter) not in (int, float) or not math.isfinite(jitter) or jitter < 0
+            or (phase_field is not None and
+                (type(degrees) not in (int, float) or not math.isfinite(degrees)))
+            or type(count) is not int or not 1 <= count <= 256
+            or sum(size for _, size in rings) != count
+            or any(spread * radius >= 90 for radius, _ in rings)):
+        raise ValueError("invalid Reaper shotgun count/spread")
+    phase = -1 if degrees is None else expr.f32(expr.f32(degrees) * expr.f32(math.pi / 180))
+    if degrees is not None and phase < 0:
+        phase = math.fmod(phase, math.tau) + math.tau
+    # Same declared host mappings as the reviewed Fusion adapter. Native entity
+    # and script handle parity is separate from the executed ring arithmetic.
+    counter = state.counter if counter is None else counter
+    seed = fusion_spread.seed_base(state.instance.component.entity, state.instance.id, state.index, counter)
+    rays = fusion_spread.directions(weapon_aim.quantized_direction(direction), spread, jitter,
+                                    phase, rings, seed, number)
+    return tuple(weapon_aim.normalize_direction(ray) for ray in rays)
 
 
 def shotgun_critical(actor, state, direct) -> None:

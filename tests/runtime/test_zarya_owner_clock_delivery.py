@@ -136,7 +136,8 @@ class ZaryaOwnerClockTests(unittest.TestCase):
         observer_records = peers[1][3]
         proxies = [
             record for record in observer_records
-            if projectiles.SEEN_FIRST <= record.entity < projectiles.SEEN_FIRST + projectiles.SEEN_SPAN
+            if (record.entity == lease if button == 32 else
+                projectiles.SEEN_FIRST <= record.entity < projectiles.SEEN_FIRST + projectiles.SEEN_SPAN)
         ]
         self.assertEqual([record.op for record in proxies], [OP_CREATE, OP_DESTROY])
         self.assertTrue(any(record.entity == caster.body and record.ch2 is not None

@@ -518,3 +518,24 @@ Reinhardt quick melee
   leaves shield1600, removes25 armored body health, and reaps8.75.
   Actual wall, friendly and5m cases reject. This does not establish native
   shield-target filtering or apply to other melee profiles.
+
+2026-11-13 scoped Hellfire ring correction (native presentation still OPEN)
+
+Actual0019/node10/state6 uses613BDDB0 spread6, jitter0.6, explicit phase0 and
+rings(0,1),(.25,5),(.5,6),(1,8). The prior tangent/zero-jitter sampler disagreed
+with original104319 D80310 by0.14279325099 in one real primary's20 directions.
+The Reaper-only caller now reuses the existing fusion_spread ring kernel and
+passes the actual activation counter and shot number. It retains every pellet's
+existing RangedContact, damage/HIT, charge, shell and lifecycle dispatch. No
+shared RNG reset, all-hero sampler change or driver ammo projection is added.
+
+The same actual primary now matches original executed vectors to5.9604645e-8,
+with20 actual damage applications,20 HIT messages,120 health loss and ammo7.
+A native-output fixture guards all20 directions plus those real register facts.
+The older spread test now expects its authored jitter on the centre pellet and
+uses float32 normalization precision; its off-axis real hit check is retained.
+This is kernel arithmetic with declared body/instance/state/counter/shot seed
+mappings and scalar sin/cos adapters, not client handle-seed parity. Muzzle
+hardpoint transforms, native renderer firing feedback, and complete trajectory
+acceptance remain open. Prior owner shell8..1, Shadow Step, hit/force and other
+hero spread behavior are unchanged.

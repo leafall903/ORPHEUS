@@ -6605,6 +6605,7 @@ class Combat:
             payload.boost_credit = (boost if any(definition is not None and not definition.healing
                                                 for definition in (payload.direct, payload.blast)) else None)
             self.rockets.append(payload)
+            graviton.publish_projectile_output(self, payload)
             accretion.admit(self, payload)
             self.orisa.admit(payload)
             symmetra.catch_up_orb(self, payload)
@@ -7469,7 +7470,7 @@ class Combat:
                 and (state.instance.graph.index, node.pos) == (0x01C6, 33)):
             directions = spread.directions(state, direction)
         if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
-            directions = reaper.shotgun_directions(shooter, state, direction)
+            directions = reaper.shotgun_directions(shooter, state, direction, number=number, counter=activation[0])
         if getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None)) == dva.HERO:
             directions = _volley_directions(shooter, state, direction, number=number, counter=activation[0])
         if not npc and shooter.hero.guid == 0x02E0000000000003:

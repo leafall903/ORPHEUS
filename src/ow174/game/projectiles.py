@@ -547,6 +547,11 @@ class Projectiles:
             lease_offset=lease_offset,
             shot_index=shot_index,
         )
+        if (not npc and (state.instance.graph.index, state.node.pos, definition)
+                == (0x025F, 1, 0x04000000000008CE)):
+            # 025F exports its projectile through1752. Every peer must resolve
+            # that same actual lease identity, including the source owner.
+            shot.entity = self.lease_id(player, definition, frame)
         if not npc and not authoritative and not ana_dart:
             self.shots.append(shot)
         turret_carrier = (not npc and player.hero.guid == 0x02E0000000000006
