@@ -1,4 +1,4 @@
-"""A zero requested vector still admits the authored finite Punch effects."""
+"""Authored enum4 zero produces a real world SET reset and finite Punch effects."""
 import json
 import unittest
 from pathlib import Path
@@ -10,7 +10,7 @@ from ow174.game.mover import MULTIPLY
 
 
 class PunchZeroRequestTests(DoomfistFixture, unittest.TestCase):
-    def test_actual_zero_multiplier_keeps_finite_effects_without_velocity(self):
+    def test_actual_zero_multiplier_resets_velocity_and_keeps_finite_effects(self):
         spec = json.loads((Path(__file__).resolve().parents[2] /
                            'fixtures/behavior/doomfist-punch-zero-request-v1.json').read_text())
         self.prepare(spec['inputs']['distance'])
@@ -28,8 +28,9 @@ class PunchZeroRequestTests(DoomfistFixture, unittest.TestCase):
         self.assertLess(self.vitals().total, before)
         self.assertEqual(len(self.a.client.messages(combat.HIT)), spec['expected']['hit_count'])
         self.assertEqual(self.fight.knockbacks.serial - serial, spec['expected']['force_serial_delta'])
-        self.assertFalse(self.b.mover.velocity_changes)
-        self.assertFalse(self.b.mover.external_impulse)
+        self.assertEqual(len(self.b.mover.velocity_changes), spec['expected']['world_set_request_count'])
+        change, = self.b.mover.velocity_changes
+        self.assertEqual((change.mode, change.value), (spec['expected']['internal_queue_mode'], (0.0, 0.0, 0.0)))
         self.assertEqual(tuple(self.b.mover.velocity), (0, 0, 0))
         self.assertEqual(tuple(self.b.mover.position), position)
         mods = [mod for key, mod in self.b.mover.mods.items() if key[0] == -3]
@@ -39,6 +40,8 @@ class PunchZeroRequestTests(DoomfistFixture, unittest.TestCase):
                           (7, MULTIPLY, 1, spec['expected']['braking_frames'])})
         self.assertTrue(self.fight.punches.controlled(self.b.body))
         self.settle(1)
+        self.assertFalse(self.b.mover.velocity_changes)
+        self.assertFalse(self.b.mover.external_impulse)
         self.assertAlmostEqual(self.b.mover.values.decel_ground_base,
                                self.b.mover.data.decel_ground_base * .01, delta=1e-6)
         self.assertEqual(self.b.mover.values.decel_air_base, 0)

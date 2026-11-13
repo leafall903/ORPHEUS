@@ -10,7 +10,7 @@ This restores metadata in the current world damage path. Original1590 logical
 input20, target536, TrackRay535/hardpoint and beam/effect service activation,
 portal camera initialization and native model/Photon visibility remain open.
 
-## Actual Piledriver poses, staged projected admission and current binding order
+## Actual Piledriver poses, staged velocity admission and current binding order
 
 `ball-piledriver-pose-sample-v1.json` excludes missing physical poses from the
 160A84/85 stuck sampler, seeds its original pair on the first real pose and
@@ -18,14 +18,18 @@ preserves original five-second safety and single landing/HIT/force ownership.
 Its normal BodyWorld physical-history mapping is qualified by two actual owner
 epochs, not generalized to arbitrary independent explicit VM cursors.
 
-`doomfist-helper-velocity58-v1.json` qualifies an explicit external staged lease
-for positive projected mode4 on an aligned live physical player/VM receiver.
-The one shared API delegates to existing canonical force/correction and rejects
-unqualified NPC, possession, zero and stale-clock requests. The bridge deduplicates
-one helper admission and adds no persistent VM field or normal source/health hook.
-Original47/48 retain finite modifier ownership; no host finite copies are queued.
-Normal invocation phase, complete320ms physical interval and full helper adoption
-are separate open contracts.
+`doomfist-helper-velocity58-v1.json` now follows the corrected authored enum4
+mapping: internal queue0/SET2 performs a full world-vector assignment, including
+one actual zero reset. Native typed caller, queue insertion, consumer and out
+dispatch supersede the earlier positive-only projected interpretation. The
+existing internal queue4 projection primitive remains separate and unchanged.
+An explicit staged lease admits only an aligned current physical player/VM;
+NPCs, possession and stale clocks remain unqualified. Original47/48 retain finite
+modifier ownership; no normal source16 or health14 hook is enabled. Normal
+invocation phase, complete320ms physical interval and full helper adoption remain
+open. The actual legacy player Punch producer uses the corrected SET request
+through the same canonical receiver; its one damage/HIT/passive/action and two
+finite rows remain the sole legacy authority. Native client acceptance is open.
 
 `dva-owner-possession-loss-v1.json` extends the existing possession prerequisite
 to the controlled0407 H1 stream. H0 remains independent; an ordered binding in
@@ -332,3 +336,14 @@ Live count11 agrees with frozen11398 as0/0/1; health stays700/700/775. The froze
 count and health pools were already correct before this repair. No new query
 policy or shield producer is introduced. Native geometry, filtering and count
 display remain unverified.
+
+## Authored world velocity SET versus internal projection
+
+`fixtures/behavior/velocity-authored-enum4-world-set-v1.json` records the bounded
+native caller/queue/consumer oracle. Authored enum4 selects internal0/SET2;
+authored enum3 selects internal4 projection. The former clears orthogonal and
+faster motion and queues a zero vector as a real reset. The latter retains its
+existing directional behavior. No global enumeration remapping is applied to
+other heroes. Original source16, health completion, NPC world SET and the full
+helper remain unqualified. The original native probe adapts typed child values,
+backend getters and sinks; it is not live actor discovery or client acceptance.

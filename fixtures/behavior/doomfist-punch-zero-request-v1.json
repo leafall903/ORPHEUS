@@ -10,7 +10,9 @@
     "damage_positive": true,
     "hit_count": 1,
     "nonzero_velocity_count": 0,
-    "force_serial_delta": 0,
+    "force_serial_delta": 1,
+    "world_set_request_count": 1,
+    "internal_queue_mode": 0,
     "braking_count": 2,
     "braking_frames": 20,
     "control_seconds": 0.5

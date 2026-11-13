@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "build": 104319,
+  "serialized_class": "95A10547",
+  "authored_enum": 4,
+  "internal_queue_mode": 0,
+  "operation": 2,
+  "cases": [
+    {"current": [4, 0, 30], "requested": [0, 0, 0], "resolved": [0, 0, 0]},
+    {"current": [4, 0, 30], "requested": [0, 1, 15], "resolved": [0, 1, 15]},
+    {"current": [0, 2, 30], "requested": [0, 1, 15], "resolved": [0, 1, 15]}
+  ],
+  "native_path": ["D2B995", "D353D0", "C329C0", "C2ED10", "C31C83", "C31D52"],
+  "boundary": "Original row constructor/type predicate/caller/queue insert/consumer execute. Typed vector/priority, backend refresh/current vector and output/out dispatch sinks are adapters. No live client acceptance."
+}

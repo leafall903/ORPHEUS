@@ -2,20 +2,22 @@
   "schema": 1,
   "graph": "0D07",
   "action_position": 58,
-  "mode": 4,
+  "authored_enum": 4,
+  "internal_queue_mode": 0,
+  "operation": 2,
   "priority": 1,
   "ground_factor": 0.01,
   "air_factor": 0,
   "finite_owner": [47, 48],
   "normal_source16_enabled": false,
   "normal_health14_enabled": false,
-  "zero_vector_admission_qualified": false,
+  "zero_vector_admission_qualified": true,
   "npc_admission_qualified": false,
   "evidence": {
     "build": 104319,
     "action_queue_frame_rva": "D2B6BC",
     "action_queue_key_rva": "D2B6E5",
-    "graph58_rows": "one mode4 vector row, no duration; out47 enters separate48 state",
+    "graph58_rows": "one authored enum4 vector row -> internal0/SET2, no duration; out47 enters separate48 state",
     "native_client_accepted": false
   }
 }

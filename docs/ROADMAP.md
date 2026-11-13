@@ -600,3 +600,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Reuse the existing Ball query for live shield count preparation with1 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Correct original Punch authored velocity enum4 to world SET with27 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

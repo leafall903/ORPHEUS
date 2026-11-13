@@ -74,7 +74,10 @@ class Knockbacks:
               impact_tick: int | None = None, source_entity: int | None = None,
               velocity_mode: int = 1, velocity_priority: float = 0.0,
               launch_modifiers: tuple = ()):
-        """One force entry. impact_tick is world time; no source-clock conversion.
+        """One canonical vector request; velocity_mode is the internal queue mode.
+
+        Internal0/SET admits a real zero reset. Internal4 is projection, not
+        authored FF3471E9 enum4. impact_tick is world time; no source-clock conversion.
 
         impact_frame retains the old ambiguous contract for unmigrated callers.
         New producers must supply impact_tick and preserve HIT owner labels apart.
@@ -84,7 +87,7 @@ class Knockbacks:
         from ow174.game import bots, correction
         from ow174.game.combat import TICK
 
-        if type(velocity_mode) is not int or velocity_mode not in (1, 4):
+        if type(velocity_mode) is not int or velocity_mode not in (0, 1, 4):
             raise ValueError('unsupported external velocity mode')
         if not math.isfinite(velocity_priority):
             raise ValueError('finite velocity priority required')
@@ -99,8 +102,10 @@ class Knockbacks:
             f32(row[2])
             f32(row[4])
         if (not isinstance(impulse, expr.Vec3) or not all(map(math.isfinite, impulse))
-                or not any(impulse) or self.combat.vitals_of(target).dead):
+                or (not any(impulse) and velocity_mode != 0) or self.combat.vitals_of(target).dead):
             return False
+        if velocity_mode == 0 and isinstance(target.owner, bots.Bot):
+            return False  # NPC world SET admission needs its own backend-clock qualification.
         resolved = self._launch_receiver(target, impact_frame, impact_tick, launch_modifiers)
         if not resolved or self.serial >= 0xFFFFFFFF:
             return False
@@ -134,13 +139,25 @@ class Knockbacks:
         return True
 
     def apply_script_projected(self, target, impulse, *, recipient_component, source_entity, priority=0.0):
-        """Positive script mode4 on one current physical player component.
+        """Positive internal-queue4 projection; this is not authored enum4."""
+        return self._apply_script_velocity(target, impulse, recipient_component=recipient_component,
+                                           source_entity=source_entity, priority=priority, queue_mode=4)
+
+    def apply_script_world_set(self, target, requested, *, recipient_component, source_entity, priority=0.0):
+        """Original authored enum4: internal queue0/SET2, with a real zero reset."""
+        return self._apply_script_velocity(target, requested, recipient_component=recipient_component,
+                                           source_entity=source_entity, priority=priority, queue_mode=0)
+
+    def _apply_script_velocity(
+        self, target, impulse, *, recipient_component, source_entity, priority, queue_mode,
+    ):
+        """Script vector request on one current physical player component.
 
         Original FF3471E9 uses backend frame+1. Admit only when the canonical
         receiver agrees with that actual physical/VM frame; do not re-anchor a
         stale script clock. This queues force only. Persistent graph modifiers
         keep their own states and are never copied into finite launch storage.
-        NPCs, possession and zero requests are not qualified by this API.
+        NPCs and possession are not qualified by these APIs.
         """
         from ow174.game import bots
 
@@ -158,7 +175,7 @@ class Knockbacks:
                 or resolved[3] != recipient_component.frame + 1 or resolved[4]):
             return False
         return self.apply(target, impulse, impact_tick=self.combat.match.tick,
-                          source_entity=source_entity, velocity_mode=4, velocity_priority=priority)
+                          source_entity=source_entity, velocity_mode=queue_mode, velocity_priority=priority)
 
     def _launch_receiver(self, target, impact_frame, impact_tick, launch_modifiers):
         """One admission/clock policy shared by force and finite-only modifiers."""
@@ -561,7 +578,8 @@ class Knockbacks:
 
     def _enqueue(self, entity, mover, frame, key, impulse, velocity_mode=1,
                  velocity_priority=0.0, launch_modifiers=()):
-        change = (velocity.projected(frame, tuple(impulse)) if velocity_mode == 4 else
+        change = (velocity.world_set(frame, tuple(impulse)) if velocity_mode == 0 else
+                  velocity.projected(frame, tuple(impulse)) if velocity_mode == 4 else
                   velocity.vector(frame, ADD, tuple(impulse), mover.velocity))
         velocity.enqueue(mover.velocity_changes, replace(change, key=key, priority=velocity_priority))
         self._enqueue_launch_modifiers(mover, frame, launch_modifiers)

@@ -72,6 +72,7 @@ class HelperVelocityTests(DoomfistFixture, unittest.TestCase):
             value = bridge(instance, action)
             return original_velocity(instance, action) if value is NotImplemented else value
 
+        self.b.mover.velocity = (4.0, 0.0, 30.0)
         with patch.object(component.world, 'velocity_action', side_effect=velocity):
             component.run_now()
         self.assertEqual(self.vitals().total, before)
@@ -84,14 +85,14 @@ class HelperVelocityTests(DoomfistFixture, unittest.TestCase):
         for player in self.run.players:
             player.take_commands([Command(player.commands.last_frame + 1)])
 
-    def test_actual58_admits_one_projected_force_and_original48_alone_consumes_brakes(self):
+    def test_actual58_admits_one_world_set_and_original48_alone_consumes_brakes(self):
         spec = json.loads((Path(__file__).resolve().parents[2] / 'fixtures/behavior'
                            / 'doomfist-helper-velocity58-v1.json').read_text())
         helper, bridge, queue, serial = self.stage()
         c, physical = helper.component, self.b.mover
         self.assertEqual(self.fight.knockbacks.serial, serial + 1)
         change, = physical.velocity_changes
-        self.assertEqual((change.mode, change.priority, change.frame), (4, 1, c.frame + 1))
+        self.assertEqual((change.mode, change.priority, change.frame), (0, 1, c.frame + 1))
         vector = helper.evaluate(helper.graph.node(58).field('m_BC5E91CF')[0]['m_9B7A63EA'])
         self.assertEqual(change.value, tuple(vector))
         self.assertNotEqual(change.frame, self.a.body_script.component.frame + 1)
@@ -124,7 +125,7 @@ class HelperVelocityTests(DoomfistFixture, unittest.TestCase):
         bridge.close()
         queue.retire()
 
-    def test_live_zero_response_skips58_and_unqualified_zero_vector_does_not_fake_admission(self):
+    def test_live_zero_response_skips58_but_zero_vector_is_a_real_world_reset(self):
         helper, bridge, queue, serial = self.stage(response=0)
         self.assertFalse(bridge.results)
         self.assertFalse(helper.node_state(helper.graph.node(47)).active)
@@ -134,10 +135,14 @@ class HelperVelocityTests(DoomfistFixture, unittest.TestCase):
         queue.retire()
         self.prepare()
         helper, bridge, queue, serial = self.stage(caller_r=0)
-        self.assertFalse(bridge(helper, helper.graph.node(58)))
-        self.assertFalse(helper.node_state(helper.graph.node(47)).active)
-        self.assertEqual(self.fight.knockbacks.serial, serial)
-        self.assertFalse(self.b.mover.velocity_changes)
+        self.assertTrue(bridge(helper, helper.graph.node(58)))
+        self.assertTrue(helper.node_state(helper.graph.node(47)).active)
+        self.assertEqual(self.fight.knockbacks.serial, serial + 1)
+        change, = self.b.mover.velocity_changes
+        self.assertEqual((change.mode, change.value), (0, (0.0, 0.0, 0.0)))
+        self.step_recipient_clocks()
+        self.assertEqual(self.b.mover.velocity, (0.0, 0.0, 0.0))
+        self.assertFalse(any(k[0] == -3 for k in self.b.mover.mods))
         bridge.close()
         helper.component.destroy(helper)
         queue.retire()
@@ -151,6 +156,18 @@ class HelperVelocityTests(DoomfistFixture, unittest.TestCase):
         helper.component.destroy(helper)
         bridge.close()
         queue.retire()
+
+    def test_shared_internal4_projection_still_preserves_a_faster_consumption_velocity(self):
+        target = self.fight.player_target(self.b)
+        component = self.b.body_script.component
+        self.b.mover.velocity = (0.0, 2.0, 30.0)
+        self.assertTrue(self.fight.knockbacks.apply_script_projected(
+            target, expr.Vec3(0, 1, 15), recipient_component=component,
+            source_entity=self.a.body, priority=1))
+        change, = self.b.mover.velocity_changes
+        self.assertEqual(change.mode, 4)
+        self.step_recipient_clocks()
+        self.assertGreater(self.b.mover.velocity[2], 20)
         self.prepare()
         helper, bridge, queue, serial = self.stage()
         self.assertEqual(self.fight.knockbacks.serial, serial + 1)

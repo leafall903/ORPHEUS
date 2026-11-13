@@ -2,8 +2,9 @@
 
 One bridge belongs to one live recipient body and captured source body. The
 caller owns its lifetime. Graph47/48 own finite modifiers; this backend queues
-only the already formed, positive mode4 request in the canonical force host.
-Zero requests, NPCs and full-helper completion remain unqualified.
+only the already formed authored enum4 request in the canonical force host.
+Original C329C0 maps it to queue0/SET2, including a real zero reset. NPCs and
+full-helper completion remain unqualified.
 """
 
 import math
@@ -58,7 +59,7 @@ class StagedVelocityBridge:
         vector = instance.evaluate(row.get('m_9B7A63EA'))
         priority = instance.evaluate(row.get('m_priority'))
         if (not isinstance(vector, expr.Vec3) or not all(map(math.isfinite, vector))
-                or not any(vector) or type(priority) not in (int, float)
+                or type(priority) not in (int, float)
                 or not math.isfinite(priority) or priority != 1):
             return False
         target = next((t for t in match.combat._enemies(source)
@@ -73,7 +74,7 @@ class StagedVelocityBridge:
         # replay a second force. No finite launch_modifiers are passed: original
         # action58 has one vector row; its out plug enters separate47/48 states.
         self.results[key] = False
-        accepted = match.combat.knockbacks.apply_script_projected(
+        accepted = match.combat.knockbacks.apply_script_world_set(
             target, vector, recipient_component=component, source_entity=self.source_body,
             priority=expr.f32(priority))
         self.results[key] = bool(accepted)

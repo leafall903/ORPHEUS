@@ -23,7 +23,7 @@ class Change:
     value: float | tuple
     key: int | None = None
     priority: float = 0.0
-    mode: int = 1  # native vector mode1 delta; mode4 deferred projection floor
+    mode: int = 1  # internal queue0 world SET,1 delta,4 deferred projection floor
 
     @property
     def start(self):
@@ -39,7 +39,8 @@ def enqueue(changes, change):
     if (type(change) is not Change or type(change.key) is not int
             or not 0 <= change.key < 1 << 64 or not math.isfinite(change.priority)):
         raise ValueError("velocity queue requires a uint64 key and finite priority")
-    if (change.mode not in (1, 4) or change.mode == 4 and (change.index != -1 or change.op != SET)):
+    if (change.mode not in (0, 1, 4)
+            or (change.mode in (0, 4) and (change.index != -1 or change.op != SET))):
         raise ValueError("unsupported velocity queue mode or projected operation")
     try:
         change = replace(change, priority=f32(change.priority))
@@ -105,7 +106,12 @@ SET2 instead raises the requested projection using this consumption velocity.
         else:
             vertical = f32(adjusted * jump_speed) if index == 3 else adjusted
             value = value[0], vertical, value[2]
-    for change in active:
+    vectors = [change for change in active if change.index == -1]
+    if any(change.mode == 0 for change in vectors):
+        # Native C31BD0/C31CD8/C31F57 consume delta, world SET, then
+        # projection in separate passes. Preserve within-pass queue ordering.
+        vectors.sort(key=lambda change: {1: 0, 0: 1, 4: 2}[change.mode])
+    for change in vectors:
         if change.index == -1:
             if change.mode == 4:
                 requested = change.value
@@ -119,7 +125,10 @@ SET2 instead raises the requested projection using this consumption velocity.
                 projection = f32(sum(f32(axis * unit) for axis, unit in zip(value, direction, strict=True)))
                 gap = f32(length - projection)
                 if gap > 0.0:
-                    value = tuple(f32(axis + f32(unit * gap)) for axis, unit in zip(value, direction, strict=True))
+                    value = tuple(
+                        f32(axis + f32(unit * gap)) for axis, unit in zip(value, direction, strict=True))
+            elif change.mode == 0:
+                value = change.value
             else:
                 value = tuple(f32(axis + delta) for axis, delta in zip(value, change.value, strict=True))
     return value
@@ -151,3 +160,10 @@ def projected(frame, requested):
     if type(frame) is not int or frame < 0 or len(requested) != 3 or not all(map(math.isfinite, requested)):
         raise ValueError("invalid projected velocity frame or vector")
     return Change(frame, -1, SET, tuple(map(f32, requested)), mode=4)
+
+
+def world_set(frame, requested):
+    """Authored enum4 maps through C329C0 to internal queue0/SET2, including zero."""
+    if type(frame) is not int or frame < 0 or len(requested) != 3 or not all(map(math.isfinite, requested)):
+        raise ValueError("invalid world SET velocity frame or vector")
+    return Change(frame, -1, SET, tuple(map(f32, requested)), mode=0)

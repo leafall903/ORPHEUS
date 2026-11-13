@@ -61,7 +61,7 @@ class ForceProducerTests(DoomfistFixture, unittest.TestCase):
         entity, vector, kwargs, tick, accepted = enemy[0]
         expected = {"impact_tick": tick, "source_entity": self.a.body}
         if skill == "punch":
-            self.assertEqual(kwargs["velocity_mode"], 4)
+            self.assertEqual(kwargs["velocity_mode"], 0)
             self.assertEqual(kwargs["velocity_priority"], 1)
             self.assertEqual(len(kwargs["launch_modifiers"]), 2)
             expected.update({key: kwargs[key] for key in

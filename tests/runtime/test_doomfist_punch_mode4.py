@@ -1,4 +1,4 @@
-"""Actual Punch commands preserve the original full-vector mode4 producer."""
+"""Actual Punch authored enum4 packs the original internal world SET request."""
 import json
 import unittest
 from pathlib import Path
@@ -72,7 +72,7 @@ class PunchMode4Tests(DoomfistFixture, unittest.TestCase):
                              for axis, f in enumerate(forward))
             for actual, want in zip(vector, expected, strict=True):
                 self.assertAlmostEqual(actual, want, places=5)
-            self.assertEqual(kwargs['velocity_mode'], 4)
+            self.assertEqual(kwargs['velocity_mode'], 0)
             self.assertEqual(kwargs['source_entity'], self.a.body)
             self.assertEqual(kwargs['velocity_priority'], 1)
             self.assertEqual(tuple((i, op, round(v, 6), round(seconds, 6), priority)
