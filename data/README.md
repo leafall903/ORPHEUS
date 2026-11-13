@@ -66,7 +66,7 @@ To reuse local 104319 XML exports, supply their parent directory with `--client-
 
 ## Input provenance and current limits
 
-The pinned upstream runtime inventory and the extraction tools identify the sources of these files. The upstream MIT notice applies to its software and documentation. Separate redistribution permission for the game exports, capture contents and signing material remains unverified. Runtime preparation uses local inputs. The repository publishes the tools and the project-authored ultimate charge estimates. [Upstream inventory](https://github.com/LizRollin/overwatch-1.74-lobby-server/blob/9f8f3bcb5eccab6fb7738bee3c2371fcf0623f29/data/README.md) · [Ultimate charge estimates](../src/ow174/game/ult_charge.py)
+The pinned upstream runtime inventory and the extraction tools identify the sources of these files. The upstream MIT notice applies to its software and documentation. Separate redistribution permission for the game exports, capture contents and signing material remains unverified. Runtime preparation uses local inputs. The repository publishes the tools. [Upstream inventory](https://github.com/LizRollin/overwatch-1.74-lobby-server/blob/9f8f3bcb5eccab6fb7738bee3c2371fcf0623f29/data/README.md)
 
 | Runtime input | Source and current preparation route |
 | --- | --- |
@@ -83,7 +83,6 @@ The pinned upstream runtime inventory and the extraction tools identify the sour
 | `retail_templates.json` | Derived from a reference server session. The public setup still needs an authorized input or a separately implemented replacement. |
 | `bnet/descriptors.pb` | Battle.net protobuf descriptors derived from the 1.74 client. A complete publicly reproducible source and build path remain unverified. |
 | `resource_keys_174.json`, `lobby_state_blob.key` | Content access and lobby signing material retained locally. The deployment flow requires the authorized prepared inputs. |
-| `game_ult_charge_174.json` | Optional local override. The project-authored estimates are already in the public server source. |
 
 The Practice Range path still requires prepared `retail_templates.json`, `schemas_174.json`, `game_schemas_174.json`, `statescript_codecs_174.json`, `bnet/descriptors.pb`, `resource_keys_174.json` and `lobby_state_blob.key`. Full self-hosting from the game folder alone remains open.
 
@@ -108,7 +107,6 @@ Keep game files, dumps, raw captures, signing input and generated runtime files 
 | `game_queues_174.json` | The queue cards: modes, maps and team sizes (`tools/extract_game_queues.py`). |
 | `game_graphs_174.json.gz` | The statescript graphs the game server runs (`tools/extract_game_graphs.py`). |
 | `game_stats_174.json` | The stats the Tab board lists for each hero and mode (`tools/extract_game_stats.py`). |
-| `game_ult_charge_174.json` | Optional local override for the community estimates built into the Python server. |
 | `bnet/descriptors.pb` | Protocol descriptors for the local Battle.net service. In the legacy layout this is `ow174/bnet/descriptors.pb`. |
 | `game_movers_174.json` | Each hero body's character mover values (speeds, jump, gravity, capsule), from `tools/extract_game_movers.py`. |
 | `collision_keys_174.json` | Storage keys of each map's collision chunk in build 104319, so the server can read the collision from your own game (`tools/build_collision.py`, cache in `cache/collision`). |

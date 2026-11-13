@@ -56,7 +56,6 @@ MATCH_RUNTIME_DATA = (
     "game_heroes_174.json", "game_maps_174.json", "game_movers_174.json", "game_schemas_174.json",
     "game_stats_174.json", "statescript_codecs_174.json",
 )
-ULT_CHARGE_OVERRIDE = "game_ult_charge_174.json"
 
 
 def missing_runtime_files(*, matches: bool, bnet: bool) -> list[str]:

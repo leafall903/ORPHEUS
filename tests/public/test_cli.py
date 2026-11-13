@@ -247,7 +247,6 @@ class RuntimeCheckTests(unittest.TestCase):
                     self.assertIn(descriptor, error)
                     if external:
                         self.assertNotIn("ow174/bnet/descriptors.pb", error)
-                    self.assertNotIn(paths.ULT_CHARGE_OVERRIDE, error)
 
     def test_lobby_only_runtime_check_does_not_require_match_data_or_descriptors(self):
         with self.runtime_layout(external=True) as data:

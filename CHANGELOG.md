@@ -29,6 +29,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   passive runs as before.
 - McCree's Rialto sandbox charge keeps its own point per point on hand-spawned NPCs. Those hits
   are not fed, so nothing counts twice.
+- Removed the table, which nothing reads any more: `src/ow174/game/ult_charge.py`,
+  `tests/public/test_game_ult_charge.py`, `tools/extract_game_ult_charge.py`,
+  `ULT_CHARGE_OVERRIDE` and the runtime pack's optional `game_ult_charge_174.json`,
+  `BodyScript.credit_ult`, and `_bot_died`'s `award_ult`.
 - Gaps: node 83's `STU_A6B80C63` gives None and node 84 lets it through, so nothing is taken off.
   `STU_25ECB55F` is unanswered, so nodes 59 and 97 never halve the amount or take a quarter off.
   `0148.025` and the eight senders of `00EB.025` are not fed. The graph's conditions on `#842e`
