@@ -1,0 +1,24 @@
+{
+  "case_id": "moira-reflected-orb-delivery-v1",
+  "target_build": 104319,
+  "provenance": "Actual encrypted Moira10E4/21 damage orb and Genji03A3 Deflect input. Original typed response/event evidence in docs/MOIRA_COMBAT.txt records a queued contact, unchanged original projectile source/velocity through the bounded callback and no proved replacement source. Host aura preserves one orb with remaining life/energy.",
+  "input": {
+    "original_source": "actual Moira cast body and captured Shot clock",
+    "defender": "actual hostile Genji body, facing caster",
+    "reflect_input_offset": 2,
+    "orb_choice_offsets": [3, 12],
+    "physical_energy_exhaustion_offset": 65,
+    "observe_until_offset": 99
+  },
+  "expected": {
+    "reflection_retires_shot": false,
+    "new_genji_volley_or_entity": false,
+    "launch_source_frame_clock_and_original_deadline": "unchanged",
+    "observer_create_count": 1,
+    "observer_destroy_before_physical_stop": 0,
+    "observer_destroy_after_physical_stop": 1,
+    "create_and_launch_ack": true,
+    "reflected_damage_and_hit_credit": "actual Genji"
+  },
+  "limits": "Fixes premature lifecycle termination only. Native reflected direction, Pet/owner rebinding, complete Deflect outputs and reflected late-join replay remain OPEN; no unknown source/entity fields are guessed."
+}

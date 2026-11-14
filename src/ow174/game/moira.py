@@ -388,8 +388,8 @@ def _orb_move(fight, orb, distance, duration):
     """Point wall/Genji sweep with bounded contacts and preserved flight budgets.
 
     Genji contact reuses his lane's declared capsule/frontal Deflect admission.
-    It transfers both health operations and body attribution, retires the old
-    prediction, and preserves remaining life/energy. Native boxes/filters and
+    It transfers health operations and body attribution while preserving the
+    live cast's delivery, remaining life and energy. Native boxes/filters and
     reflected client motion remain separate acceptance questions.
     """
     total = distance
@@ -436,10 +436,9 @@ def _orb_move(fight, orb, distance, duration):
             return True
         if defender is not None:
             orb.position = combat._along(orb.position, orb.direction, limit)
-            if orb.shot is not None:
-                fraction = (total - distance + limit) / total if total > 0 else 0
-                fight.projectiles.flown(orb.shot, orb.flown + duration * fraction)
-                orb.shot = None
+            # Reflection is not a physical stop. Keep the original source's
+            # alias/clock/ACK lifetime until actual exhaustion or absorption;
+            # do not fabricate a Moira volley or new owner entity on Genji.
             orb.shooter, orb.body = defender.owner, defender.entity
             orb.direction = combat.aim(defender.owner.mover.yaw, defender.owner.mover.pitch)
             distance = max(0.0, distance - limit)

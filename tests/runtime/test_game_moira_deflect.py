@@ -66,6 +66,7 @@ class MoiraDeflectTests(unittest.TestCase):
     def test_damage_orb_transfers_owner_body_direction_budget_and_damage_credit(self):
         run, source, genji, health = self.fight()
         orb = self.launch(run, source, genji)
+        shot = orb.shot
         fight = run.match.combat
         with patch.object(fight, '_damage', wraps=fight._damage) as damage:
             self.reflect(run, source, genji, orb)
@@ -80,10 +81,10 @@ class MoiraDeflectTests(unittest.TestCase):
                 (reflected, genji, (0x2DFD, 0x2F99, 0x19C4, 0x4D29, 0x4910))):
             for call in calls:
                 self.assertEqual(call.kwargs['source_body'], owner.body)
-                self.assertEqual(tuple(tag & 0xFFFF for tag in call.kwargs['damage_tags']), tags)
-        # This fixture/runtime does not guarantee a supported prediction Shot;
-        # reflected client creation/correction is a separate open acceptance.
-        self.assertIsNone(orb.shot)
+                self.assertEqual(tuple(tag & 0xFFFF for tag in call.kwargs['hit_tags']), tags)
+        # Reflection preserves the live cast's delivery. Native reflected
+        # motion/source rebinding remains separately unaccepted.
+        self.assertIs(orb.shot, shot)
         self.assertEqual(orb.body, genji.body)
         self.assertAlmostEqual(orb.direction[2], -1)
         self.assertFalse(orb.healing)
