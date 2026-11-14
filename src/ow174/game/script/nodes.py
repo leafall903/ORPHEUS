@@ -3540,6 +3540,10 @@ class WeaponVolley(State):
                 from ow174.game import junkrat_projectile
 
                 observer_activation = junkrat_projectile.volley_activation(self, activation)
+            if observer_activation is None:
+                from ow174.game import hero_torbjorn
+
+                observer_activation = hero_torbjorn.primary_volley_activation(self, activation)
             if observer_activation is not None:
                 self.instance.component.shots.append((*report, None, observer_activation))
             else:

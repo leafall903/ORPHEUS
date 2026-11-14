@@ -15,6 +15,54 @@ TURRET = 0x04000000000028B7
 log = logging.getLogger("ow174.game")
 
 
+def primary_volley_activation(state, activation):
+    """Freeze only the qualified literal2A66 primary at its report boundary."""
+    if (getattr(state.instance.component.world, "hero", None) != HERO
+            or state.node.cls != "STUStatescriptStateWeaponVolley"
+            or (state.instance.graph.index, state.node.pos) != (0x1683, 29)
+            or activation != (state.counter, state.start)):
+        return None
+    projectile = state.node.field("m_projectileEntity")
+    config = projectile.get("m_entityDef") if isinstance(projectile, dict) else None
+    if (not isinstance(projectile, dict) or projectile.get("$") != "STUStatescriptWeaponProjectileEntity"
+            or not isinstance(config, dict) or config.get("$") != "STU_8556841E"
+            or config.get("m_EE729DCB") != 0 or config.get("m_resourceKey") is not None
+            or config.get("m_entityDef") != "0x0400000000002A66"):
+        return None  # Inspect the original literal; do not evaluate another provider.
+    payload = state.payload()
+    if (set(payload) != {"counter", "start", "offset", "volleys"}
+            or any(type(value) is not int for value in payload.values())
+            or type(state.active) is not bool
+            or (payload["counter"], payload["start"]) != activation):
+        return None
+    return state.node.cls, state.active, tuple(sorted(payload.items()))
+
+
+def remember_primary_launch(shot, state, origin, direction, deadline, captured):
+    """Keep the authentic report on the existing primary Shot and first delivery."""
+    if (getattr(getattr(shot.player, "hero", None), "guid", None) != HERO
+            or (state.instance.graph.index, state.node.pos, shot.definition)
+            != (0x1683, 29, 0x0400000000002A66)
+            or shot.clock_origin is None or type(captured) is not tuple or len(captured) != 3
+            or captured[0] != "STUStatescriptStateWeaponVolley" or type(captured[1]) is not bool
+            or type(captured[2]) is not tuple or len(captured[2]) != 4
+            or any(type(row) is not tuple or len(row) != 2 or type(row[0]) is not str
+                   or type(row[1]) is not int for row in captured[2])):
+        return
+    payload = dict(captured[2])
+    if (set(payload) != {"counter", "start", "offset", "volleys"}
+            or (payload["counter"], payload["start"]) != shot.activation):
+        return
+    from ow174.game.projectiles import ShotRecord
+
+    shot.observer_record = ShotRecord(
+        shot.frame, shot.instance, shot.state, shot.activation[0], tuple(origin), tuple(direction), (),
+        shot=shot.shot_index, volleys=payload["volleys"] & 0xFF,
+    )
+    shot.observer_activation = captured
+    shot.observer_deadline = deadline
+
+
 def rivet_targets(fight, rocket, targets):
     """Use retained physical poses for delayed, clocked primary/secondary rivets."""
     primary = (rocket.source_graph, rocket.definition) == (0x1683, 0x0400000000002A66)

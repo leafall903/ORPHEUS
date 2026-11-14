@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn-primary-report-h0-v1",
+  "target_build": 104319,
+  "provenance": "Source66 qualified one actual ordinary primary: hero0006/1683node29/literal2A66 sync1 reportTrue, consumeFalse, first authenticated remote H0False, no authentic capture. Original nested entityDef has no resourceKey and scope0; do not evaluate a new config callback.",
+  "input": {"command_count": 8, "left_triggers": 1, "viewer_distance": 100, "initial_ack_delay_ticks": 3},
+  "expected": {"report_fields": 6, "definition": "0400000000002A66", "sync": 1, "report_active": true, "consume_active": false, "first_remote_h0_active": true, "same_capture_identity": true, "same_shot_record_deadline_and_physical_lifetime": true},
+  "limits": "Only existing first delivery and its delayed initial ACK. No new late-viewer hook, no ACK/lease/schema/physical/ammo/damage/trajectory change. H0 start omission is existing codec behavior. Native models and all other Torbjorn paths remain separate."
+}

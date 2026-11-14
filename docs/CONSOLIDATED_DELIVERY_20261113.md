@@ -576,3 +576,9 @@ Integrate independent65 Pharah e4bfb9ff and Junkrat ee63399c in an ordered narro
 
 - `pharah-primary-real-report-capture65`: original focused owner commit(s) `e4bfb9ff764cd52dd3b8c1208c4fce3593a2e3e5`.
 - `junkrat-frag-real-report-capture65`: original focused owner commit(s) `ee63399c9638e8e6b98347a720c6d879f4fd6153`.
+
+## Preserve Torbjorn primary report activation for initial observers
+
+Integrate direct66 Torbjorn d51bc052 narrow primary report capture: only original hero0006/1683 node29/resource2A66 sync1. Capture class/active/four integer payload at reportTrue, retain through consumeFalse using existing sixth metadata to original first authenticated H0True. Real H2 ACK retains same Shot, two records, deadline/bound/clock/left/flown and pending digest. Five non-Markdown posts equal owner; shared hooks and original hero module preserve prior full AST after removing only new functions/blocks. No late-viewer/schema/physics changes; existing secondary/history/turret/molten paths unchanged. Root accepts original final one-green20.726s/ERROR0 with all five actual executing post hashes; intermediate H2 send-versus-peer-ACK fixture failure retained and corrected only fixture ACK. No owner/composed/journal or old suite rerun; exact formal67 one explicit method runs once afterward with input/runner/profile/log binding. One new method brings361selected=340new+21maintained. Exactcandidate headless CLI/listen plus declared target-init hook separately required and not native. Native models/colors/duplicates/fullHP/lifecycle and allhero combat remain OPEN. Runtime60/51 immutable inputs unchanged, no deployment/client/GUI/new20/profile;67 performance UNMEASURED, no inherited native acceptance.
+
+- `torbjorn-primary-real-report-capture66`: original focused owner commit(s) `d51bc0521f7c9921ff8a9a733dd238d35a19939e`.
