@@ -828,6 +828,17 @@ def advance(fight, tick):
             else:
                 world_birth, body_birth, frame_ms = origin
                 target_frame = body_birth + (tick - world_birth) * round(TICK * 1000) // frame_ms
+        elif component.world.hero == ZARYA:
+            from ow174.game.combat import TICK
+
+            # _valid binds this same source body. Its Zarya birth pair is not
+            # rewritten by the Reaper/Winston/Sombra or Soldier input paths.
+            birth = barrier.parent.body_script.world_frame_anchor
+            if birth is None:
+                target_frame = component.frame
+            else:
+                world_birth, body_birth = birth
+                target_frame = body_birth + (tick - world_birth) * round(TICK * 1000) // component.frame_ms
         if target_frame > component.frame:
             component.run_frame(target_frame)
         else:

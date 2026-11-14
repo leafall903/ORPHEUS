@@ -717,3 +717,7 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 - [x] Integrate accepted Rein shield-clock increment, preserving Mei69 and excluding unaccepted Zarya/forcedTrue work.
 - [ ] Exact formal70 committed Rein one-method confirmation, isolated candidate headless, outgoing audit and root final review results are recorded separately.
 - [ ] Native shield visuals/hit/drop/camera/observer, charge/melee/Firestrike and actual16ms acceptance remain OPEN.
+
+- [x] Integrate accepted direct Zarya bubble-clock branch union, preserving Rein70 and Mei69 through exact byte projections.
+- [ ] Exact formal71 committed Zarya one-method confirmation and isolated candidate headless/outgoing/root review results are recorded separately.
+- [ ] Projected input/native, HIT notification and post-hit privateVMdict strict export/fullstore/restore remain OPEN; no checker/schema workaround.
