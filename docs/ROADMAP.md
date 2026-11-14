@@ -687,3 +687,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Retain Moira orb delivery until physical retirement after Deflect with2 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Register original Camo source rules and reject unready cache consumption with4 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

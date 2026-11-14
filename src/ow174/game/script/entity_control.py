@@ -64,6 +64,7 @@ def boolean(state, name, default):
 
 def refresh_cache(state):
     """C8D540: four scalar caches followed by ordered valid entity targets."""
+    state.control_cache_ready = False
     state.control_radius = expr.to_float(_value(state, "m_069FD7A5", -1.0), -1.0)
     state.control_bypass = boolean(state, "m_72FD7742", False)
     state.control_inverse_a = not boolean(state, "m_381879C1", False)
@@ -72,6 +73,7 @@ def refresh_cache(state):
         entity for value in play._iter_values(state.instance, state.node.field("m_C3E68133"), watcher=state)
         if expr.valid_entity(entity := expr.to_entity(value))
     )
+    state.control_cache_ready = True
 
 
 def combine(source, component, seed, within_distance):
@@ -89,6 +91,8 @@ def combine(source, component, seed, within_distance):
         source.instance.component.consume_work("entity control rule")
         if not state.instance.initialized:
             continue
+        if not state.control_cache_ready:
+            _unsupported(source, "entity control rule cache unavailable")
         near = _call(source, within_distance, "entity control distance", state, boolean=True)
         enabled = boolean(state, "m_3C443404", True)
         if not state.control_bypass and not near and enabled:

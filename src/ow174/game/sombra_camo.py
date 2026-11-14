@@ -9,6 +9,34 @@ EXIT_BLEND = 18  # node 40
 RECEIVED_DAMAGE = 0x0240000000000011
 
 
+def owns_source_rule(state):
+    """Only the current Match body's original Camo85 authoritative source list.
+
+    This qualifies registration/retirement, not dynamic caches, engine context,
+    candidate classification or entity/model consumers.
+    """
+    instance = state.instance
+    component = instance.component
+    world = component.world
+    match = getattr(world, "match", None)
+    if (match is None or getattr(world, "hero", None) != HERO
+            or (instance.graph.index, state.node.pos) != (GRAPH, 85)):
+        return False
+    player = match.combat.sombra_controls.player(component.entity)
+    script = getattr(player, "body_script", None)
+    return (script is not None and not script.retired and script.component is component
+            and not component.owner_dead)
+
+
+def retire_source_rule(script):
+    """Unlink the retained body's source before its Match namespace detaches."""
+    if script.hero != HERO or script.component.strict:
+        return
+    for state in tuple(script.component.state_registries.get("STU_33A46033", ())):
+        if (state.instance.graph.index, state.node.pos) == (GRAPH, 85):
+            state.on_cleanup()
+
+
 def _instance(script):
     if getattr(script, "hero", None) != HERO or script.retired or script.component.owner_dead:
         return None

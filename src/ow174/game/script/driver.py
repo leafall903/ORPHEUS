@@ -3619,6 +3619,9 @@ class BodyScript(ReplicatedBody):
         from ow174.game import reaper_shadow_actor
 
         reaper_shadow_actor.retire_source(self)
+        from ow174.game import sombra_camo
+
+        sombra_camo.retire_source_rule(self)
         self.retired = True
         if self.hero == 0x02E00000000001CA and self.world.match is not None:
             self.world.match.combat.clear_temporary_shields(self.entity)

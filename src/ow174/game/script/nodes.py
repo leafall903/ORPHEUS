@@ -1444,8 +1444,9 @@ class EntityControl(RegisteredState):
     """Native cached type-list rules; engine services require an explicit context.
 
     Strict begin/cleanup keep the native registration order and refresh consumers.
-    Legacy permissive bodies retain their passive behavior. Incoming prediction
-    reconciliation and the actual engine implementations remain owner services.
+    The current Sombra Camo source also owns its authoritative list lifecycle,
+    without declaring its missing caches or engine services available. Other
+    permissive bodies and incoming prediction reconciliation remain separate.
     """
 
     def __init__(self, *args):
@@ -1456,16 +1457,26 @@ class EntityControl(RegisteredState):
         self.control_targets = ()
         self.control_previous = False
         self.control_generation = 0
+        self.control_cache_ready = False
 
     def on_begin(self):
         if self.instance.component.strict:
             super().on_begin()
             entity_control.refresh(self)
+        else:
+            from ow174.game import sombra_camo
+
+            if sombra_camo.owns_source_rule(self):
+                self.register()
 
     def on_cleanup(self):
         if self.instance.component.strict:
             super().on_cleanup()
             entity_control.refresh(self)
+        elif self in self.instance.component.state_registries.get(self.node.cls, ()):
+            # Use actual membership: the owner can already have changed hero
+            # or retired when its old component runs cleanup.
+            super().on_cleanup()
 
     def tick(self):
         if self.instance.component.strict:

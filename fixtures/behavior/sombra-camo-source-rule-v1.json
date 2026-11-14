@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hero": "012E",
+  "graph": "0C9B",
+  "node": 85,
+  "state": 44,
+  "class": "STU_33A46033",
+  "scope": "Current ordinary Match body's authoritative source rule registration and retirement only",
+  "native": {
+    "begin": "8F7180 ->1B72530 ->1B717F0 class list append before refresh",
+    "cleanup": "8F7510 ->1B725C0 unlink before refresh"
+  },
+  "behavior": "Real Shift activation appends the original state once to its actual component class list; authored exit and source-body retirement unlink it. No acquired IDs, capability flags or engine writes are supplied.",
+  "unknownCache": "control_cache_ready remains false for source-only registration. Existing scalar/list initialization values cannot be consumed as native cached inputs. Strict completed refresh sets readiness only after its original cache work succeeds.",
+  "snapshot": "Readiness uses the explicit EntityControl storage layout. Full actual body export preserves one state identity referenced by its registry and instance; no callback is evaluated.",
+  "confirmation": "tests/runtime/test_sombra_camo_source_rule.py",
+  "limits": "Camo7982/8842/12382 dynamic producers, candidate/controller filter, capability/permission, refresh consumers, prediction reconciliation, renderer/color behavior and original-client acceptance remain OPEN."
+}
