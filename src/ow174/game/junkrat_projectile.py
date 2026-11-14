@@ -5,6 +5,52 @@ from ow174.game.collision import MOVER
 from ow174.game.script import expr
 
 HERO = 0x02E0000000000065
+FRAG = 0x0400000000000385
+
+
+def volley_activation(state, activation):
+    """Keep only the observed ordinary Frag's original report-time H0."""
+    if (getattr(state.instance.component.world, 'hero', None) != HERO
+            or state.node.cls != 'STUStatescriptStateWeaponVolley'
+            or (state.instance.graph.index, state.node.pos) != (0x022B, 31)
+            or activation != (state.counter, state.start)):
+        return None
+    config = (state.node.field('m_projectileEntity') or {}).get('m_entityDef')
+    if (not isinstance(config, dict) or config.get('$') != 'STU_8556841E'
+            or config.get('m_EE729DCB') != 0 or config.get('m_resourceKey') is not None
+            or config.get('m_entityDef') != '0x0400000000000385'):
+        return None  # No new dynamic definition query at the report boundary.
+    payload = state.payload()
+    if (set(payload) != {'counter', 'start', 'offset', 'volleys'}
+            or any(type(value) is not int for value in payload.values())
+            or type(state.active) is not bool
+            or (payload['counter'], payload['start']) != activation):
+        return None
+    return state.node.cls, state.active, tuple(sorted(payload.items()))
+
+
+def remember_launch(shot, state, origin, direction, deadline, captured):
+    """Retain authentic metadata on the same accepted0385 Shot."""
+    if (getattr(getattr(shot.player, 'hero', None), 'guid', None) != HERO
+            or (state.instance.graph.index, state.node.pos, shot.definition) != (0x022B, 31, FRAG)
+            or shot.clock_origin is None or type(captured) is not tuple or len(captured) != 3
+            or captured[0] != 'STUStatescriptStateWeaponVolley' or type(captured[1]) is not bool
+            or type(captured[2]) is not tuple or len(captured[2]) != 4
+            or any(type(row) is not tuple or len(row) != 2 or type(row[0]) is not str
+                   or type(row[1]) is not int for row in captured[2])):
+        return
+    payload = dict(captured[2])
+    if (set(payload) != {'counter', 'start', 'offset', 'volleys'}
+            or (payload['counter'], payload['start']) != shot.activation):
+        return
+    from ow174.game.projectiles import ShotRecord
+
+    shot.observer_record = ShotRecord(
+        shot.frame, shot.instance, shot.state, shot.activation[0], tuple(origin), tuple(direction), (),
+        shot=shot.shot_index, volleys=payload['volleys'] & 0xFF,
+    )
+    shot.observer_activation = captured
+    shot.observer_deadline = deadline
 
 
 def catch_up(fight, rocket):

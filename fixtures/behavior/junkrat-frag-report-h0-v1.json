@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-frag-report-h0-v1",
+  "target_build": 104319,
+  "provenance": "One synthetic ordinary FIRE on formal65 using existing original runtime inputs. Same022B/31 state reports active, ends before Combat consumes it, and originally reached first remote H0 inactive. This contract covers report metadata and existing initial-delivery ACK only, not native damage or rendering.",
+  "input": {"hero": "0x02E0000000000065", "graph": "0x022B", "node": 31, "fire_inputs": 1},
+  "expected": {
+    "definition": "0x0400000000000385",
+    "sync": 1,
+    "report_fields": 6,
+    "capture_fields": ["counter", "offset", "start", "volleys"],
+    "first_remote_active": true,
+    "same_shot_and_deadline_after_delayed_initial_ack": true
+  },
+  "native_acceptance": "pending"
+}

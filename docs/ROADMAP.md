@@ -699,3 +699,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Retain authentic Hanzo report activation for qualified arrow paths with1 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Preserve real primary and Frag report activation for initial observers with2 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

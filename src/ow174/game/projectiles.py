@@ -571,6 +571,16 @@ class Projectiles:
             hanzo_projectiles.remember_launch(
                 shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
                 observer_activation)
+            if not npc and player.hero.guid == pharah.HERO:
+                pharah.remember_primary_launch(
+                    shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
+                    observer_activation)
+            if not npc and player.hero.guid == 0x02E0000000000065:
+                from ow174.game import junkrat_projectile
+
+                junkrat_projectile.remember_launch(
+                    shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
+                    observer_activation)
             if not npc and player.hero.guid == 0x02E0000000000020:
                 self.combat.zenyatta.remember_launch(
                     shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,

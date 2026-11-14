@@ -41,6 +41,49 @@ def primary_projectile_default(state):
     return None
 
 
+def primary_volley_activation(state, activation):
+    """Freeze only the qualified original primary at its report boundary."""
+    if (getattr(state.instance.component.world, "hero", None) != HERO
+            or state.node.cls != "STUStatescriptStateWeaponVolley"
+            or (state.instance.graph.index, state.node.pos) != PRIMARY
+            or activation != (state.counter, state.start)
+            or primary_projectile_default(state) != PRIMARY_ENTITY):
+        return None
+    # The qualified prefab default is inspected above without evaluating configs.
+    payload = state.payload()
+    if (set(payload) != {"counter", "start", "offset", "volleys"}
+            or any(type(value) is not int for value in payload.values())
+            or type(state.active) is not bool
+            or (payload["counter"], payload["start"]) != activation):
+        return None
+    return state.node.cls, state.active, tuple(sorted(payload.items()))
+
+
+def remember_primary_launch(shot, state, origin, direction, deadline, captured):
+    """Keep the authentic primary report on its existing physical Shot."""
+    if (getattr(getattr(shot.player, "hero", None), "guid", None) != HERO
+            or (state.instance.graph.index, state.node.pos, shot.definition)
+            != (*PRIMARY, PRIMARY_ENTITY) or shot.clock_origin is None
+            or type(captured) is not tuple or len(captured) != 3
+            or captured[0] != state.node.cls or type(captured[1]) is not bool
+            or type(captured[2]) is not tuple or len(captured[2]) != 4
+            or any(type(item) is not tuple or len(item) != 2
+                   or type(item[0]) is not str or type(item[1]) is not int for item in captured[2])):
+        return
+    payload = dict(captured[2])
+    if (set(payload) != {"counter", "start", "offset", "volleys"}
+            or (payload["counter"], payload["start"]) != shot.activation):
+        return
+    from ow174.game.projectiles import ShotRecord
+
+    shot.observer_record = ShotRecord(
+        shot.frame, shot.instance, shot.state, shot.activation[0], tuple(origin), tuple(direction), (),
+        shot=shot.shot_index, volleys=payload["volleys"] & 0xFF,
+    )
+    shot.observer_activation = captured
+    shot.observer_deadline = deadline
+
+
 def view_world_tick(script, command, quanta):
     """Query history in world time using this original body's recorded birth.
 
