@@ -238,9 +238,10 @@ def _spawn_actor(fight, player, point, duration, width, height, *, axis=None, pe
     component.run_frame(fight.tick)
     actor.body_script.set_health(health, health)
     # 0932's definition starts 25B4 before the ability plays 0636 on this actor.
-    # Keep its original allocation source and world services on the same VM.
+    # Definition roots use the native zero-source fallback to this pillar.
+    # The subsequent0636 PlayScript keeps its separate caster instigator.
     initial = component.create(graph.graph(0x25B4), init=False)
-    initial.set_source_entity(player.body)
+    initial.set_source_entity(actor.entity)
     initial.init()
     component.run_now()
     if lift is not None:

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-moving-npc-contact-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic actual Player commands and naturally routed Bot on formal58 f12acc10. Immediate Run/FakeClient notice sink. Base first divergent command1038 maps to world1038 in both schedules, but delayed delivery uses current NPC tick1052 before distance culling. Not an original incident replay or native movement acceptance.",
+  "input": {
+    "owner_position": [0, 0, 0],
+    "target_hero": "Baptiste",
+    "peer_route": [[-1.5, 0, 2.5], [4, 0, 2.5]],
+    "prewarm_frames": 20,
+    "sample_frames": 64,
+    "packet_sizes": [1, 32],
+    "forward": 127
+  },
+  "expected": {
+    "first_contact_offset": 18,
+    "final_position": [-0.029296875, 0, 5.2109375],
+    "step_seconds": 0.016,
+    "remaining_contacts": 0
+  },
+  "contract": "For anchored living16ms Soldier ordinary movement and a naturally routed NPC with no independent mover, sample retained physical-tick feet before distance culling. Preserve existing dimensions, categories, physics and input window. Both schedules must use identical peer geometry and produce identical full movement snapshots at every command. Missing/out-of-range history, replacement, independent movers, other heroes, unanchored and alternate-rate clocks retain current-position behavior. The bounded interpolation guard also translates an independent owner epoch9090 to physical tick90.",
+  "pending": ["Native prediction and original run/jump rubberband replay", "Sprint and jump", "Independent peer movement modes", "Historical team/death/stance policy"]
+}

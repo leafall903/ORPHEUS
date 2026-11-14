@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "provenance": {
+    "kind": "synthetic epoch/collision boundaries; original026A parking rows and actual lethal Soldier commands",
+    "build": "1.74.0.0.104319",
+    "rule": "026A state38/node70 mover rows11/23 use command intervals. Mover.track_mods ends a row at command frame+1 (existing original C49CE1/B456C0 evidence).",
+    "limits": "Prior command epoch, installation of actual authored parked rows and blocked ejection collision are fixture inputs. No charge/health/return state is injected. No native original ejection placement or blackscreen/rewind causality claim."
+  },
+  "input": {
+    "owner_ahead": [9000, 1000],
+    "owner_behind": [1000, 9000]
+  },
+  "expected": {
+    "parked_lock_end": "actual pilot VM command frame+1, independent of world tick",
+    "safe_pose": "retain the existing parked mover when ejection capsule cannot fit",
+    "next_commands": "locks no longer act and ordinary pilot movement resumes"
+  }
+}

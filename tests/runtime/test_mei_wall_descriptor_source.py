@@ -42,6 +42,9 @@ class MeiWallDescriptorSourceTests(unittest.TestCase):
             for piece in pieces:
                 actor = fight.deployables[piece.entity]
                 component = actor.body_script.component
+                initial, = [i for i in component.instances.values() if i.graph.index == 0x25B4]
+                self.assertEqual(initial.source_entity(), actor.entity)
+                self.assertIsNone(initial.descriptor_source_entity)
                 child, = [i for i in component.instances.values() if i.graph.index == 0x0636]
                 self.assertEqual(child.source_entity(), owner.body)
                 self.assertEqual(child.vars[27].value(), expr.Entity(owner.body))
@@ -79,6 +82,8 @@ class MeiWallDescriptorSourceTests(unittest.TestCase):
                     self.assertEqual(creates[0][26][0], owner.team_bit)
                     self.assertEqual(creates[0][72][0], owner.entity)
                     self.assertEqual(vm.vars[(child.id, 27)], expr.Entity(owner.body))
+                    self.assertEqual(vm.vars[(initial.id, 27)], expr.Entity(actor.entity))
+                    self.assertIsNone(vm.sources.get(initial.id))
                     self.assertEqual(vm.vars[(0, 8117)], (expr.Entity(owner.body),))
                     self.assertTrue(descriptors)
                     self.assertEqual(set(descriptors), {owner.body})

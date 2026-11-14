@@ -142,8 +142,9 @@ class IcePresentationTests(unittest.TestCase):
             self.assertEqual(component.world.body, actor.entity)
             children = {i.graph: i for i in self.decode_script(fight, actor.entity).instances.values()}
             self.assertEqual(set(children), set(CONTRACT['expected']['pillar_graphs']))
-            for child in children.values():
-                self.assertEqual(child.vars[27][0], expr.Entity(owner.body))
+            for index, child in children.items():
+                source = actor.entity if index == 0x25B4 else owner.body
+                self.assertEqual(child.vars[27][0], expr.Entity(source))
             create = next(u for u in owner.client.entities
                           if u.entity == actor.entity and u.op == world.OP_CREATE)
             components = decode_ice_components(create.build(0), create=True)

@@ -135,7 +135,7 @@ def complete_return(pilot):
         # Message delivery ends the parked scope before the next pilot command.
         match = pilot.match
         active = statescript_mods(pilot.body_script.component)
-        parked_mover.track_mods(match.combat.movement_mods(pilot, active), match.tick)
+        parked_mover.track_mods(match.combat.movement_mods(pilot, active), pilot.body_script.frame)
 
 
 def drive_mech(pilot, command, seconds):

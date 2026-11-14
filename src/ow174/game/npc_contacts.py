@@ -2,7 +2,7 @@
 
 import math
 
-from ow174.game import contacts, correction
+from ow174.game import contacts, correction, soldier_peer_history
 from ow174.game.collision import MOVER, TEAM0, TEAM1
 from ow174.game.mccree import TALON_AI_SIZE_CAP_BODIES
 from ow174.game.mover import mover_data
@@ -28,7 +28,7 @@ def step_pose(owner, command, seconds, tick, *, speed_scale=1.0):
         crouched = active is not None and active.crouched
         lift = active._lift() if active is not None else values.stand_pogo
         radius, segment = values.capsule(crouched, limit_ai_size=bot.body in TALON_AI_SIZE_CAP_BODIES)
-        px, py, pz = bot.position
+        px, py, pz = soldier_peer_history.position(owner, command, bot, active, values)
         if math.hypot(px - x, pz - z) > reach + radius:
             continue
         bottom = py + lift + radius

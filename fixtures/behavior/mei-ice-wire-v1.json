@@ -28,7 +28,7 @@
     "pillar_damaged_health": 325,
     "component26": "owner team/filter bits",
     "component72": "explicit m_D749D7D8 result: player controller entity, not body source",
-    "builtin001B": "typed owner body entity on every ice script",
+    "builtin001B": "Cryo0623 and played pillar0636 retain caster body; definition-root25B4 uses pillar SELF",
     "pillar_world": "same match and pillar entity, on its existing component",
     "pillar_create_order": "install the same authoritative PillarScript before publishing CREATE",
     "played0636_descriptor_source": "caster body"
