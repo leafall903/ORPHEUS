@@ -1,5 +1,39 @@
 # Changelog
 
+## Training bot names in notices and the kill feed
+
+- A Practice Range bot was a body entity alone, so the client had no name for it: the
+  elimination notice read "ELIMINATED" with nothing after it, and no kill feed line drew. Read
+  from data: the bot body's death graph `0C18` tests `STU_CD7F3617(owner)`, the body's name, on
+  its way from the pulser (state 8) to the kill feed message, and that test's false plug has no
+  links.
+- Each spawner bot now gets a seat among the match's participants (`Match._seat_bots`, after the
+  mode's places, while the game struct's 16 seats last) and a client-visible controller entity
+  (`Bot.seat_controller`, ids `0xA0000000 | (0x80 + seat) << 8`, above the players' and below
+  the projectiles'). The game struct of 20300 and 20301 names the bot at its seat and lists its
+  controller in its team.
+- Each client gets the controller with the bot's team (26) and seat (74) and, once it has
+  acknowledged both the controller and the bot's body, components 44 and 75 naming the body and
+  the bot's hero (`Match._show_bots`). The possession goes through the same pending and confirmed
+  path as another player's.
+- A respawned bot keeps its seat, and its controller possesses the new body.
+- `Client.combat_identity_ready` now waits for that possession for a seated bot, as it does for
+  another player's body. So the elimination notice and the bot's fresh death pulse
+  (`combat.kill_feed_allowed`) wait for it too.
+- Not seated: free-for-all matches, bots past the 16 seats, a bot whose seat a late player takes,
+  and every bot made after the match starts (D.Va's mech, PvE and Junkenstein NPCs, Rialto
+  actors, deployables). Those behave as before. The server-only NPC controller component of a
+  bot's body script is unchanged.
+- Tests: six new ones in `tests/runtime/test_game_bot_notices.py` for the seats, the id block,
+  the game struct, the controller and its possession, the notice and kill feed gate, and a
+  respawn. `test_game_collision_ready` now puts a real bot in place of a mock, since the game
+  struct reads its seat.
+- Seen in the original client, Practice Range: the notice reads "ELIMINATED TRAINING BOT" and
+  the kill feed line draws for the player's kills (in every frame sampled after one; the lines
+  were not counted against the kills), as Soldier: 76 and as D.Va, whose
+  Self-Destruct kills carry the ability's icon. The Tab board now lists the seated bots. A
+  bot's kill of another bot drew no line; that is not explained.
+
 ## D.Va's view after she leaves her mech
 
 - Her own screen was black once she was on foot: after Self-Destruct and after her mech was

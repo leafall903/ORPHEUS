@@ -383,7 +383,7 @@ class Client:
             self._combat_notice_tail[entity] = ordinal
 
     def combat_identity_ready(self, body: int | None) -> bool:
-        """Remote human bodies acquire their names from an acknowledged possession."""
+        """Remote human bodies and seated bots acquire their names from an acknowledged possession."""
         if self.leaving_since is not None:
             return False
         if body is None:
@@ -392,7 +392,10 @@ class Client:
         if controller == self.player.entity:
             return self.player.body == body
         if not any(player.entity == controller for player in self.player.match.players):
-            return True  # NPC names have a separate native path
+            bot = next((bot for bot in self.player.match.bots if bot.entity == body), None)
+            controller = None if bot is None else bot.seat_controller
+            if controller is None:
+                return True  # an unseated NPC has no controller to name it
         return self._confirmed_possessions.get(controller) == body
 
     def _flush_combat_ui(self) -> None:

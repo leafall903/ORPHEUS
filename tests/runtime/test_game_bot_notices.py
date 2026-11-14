@@ -8,10 +8,22 @@ from unittest.mock import patch
 from test_game_packet_budget import connection, decoded, large_messages
 from test_game_repeated_lifecycles import wire_frame
 
-from ow174.game import bodytrace, bots, combat, heroselect, junkenstein_ai, movelog, npc, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    heroselect,
+    junkenstein_ai,
+    messages,
+    movelog,
+    npc,
+    projectiles,
+    world,
+)
+from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import JUNKENSTEIN_MAP, JUNKENSTEIN_MODES, PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
-from ow174.game.match import BOT_RECORD_DELAY, COUNTDOWN
+from ow174.game.match import BOT_RECORD_DELAY, COUNTDOWN, Match
 from ow174.game.script import decode, graph, scene, scene_host
 from ow174.game.script.driver import OWNER_HEALTH
 from ow174.game.server import SILENCE_SECONDS, TICK_SECONDS, Client
@@ -46,9 +58,11 @@ class BotNoticeTests(unittest.TestCase):
         stream.last = stream.data_last = 1
         stream.arrived(1)
 
-    def prepare(self, *, last=False, single=False, mode_ready=True):
+    def prepare(self, *, last=False, single=False, mode_ready=True, seat=False):
         self.connect()
         self.match.bots = bots.make(PRACTICE_RANGE.map_guid)
+        if seat:
+            self.match._seat_bots()
         self.match.combat.next_bot = bots.BOT_ENTITY + len(self.match.bots)
         self.match.tick = 100
         self.player.spawned = self.player.has_body = True
@@ -94,6 +108,7 @@ class BotNoticeTests(unittest.TestCase):
         ids, records = wire_frame(packet)
         self.assertEqual((wire_tick, ids, len(records)), (tick, [number for _, number, _ in reliable], count))
         self.health = self.bot_health(records)
+        self.records = records
         self.body_chunks = [
             (record.chunk.getvalue(), record.chunk.count)
             for record, _ in records if record.entity == self.entity and record.chunk is not None
@@ -1150,3 +1165,118 @@ class BotNoticeTests(unittest.TestCase):
         ack = Packet(observer.conn, KIND_CONTROL, 0, window.expected, window.bits, ACK)
         self.server._datagram(peer.seal(ack), observer.address, 10.0)
         self.assertEqual(observer_health(107), [(world.OP_UPDATE, 160)])
+
+    def controller_records(self, bot):
+        return [
+            (record.op, sorted(fields)) for record, fields in self.records
+            if record.entity == bot.seat_controller
+        ]
+
+    def test_bots_are_seated_only_while_the_game_struct_has_room(self):
+        self.connect()
+        self.match.bots = bots.make(PRACTICE_RANGE.map_guid)
+        self.match._seat_bots()
+        self.assertEqual([bot.slot for bot in self.match.bots], list(range(1, 16)))
+        controllers = {bot.seat_controller for bot in self.match.bots}
+        self.assertEqual(len(controllers | {self.player.entity}), 16)
+        # Above any player's controller (its slot is below the 16 seats), below the projectiles' ids.
+        players_top = 0xA0000000 | 16 << 8
+        self.assertTrue(all(players_top < entity < projectiles.FIELD_FIRST for entity in controllers))
+        self.match.game_map = replace(self.match.game_map, team_sizes=(6, 6))
+        self.match.bots = bots.make(PRACTICE_RANGE.map_guid)
+        self.match._seat_bots()
+        self.assertEqual([bot.slot for bot in self.match.bots], [12, 13, 14, 15] + [None] * 11)
+        unseated = self.match.bots[-1]
+        self.assertIsNone(unseated.seat_controller)
+        self.assertTrue(self.client.combat_identity_ready(unseated.entity))  # no name source to wait for
+        self.match.game_map = replace(self.match.game_map, free_for_all=True)
+        self.match._seat_bots()
+        self.assertEqual({bot.slot for bot in self.match.bots}, {None})
+
+    def test_practice_range_match_seats_its_spawner_bots(self):
+        match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
+        self.assertEqual([bot.slot for bot in match.bots], list(range(1, 16)))
+        player = match.add_player(1, "Alpha", SOLDIER, 0, False)
+        self.assertEqual(player.slot, 0)
+        self.assertEqual(match.bots[0].slot, 1)
+        second = match.add_player(2, "Beta", SOLDIER, 0, False)  # past the mode's one place
+        self.assertIsNone(match.bots[0].slot)  # its seat went to the player
+        self.assertEqual(match.game_struct(second)["+0x0"]["+0x0"]["+0x0"]["+0x0"][1], {"+0x50": "Beta"})
+
+    def test_game_struct_names_seated_bots_and_lists_their_controllers(self):
+        self.prepare(single=True, seat=True)
+        game = self.match.game_struct(self.player)["+0x0"]["+0x0"]
+        names = game["+0x0"]["+0x0"]
+        self.assertEqual(names[self.player.slot], {"+0x50": self.player.name})
+        for bot in self.match.bots:
+            self.assertEqual(names[bot.slot], {"+0x50": bot.name})
+            listed = next(team["+0x18"] for team in game["+0xC0"] if team["+0x60"] == bot.team)
+            self.assertIn({"+0x0": bot.seat_controller}, listed)
+        self.assertEqual(len(names), 16)
+        self.assertTrue(messages.encode(20300, self.match.instance_message(self.player)))
+        self.assertTrue(messages.encode(20301, {"+0x78": self.match.game_struct(self.player)}))
+
+    def test_seated_bot_gets_a_controller_that_possesses_its_body(self):
+        self.prepare(single=True, seat=True)
+        bot = self.target.owner
+        self.assertFalse(self.client.combat_identity_ready(self.entity))
+        self.send(100)
+        self.ack()  # the body's create arrived
+        self.match._show_bots(self.player)
+        self.send(103)
+        self.assertEqual(self.controller_records(bot), [(world.OP_CREATE, [26, 74])])
+        self.match._show_bots(self.player)  # the controller's create is not acknowledged yet
+        self.send(106)
+        self.assertEqual(self.controller_records(bot), [])
+        self.ack()
+        self.match._show_bots(self.player)
+        self.send(109)
+        self.assertEqual(self.controller_records(bot), [(world.OP_UPDATE, [44, 75])])
+        self.assertFalse(self.client.combat_identity_ready(self.entity))
+        self.ack()
+        self.assertTrue(self.client.combat_identity_ready(self.entity))
+        self.match._show_bots(self.player)  # nothing new to say
+        self.send(112)
+        self.assertEqual(self.controller_records(bot), [])
+
+    def test_seated_bot_elimination_waits_for_the_possession(self):
+        self.prepare(single=True, seat=True)
+        self.send(100)
+        self.ack()
+        self.kill_bot()
+        self.assertEqual([number for number, _ in self.notices(self.send(103)[0])], [combat.HIT])
+        self.assertFalse(self.match.combat.kill_feed_allowed(self.player, self.entity))
+        self.ack()
+        self.match._show_bots(self.player)
+        self.send(106)
+        self.ack()  # the controller arrived
+        self.match._show_bots(self.player)
+        self.assertEqual(self.notices(self.send(109)[0]), [])  # the possession is sent, not acknowledged
+        self.assertFalse(self.match.combat.kill_feed_allowed(self.player, self.entity))
+        self.ack()
+        self.assertTrue(self.match.combat.kill_feed_allowed(self.player, self.entity))  # 0C18's pulse may go
+        self.assertEqual([number for number, _ in self.notices(self.send(112)[0])], [combat.KILL_NOTICE])
+
+    def test_respawned_bot_keeps_its_seat_and_its_new_body_is_possessed(self):
+        self.prepare(single=True, seat=True)
+        bot = self.target.owner
+        for tick in (100, 103, 106):
+            self.send(tick)
+            self.ack()
+            self.match._show_bots(self.player)
+        self.send(109)
+        self.ack()
+        self.assertTrue(self.client.combat_identity_ready(bot.entity))
+        self.match.tick = 110
+        self.match.combat._respawn_bot(bot)
+        fresh = next(other for other in self.match.bots if other.slot == bot.slot)
+        self.assertNotEqual(fresh.entity, bot.entity)
+        self.assertEqual(fresh.seat_controller, bot.seat_controller)
+        self.assertFalse(self.client.combat_identity_ready(fresh.entity))
+        self.send(112)
+        self.ack()  # the old body's destroy and the new body's create
+        self.match._show_bots(self.player)
+        self.send(115)
+        self.assertEqual(self.controller_records(fresh), [(world.OP_UPDATE, [44, 75])])
+        self.ack()
+        self.assertTrue(self.client.combat_identity_ready(fresh.entity))

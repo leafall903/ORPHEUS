@@ -144,6 +144,17 @@ With such a pack, the same day: **a red "TRAINING BOT" name and a health bar dre
 enemy bot** in view, hit or not, and the enemy bots had red outlines. The friendly bots'
 widgets and the bar's change on a hit were not looked at ([kill feed note](kill-feed.md#with-a-pack-that-holds-the-bot-bodies)).
 
+## This source: seats and controllers for the bots
+
+2026-11-14. This source now seats the Practice Range's spawner bots and gives each a
+client-visible controller, as the `kjs` branch did: `Match._seat_bots`, `Match._show_bots`,
+`Bot.seat_controller`. The controller is separate from the server-only NPC controller component
+that a bot's body script may have.
+
+Seen in the original client, the same day: the notice read "ELIMINATED TRAINING BOT", the kill
+feed line drew for the player's kills, and the Tab board listed the seated bots
+([kill feed note](kill-feed.md#this-source-a-nameless-bot-body)).
+
 ## Open
 
 - Whether the client starts `0D24` state 35 by itself in the authored flow.

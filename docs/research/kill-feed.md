@@ -300,13 +300,49 @@ The messages go first. A chunk that waited goes in the next datagram, and that o
 reliable messages. Other players' bodies use the same kind of stream and are probably affected
 the same way. That needs two clients and was not tried, so the change covers bot bodies only.
 
+## This source: a nameless bot body
+
+2026-11-14, read from data: in `0C18` the client-only chain from the pulser (state 8) reaches a
+node whose condition is `STU_CD7F3617(owner)`, the body's name, and that node's false plug has no
+links. A body with no name never sends the kill feed message, however its death frames arrive.
+
+On this source a Range bot was a body alone, so it had no name. It now has a seat and a
+controller that possesses its body (`Match._show_bots`, the
+[nameplate note](bot-nameplates-and-hit-feedback.md#this-source-seats-and-controllers-for-the-bots)).
+`combat.kill_feed_allowed` holds the fresh death pulse until the client has acknowledged that
+possession; the pulse still has to go out within `ClientOnlyPulser.FRESH_MS` of the death.
+
+What ruled the delivery out first, the same day, with the unseated bots: the server offered each
+viewer the bot's fresh pulser at count 1 in a datagram with no reliable messages, the client
+acknowledged it, and a read-only sampler of the client's statescript network parts showed each
+dead bot's stream applying its death chunks (4, 5 and 6) with none left waiting. The elimination
+notice read "ELIMINATED" with no name, and no line drew.
+
+Seen in the original client with the seats, the same day, Practice Range, one player on a
+virtual gamepad:
+
+- **The line draws.** As Soldier: 76, ten kills of the enemy Training Bots: every frame sampled
+  after a kill held its line, "RESEARCHER", the hero's icon, an arrow, the bot's icon and
+  "TRAINING BOT", the killer in blue and the bot in red, two lines at once when two kills fell
+  within the feed's hold.
+- **The notice is named**: "ELIMINATED TRAINING BOT", the name in red.
+- **The ability icon draws.** As D.Va, eight kills. The two bots her Self-Destruct killed gave
+  two lines with the Self-Destruct icon in place of the arrow; cannon kills gave the arrow.
+- The 66 kills between the Friendly Bots and the Training Bots in the first match drew no line
+  in any sampled frame. Not explained: the server offered those pulsers the same way.
+- The Tab board now lists the seated bots: a row of eleven Training Bots against the player and
+  four Friendly Bots.
+- Not timed: a kill within the first moments after a respawn or a join, before the new
+  possession is acknowledged.
+
 ## Open
 
 - Where the client loses a chunk that comes with reliable messages, and for which messages.
 - Other players' bodies: whether their chunks are lost the same way. Needs two clients.
 - A player's death, which runs through `01CF` and the same kind of frames, was not tried.
 - The meaning of `STU_0D179CAF` and `STU_CEFF290A`.
-- A line's critical-hit mark, ability icon and assists (the other `003E.025` parameters) were
-  not exercised.
+- A line's critical-hit mark and assists (two of the other `003E.025` parameters) were not
+  exercised.
+- Why a bot's kill of another bot draws no line.
 - The read-only memory reader used for the first live reads is not in this repository. The
   tracer plugin's source is, under `offline/tools/asi`.

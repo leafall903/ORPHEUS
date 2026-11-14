@@ -267,7 +267,8 @@ class MatchReadinessTests(unittest.TestCase):
         provider = ControlledProvider()
         waiting = Match(MAP, collision_provider=provider)
         a, b = players_in(waiting)
-        waiting.bots = [mock.Mock()]
+        waiting.bots = bots.make(PRACTICE_RANGE.map_guid)[:1]  # a real bot: the game struct reads its seat
+        waiting.bots[0].step = mock.Mock()
         waiting.update(10.8, 1000)
         self.assertFalse(a.spawned)
         self.assertEqual(a.steps_done, 2)  # 20302/20301 can go before the world
