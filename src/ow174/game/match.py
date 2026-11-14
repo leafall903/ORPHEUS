@@ -1356,7 +1356,17 @@ class Match:
         )
 
     def _game_mode_create(self, origin: int) -> world.RecordWriter:
-        return world.create(origin, GAME_MODE_DEFINITION, {114: [None, self.game_map.mode_guid]})
+        result = None
+        if self.game_map.map_guid == JUNKENSTEIN_MAP and self.scene_host is not None:
+            from ow174.game.junkenstein_scene import JunkensteinSceneHost
+
+            if isinstance(self.scene_host, JunkensteinSceneHost):
+                result = self.scene_host.match_result
+        components = {114: [None, self.game_map.mode_guid]}
+        if result is not None:
+            components = world.match_result_components(result)
+            components[114][1] = self.game_map.mode_guid
+        return world.create(origin, GAME_MODE_DEFINITION, components)
 
     def remote_body_create(self, viewer: Player, other: Player) -> EntityUpdate:
         """Another player's body: placed by its transform, then moved by movement records from the next

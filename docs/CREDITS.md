@@ -195,3 +195,9 @@ source commands and synthetic retained-pose fixtures with the existing physical
 sweep/receiver and history guard. Echo's independent moving-target finding
 prompted bounded review but does not establish Pharah behavior. No original
 assets, expanded collision volume or new force rule are included.
+
+
+- The Junkenstein terminal component projection follows the existing ORPHEUS
+  Rust a95782ca `encounter_match_result` winner/time field mapping and its
+  reliable outcome record association. The new native-layout fixture is
+  synthetic and contains no game assets or captured client data.

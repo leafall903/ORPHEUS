@@ -320,14 +320,20 @@ class Client:
         return (self.leaving_since is None and not self.closed and self._mode_create_acked
                 and not self.player.mode_script.data_in_flight)
 
-    def queue_scene_mode_frame(self, frame: BitWriter, *, full: bool) -> None:
+    def queue_scene_mode_frame(self, frame: BitWriter, *, full: bool, match_result=None) -> None:
         """Advance the scene stream from the last acknowledged snapshot."""
         if not self.scene_mode_writable:
             raise ValueError("scene mode frame requires an acknowledged entity and predecessor")
-        self._queue_reliable_mode_frame(frame, full=full)
+        self._queue_reliable_mode_frame(frame, full=full, match_result=match_result)
 
-    def _queue_reliable_mode_frame(self, frame: BitWriter, *, full: bool) -> None:
+    def _queue_reliable_mode_frame(self, frame: BitWriter, *, full: bool, match_result=None) -> None:
         updates = self.player.mode_script.reliable_frames(frame, MODE_FRAME_PART_BITS, full=full)
+        if match_result is not None:
+            # Freeze native result fields on the exact reliable record that
+            # completes the script frame. Retries retain both unchanged.
+            components = world.match_result_components(match_result)
+            updates[-1].op = world.OP_UPDATE
+            updates[-1].build = lambda origin: world.update(origin, components)
         if len(updates) > 1:
             self._mode_fragments.extend(updates)
         self.queue_entities(updates)

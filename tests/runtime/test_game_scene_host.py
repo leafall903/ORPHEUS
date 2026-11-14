@@ -140,12 +140,13 @@ class MatchSceneHostTests(unittest.TestCase):
         wave = component.create(wave_model, init=False)
         root_model = scene_host.graph.graph(0x0C8C)
         root = component.create(root_model, init=False)
+        root.write((runtime.INSTANCE, 7525), 0)  # declared wire fixture, not a running match result
         host.replicate_mode = True
         host.mode_projection = observers.SceneBody(component)
         stream = statescript.Stream(mode)
         stream.last = stream.data_last = 1
         client = mock.Mock(player=SimpleNamespace(mode_script=stream), scene_mode_writable=False)
-        def queue_frame(frame, full):
+        def queue_frame(frame, full, match_result=None):
             return stream.reliable_frames(frame, 500, full=full)
 
         client.queue_scene_mode_frame.side_effect = queue_frame
@@ -167,6 +168,7 @@ class MatchSceneHostTests(unittest.TestCase):
             expected = statescript.remote_delta([], {}, {instance.id: model}, callout=(2, instance.id, 47))
             self.assertEqual((frame.count, frame.value), (expected.count, expected.value))
             self.assertFalse(client.queue_scene_mode_frame.call_args.kwargs['full'])
+            self.assertNotIn('match_result', client.queue_scene_mode_frame.call_args.kwargs)
 
             stream.arrived(2)
             self.assertTrue(host.advance(2))
@@ -182,6 +184,7 @@ class MatchSceneHostTests(unittest.TestCase):
             stream.arrived(3)
             root.run_node(root_model.node(268), None)
             self.assertTrue(host.advance(4))
+            self.assertEqual(client.queue_scene_mode_frame.call_args.kwargs['match_result'], (0, 0.0))
             expected = statescript.remote_delta([], {}, {root.id: root_model}, callout=(4, root.id, 268))
             frame = client.queue_scene_mode_frame.call_args.args[0]
             self.assertEqual((frame.count, frame.value), (expected.count, expected.value))

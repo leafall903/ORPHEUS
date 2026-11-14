@@ -490,6 +490,14 @@ def create_placeable(
     return out
 
 
+def match_result_components(result: tuple[int, float]) -> dict:
+    """104319 MECGameMode: winner+168 and elapsed match time+170."""
+    winner, elapsed = result
+    fields = [None] * 10
+    fields[7], fields[9] = winner, elapsed
+    return {114: fields}
+
+
 def update(origin: int, components: dict) -> RecordWriter:
     out = RecordWriter(origin)
     _write_components(out, components)

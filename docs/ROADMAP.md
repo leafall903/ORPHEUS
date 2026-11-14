@@ -681,3 +681,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Bind pillar startup identity and preserve owner clocks and retained contacts with6 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Restore Junkenstein reliable outcome fields and admission checks with8 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

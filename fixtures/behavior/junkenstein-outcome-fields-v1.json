@@ -1,0 +1,8 @@
+{
+  "case_id": "junkenstein.terminal-native-fields.v1",
+  "provenance": "Synthetic terminal wire inputs. Native MECGameMode fields7(s32 winner,+168) and9(f32 match time,+170), as used by existing Rust a95782ca. Not a generated or natural match outcome.",
+  "winner": 1,
+  "elapsed_seconds": 16.0,
+  "record_origin_bits": 0,
+  "expected_component_update_hex": "0172038002000100000000008041"
+}

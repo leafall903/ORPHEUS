@@ -117,6 +117,8 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         self.mode_projection = None
         self.mode_views = {}
         self.mode_actions = {}
+        self.encounter_first_frame = None
+        self.match_result = None
         self.gate_team = None
         self.barriers: dict[int, PhotonBarrier] = {}
         self.ghost: VengefulGhost | None = None
@@ -393,6 +395,18 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             or node.remote < 0
         ):
             component.unsupported(instance, "mode action source lifecycle", node.cls, node)
+        if instance.graph.index == 0x0C8C and node.pos in (265, 267, 268):
+            if instance.parent is not None:
+                component.unsupported(instance, "outcome source must be the mode root", node.cls, node)
+            if self.match_result is None:
+                winner = instance.find_var(runtime.INSTANCE, 7525).value()
+                if type(winner) is not int or not -(1 << 31) <= winner < (1 << 31):
+                    component.unsupported(instance, "outcome winner is unavailable", node.cls, node)
+                first = component.frame if self.encounter_first_frame is None else self.encounter_first_frame
+                if component.frame < first:
+                    component.unsupported(instance, "outcome clock precedes scene start", node.cls, node)
+                elapsed = expr.f32((component.frame - first) * self.frame_ms / 1000)
+                self.match_result = winner, elapsed
         if self.replicate_mode:
             for player in self.match.players:
                 if player.spawned and not player.gone and player.client is not None:
@@ -430,6 +444,8 @@ class JunkensteinSceneHost(scene_host.SceneHost):
     def advance(self, frame):
         if not super().advance(frame, allow_skipped_frames=True):
             return False
+        if self.encounter_first_frame is None:
+            self.encounter_first_frame = frame
         for controller, hero_id in tuple(self.pending_mystery_swaps.items()):
             binding = self.player_bindings.get(controller)
             if binding is None:
@@ -497,7 +513,12 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 delta = observers.acknowledged_delta(projection, baseline, current, action=action)
                 if delta is None:
                     continue
-                client.queue_scene_mode_frame(delta, full=False)
+                if (pending and self.match_result is not None
+                        and pending[0][1] in (265, 267, 268)
+                        and self.units[runtime.GAME_MODE_ENTITY].component.instances[pending[0][0]].graph.index == 0x0C8C):
+                    client.queue_scene_mode_frame(delta, full=False, match_result=self.match_result)
+                else:
+                    client.queue_scene_mode_frame(delta, full=False)
                 if action is not None:
                     pending.popleft()
             self.mode_views[client] = current
