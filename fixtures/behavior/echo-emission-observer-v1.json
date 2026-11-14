@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "provenance": "Synthetic flat-world command-path regression using external prepared graph data; no original-client acceptance claimed.",
+  "input": {
+    "hero": "0x02E0000000000206",
+    "primary_graph_node": ["0x19E5", 5],
+    "sticky_graph_node": ["0x1C36", 1],
+    "target_distance": 95,
+    "join_settle_frames": 15,
+    "primary_activations": [1, 2]
+  },
+  "expected": {
+    "primary_members_per_activation": 3,
+    "sticky_independent_emissions": 6,
+    "capture_payload_keys": ["counter", "offset", "start", "volleys"],
+    "capture_uses_actual_report_active": true,
+    "partial_primary_replay": false,
+    "missing_source_recreation": false,
+    "expired_deadline_recreation": false
+  },
+  "limits": [
+    "Historical Sticky activations require legal gameplay input; cooldown is never reset by this fixture.",
+    "Original-client model visibility, spread seed and HIT presentation remain unaccepted."
+  ]
+}

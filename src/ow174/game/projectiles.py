@@ -577,10 +577,17 @@ class Projectiles:
         if (origin is not None and direction is not None
                 and (state.instance.graph.index, definition) in (
                     (0x19E5, 0x0400000000002CBF), (0x1C36, 0x0400000000002CBA))):
-            shot.echo_launch = ShotRecord(
-                frame, shot.instance, shot.state, activation[0], tuple(origin), tuple(direction), (),
-                shot=shot_index, volleys=state.volleys & 0xFF,
-            )
+            if not npc and player.hero.guid == 0x02E0000000000206:
+                from ow174.game import echo_projectiles
+
+                echo_projectiles.remember_launch(
+                    shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
+                    observer_activation)
+            else:
+                shot.echo_launch = ShotRecord(
+                    frame, shot.instance, shot.state, activation[0], tuple(origin), tuple(direction), (),
+                    shot=shot_index, volleys=state.volleys & 0xFF,
+                )
         if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative
                          or turret_carrier or supercharger_carrier)
                 and origin is not None and direction is not None):
@@ -594,16 +601,20 @@ class Projectiles:
         return shot
 
     def fired_volley(self, player, state, frame, definition, bound_seconds, origin, direction,
-                     *, activation, snapshot, count, shot_index, clock_origin=None):
+                     *, activation, snapshot, count, shot_index, clock_origin=None, observer_activation=None):
         """Keep each pellet's collision and retirement independent under one native volley event."""
         shots = tuple(self.fired(
             player, state, frame, definition, bound_seconds, origin, direction,
             activation=activation, snapshot=snapshot, lease_offset=pellet, publish=False,
-            shot_index=shot_index, clock_origin=clock_origin,
+            shot_index=shot_index, clock_origin=clock_origin, observer_activation=observer_activation,
         ) for pellet in range(count))
         if any(shot is None for shot in shots):
             raise ValueError("multi-projectile volley has no prediction lease")
-        self._show_others(shots[0], state, origin, direction, snapshot, shots=shots)
+        options = {}
+        if shots[0].observer_activation is not None:
+            options = {'original_record': shots[0].observer_record, 'deadline': shots[0].observer_deadline,
+                       'original_activation': shots[0].observer_activation}
+        self._show_others(shots[0], state, origin, direction, snapshot, shots=shots, **options)
         return shots
 
     def _show_others(self, shot: Shot, state, origin, direction, snapshot: Snapshot | None,
@@ -612,6 +623,11 @@ class Projectiles:
         """Send all projectile IDs in one native volley event, with independent retirements."""
         # A live-flight catch-up supplies the immutable event and its original deadline.
         shots = (shot,) if shots is None else shots
+        if (not isinstance(shot.player, bots.Bot) and shot.player.hero.guid == 0x02E0000000000206
+                and (state.instance.graph.index, shot.definition) in (
+                    (0x19E5, 0x0400000000002CBF), (0x1C36, 0x0400000000002CBA))
+                and original_activation is None):
+            return  # A mutable consume-time State is not an authentic Echo emission.
         if original_activation is not None:
             payload = dict(original_activation[2])
             if (original_record is None or original_activation[0] != state.node.cls

@@ -7302,7 +7302,7 @@ class Combat:
                 echo_shots = self.projectiles.fired_volley(
                     shooter, state, shot_frame, definition, lifetime, origin, direction,
                     activation=activation, snapshot=snapshot, count=len(directions), shot_index=number,
-                    clock_origin=echo_clock,
+                    clock_origin=echo_clock, observer_activation=observer_activation,
                 ) if echo_volley else ()
                 for pellet, launch in enumerate(directions):
                     if individual_npc_shots:

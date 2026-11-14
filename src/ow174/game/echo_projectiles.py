@@ -2,6 +2,41 @@
 from ow174.game import projectiles
 
 
+def volley_activation(state, activation):
+    """Freeze only an original Echo emission, at WeaponVolley's report boundary."""
+    if (getattr(state.instance.component.world, 'hero', None) != 0x02E0000000000206
+            or (state.instance.graph.index, state.node.pos) not in ((0x19E5, 5), (0x1C36, 1))
+            or activation != (state.counter, state.start)):
+        return None
+    payload = state.payload()
+    if (set(payload) != {'start', 'offset', 'volleys', 'counter'}
+            or any(type(value) is not int for value in payload.values()) or type(state.active) is not bool
+            or payload['counter'] != activation[0] or payload['start'] != activation[1]):
+        return None
+    return state.node.cls, state.active, tuple(sorted(payload.items()))
+
+
+def remember_launch(shot, state, origin, direction, deadline, captured):
+    """Bind a genuine report capture to its original accepted physical shot."""
+    if (type(captured) is not tuple or len(captured) != 3
+            or captured[0] != state.node.cls or type(captured[1]) is not bool
+            or type(captured[2]) is not tuple or len(captured[2]) != 4
+            or any(type(item) is not tuple or len(item) != 2
+                   or type(item[0]) is not str or type(item[1]) is not int for item in captured[2])):
+        return
+    payload = dict(captured[2])
+    if (set(payload) != {'start', 'offset', 'volleys', 'counter'}
+            or (payload['counter'], payload['start']) != shot.activation):
+        return
+    shot.echo_launch = projectiles.ShotRecord(
+        shot.frame, shot.instance, shot.state, shot.activation[0], tuple(origin), tuple(direction), (),
+        shot=shot.shot_index, volleys=payload['volleys'] & 0xFF,
+    )
+    shot.observer_record = shot.echo_launch
+    shot.observer_activation = captured
+    shot.observer_deadline = deadline
+
+
 def observe_live(fight, rocket):
     shot = rocket.shot
     if shot is None or shot.echo_launch is None or shot.release_at is not None:
@@ -30,8 +65,9 @@ def observe_live(fight, rocket):
     state = instance.states.get(shot.state) if instance is not None else None
     if state is None:
         return
-    if (state.counter, state.volleys & 0xFF) != (original.activation, original.volleys):
-        return  # An older activation needs a qualified historical remote-volley service.
+    if (shot.observer_activation is None
+            or any(member.observer_activation != shot.observer_activation for member in members)):
+        return  # Missing authentic emission state cannot be reconstructed from the current State.
     viewers = [viewer for viewer in fight.match.players
                if viewer is not owner and viewer.client is not None and viewer.spawned and not viewer.gone
                and not any(delivery.viewer is viewer and delivery.client is viewer.client
@@ -45,5 +81,5 @@ def observe_live(fight, rocket):
         return
     fight.projectiles._show_others(
         shot, state, original.origin, original.direction, None, shots=tuple(members), viewers=viewers,
-        original_record=original, deadline=deadline,
+        original_record=original, deadline=deadline, original_activation=shot.observer_activation,
     )
