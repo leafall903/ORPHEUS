@@ -1,6 +1,6 @@
 {
-  "provenance": "Synthetic32-command receipt schedule using actual primary report, Combat consumption, original predicted0033 and encrypted memory observer. First actual remote H0 is decoded. Not native rendering acceptance.",
+  "provenance": "Synthetic32-command receipt schedule using actual primary report, Combat consumption, original predicted0033 and encrypted memory observer. No positive native contract requires initialTrue; neither active value is certified. Synthetic native requests do not prove real wire admission. Not native rendering acceptance.",
   "input": {"command_count": 32, "button": 1, "viewer_distance": 100, "ack_delay_ticks": 2},
-  "expected": {"graph": 35, "node": 8, "state_index": 6, "definition": "0x0400000000000033", "sync": 1, "counter": 1, "report_tuple_length": 6, "first_h0_active": true},
-  "boundary": "Retain the original report capture, source clock and deadline; do not add a flight, lifetime, lease or late-viewer feature. Barrage/E and other heroes remain outside the selector."
+  "expected": {"graph": 35, "node": 8, "state_index": 6, "definition": "0x0400000000000033", "sync": 1, "counter": 1, "volleys": 1},
+  "boundary": "Preserve actual source identity, counter/volleys, CREATE/H2/realACK, sameShot/record/deadline and physical lifetime. Do not impose a capture format or active bit, add a flight, lifetime, lease or late-viewer feature."
 }

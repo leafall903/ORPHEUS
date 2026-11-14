@@ -1,9 +1,10 @@
 # Credits and acknowledgments
 
-Pharah primary report activation: local original1043190023/8/0033 qualification
-and a synthetic32-command schedule using the production encrypted memory peer.
-Reuses existing sixth-field metadata, retained delivery and strict VM digest;
-no assets or new wire/schema service. Native rendering remains unverified.
+Pharah initial-active policy correction: original104319 inactive WeaponVolley
+reader/reconcile evidence bounds the earlier0023/8/0033 capture experiment.
+Historical e4 diagnostics are retained outside source. The production contract
+now checks actual delivery/ACK identity without requiring True or a capture.
+Native actor admission and rendering remain unverified; no assets are included.
 
 This repository builds on existing Overwatch preservation work. Its lobby improvements, dashboard, packaging and experiments would not have been possible without the code, tools and findings shared by other researchers.
 

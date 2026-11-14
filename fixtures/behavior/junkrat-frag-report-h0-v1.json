@@ -2,15 +2,16 @@
   "schema_version": 1,
   "case_id": "junkrat-frag-report-h0-v1",
   "target_build": 104319,
-  "provenance": "One synthetic ordinary FIRE on formal65 using existing original runtime inputs. Same022B/31 state reports active, ends before Combat consumes it, and originally reached first remote H0 inactive. This contract covers report metadata and existing initial-delivery ACK only, not native damage or rendering.",
+  "provenance": "One ordinary FIRE using existing original runtime inputs and encrypted in-memory Client ACKs. The prior active-bit requirement lacks a positive native contract: unchanged counter/start/volleys plus an active-bit difference does not establish omitted native launch. Prior reader/reconcile probes have synthetic prior flags and stubbed services; they do not prove actual inactive-wire actor behavior. Prior evidence is retained outside Git.",
   "input": {"hero": "0x02E0000000000065", "graph": "0x022B", "node": 31, "fire_inputs": 1},
   "expected": {
     "definition": "0x0400000000000385",
     "sync": 1,
-    "report_fields": 6,
-    "capture_fields": ["counter", "offset", "start", "volleys"],
-    "first_remote_active": true,
-    "same_shot_and_deadline_after_delayed_initial_ack": true
+    "class": "STUStatescriptStateWeaponVolley",
+    "wire_payload_keys": ["counter", "offset", "volleys"],
+    "same_identity_counter_and_volleys_through_h0_h2": true,
+    "actual_encrypted_launch_ack": true,
+    "same_shot_record_deadline_and_physical_lifetime": true
   },
   "native_acceptance": "pending"
 }

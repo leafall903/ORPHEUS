@@ -1,5 +1,37 @@
 # Shared behavior contracts
 
+## Initial-active policy withdrawal (batch68)
+
+Withdraw only unsupported initial report-active default callbacks for Pharah0033, ordinary Junkrat0385 and Torbjorn2A66. All counter/start/volleys were already present; no positive original native contract established initial active must be True. R12=0 was synthetic, R9b/fourth-argument to wire-active mapping and actual Begin/Abort/instance+148 actor admission remain OPEN: neither True nor False is certified. Restore baseline report selection via three small deletions and local Pharah import removal; nodes bytes validate against formal65 without copying that module. All other438-minus-one runtime files, dormant helpers, shared historical counter/payload/record/deadline/FIFO, damage and target-history repairs remain byte-identical67. Replace three prior capture/True oracles with actual identity/counter/volleys/CREATE/H0/H2/realACK/deadline/lifetime delivery invariants, with no required Boolean, tuple shape or manually injected received flag. Old three selected IDs are retired/replaced one-for-one:361selected remains340new+21maintained, zero additional feature count. Historical67 source/commits/tests/raw/fail evidence retained. The composition-stage record is static; exact formal checks and publication are recorded separately. No native validation, deployment, GUI, client, new performance run or profile change is claimed. Running60 and51 immutable inputs remain unchanged; native/model/HP/fullhero interaction remain OPEN and last measured16ms budget RED.
+
+## Pharah initial-active policy correction
+
+This supersedes only the Pharah first-H0 True/six-field requirement recorded
+for batch66 below. Native probes recorded dispatch and Begin/Abort under
+declared synthetic adapters; R9b-to-wire-active mapping and actual actor
+admission remain unproven. Neither active value is newly certified. The revised
+`pharah-primary-report-h0-v1.json` and
+`test_primary_delivery_preserves_identity_and_lifetime_through_real_ack` check
+the actual0033 identity, counter/volleys, CREATE, decoded H2 and real encrypted
+ACK while retaining the same Shot/record/deadline and decreasing physical
+lifetime. Neither activity value nor a capture tuple shape is an oracle.
+No native rendering conclusion follows; other heroes' contracts are unchanged.
+
+## Torbjorn initial-active policy withdrawn
+
+`torbjorn-primary-report-h0-v1.json` now checks ordinary delivery identity and actual ACKs, with no required report length6, authentic capture or initial active bit. The d51 source observation did not prove initialH0 must beTrue. Counter/start/volleys remained present. The Sigma synthetic prior/r12 tail and bounded dispatch do not establish the fourth-parameter wire-active mapping or execute native actors; they do not prove False success either. Withdraw only this lane's default report callback, keeping dormant implementation and existing counters/physical delivery unchanged. Earlier67 capture-policy text below is historical, not a current native requirement.
+
+## Ordinary Junkrat Frag initial activity is not prescribed
+
+`junkrat-frag-report-h0-v1.json` now covers the original identity, counter and
+volleys through actual H0/H2 and encrypted launch ACK on the same Shot, record,
+deadline and physical lifetime. Its former six-field capture and active-True
+requirements are withdrawn for lack of a positive native contract. An inactive
+wire bit is not a new normative requirement. Existing original reader/tail
+evidence uses synthetic prior flags and stubbed actor services, with the fourth
+argument's wire-active mapping unresolved. Native launch/rendering/HP acceptance
+is still pending; historical report observations remain factual only.
+
 ## Authored Sentry damage metadata
 
 `symmetra-sentry-damage-tags-v1.json` pins1590/node3's four static health-operation

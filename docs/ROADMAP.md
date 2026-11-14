@@ -705,3 +705,7 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Preserve Torbjorn primary report activation for initial observers with1 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate three-owner withdrawal composition and static preservation proof; old three activity oracles replaced one-for-one, no added validated features.
+- [ ] Exact formal68 replacement delivery checks and exact headless/startup/publication results are recorded separately.
+- [ ] Native active-bit contract, actor/model/HP, full hero interaction and actual16ms acceptance remain OPEN. No Boolean forced as new normative policy.

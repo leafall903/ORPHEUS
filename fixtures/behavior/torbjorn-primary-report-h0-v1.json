@@ -2,8 +2,8 @@
   "schema_version": 1,
   "case_id": "torbjorn-primary-report-h0-v1",
   "target_build": 104319,
-  "provenance": "Source66 qualified one actual ordinary primary: hero0006/1683node29/literal2A66 sync1 reportTrue, consumeFalse, first authenticated remote H0False, no authentic capture. Original nested entityDef has no resourceKey and scope0; do not evaluate a new config callback.",
+  "provenance": "The source66 report/consume/firstH0 active-bit difference was factual, but did not establish a positive native requirement for True. Retain one ordinary primary protocol-delivery invariant while withdrawing the unsupported policy. Synthetic Sigma prior state and r12 do not establish the fourth parameter's wire-active mapping or actor success.",
   "input": {"command_count": 8, "left_triggers": 1, "viewer_distance": 100, "initial_ack_delay_ticks": 3},
-  "expected": {"report_fields": 6, "definition": "0400000000002A66", "sync": 1, "report_active": true, "consume_active": false, "first_remote_h0_active": true, "same_capture_identity": true, "same_shot_record_deadline_and_physical_lifetime": true},
-  "limits": "Only existing first delivery and its delayed initial ACK. No new late-viewer hook, no ACK/lease/schema/physical/ammo/damage/trajectory change. H0 start omission is existing codec behavior. Native models and all other Torbjorn paths remain separate."
+  "expected": {"definition": "0400000000002A66", "sync": 1, "first_delivery_count": 1, "activation_counter_volleys_and_entity_preserved": true, "create_h0_h2_decoded_and_actually_acked": true, "same_shot_record_clock_deadline_and_physical_lifetime": true, "required_active_bit": null},
+  "limits": "No required report length6, authentic capture or True/False gate. Only existing first delivery and actual ACKs; no new late viewer, ACK/lease/schema/physical/ammo/damage/trajectory behavior. H0 start omission is existing codec. Native actor and rendering success remain unqualified."
 }
