@@ -31,6 +31,7 @@ class EchoEmissionObserverTests(unittest.TestCase):
             if component is not shooter.body_script.component or not component.shots:
                 return
             pending = component.shots[-1]
+            # Internal report/storage ABI, not a native launch requirement.
             if len(pending) != 6:
                 return
             self.assertIs(pending[0], state)
@@ -69,11 +70,19 @@ class EchoEmissionObserverTests(unittest.TestCase):
                     if captured is not None:
                         captures.append((state, number, activation, captured))
 
-                def show(*args, shown=shown, show_others=show_others, **kwargs):
+                def show(*args, shown=shown, show_others=show_others, shooter=shooter, **kwargs):
                     show_others(*args, **kwargs)
                     members = kwargs.get('shots', (args[0],))
                     for member in members:
+                        # Internal data fidelity, not an activity-bit policy.
                         self.assertIs(member.observer_activation, kwargs['original_activation'])
+                        self.assertIs(member.player, shooter)
+                        self.assertEqual(member.body, shooter.body)
+                        self.assertIs(member.echo_launch, member.observer_record)
+                        self.assertEqual((member.echo_launch.instance, member.echo_launch.state,
+                                          member.echo_launch.activation, member.echo_launch.shot),
+                                         (member.instance, member.state, member.activation[0],
+                                          member.shot_index))
                         self.assertTrue(member.observers)
                         self.assertTrue(all(d.activation is member.observer_activation
                                             for d in member.observers))
@@ -89,9 +98,8 @@ class EchoEmissionObserverTests(unittest.TestCase):
                 self.assertEqual(len(shown), 6 if sticky else 1)
                 self.assertEqual([len(group) for group in shown], [1] * 6 if sticky else [3])
                 frozen = tuple(item[3] for item in captures)
-                self.assertTrue(all(item[1] is True for item in frozen))
+                # Preserve captured data without prescribing either native activity value.
                 state = captures[0][0]
-                self.assertFalse(state.active)
                 for _, _number, activation, captured in captures:
                     self.assertEqual([key for key, _ in captured[2]],
                                      FIXTURE['expected']['capture_payload_keys'])
@@ -99,9 +107,23 @@ class EchoEmissionObserverTests(unittest.TestCase):
                     self.assertEqual(dict(captured[2])['start'], activation[1])
                     self.assertIsNone(echo_projectiles.volley_activation(
                         state, (activation[0] + 1, activation[1])))
+                rockets = tuple(run.match.combat.rockets)
+                self.assertEqual(len(rockets), 6 if sticky else 3)
+                original = [(rocket, rocket.shot, rocket.shot.echo_launch, rocket.flown,
+                             tuple((delivery, delivery.deadline) for delivery in rocket.shot.observers))
+                            for rocket in rockets]
                 for _ in range(10):
                     run.step({})
-                self.assertEqual(tuple(item[3] for item in captures), frozen)
+                self.assertEqual(tuple(item[3] for item in captures), frozen)  # Internal immutability.
+                for rocket, shot, record, flown, deliveries in original:
+                    self.assertIn(rocket, run.match.combat.rockets)
+                    self.assertIs(rocket.shot, shot)
+                    self.assertIs(shot.echo_launch, record)
+                    self.assertGreaterEqual(rocket.flown, flown)
+                    for delivery, deadline in deliveries:
+                        self.assertEqual(delivery.deadline, deadline)
+                        self.assertTrue(delivery.creation.received)
+                        self.assertTrue(delivery.launch_arrival.received)
 
     def join(self, run, shooter, frames=FIXTURE['input']['join_settle_frames']):
         viewer = run.match.add_player(3, 'Emission viewer', shooter.hero.guid, shooter.team, False)
@@ -179,6 +201,12 @@ class EchoEmissionObserverTests(unittest.TestCase):
                     first = deliveries[0]
                     self.assertEqual(len(deliveries), 3)
                     self.assertTrue(all(d.creation.received for d in deliveries))
+                    acknowledged = first.matching_volley(first.stream.base)
+                    self.assertIsNotNone(acknowledged)
+                    payload = dict(acknowledged[2])
+                    self.assertEqual(payload['counter'], first.record.activation)
+                    self.assertEqual(payload['volleys'] & 0xFF, first.record.volleys)
+                    # Exact tuple equality below checks retained-data fidelity only.
                     self.assertEqual(first.stream.base.states[first.volley_key], first.activation)
                     self.assertEqual(first.activation, next(
                         r.shot.observer_activation for r in rockets

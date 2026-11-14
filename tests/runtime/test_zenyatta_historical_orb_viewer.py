@@ -37,13 +37,13 @@ class ZenyattaHistoricalOrbViewerTests(unittest.TestCase):
         fired = fight.projectiles.fired
 
         def capture(*args, **kwargs):
-            state = args[1]
             activation = kwargs["observer_activation"]
-            self.assertTrue(activation[1])
-            self.assertFalse(state.active)  # Actual on_end precedes report consumption.
+            payload = dict(activation[2])
+            self.assertEqual((payload["counter"], payload["start"]), kwargs["activation"])
             shot = fired(*args, **kwargs)
             if shot is not None and shot.player is source:
                 self.assertTrue(shot.observers)
+                # Exact raw metadata alias is implementation fidelity, not native active-bit acceptance.
                 self.assertTrue(all(delivery.activation is activation for delivery in shot.observers))
                 events.append((shot, args[2], tuple(args[5]), tuple(args[6]), activation, run.frame))
             return shot
@@ -63,6 +63,8 @@ class ZenyattaHistoricalOrbViewerTests(unittest.TestCase):
                 tick(offset)
         self.assertEqual(len(events), 2)
         self.assertEqual(len([r for r in fight.rockets if r.shooter is source]), 2)
+        self.assertEqual({id(r.shot) for r in fight.rockets if r.shooter is source},
+                         {id(event[0]) for event in events})
         self.assertTrue(all(len(event[0].observers) == 1 and event[0].observers[0].viewer is early
                             for event in events))
         first, second = (event[0] for event in events)
@@ -83,6 +85,7 @@ class ZenyattaHistoricalOrbViewerTests(unittest.TestCase):
                 for shot, *_ in events:
                     for delivery in shot.observers:
                         if update is delivery.launch:
+                            # Full equality checks transport fidelity, not native actor launch.
                             queued.append((delivery.record.activation,
                                            delivery.creation.received,
                                            delivery.matching_volley(delivery.stream.base) is not None,

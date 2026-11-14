@@ -1,0 +1,8 @@
+{
+  "build": "1.74.0.0.104319",
+  "input": "Real encrypted commands, hero switch into Mei with unequal world/body birth frames, Cryo, then world ticks without body commands",
+  "child_frame_step": 1,
+  "expected": "Same Cryo child and source component advance in the inherited body frame domain; owner cursor remains frozen; existing world deadline retires child",
+  "provenance": "Cryo creation and original0623 PlayScript copy the source component frame/cursor. Existing immutable cryo_birth provides world/body mapping. Baseline directed test observed child1085 instead of1086.",
+  "limits": "Server clock consistency only. Native timer parity, color, bone alignment, camera, Blizzard summon and friendly wall visibility remain unaccepted."
+}

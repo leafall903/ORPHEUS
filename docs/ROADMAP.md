@@ -709,3 +709,7 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 - [x] Integrate three-owner withdrawal composition and static preservation proof; old three activity oracles replaced one-for-one, no added validated features.
 - [ ] Exact formal68 replacement delivery checks and exact headless/startup/publication results are recorded separately.
 - [ ] Native active-bit contract, actor/model/HP, full hero interaction and actual16ms acceptance remain OPEN. No Boolean forced as new normative policy.
+
+- [x] Integrate four root-qualified original-owner increments with ten exact non-Markdown posts; historical testdoc corrections add no feature count.
+- [ ] Exact formal69 new Cryo clock method, candidate headless/outgoing and final review results are recorded separately; no repeated historical owner methods.
+- [ ] Native colors/attachment/freeze/Q/wall/HP/allhero and actual16ms budget remain OPEN.

@@ -1,4 +1,4 @@
-"""Actual Hanzo reports qualify original H0 for first viewers and old Storm joins."""
+"""Hanzo report storage fidelity and delivery invariants; native active policy is open."""
 import json
 import unittest
 from pathlib import Path
@@ -97,8 +97,10 @@ class HanzoReportH0Tests(unittest.TestCase):
             self.assertIsNone(item[4])
             self.assertIs(item[0], state)
             capture = item[5]
-            self.assertTrue(report_active)
-            self.assertFalse(consume_active)
+            self.assertIs(type(report_active), bool)
+            self.assertIs(type(consume_active), bool)
+            # Full tuple aliases below check implementation/storage fidelity only.
+            # Neither observed active value establishes a native delivery policy.
             self.assertIs(capture, argument)
             self.assertIs(capture, shot.observer_activation)
             self.assertEqual(capture, (state.node.cls, report_active, tuple(sorted(payload.items()))))
@@ -109,6 +111,12 @@ class HanzoReportH0Tests(unittest.TestCase):
             self.assertEqual(len(first_h0), 1)
             self.assertIs(first_h0[0], capture)
             self.assertEqual(initial.record.frame, shot.frame)
+            self.assertEqual(initial.record.instance, shot.instance)
+            self.assertEqual(initial.record.state, shot.state)
+            self.assertEqual(initial.record.activation, shot.activation[0])
+            self.assertEqual(initial.record.volleys, shot.observer_record.volleys)
+            self.assertEqual(initial.deadline, shot.observer_deadline)
+            self.assertEqual(initial.launch.entity, shot.body)
         if kind == 'primary':
             self.assertEqual(len(pending_storage), 1)
             before, missing, restored = pending_storage[0]
@@ -139,6 +147,9 @@ class HanzoReportH0Tests(unittest.TestCase):
             for _ in range(8):
                 case.step()
         self.assertEqual(order, [shot.frame for shot in shots])
+        for shot in shots:
+            initial, = [delivery for delivery in shot.observers if delivery.viewer is first]
+            self.assertTrue(initial.launch_arrival.received)
         for shot in shots:
             delivery, = [item for item in shot.observers if item.viewer is late]
             self.assertTrue(delivery.launch_arrival.received)

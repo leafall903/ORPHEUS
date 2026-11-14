@@ -28,6 +28,7 @@
       "volleys"
     ],
     "value_type": "int",
-    "capture": "Exact WeaponVolley.report H0 before on_end/reentry; optional sixth report entry preserves original active flag, payload and identity through actual consumption."
+    "capture": "Exact WeaponVolley.report H0 before on_end/reentry; optional sixth report entry preserves original active flag, payload and identity through actual consumption.",
+    "wire_active_policy": "Captured raw bool and full tuple/alias checks qualify implementation/storage fidelity only. Neither True nor False is a native acceptance oracle; report-to-consume timing does not prove actor launch."
   }
 }

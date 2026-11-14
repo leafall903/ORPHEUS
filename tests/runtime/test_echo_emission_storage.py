@@ -1,4 +1,4 @@
-"""Actual Echo capture, grouped retained queue and strict disk-journal causality."""
+"""Internal Echo storage fidelity and aliases; no native activity-bit policy is asserted."""
 import json
 import tempfile
 import unittest

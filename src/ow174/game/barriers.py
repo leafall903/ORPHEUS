@@ -803,8 +803,21 @@ def advance(fight, tick):
                 retire(fight, barrier.entity)
             continue
         component = barrier.component
-        if tick > component.frame:
-            component.run_frame(tick)
+        target_frame = tick
+        if component.world.hero == MEI:
+            from ow174.game import mei
+            from ow174.game.combat import TICK
+
+            origin = mei.projectile_clock_origin(barrier.parent)
+            # Cryo inherits its source frame domain at creation and PlayScript.
+            # World ticks must use that same body's immutable birth mapping.
+            if origin is None:
+                target_frame = component.frame
+            else:
+                world_birth, body_birth, frame_ms = origin
+                target_frame = body_birth + (tick - world_birth) * round(TICK * 1000) // frame_ms
+        if target_frame > component.frame:
+            component.run_frame(target_frame)
         else:
             component.run_now()
         _init_health(fight, barrier)

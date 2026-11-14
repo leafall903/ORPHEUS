@@ -13,13 +13,14 @@
     "primary_members_per_activation": 3,
     "sticky_independent_emissions": 6,
     "capture_payload_keys": ["counter", "offset", "start", "volleys"],
-    "capture_uses_actual_report_active": true,
+    "internal_storage_preserves_original_capture": true,
     "partial_primary_replay": false,
     "missing_source_recreation": false,
     "expired_deadline_recreation": false
   },
   "limits": [
     "Historical Sticky activations require legal gameplay input; cooldown is never reset by this fixture.",
-    "Original-client model visibility, spread seed and HIT presentation remain unaccepted."
+    "Original-client model visibility, spread seed and HIT presentation remain unaccepted.",
+    "Neither activity-bit value nor report shape is established as a native launch requirement; exact tuple/alias checks cover internal data fidelity only."
   ]
 }
