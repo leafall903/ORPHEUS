@@ -3527,11 +3527,13 @@ class WeaponVolley(State):
 
             report = (self, self.reported, time, activation)
             launch = ashe.viper_launch(self, time - start, activation[0])
-            from ow174.game import echo_projectiles, zenyatta
+            from ow174.game import echo_projectiles, hanzo_projectiles, zenyatta
 
             observer_activation = zenyatta.volley_activation(self, activation)
             if observer_activation is None:
                 observer_activation = echo_projectiles.volley_activation(self, activation)
+            if observer_activation is None:
+                observer_activation = hanzo_projectiles.volley_activation(self, activation)
             if observer_activation is not None:
                 self.instance.component.shots.append((*report, None, observer_activation))
             else:

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-report-h0-v1",
+  "target_build": "104319",
+  "source": {"provenance": "Independent Hanzo real report/fired identity probe on formal63; graph00B9 nodes5/114. Synthetic first and late viewers reuse formal64 sixth report metadata and guarded Watch queue, without game assets."},
+  "input": {"hero": "Hanzo", "source_epoch": 9000, "world_epoch": 1000, "order": ["register first viewer", "emit ordinary/Sonic or two Storm shots", "join late viewer while old flights remain live", "ACK source H0, create then H2 in order"]},
+  "expected": {"definitions": {"primary": "0x0400000000000144", "sonic": "0x0400000000000149", "storm": "0x040000000000270F"}, "capture": "exact immutable tuple from active report boundary, not ended consume state", "report_shape": "six fields, reserved fifth None", "late_order": "oldest live Storm capture before current activation", "storage": "pending capture changes strict VM digest; restoring it restores digest"},
+  "client_acceptance": "pending"
+}

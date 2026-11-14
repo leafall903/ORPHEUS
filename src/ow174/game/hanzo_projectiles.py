@@ -3,6 +3,7 @@
 from dataclasses import replace
 
 from ow174.game import projectile_clock
+from ow174.game.script import expr
 
 FLIGHTS = {
     (0x00B9, 0x0400000000000144),
@@ -12,6 +13,35 @@ FLIGHTS = {
     (0x00B9, 0x040000000000020D),
     (0x0101, 0x040000000000034F),
 }
+
+
+H0_FLIGHTS = {
+    (0x00B9, 5, 0x0400000000000144),
+    (0x00B9, 5, 0x040000000000270F),
+    (0x00B9, 114, 0x0400000000000149),
+}
+
+
+def volley_activation(state, activation):
+    """Freeze a qualified Hanzo H0 at report time, never at mutable consumption."""
+    if (getattr(state.instance.component.world, 'hero', None) != 0x02E0000000000005
+            or state.node.cls != 'STUStatescriptStateWeaponVolley'
+            or (state.instance.graph.index, state.node.pos) not in ((0x00B9, 5), (0x00B9, 114))
+            or activation != (state.counter, state.start)):
+        return None
+    config = (state.node.field('m_projectileEntity') or {}).get('m_entityDef')
+    # Original5/114 select literal resources through instance variables only.
+    definition = state.evaluate(config, watch=False) if config is not None else None
+    if (not isinstance(definition, expr.Asset)
+            or (state.instance.graph.index, state.node.pos, definition.guid) not in H0_FLIGHTS):
+        return None
+    payload = state.payload()
+    if (set(payload) != {'counter', 'start', 'offset', 'volleys'}
+            or any(type(value) is not int for value in payload.values())
+            or type(state.active) is not bool
+            or (payload['counter'], payload['start']) != activation):
+        return None
+    return state.node.cls, state.active, tuple(sorted(payload.items()))
 
 
 HISTORY_ARROWS = {(0x00B9, 0x0400000000000144), (0x00B9, 0x0400000000000149)}
@@ -51,15 +81,30 @@ def confirmation_components(shot):
     return {72: [shot.body], 26: [shot.filter_bits]}
 
 
-def remember_launch(shot, state, origin, direction, deadline):
+def remember_launch(shot, state, origin, direction, deadline, captured=None):
     """Retain the emitted record even when no remote source body exists yet."""
     if (state.instance.graph.index, shot.definition) not in FLIGHTS or shot.clock_origin is None:
         return
     from ow174.game.projectiles import ShotRecord
 
+    if (state.instance.graph.index, state.node.pos, shot.definition) in H0_FLIGHTS:
+        if (type(captured) is not tuple or len(captured) != 3
+                or captured[0] != state.node.cls or type(captured[1]) is not bool
+                or type(captured[2]) is not tuple or len(captured[2]) != 4
+                or any(type(item) is not tuple or len(item) != 2
+                       or type(item[0]) is not str or type(item[1]) is not int for item in captured[2])):
+            return
+        payload = dict(captured[2])
+        if (set(payload) != {'counter', 'start', 'offset', 'volleys'}
+                or (payload['counter'], payload['start']) != shot.activation):
+            return
+        volleys = payload['volleys'] & 0xFF
+        shot.observer_activation = captured
+    else:
+        volleys = state.volleys & 0xFF  # retain unqualified definitions' legacy record path
     shot.observer_record = ShotRecord(
         shot.frame, shot.instance, shot.state, shot.activation[0],
-        tuple(origin), tuple(direction), (), shot=shot.shot_index, volleys=state.volleys & 0xFF,
+        tuple(origin), tuple(direction), (), shot=shot.shot_index, volleys=volleys,
     )
     shot.observer_deadline = deadline
 
@@ -78,9 +123,13 @@ def observe_live(fight, rocket):
     instance = script.component.instances.get(shot.instance)
     state = (instance.states.get(shot.state)
              if instance is not None and (instance.graph.index, shot.definition) in FLIGHTS else None)
-    if (state is None or state.counter != shot.activation[0]
-            or state.volleys & 0xFF != original.volleys):
-        return  # do not create an unlaunchable alias against a superseding source activation
+    if state is None:
+        return
+    captured = (shot.observer_activation
+                if (instance.graph.index, state.node.pos, shot.definition) in H0_FLIGHTS else None)
+    if captured is None and (state.counter != shot.activation[0]
+                             or state.volleys & 0xFF != original.volleys):
+        return  # legacy records cannot reconstruct a superseded activation
     viewers = [viewer for viewer in fight.match.players
                if viewer is not owner and viewer.client is not None and viewer.spawned and not viewer.gone
                and not any(delivery.viewer is viewer and delivery.client is viewer.client
@@ -88,5 +137,5 @@ def observe_live(fight, rocket):
     if viewers:
         fight.projectiles._show_others(
             shot, state, original.origin, original.direction, None,
-            viewers=viewers, original_record=original, deadline=deadline,
+            viewers=viewers, original_record=original, deadline=deadline, original_activation=captured,
         )

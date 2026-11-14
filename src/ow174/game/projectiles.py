@@ -569,7 +569,8 @@ class Projectiles:
                                 and shot.spawn == 0x040000000000174E)
         if origin is not None and direction is not None:
             hanzo_projectiles.remember_launch(
-                shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS)
+                shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
+                observer_activation)
             if not npc and player.hero.guid == 0x02E0000000000020:
                 self.combat.zenyatta.remember_launch(
                     shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
