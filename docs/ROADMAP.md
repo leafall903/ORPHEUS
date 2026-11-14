@@ -721,3 +721,7 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 - [x] Integrate accepted direct Zarya bubble-clock branch union, preserving Rein70 and Mei69 through exact byte projections.
 - [ ] Exact formal71 committed Zarya one-method confirmation and isolated candidate headless/outgoing/root review results are recorded separately.
 - [ ] Projected input/native, HIT notification and post-hit privateVMdict strict export/fullstore/restore remain OPEN; no checker/schema workaround.
+
+- [x] Integrate accepted direct71 Zarya relay increment, preserving all clock/generic sender/schema/checker and runtime inventory outside the guarded relay.
+- [ ] Exact formal72 committed one-method confirmation, isolated candidate headless/outgoing and root final review results are recorded separately.
+- [ ] Full restore/native Entity ABI/HIT/FX/projected/knockback/Q/model and actual16ms acceptance remain OPEN; narrow strict export is not complete storage acceptance.

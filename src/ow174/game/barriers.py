@@ -1042,7 +1042,12 @@ def relay_bubble_energy(world, target, message, params, sender):
         return False
     receiver = next((i for i in bubble.source.instances.values() if i.graph.index == 0x0242), None)
     if receiver is not None:
-        runtime.send_instance_message(receiver, message, params, sender)
+        # Keep the attacker value while isolating the two private VM records.
+        forwarded = dict(params)
+        attacker = forwarded.get(0x12)
+        if type(attacker) is expr.Entity:
+            forwarded[0x12] = expr.Entity(attacker.id)
+        runtime.send_instance_message(receiver, message, forwarded, sender)
     return True
 
 
