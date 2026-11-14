@@ -1,0 +1,10 @@
+{
+  "build": "1.74.0.0.104319",
+  "raise_commands": 12,
+  "lower_commands": 16,
+  "child_frame_step": 1,
+  "input": "Encrypted hero switch after normal commands, held secondary, world progression without owner commands, then neutral commands",
+  "expected": "Same live barrier child advances using immutable constructor mapping with frozen source cursor; neutral input retires it",
+  "provenance": "Original0095 creation and PlayScript inherit source component frame and now; existing Knockbacks.body_epochs constructor pair maps world to body frame",
+  "limits": "Synthetic server consistency only; native shield model, hit/drop presentation, camera and observer acceptance remain open"
+}

@@ -713,3 +713,7 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 - [x] Integrate four root-qualified original-owner increments with ten exact non-Markdown posts; historical testdoc corrections add no feature count.
 - [ ] Exact formal69 new Cryo clock method, candidate headless/outgoing and final review results are recorded separately; no repeated historical owner methods.
 - [ ] Native colors/attachment/freeze/Q/wall/HP/allhero and actual16ms budget remain OPEN.
+
+- [x] Integrate accepted Rein shield-clock increment, preserving Mei69 and excluding unaccepted Zarya/forcedTrue work.
+- [ ] Exact formal70 committed Rein one-method confirmation, isolated candidate headless, outgoing audit and root final review results are recorded separately.
+- [ ] Native shield visuals/hit/drop/camera/observer, charge/melee/Firestrike and actual16ms acceptance remain OPEN.

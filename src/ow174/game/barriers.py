@@ -816,6 +816,18 @@ def advance(fight, tick):
             else:
                 world_birth, body_birth, frame_ms = origin
                 target_frame = body_birth + (tick - world_birth) * round(TICK * 1000) // frame_ms
+        elif component.world.hero == REINHARDT:
+            from ow174.game import reinhardt_projectiles
+            from ow174.game.combat import TICK
+
+            origin = reinhardt_projectiles.clock_origin(fight, barrier.parent)
+            # Barrier creation and PlayScript inherit the source body clock.
+            # Input admission must not replace its immutable constructor epoch.
+            if origin is None:
+                target_frame = component.frame
+            else:
+                world_birth, body_birth, frame_ms = origin
+                target_frame = body_birth + (tick - world_birth) * round(TICK * 1000) // frame_ms
         if target_frame > component.frame:
             component.run_frame(target_frame)
         else:
