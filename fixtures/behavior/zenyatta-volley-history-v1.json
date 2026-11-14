@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "kind": "synthetic",
+    "target_build": "1.74.0.0.104319",
+    "native_client_acceptance": "pending",
+    "description": "Actual primary/charged emissions, exact retained H0 payloads, sequential H2 ACK and unchanged physical flight."
+  },
+  "input": {
+    "owner_birth": 9000,
+    "first_press": 3,
+    "second_primary_press": 35,
+    "second_charged_press": 45,
+    "join_delay": 5,
+    "solo_join_offset": 13
+  },
+  "expected": {
+    "historical_launches": 2,
+    "solo_launches": 1,
+    "npc_count": 15,
+    "extra_hits": 0
+  },
+  "payload": {
+    "keys": [
+      "counter",
+      "start",
+      "offset",
+      "volleys"
+    ],
+    "value_type": "int",
+    "capture": "Exact WeaponVolley.report H0 before on_end/reentry; optional sixth report entry preserves original active flag, payload and identity through actual consumption."
+  }
+}

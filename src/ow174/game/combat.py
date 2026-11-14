@@ -3784,6 +3784,8 @@ class Combat:
             for state, number, time, activation, *launch in shots:
                 try:
                     options = {"viper_launch": launch[0]} if launch else {}
+                    if len(launch) > 1:
+                        options["observer_activation"] = launch[1]
                     self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
@@ -6653,6 +6655,7 @@ class Combat:
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None,
         viper_launch: tuple[float, int] | None = None, launch_tick: int | None = None, command_quanta=None,
+        observer_activation=None,
     ) -> None:
         symmetra_tick = (None if isinstance(shooter, bots.Bot)
                          else symmetra.release_tick(shooter, time, self.tick))
@@ -7104,7 +7107,8 @@ class Combat:
                     clock_options["clock_origin"] = getattr(shooter.body_script, "torbjorn_birth", None)
                 shot = self.projectiles.fired(
                     shooter, state, shot_frame, definition, lifetime, origin, delivery_direction,
-                    activation=activation, snapshot=snapshot, **clock_options,
+                    activation=activation, observer_activation=observer_activation,
+                    snapshot=snapshot, **clock_options,
                     shot_index=number if (state.instance.graph.index in (0x19E5, 0x1C36)
                         or (not npc and shooter.hero.guid == orisa_clock.HERO
                             and state.instance.graph.index in orisa_clock.GRAPHS)) else 0,

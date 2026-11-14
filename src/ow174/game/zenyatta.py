@@ -20,6 +20,20 @@ HARMONY_RATE, TRANSCENDENCE_RATE, DISCORD_SCALE = 30.0, 300.0, 1.25
 TICK = 0.016
 
 
+def volley_activation(state, activation):
+    """Freeze Zen H0 at the actual report boundary, before on_end/reentry."""
+    if (getattr(state.instance.component.world, "hero", None) != HERO
+            or (state.instance.graph.index, state.node.pos) not in ((0x0164, 30), (0x0164, 35))):
+        return None
+    payload = state.payload()
+    if (set(payload) != {"counter", "start", "offset", "volleys"}
+            or any(type(value) is not int for value in payload.values())
+            or type(state.active) is not bool
+            or (payload["counter"], payload["start"]) != activation):
+        return None
+    return state.node.cls, state.active, tuple(sorted(payload.items()))
+
+
 def view_world_tick(script, command, quanta):
     """Map a viewed owner instant to world history without rounding it."""
     world_birth, owner_birth = script.world_frame_anchor
@@ -85,12 +99,35 @@ class Zenyatta:
                 if orb is not None and orb.target == body:
                     self.set_orb(owner, name, None)
 
+    def remember_launch(self, shot, state, origin, direction, deadline, activation=None):
+        """Capture the actual accepted event even before any observer exists."""
+        if ((state.instance.graph.index, state.node.pos, shot.definition) not in (
+                (0x0164, 30, 0x0400000000000236), (0x0164, 35, 0x0400000000000261))
+                or shot.clock_origin is None):
+            return
+        from ow174.game.projectiles import ShotRecord
+
+        if activation is None:
+            return  # A consumed mutable State cannot reconstruct the original H0.
+        payload = dict(activation[2])
+        if (activation[0] != state.node.cls or type(activation[1]) is not bool
+                or set(payload) != {"counter", "start", "offset", "volleys"}
+                or any(type(value) is not int for value in payload.values())
+                or (payload["counter"], payload["start"]) != shot.activation):
+            return
+        shot.observer_record = ShotRecord(
+            shot.frame, shot.instance, shot.state, shot.activation[0],
+            tuple(origin), tuple(direction), (), shot=shot.shot_index, volleys=payload["volleys"] & 0xFF,
+        )
+        shot.observer_deadline = deadline
+        shot.observer_activation = activation
+
     def observe_live(self, rocket):
-        """Deliver a live orb only to a viewer holding its original volley baseline."""
+        """Retain a live orb for viewers through its exact original volley baseline."""
         shot = rocket.shot
         if (rocket.source_graph != 0x0164
                 or rocket.definition not in (0x0400000000000236, 0x0400000000000261)
-                or shot is None or not shot.observers or shot.clock_origin is None
+                or shot is None or shot.clock_origin is None
                 or shot.authoritative or shot.observer_only):
             return
         owner = shot.player
@@ -103,12 +140,21 @@ class Zenyatta:
                  if instance is not None and instance.graph.index == 0x0164 else None)
         if state is None:
             return
-        original = shot.observers[0]
-        if (state.counter != original.record.activation
-                or state.volleys & 0xFF != original.record.volleys):
+        record, deadline = shot.observer_record, shot.observer_deadline
+        if record is None:
+            if not shot.observers:
+                return
+            record = shot.observers[0].record
+            deadline = min(delivery.deadline for delivery in shot.observers)
+        elif deadline is None:
+            return
+        elif shot.observers:
+            deadline = min(deadline, *(delivery.deadline for delivery in shot.observers))
+        activation = shot.observer_activation
+        if activation is None and (state.counter != record.activation
+                                   or state.volleys & 0xFF != record.volleys):
             return  # Older overlapping activations need a separately qualified historical baseline.
-        deadline = min(delivery.deadline for delivery in shot.observers)
-        if self.combat.tick >= deadline:
+        if deadline is None or self.combat.tick >= deadline:
             return
         viewers = []
         for viewer in self.combat.match.players:
@@ -117,13 +163,17 @@ class Zenyatta:
                            for delivery in shot.observers)):
                 continue
             stream = self.combat.observers.projectile_stream(viewer, shot.body, npc=False)
-            if stream is not None and original.matching_volley(stream.base) is not None:
+            entry = (stream.base.states.get((record.instance, record.state))
+                     if stream is not None and stream.base is not None else None)
+            payload = dict(entry[2]) if entry is not None else {}
+            if (activation is not None and stream is not None) or (
+                    (payload.get("counter"), payload.get("volleys", 0) & 0xFF)
+                    == (record.activation, record.volleys)):
                 viewers.append(viewer)
         if viewers:
-            record = original.record
             self.combat.projectiles._show_others(
                 shot, state, record.origin, record.direction, None,
-                viewers=viewers, original_record=record, deadline=deadline,
+                viewers=viewers, original_record=record, deadline=deadline, original_activation=activation,
             )
 
     def interrupt(self, player):

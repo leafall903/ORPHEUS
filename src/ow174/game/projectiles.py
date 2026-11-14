@@ -346,6 +346,7 @@ class Shot:
     echo_launch: 'ShotRecord | None' = None  # original Echo event, before any observer baseline ACK
     observer_record: "ShotRecord | None" = None  # admitted Hanzo event, including solo casts
     observer_deadline: int | None = None  # original absolute deadline, never refreshed by joining
+    observer_activation: tuple | None = None  # exact original H=0 state for the retained volley queue
 
 
 @dataclass
@@ -472,7 +473,7 @@ class Projectiles:
     def fired(
         self, player, state, frame: int, definition: int, bound_seconds: float, origin=None, direction=None,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None, clock_origin=None,
-        lease_offset: int | None = None, publish: bool = True, shot_index: int = 0,
+        lease_offset: int | None = None, publish: bool = True, shot_index: int = 0, observer_activation=None,
     ) -> Shot | None:
         """Register a volley projectile on the owner and observer paths that apply to its source."""
         npc = isinstance(player, bots.Bot)
@@ -569,6 +570,10 @@ class Projectiles:
         if origin is not None and direction is not None:
             hanzo_projectiles.remember_launch(
                 shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS)
+            if not npc and player.hero.guid == 0x02E0000000000020:
+                self.combat.zenyatta.remember_launch(
+                    shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS,
+                    observer_activation)
         if (origin is not None and direction is not None
                 and (state.instance.graph.index, definition) in (
                     (0x19E5, 0x0400000000002CBF), (0x1C36, 0x0400000000002CBA))):
@@ -579,7 +584,13 @@ class Projectiles:
         if (publish and (shot.spawn in (None, GRAVITON_FIELD_ENTITY) or authoritative
                          or turret_carrier or supercharger_carrier)
                 and origin is not None and direction is not None):
-            self._show_others(shot, state, origin, direction, snapshot)
+            if shot.observer_activation is not None:
+                self._show_others(
+                    shot, state, origin, direction, snapshot, original_record=shot.observer_record,
+                    deadline=shot.observer_deadline, original_activation=shot.observer_activation,
+                )
+            else:
+                self._show_others(shot, state, origin, direction, snapshot)
         return shot
 
     def fired_volley(self, player, state, frame, definition, bound_seconds, origin, direction,
@@ -596,10 +607,17 @@ class Projectiles:
         return shots
 
     def _show_others(self, shot: Shot, state, origin, direction, snapshot: Snapshot | None,
-                     *, shots=None, viewers=None, original_record=None, deadline=None) -> None:
+                     *, shots=None, viewers=None, original_record=None, deadline=None,
+                     original_activation=None) -> None:
         """Send all projectile IDs in one native volley event, with independent retirements."""
         # A live-flight catch-up supplies the immutable event and its original deadline.
         shots = (shot,) if shots is None else shots
+        if original_activation is not None:
+            payload = dict(original_activation[2])
+            if (original_record is None or original_activation[0] != state.node.cls
+                    or (payload.get("counter"), payload.get("start"), payload.get("volleys", 0) & 0xFF)
+                    != (original_record.activation, shot.activation[1], original_record.volleys)):
+                raise ValueError("original volley activation differs from the accepted shot")
         observers = self.combat.observers
         npc = isinstance(shot.player, bots.Bot)
         if (shot.authoritative and state.instance.graph.index == 0x1BBB
@@ -652,6 +670,8 @@ class Projectiles:
                     viewer.client.retain_bot_volley(delivery)
                 elif not npc and viewer is not shot.player:
                     observers.retain_volley(delivery, state)
+                    if original_activation is not None and delivery.activation is not None:
+                        delivery.activation = original_activation
                 components = dict(hanzo_projectiles.confirmation_components(member) or {})
                 # Original1E60/1E61 Pet source is the captured cast body. Keep
                 # the existing generic confirmation-components API shared.

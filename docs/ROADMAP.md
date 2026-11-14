@@ -690,3 +690,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Register original Camo source rules and reject unready cache consumption with4 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Capture original Zen launch activation before mutable state ends with5 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

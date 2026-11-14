@@ -359,7 +359,7 @@ class SceneHost:
                 if weapon is not None and self.weapons.get(entity) is weapon:
                     shots = tuple(unit.component.shots)
                     unit.component.shots.clear()
-                    for shot, ordinal, time, activation in shots:
+                    for shot, ordinal, time, activation, *_launch in shots:
                         if shot.instance.graph.index == 0x0CA1 and shot.node.pos == 14:
                             weapon.launch(shooter, shot, ordinal, time, activation, frame)
             self.world.flush_corpse_retirements(self.retire_entity)
