@@ -329,11 +329,34 @@ virtual gamepad:
 - **The ability icon draws.** As D.Va, eight kills. The two bots her Self-Destruct killed gave
   two lines with the Self-Destruct icon in place of the arrow; cannon kills gave the arrow.
 - The 66 kills between the Friendly Bots and the Training Bots in the first match drew no line
-  in any sampled frame. Not explained: the server offered those pulsers the same way.
+  in any sampled frame, though the server offered those pulsers the same way. The graph itself
+  drops them: see [the next section](#kills-between-two-range-bots-0c18-drops-the-line).
 - The Tab board now lists the seated bots: a row of eleven Training Bots against the player and
   four Friendly Bots.
-- Not timed: a kill within the first moments after a respawn or a join, before the new
-  possession is acknowledged.
+- A kill within the first moments after a respawn, before the new possession is acknowledged,
+  was not produced. Timed since, in a traced run of 66 bot respawns: the client acknowledged
+  each new body's possession 47 to 125 ms after the respawn (median 78 ms), no death frame was
+  held back for it, and the shortest life was 1.56 s. A kill after a join was not timed.
+
+## Kills between two Range bots: `0C18` drops the line
+
+2026-11-14. Read from data:
+
+- After the name test and the killer test (`#392 && #392 != owner()`), `0C18` tests
+  `!#7082e || !#392.id(7082)` before the send that names the killer, and `!#7082e` before the
+  send without one. Neither test's false plug has links. `01CF` has the same two tests.
+- `#7082e` is an entity variable. `0BA8`, one of the graphs every Range bot body lists, sets it
+  true at its Entry with no condition. The only other writer among this source's pack of graphs
+  is `0C89`, also at its Entry. `01CF` reads it and never writes it, so a hero's body does not
+  hold it by itself.
+- So a line needs a victim or a killer without `7082`. A Range bot killed by a hero gets its
+  line, and a Range bot killed by another Range bot gets none. This is the game's own filter,
+  not a fault in the delivery.
+
+Seen on this source's server, the same day: in a traced run every death frame of a kill
+between two bots had `7082` true on both bodies' scripts (18 deaths of 18). Seen in the original
+client: no line for those kills in any sampled frame of two matches, while the player's kills
+drew theirs. The client's own value of `7082` was not read.
 
 ## Open
 
@@ -343,6 +366,6 @@ virtual gamepad:
 - The meaning of `STU_0D179CAF` and `STU_CEFF290A`.
 - A line's critical-hit mark and assists (two of the other `003E.025` parameters) were not
   exercised.
-- Why a bot's kill of another bot draws no line.
+- What sets `7082` besides the two Entry writes, and what `0C89` belongs to.
 - The read-only memory reader used for the first live reads is not in this repository. The
   tracer plugin's source is, under `offline/tools/asi`.

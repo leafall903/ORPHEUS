@@ -1,5 +1,15 @@
 # Changelog
 
+## Kill feed note: kills between two Practice Range bots
+
+- `docs/research/kill-feed.md` now says why a Practice Range bot's kill of another draws no kill
+  feed line. Read from data: the bot body's death graph `0C18` sends the line only when the
+  victim or the killer lacks entity variable `7082`, and `0BA8`, a graph every Range bot body
+  lists, sets it at its Entry. The client drops those lines by its own data.
+- The note also records how soon a respawned bot's possession is acknowledged (47 to 125 ms in
+  one traced run), in place of "not timed".
+- No behavior changes.
+
 ## Training bot names in notices and the kill feed
 
 - A Practice Range bot was a body entity alone, so the client had no name for it: the
