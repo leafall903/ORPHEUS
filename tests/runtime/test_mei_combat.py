@@ -1,5 +1,6 @@
 """Mei combat regressions with the external 104319 graphs; no client acceptance."""
 
+import os
 import sys
 import unittest
 from dataclasses import replace
@@ -18,6 +19,9 @@ MEI = 0x02E00000000000DD
 
 
 class MeiCombatTests(unittest.TestCase):
+
+    def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
     def duel(self):
         run = Run(KANEZAKA_DM, ("Mei", "Enemy"))
         match = run.match

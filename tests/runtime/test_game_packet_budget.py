@@ -1,6 +1,7 @@
 """Real encrypted Client frames stay within the budget and commit only actual sends; no UDP socket."""
 
 import dataclasses
+import os
 import struct
 import sys
 import unittest
@@ -116,6 +117,7 @@ def prepare_corrections(player):
 
 class PacketBudgetTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         for module in (bodytrace, movelog):
             patch = mock.patch.object(module, "ENABLED", False)
             patch.start()

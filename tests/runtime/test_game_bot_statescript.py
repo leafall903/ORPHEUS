@@ -1,5 +1,6 @@
 """Bot statescript delivery through the encrypted Client path and a modeled peer."""
 
+import os
 import struct
 import unittest
 from types import SimpleNamespace
@@ -425,6 +426,7 @@ class WirePeer:
 
 class BotStatescriptTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         for module in (bodytrace, movelog):
             edit = patch.object(module, "ENABLED", False)
             edit.start()
@@ -1495,6 +1497,7 @@ class BotStatescriptTests(unittest.TestCase):
 
 class BotHealthTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         for module in (bodytrace, movelog):
             edit = patch.object(module, "ENABLED", False)
             edit.start()

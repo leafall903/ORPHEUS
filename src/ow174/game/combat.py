@@ -68,6 +68,12 @@ from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELD
 
 _NO_COMBAT_NOTICES = os.environ.get("OW174_NO_COMBAT_NOTICES") == "1"  # ablation lever (this run only)
 
+
+def _kill_bridge() -> bool:
+    """Whether the 25005 bridge channel is on (see _kill_notice); read per kill, not at import,
+    so a test class can set the environment in its setUp."""
+    return os.environ.get("OW174_LEGACY_KILL_NOTICE") == "1"
+
 log = logging.getLogger("ow174.game")
 
 HIT = 25001  # to the shooter: a hit
@@ -1930,8 +1936,14 @@ class Combat:
 
     def _kill_notice(self, killer, victim) -> None:
         """25005 to the killer: "ELIMINATED: <name>" (1126.07C; +0x89 assist would be 01F0.07C, +0x88 a
-        score shown when above 0). Its handler (0x7FF7895D2B50) reads only +0x84, +0x88 and +0x89."""
-        if _NO_COMBAT_NOTICES:
+        score shown when above 0). Its handler (0x7FF7895D2B50) reads only +0x84, +0x88 and +0x89.
+        Off by default: the feed line is the dead body's own 003E.025 and the client-only chain
+        (01CF st108 -> 0765.025 -> 0DEA, docs/research/kill-feed.md), drawn on every client from the
+        replicated body. The bridge post restarts the mode's combat-info chain and freezes the
+        killer's meter, ammo and numbers presenters (original client, Aksuma's stand, 13.11: the
+        client variable keeps applying, the render does not); OW174_LEGACY_KILL_NOTICE=1 brings
+        the bridge back for ablation."""
+        if not _kill_bridge() or _NO_COMBAT_NOTICES:
             return
         entity = _source_entity(victim)
         notice = {

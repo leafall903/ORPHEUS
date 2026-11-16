@@ -1,5 +1,6 @@
 """Combat notice and NPC health ordering over the encrypted game link, without a listening socket."""
 
+import os
 import struct
 import unittest
 from dataclasses import replace
@@ -19,6 +20,7 @@ from tests.runtime.test_game_repeated_lifecycles import wire_frame
 
 class BotNoticeTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         self.monotonic_override = None
         for module in (bodytrace, movelog):
             edit = patch.object(module, "ENABLED", False)

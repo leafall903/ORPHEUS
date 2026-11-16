@@ -2,6 +2,7 @@
 
 import json
 import math
+import os
 import sys
 import tempfile
 import unittest
@@ -132,6 +133,9 @@ class Run:
 
 
 class CommandTests(unittest.TestCase):
+
+    def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
     def record(self) -> bytes:
         """A click in the middle of a frame (buttons & 0x10000: sub-frame 128, the aim then), then the
         same command with the view delay 5 ms longer."""

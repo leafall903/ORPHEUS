@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-16
 
+#### The kill feed line goes native: the bridge notice is off by default
+
+- The 25005 kill-notice bridge is off unless `OW174_LEGACY_KILL_NOTICE=1`. On the original
+  client a bare bridge post — no kill, no retire, no credit delta — froze the killer's ultimate
+  meter, HP numbers and ammo presenter: the client variable kept applying, the render did not
+  (Aksuma's stand, 13.11: the meter froze at 46%, ult unpressable, delivery-state showed every
+  chunk acknowledged). The line itself needs none of that: the dead body's own 003E.025
+  pulser and the client-only chain resolve the victim through the entity table and draw it
+  (docs/research/kill-feed.md) — the feed presenter, no combat-info restart. After the switch,
+  the ring survives kills of any volume; the flag keeps the old channel for ablation.
+  Merge order: for Training Bots the line also needs kjs `1819125` (20802 Options defaults —
+  without byte `+0x4` the presenter is hidden on never-saved profiles) and the bot controllers
+  and respawn slot carry — a nameless body fails the first chain gate (the slot carry is in
+  kjs' `respawned()`; the rest of that work is `5ce20818`).
+
 #### Communication and equipped voice wheels
 
 - Resolve stock callouts through the speaker's hero and skin voice set and send them to the speaker and teammates. Play Need Healing on both the untargeted marker path and the aimed text-only fallback while preserving authored directed cues.

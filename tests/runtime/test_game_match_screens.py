@@ -2,6 +2,7 @@
 bodies on it (44 and 75), and the F1 hero info's hero (v940 in the controller frame)."""
 
 import dataclasses
+import os
 import struct
 import sys
 import unittest
@@ -151,6 +152,7 @@ class StatsComponentTests(unittest.TestCase):
 
 class BoardInMatchTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         self.match = Match(PVP, collision_provider=StaticCollisionProvider(flat_world(1.0)))
         self.alpha = self.match.add_player(1, "Alpha", 0, 0, False)
         self.beta = self.match.add_player(2, "Beta", 0, 0, False)
@@ -197,6 +199,7 @@ class BoardInMatchTests(unittest.TestCase):
 
 class PossessionTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         self.match = Match(PVP, collision_provider=StaticCollisionProvider(flat_world(1.0)))
         self.alpha = self.match.add_player(1, "Alpha", 0, 0, False)
         self.gamma = self.match.add_player(3, "Gamma", 0, 1, False)
@@ -247,6 +250,7 @@ class PossessionTests(unittest.TestCase):
 
 class EncryptedPossessionTests(unittest.TestCase):
     def setUp(self):
+        os.environ["OW174_LEGACY_KILL_NOTICE"] = "1"  # the bridge channel these classes regress
         self.server, self.client, self.viewer, self.cipher = connection()
         self.match = self.viewer.match
         self.other = self.match.add_player(2, "Beta", SOLDIER, 1, False)
