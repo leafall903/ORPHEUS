@@ -77,6 +77,8 @@ select, button, input[type="number"] {
 button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .65; }
 input[type="number"] { width: 6.4rem; }
+.room-controls { margin-top: .65rem; gap: .65rem; }
+#room-steps { width: 4.5rem; }
 .geometry-controls { margin-bottom: .8rem; gap: .65rem; }
 #geometry-status { color: var(--proxy); }
 input[type="checkbox"] { accent-color: var(--accent); }

@@ -61,8 +61,8 @@ use room::{
 };
 use state::State;
 use worker::{
-    GAME_SOCKET, INPUT_PER_PEER, INPUT_PER_TURN, RECEIVE_BATCH, REQUESTS, leave_message, run, send,
-    wall_nanoseconds,
+    GAME_SOCKET, INPUT_PER_PEER, INPUT_PER_TURN, RECEIVE_BATCH, REQUESTS, WorkerOptions,
+    leave_message, run, send, wall_nanoseconds,
 };
 
 #[cfg(any(test, feature = "inspector"))]
@@ -147,6 +147,12 @@ enum Request {
     Debug {
         reply: mpsc::SyncSender<io::Result<game_debug::Snapshot>>,
     },
+    #[cfg(any(test, feature = "inspector"))]
+    DebugControl {
+        id: MatchId,
+        command: game_debug::RoomControlCommand,
+        reply: mpsc::SyncSender<io::Result<game_debug::RoomControlStatus>>,
+    },
     #[cfg(test)]
     Inject {
         id: MatchId,
@@ -178,6 +184,31 @@ impl GameService {
         schemas: Arc<Schemas>,
         collect_timing: bool,
     ) -> io::Result<Self> {
+        Self::bind_worker(
+            address,
+            schemas,
+            collect_timing,
+            #[cfg(any(test, feature = "inspector"))]
+            false,
+        )
+    }
+
+    #[cfg(any(test, feature = "inspector"))]
+    pub(crate) fn bind_with_options(
+        address: SocketAddr,
+        schemas: Arc<Schemas>,
+        collect_timing: bool,
+        debug_control: bool,
+    ) -> io::Result<Self> {
+        Self::bind_worker(address, schemas, collect_timing, debug_control)
+    }
+
+    fn bind_worker(
+        address: SocketAddr,
+        schemas: Arc<Schemas>,
+        collect_timing: bool,
+        #[cfg(any(test, feature = "inspector"))] debug_control: bool,
+    ) -> io::Result<Self> {
         for id in [20300, 20301, 20302, 20304, 20306, 21601, 21602, 21610] {
             let (_, crc, _) = locate(id).map_err(invalid)?;
             schemas.fields(crc, id).map_err(invalid)?;
@@ -203,7 +234,11 @@ impl GameService {
                     worker_stopping,
                     schemas,
                     ready,
-                    collect_timing,
+                    WorkerOptions {
+                        collect_timing,
+                        #[cfg(any(test, feature = "inspector"))]
+                        debug_control,
+                    },
                 )
             })?;
         initialized.recv().map_err(|_| stopped())??;
@@ -388,6 +423,25 @@ impl GameService {
                 mpsc::RecvTimeoutError::Timeout => io::Error::new(
                     io::ErrorKind::TimedOut,
                     "game worker did not return a debug snapshot",
+                ),
+                mpsc::RecvTimeoutError::Disconnected => stopped(),
+            })?
+    }
+
+    #[cfg(any(test, feature = "inspector"))]
+    pub(crate) fn debug_room_control(
+        &self,
+        id: MatchId,
+        command: game_debug::RoomControlCommand,
+    ) -> io::Result<game_debug::RoomControlStatus> {
+        let (reply, receive) = mpsc::sync_channel(1);
+        self.enqueue(Request::DebugControl { id, command, reply })?;
+        receive
+            .recv_timeout(DEBUG_WAIT)
+            .map_err(|error| match error {
+                mpsc::RecvTimeoutError::Timeout => io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "game worker did not process room control command",
                 ),
                 mpsc::RecvTimeoutError::Disconnected => stopped(),
             })?

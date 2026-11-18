@@ -37,8 +37,205 @@ pub(super) struct Room {
     pub(super) players: Vec<Player>,
     pub(super) members: IndexMap<u32, RoomMember>,
     pub(super) world: Option<RoomWorld>,
+    #[cfg(any(test, feature = "inspector"))]
+    pub(super) debug_control: RoomDebugControl,
     #[cfg(test)]
     pub(super) injection: Option<(RoomStage, InjectedFault)>,
+}
+
+#[cfg(any(test, feature = "inspector"))]
+#[derive(Clone, Copy, Debug)]
+pub(super) struct RoomDebugControl {
+    paused: bool,
+    pending_steps: u32,
+    stepped_ticks: u64,
+    sim_tick: u32,
+    sim_now: Duration,
+    last_global_tick: u32,
+    last_global_now: Duration,
+    step_send_pending: bool,
+}
+
+#[cfg(any(test, feature = "inspector"))]
+#[derive(Clone, Copy, Debug)]
+pub(super) struct RoomTickPlan {
+    pub(super) tick: u32,
+    pub(super) now: Duration,
+    pub(super) simulate: bool,
+    pub(super) stepped: bool,
+    pub(super) send_world: bool,
+}
+
+#[cfg(any(test, feature = "inspector"))]
+impl RoomDebugControl {
+    pub(super) fn new(tick: u32, now: Duration) -> Self {
+        Self {
+            paused: false,
+            pending_steps: 0,
+            stepped_ticks: 0,
+            sim_tick: tick,
+            sim_now: now,
+            last_global_tick: tick,
+            last_global_now: now,
+            step_send_pending: false,
+        }
+    }
+
+    pub(super) fn paused(&self) -> bool {
+        self.paused
+    }
+
+    pub(super) fn sim_tick(&self) -> u32 {
+        self.sim_tick
+    }
+
+    pub(super) fn sim_now(&self) -> Duration {
+        self.sim_now
+    }
+
+    pub(super) fn status(&self) -> game_debug::RoomControlStatus {
+        game_debug::RoomControlStatus {
+            paused: self.paused,
+            pending_steps: self.pending_steps,
+            sim_tick: self.sim_tick,
+            stepped_ticks: self.stepped_ticks,
+            max_step_budget: game_debug::MAX_DEBUG_STEP_BUDGET,
+        }
+    }
+
+    pub(super) fn apply(
+        &mut self,
+        command: game_debug::RoomControlCommand,
+    ) -> io::Result<game_debug::RoomControlStatus> {
+        match command {
+            game_debug::RoomControlCommand::Pause => {
+                self.paused = true;
+                self.pending_steps = 0;
+            }
+            game_debug::RoomControlCommand::Resume => {
+                self.paused = false;
+                self.pending_steps = 0;
+                self.step_send_pending = false;
+            }
+            game_debug::RoomControlCommand::Step(steps) => {
+                if !self.paused {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "room must be paused before stepping",
+                    ));
+                }
+                if steps == 0 || steps > game_debug::MAX_DEBUG_STEP_BUDGET {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "step count out of bounds",
+                    ));
+                }
+                let next = self
+                    .pending_steps
+                    .checked_add(steps)
+                    .filter(|&total| total <= game_debug::MAX_DEBUG_STEP_BUDGET)
+                    .ok_or_else(|| {
+                        io::Error::new(io::ErrorKind::InvalidInput, "room step budget exceeded")
+                    })?;
+                self.pending_steps = next;
+            }
+        }
+        Ok(self.status())
+    }
+
+    pub(super) fn plan_tick(
+        &mut self,
+        global_tick: u32,
+        global_now: Duration,
+        send_frames: bool,
+    ) -> RoomTickPlan {
+        let tick_delta = global_tick.saturating_sub(self.last_global_tick);
+        let now_delta = global_now.saturating_sub(self.last_global_now);
+        self.last_global_tick = global_tick;
+        self.last_global_now = global_now;
+        if !self.paused {
+            self.sim_tick = self.sim_tick.saturating_add(tick_delta);
+            self.sim_now = self.sim_now.saturating_add(now_delta);
+            self.step_send_pending = false;
+            RoomTickPlan {
+                tick: self.sim_tick,
+                now: self.sim_now,
+                simulate: true,
+                stepped: false,
+                send_world: send_frames,
+            }
+        } else if self.pending_steps > 0 {
+            self.pending_steps -= 1;
+            self.stepped_ticks = self.stepped_ticks.saturating_add(1);
+            self.sim_tick = self.sim_tick.saturating_add(1);
+            self.sim_now = self.sim_now.saturating_add(crate::game_clock::TICK_PERIOD);
+            self.step_send_pending = !send_frames;
+            RoomTickPlan {
+                tick: self.sim_tick,
+                now: self.sim_now,
+                simulate: true,
+                stepped: true,
+                send_world: send_frames,
+            }
+        } else {
+            let send_world = if send_frames && self.step_send_pending {
+                self.step_send_pending = false;
+                true
+            } else {
+                false
+            };
+            RoomTickPlan {
+                tick: self.sim_tick,
+                now: self.sim_now,
+                simulate: false,
+                stepped: false,
+                send_world,
+            }
+        }
+    }
+
+    pub(super) fn reset_on_drain(&mut self) {
+        self.paused = false;
+        self.pending_steps = 0;
+        self.step_send_pending = false;
+    }
+}
+
+impl Room {
+    pub(super) fn is_paused(&self) -> bool {
+        #[cfg(any(test, feature = "inspector"))]
+        {
+            self.debug_control.paused()
+        }
+        #[cfg(not(any(test, feature = "inspector")))]
+        {
+            false
+        }
+    }
+
+    pub(super) fn sim_tick(&self, global_tick: u32) -> u32 {
+        #[cfg(any(test, feature = "inspector"))]
+        {
+            let _ = global_tick;
+            self.debug_control.sim_tick()
+        }
+        #[cfg(not(any(test, feature = "inspector")))]
+        {
+            global_tick
+        }
+    }
+
+    pub(super) fn sim_now(&self, global_now: Duration) -> Duration {
+        #[cfg(any(test, feature = "inspector"))]
+        {
+            let _ = global_now;
+            self.debug_control.sim_now()
+        }
+        #[cfg(not(any(test, feature = "inspector")))]
+        {
+            global_now
+        }
+    }
 }
 
 pub(super) struct RoomMember {

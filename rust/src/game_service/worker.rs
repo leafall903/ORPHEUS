@@ -33,6 +33,12 @@ pub(super) fn send(socket: &UdpSocket, outgoing: Outgoing) -> io::Result<u32> {
     Ok(outgoing.sequence)
 }
 
+pub(super) struct WorkerOptions {
+    pub(super) collect_timing: bool,
+    #[cfg(any(test, feature = "inspector"))]
+    pub(super) debug_control: bool,
+}
+
 pub(super) fn run(
     socket: UdpSocket,
     mut poll: Poll,
@@ -40,7 +46,7 @@ pub(super) fn run(
     stopping: Arc<AtomicBool>,
     schemas: Arc<Schemas>,
     ready: mpsc::SyncSender<io::Result<()>>,
-    collect_timing: bool,
+    options: WorkerOptions,
 ) -> io::Result<()> {
     let patrol = match PatrolScript::load() {
         Ok(patrol) => patrol,
@@ -50,7 +56,11 @@ pub(super) fn run(
         }
     };
     let mut state = State::new(schemas, patrol);
-    state.timing = collect_timing.then(WorkerTiming::new);
+    state.timing = options.collect_timing.then(WorkerTiming::new);
+    #[cfg(any(test, feature = "inspector"))]
+    {
+        state.debug_control_enabled = options.debug_control;
+    }
     if ready.send(Ok(())).is_err() {
         return Ok(());
     }

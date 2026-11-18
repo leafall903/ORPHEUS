@@ -28,6 +28,14 @@
       <span id="tick" class="code"></span>
     </section>
 
+    <section id="control-bar" class="toolbar room-controls" aria-label="Local room controls" hidden>
+      <button id="room-pause" type="button" disabled>Pause</button>
+      <button id="room-resume" type="button" disabled>Resume</button>
+      <label>Steps <input id="room-steps" type="number" value="1" min="1" max="60" step="1"></label>
+      <button id="room-step" type="button" disabled>Step</button>
+      <span id="room-control-status" class="code" role="status"></span>
+    </section>
+
     <p id="scene" class="scene" aria-live="polite">Waiting for server data.</p>
     <form id="geometry-form" class="toolbar geometry-controls" aria-label="Collision sample">
       <label>X <input id="center-x" type="number" step="any" min="-65536" max="65536" required></label>

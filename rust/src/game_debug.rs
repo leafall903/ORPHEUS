@@ -37,7 +37,27 @@ pub(crate) const MAX_DEBUG_VM_STATES: usize = 64;
 #[cfg(any(test, feature = "inspector"))]
 pub(crate) const MAX_DEBUG_VM_VARS: usize = 32;
 #[cfg(any(test, feature = "inspector"))]
+pub(crate) const MAX_DEBUG_STEP_BUDGET: u32 = 60;
+#[cfg(any(test, feature = "inspector"))]
 const MAX_DEBUG_STRING_CHARS: usize = 64;
+
+#[cfg(any(test, feature = "inspector"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RoomControlCommand {
+    Pause,
+    Resume,
+    Step(u32),
+}
+
+#[cfg(any(test, feature = "inspector"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct RoomControlStatus {
+    pub paused: bool,
+    pub pending_steps: u32,
+    pub sim_tick: u32,
+    pub stepped_ticks: u64,
+    pub max_step_budget: u32,
+}
 
 #[cfg(any(test, feature = "inspector"))]
 #[derive(Serialize)]
@@ -53,6 +73,8 @@ pub(crate) struct Snapshot {
     pub tick: u32,
     pub rooms: Vec<Room>,
     pub truncated: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub control_enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timing: Option<WorkerTiming>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -82,6 +104,8 @@ pub(crate) struct Room {
     pub encounter: Option<Encounter>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ai_generation: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub control: Option<RoomControlStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub physics: Option<PhysicsOverlay>,
     #[serde(skip_serializing_if = "Option::is_none")]

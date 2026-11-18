@@ -1562,6 +1562,25 @@ impl RoomSimulation {
         Self::damage_bot_with_hit(state, amount, source, now, false, None)
     }
 
+    #[cfg(test)]
+    pub(crate) fn kill_bot_for_test(&mut self, entity: u32, tick: u32, now: Duration) {
+        self.combat_active = true;
+        let state = self
+            .state_mut(entity)
+            .expect("test bot state lookup")
+            .expect("test bot entity");
+        Self::damage_bot(
+            state,
+            10_000.0,
+            Death {
+                killer: 0xa000_0100,
+                frame: tick,
+                time: now.as_secs_f64(),
+            },
+            now,
+        );
+    }
+
     fn damage_bot_with_hit(
         state: &mut BotState,
         amount: f64,

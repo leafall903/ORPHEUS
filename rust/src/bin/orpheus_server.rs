@@ -7,7 +7,7 @@ use orpheus::{
 
 const USAGE: &str = "Usage: orpheus_server --data-dir <directory> [--runtime <directory>]
        [--account <name>] [--lobby-port <port>] [--game-port <port>]
-       [--stall-port <port>] [--rpc-port <port>] [--debug-port <port>]
+       [--stall-port <port>] [--rpc-port <port>] [--debug-port <port>] [--debug-control]
        [--junkenstein-validation <local-json>] [--ai-script <lua-file>]
        orpheus_server --check-runtime [--runtime <directory>]
 
@@ -15,6 +15,8 @@ The native 1.74 server listens on loopback. Use an authorized base runtime
 directory or set ORPHEUS_RUNTIME_DIR. --check-runtime lists missing inputs
 without starting listeners. --debug-port enables the read-only inspector
 in a binary built with --features inspector (disabled by default).
+--debug-control enables opt-in local room pause/resume/step POST commands
+(requires --features inspector and --debug-port; disabled by default).
 --junkenstein-validation loads explicit local Normal Cassidy acceptance settings.
 --ai-script enables an opt-in Lua patrol script override and 'reload' command.
 Press Enter in the terminal to stop.";
@@ -43,6 +45,10 @@ fn run() -> io::Result<()> {
         }
         if arg == "--check-runtime" {
             check_runtime = true;
+            continue;
+        }
+        if arg == "--debug-control" {
+            config.debug_control = true;
             continue;
         }
         let value = args
@@ -77,6 +83,14 @@ fn run() -> io::Result<()> {
             "--debug-port requires a build with --features inspector",
         ));
     }
+    if !check_runtime && config.debug_control && !cfg!(feature = "inspector") {
+        return Err(usage_error(
+            "--debug-control requires a build with --features inspector",
+        ));
+    }
+    if !check_runtime && config.debug_control && config.debug_port.is_none() {
+        return Err(usage_error("--debug-control requires --debug-port"));
+    }
     if config.runtime.as_os_str().is_empty() {
         return Err(usage_error("use --runtime or set ORPHEUS_RUNTIME_DIR"));
     }
@@ -91,6 +105,7 @@ fn run() -> io::Result<()> {
         ));
     }
     let ai_script_configured = config.ai_script.is_some();
+    let debug_control_enabled = config.debug_control;
     let mut server = Server::start(config)?;
     println!(
         "ORPHEUS native lobby {} · game {} · Battle.net {} / {}",
@@ -100,7 +115,11 @@ fn run() -> io::Result<()> {
         server.rpc_addr(),
     );
     if let Some(address) = server.debug_addr() {
-        println!("Read-only inspector http://{address}/");
+        if debug_control_enabled {
+            println!("Local room-control inspector http://{address}/");
+        } else {
+            println!("Read-only inspector http://{address}/");
+        }
     }
     if ai_script_configured {
         let status = server.ai_policy_status()?;

@@ -9,6 +9,12 @@ const sampleActor = byId("sample-actor");
 const sampleSpawn = byId("sample-spawn");
 const samplePoint = byId("sample-point");
 const connection = byId("connection");
+const controlBar = byId("control-bar");
+const pauseButton = byId("room-pause");
+const resumeButton = byId("room-resume");
+const stepInput = byId("room-steps");
+const stepButton = byId("room-step");
+const controlStatus = byId("room-control-status");
 const layers = ["triangles", "proxies", "actors", "physics", "navigation"].map(byId);
 const vmEntitySelect = byId("vm-entity");
 const views = [
@@ -34,6 +40,8 @@ let actorOptions = "";
 let vmEntityOptions = "";
 let geometryLoading = false;
 let geometryMessage = "";
+let controlBusy = false;
+let controlMessage = "";
 
 async function getJson(route) {
   const response = await fetch("/api/debug/v1/" + route, {
@@ -43,6 +51,65 @@ async function getJson(route) {
     throw new Error("HTTP " + response.status);
   }
   return response.json();
+}
+
+function renderRoomControls(room) {
+  const enabled = Boolean(snapshot?.control_enabled);
+  controlBar.hidden = !enabled;
+  if (!enabled) {
+    return;
+  }
+  const control = room?.control;
+  const maxBudget = control?.max_step_budget ?? 60;
+  stepInput.max = String(maxBudget);
+  const paused = Boolean(control?.paused);
+  const pending = control?.pending_steps ?? 0;
+  pauseButton.disabled = controlBusy || !room || (paused && pending === 0);
+  resumeButton.disabled = controlBusy || !room || !paused;
+  stepInput.disabled = controlBusy || !room || !paused;
+  stepButton.disabled = controlBusy || !room || !paused || pending >= maxBudget;
+  let statusText = "No active room selected";
+  if (control) {
+    statusText = (paused ? "Paused" : "Running")
+      + " · sim tick " + control.sim_tick
+      + (pending ? " · pending " + pending + "/" + maxBudget : "")
+      + (control.stepped_ticks ? " · stepped " + control.stepped_ticks : "");
+  }
+  if (controlMessage) {
+    statusText += " · " + controlMessage;
+  }
+  setText(controlStatus, statusText);
+}
+
+async function sendRoomControl(action, steps) {
+  const room = selectedRoom();
+  if (!room || controlBusy || !snapshot?.control_enabled) {
+    return;
+  }
+  controlBusy = true;
+  controlMessage = "";
+  renderRoomControls(room);
+  const payload = steps == null ? { action } : { action, steps };
+  try {
+    const response = await fetch(
+      "/api/debug/v1/rooms/" + encodeURIComponent(room.id) + "/control",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(2000),
+      },
+    );
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+    snapshot = await getJson("state");
+  } catch (error) {
+    controlMessage = "command rejected (" + error.message + ")";
+  } finally {
+    controlBusy = false;
+    render();
+  }
 }
 
 function selectedRoom() {
@@ -174,6 +241,7 @@ function render() {
   }
 
   setText(byId("overlay-info"), formatOverlaySummary(room));
+  renderRoomControls(room);
   renderGeometryControls(geometry && !sample ? [] : actors);
   renderTiming(snapshot?.timing);
   renderFaults(snapshot?.faults);
@@ -653,7 +721,10 @@ async function poll() {
   try {
     snapshot = await getJson("state");
     connection.dataset.state = "live";
-    setText(connection, "Live · read-only");
+    setText(
+      connection,
+      snapshot?.control_enabled ? "Live · room control enabled" : "Live · read-only",
+    );
   } catch {
     connection.dataset.state = "stale";
     setText(connection, snapshot ? "Stale · last available state" : "Server state unavailable");
@@ -663,6 +734,13 @@ async function poll() {
   }
 }
 
+pauseButton.addEventListener("click", () => void sendRoomControl("pause"));
+resumeButton.addEventListener("click", () => void sendRoomControl("resume"));
+stepButton.addEventListener("click", () => {
+  if (stepInput.reportValidity()) {
+    void sendRoomControl("step", stepInput.valueAsNumber);
+  }
+});
 byId("geometry-form").addEventListener("submit", (event) => {
   event.preventDefault();
   sampleRegion(centerInputs.map(({ valueAsNumber }) => valueAsNumber));

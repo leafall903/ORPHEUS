@@ -21,6 +21,35 @@ pub(super) struct State {
     pub(super) next_connection: u32,
     pub(super) next_input_peer: Option<u32>,
     pub(super) recent_faults: VecDeque<FaultRecord>,
+    #[cfg(any(test, feature = "inspector"))]
+    pub(super) debug_control_enabled: bool,
+}
+
+#[cfg(any(test, feature = "inspector"))]
+type TickPlans = HashMap<MatchId, room::RoomTickPlan>;
+#[cfg(not(any(test, feature = "inspector")))]
+type TickPlans = ();
+
+fn room_tick_plan(
+    plans: &TickPlans,
+    id: MatchId,
+    tick: u32,
+    now: Duration,
+    drain: bool,
+    send_frames: bool,
+) -> (bool, u32, Duration, bool) {
+    if drain {
+        return (false, tick, now, false);
+    }
+    #[cfg(any(test, feature = "inspector"))]
+    {
+        if let Some(plan) = plans.get(&id) {
+            return (plan.simulate, plan.tick, plan.now, plan.send_world);
+        }
+    }
+    #[cfg(not(any(test, feature = "inspector")))]
+    let _ = (plans, id);
+    (true, tick, now, send_frames)
 }
 
 impl State {
@@ -41,6 +70,8 @@ impl State {
             next_connection: 1,
             next_input_peer: None,
             recent_faults: VecDeque::new(),
+            #[cfg(any(test, feature = "inspector"))]
+            debug_control_enabled: false,
         }
     }
 
@@ -81,6 +112,8 @@ impl State {
                 .collect(),
             members: IndexMap::new(),
             world: None,
+            #[cfg(any(test, feature = "inspector"))]
+            debug_control: room::RoomDebugControl::new(self.clock.frame(), now),
             #[cfg(test)]
             injection: None,
         };
@@ -361,6 +394,7 @@ impl State {
                 {
                     let tick = self.clock.frame();
                     self.room_work(id, RoomStage::Skin, Some(connection), |room| {
+                        let room_tick = room.sim_tick(tick);
                         if let Some(world) = &mut room.world {
                             world.card.skins.insert(hero, skin);
                             if let Some(peer) = room
@@ -368,7 +402,7 @@ impl State {
                                 .get_mut(&connection)
                                 .and_then(|member| member.peer.as_mut())
                             {
-                                peer.world.queue_skin(hero, tick, now);
+                                peer.world.queue_skin(hero, room_tick, now);
                             }
                         }
                         Ok(())
@@ -396,6 +430,11 @@ impl State {
                     }
                 }
             }
+            #[cfg(any(test, feature = "inspector"))]
+            Request::DebugControl { id, command, reply } => {
+                let result = self.handle_debug_control(id, command);
+                let _ = reply.try_send(result);
+            }
             #[cfg(test)]
             Request::Inject {
                 id,
@@ -421,7 +460,35 @@ impl State {
     }
 
     #[cfg(any(test, feature = "inspector"))]
+    pub(super) fn handle_debug_control(
+        &mut self,
+        id: MatchId,
+        command: game_debug::RoomControlCommand,
+    ) -> io::Result<game_debug::RoomControlStatus> {
+        if !self.debug_control_enabled {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "room debug control is disabled",
+            ));
+        }
+        if self.clock.draining() {
+            return Err(io::Error::new(
+                io::ErrorKind::WouldBlock,
+                "game clock is draining",
+            ));
+        }
+        let Some(room) = self.rooms.get_mut(&id).filter(|room| room.world.is_some()) else {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "active room not found",
+            ));
+        };
+        room.debug_control.apply(command)
+    }
+
+    #[cfg(any(test, feature = "inspector"))]
     pub(super) fn debug_snapshot(&mut self) -> Result<game_debug::Snapshot, WorkerError> {
+        let control_enabled = self.debug_control_enabled;
         let ids: Vec<_> = self.rooms.keys().copied().collect();
         let mut rooms = BTreeMap::new();
         let mut truncated = false;
@@ -450,6 +517,7 @@ impl State {
                         actors,
                         encounter: simulation.encounter_debug(),
                         ai_generation: Some(world.patrol_generation),
+                        control: control_enabled.then(|| room.debug_control.status()),
                         physics,
                         navigation,
                         scripts,
@@ -478,6 +546,7 @@ impl State {
             tick: self.clock.frame(),
             rooms: rooms.into_values().collect(),
             truncated,
+            control_enabled,
             timing: self.timing.clone(),
             ai_policy: Some(game_debug::AiPolicy {
                 generation: self.patrol_reload_generation,
@@ -618,7 +687,8 @@ impl State {
         let tick = self.clock.frame();
         let draining = self.clock.draining();
         let result = self.room_work(id, RoomStage::Receive, Some(connection), |room| {
-            room.receive(connection, &received, &schemas, tick, now, draining)
+            let room_tick = room.sim_tick(tick);
+            room.receive(connection, &received, &schemas, room_tick, now, draining)
         })?;
         if result.is_none() {
             return Ok(());
@@ -684,6 +754,7 @@ impl State {
             let has_work = self
                 .rooms
                 .get(&id)
+                .filter(|room| !room.is_paused())
                 .and_then(|room| room.members.get(&connection))
                 .and_then(|member| member.peer.as_ref())
                 .is_some_and(|peer| peer.world.has_input_work());
@@ -698,7 +769,9 @@ impl State {
             }
             let budget = remaining.min(INPUT_PER_PEER);
             let result = self.room_work(id, RoomStage::Input, Some(connection), |room| {
-                room.input(connection, tick, now, budget)
+                let room_tick = room.sim_tick(tick);
+                let room_now = room.sim_now(now);
+                room.input(connection, room_tick, room_now, budget)
             })?;
             let Some((used, leave)) = result else {
                 // A failed turn still consumes its reservation; repeated faults
@@ -723,6 +796,7 @@ impl State {
         let backlog = self
             .rooms
             .values()
+            .filter(|room| !room.is_paused())
             .flat_map(|room| room.members.values())
             .filter_map(|member| member.peer.as_ref())
             .any(|peer| peer.world.has_input_work());
@@ -780,6 +854,8 @@ impl State {
                         let ids: Vec<_> = self.rooms.keys().copied().collect();
                         for id in ids {
                             self.room_work(id, RoomStage::Drain, None, |room| {
+                                #[cfg(any(test, feature = "inspector"))]
+                                room.debug_control.reset_on_drain();
                                 if let Some(world) = &mut room.world {
                                     world.scene.clear_projectiles();
                                     world.scene.simulation_mut().clear_players();
@@ -821,6 +897,18 @@ impl State {
             }
             self.retire(connection)?;
         }
+        #[cfg(any(test, feature = "inspector"))]
+        let room_plans: TickPlans = if !drain {
+            self.rooms
+                .iter_mut()
+                .map(|(&id, room)| (id, room.debug_control.plan_tick(tick, now, send_frames)))
+                .collect()
+        } else {
+            HashMap::new()
+        };
+        #[cfg(not(any(test, feature = "inspector")))]
+        #[allow(clippy::let_unit_value)]
+        let room_plans: TickPlans = ();
         let mut spawned = HashMap::new();
         let mut created = HashMap::new();
         let mut scripted_health = HashMap::new();
@@ -828,13 +916,49 @@ impl State {
         let mut player_events = HashMap::new();
         let mut observer_player_health = HashMap::new();
         if !drain {
+            #[cfg(any(test, feature = "inspector"))]
+            if room_plans.values().any(|plan| plan.stepped) {
+                let connections: Vec<_> = self.order.keys().copied().collect();
+                for connection in connections {
+                    if !self.order.contains_key(&connection) {
+                        continue;
+                    }
+                    let Some(id) = self.resolve(connection)? else {
+                        continue;
+                    };
+                    let Some(&plan) = room_plans.get(&id).filter(|plan| plan.stepped) else {
+                        continue;
+                    };
+                    let has_work = self
+                        .rooms
+                        .get(&id)
+                        .and_then(|room| room.members.get(&connection))
+                        .and_then(|member| member.peer.as_ref())
+                        .is_some_and(|peer| peer.world.has_input_work());
+                    if !has_work {
+                        continue;
+                    }
+                    let result =
+                        self.room_work(id, RoomStage::Input, Some(connection), |room| {
+                            room.input(connection, plan.tick, plan.now, INPUT_PER_PEER)
+                        })?;
+                    if matches!(result, Some((_, true))) {
+                        self.send_home(connection, now)?;
+                    }
+                }
+            }
             // Preserve the existing global phase order: movement, projectiles,
             // respawn/history, then loading and delivery.
             let ids: Vec<_> = self.rooms.keys().copied().collect();
             for id in ids {
+                let (simulate, room_tick, _, _) =
+                    room_tick_plan(&room_plans, id, tick, now, drain, send_frames);
+                if !simulate {
+                    continue;
+                }
                 self.room_work(id, RoomStage::Bots, None, |room| {
                     if let Some(world) = &mut room.world {
-                        world.scene.step_bots(tick, &world.patrol)?;
+                        world.scene.step_bots(room_tick, &world.patrol)?;
                     }
                     Ok(())
                 })?;
@@ -847,6 +971,11 @@ impl State {
                 let Some(id) = self.resolve(connection)? else {
                     continue;
                 };
+                let (simulate, room_tick, room_now, _) =
+                    room_tick_plan(&room_plans, id, tick, now, drain, send_frames);
+                if !simulate {
+                    continue;
+                }
                 self.room_work(id, RoomStage::Projectiles, Some(connection), |room| {
                     room.with_peer(connection, |room, peer, slot| {
                         let Some(world) = &mut room.world else {
@@ -859,7 +988,7 @@ impl State {
                                 .simulation()
                                 .player_body_by_owner(peer.world.owner())
                                 .map(|state| state.hero);
-                            world.scene.try_step_encounter(tick, encounter_hero)?;
+                            world.scene.try_step_encounter(room_tick, encounter_hero)?;
                             peer.world.queue_encounter_presentation(&world.scene)?;
                         }
                         let active = world.scene.simulation().encounter_active();
@@ -872,12 +1001,12 @@ impl State {
                         let context = ShotContext {
                             team: player.info.team,
                             quanta: player.quanta(),
-                            tick,
-                            now,
+                            tick: room_tick,
+                            now: room_now,
                         };
                         let pulses = peer
                             .world
-                            .advance_fields(world.scene.simulation_mut(), tick)?;
+                            .advance_fields(world.scene.simulation_mut(), room_tick)?;
                         let skip_wire = peer.world.spawned_body();
                         let (bots, queries) = world.scene.bot_simulation();
                         for update in
@@ -886,7 +1015,7 @@ impl State {
                             peer.world.queue_health(update);
                         }
                         peer.world
-                            .advance_biotic_views(world.scene.simulation(), tick)?;
+                            .advance_biotic_views(world.scene.simulation(), room_tick)?;
                         let Some((owner, launches)) = peer
                             .world
                             .take_projectile_launches(world.scene.simulation_mut())
@@ -897,7 +1026,7 @@ impl State {
                         let (simulation, queries) = world.scene.bot_simulation();
                         let (outcomes, hits) = simulation
                             .advance_projectiles(&queries, connection, owner, launches, context)?;
-                        peer.world.finish_projectiles(owner, tick, outcomes)?;
+                        peer.world.finish_projectiles(owner, room_tick, outcomes)?;
                         for hit in hits {
                             simulation
                                 .deliver_applied_damage(peer.world.owner(), hit.damage.clone());
@@ -909,8 +1038,13 @@ impl State {
             }
             let ids: Vec<_> = self.rooms.keys().copied().collect();
             for id in ids {
+                let (simulate, room_tick, room_now, _) =
+                    room_tick_plan(&room_plans, id, tick, now, drain, send_frames);
+                if !simulate {
+                    continue;
+                }
                 let result = self.room_work(id, RoomStage::FinishTick, None, |room| {
-                    room.finish_simulation(tick, now)
+                    room.finish_simulation(room_tick, room_now)
                 })?;
                 if let Some(result) = result {
                     spawned.insert(id, result.replacements);
@@ -930,6 +1064,8 @@ impl State {
             let Some(id) = self.resolve(connection)? else {
                 continue;
             };
+            let (simulate, room_tick, room_now, send_world) =
+                room_tick_plan(&room_plans, id, tick, now, drain, send_frames);
             let schemas = Arc::clone(&self.schemas);
             let loaded = self.room_work(id, RoomStage::Loading, Some(connection), |room| {
                 room.with_peer(connection, |room, peer, slot| {
@@ -938,7 +1074,7 @@ impl State {
                         && room.world.as_ref().is_some_and(|world| {
                             world.scene.simulation().encounter_screens_complete()
                         });
-                    if !drain && encounter_finished {
+                    if simulate && encounter_finished {
                         if let Some(world) = &mut room.world {
                             peer.clear_world_in_room(world.scene.simulation_mut());
                             world.scene.retire_projectiles(connection);
@@ -947,8 +1083,10 @@ impl State {
                         }
                         peer.loading = MapReadiness::default();
                         leave = true;
-                    } else if !drain {
-                        if let Err(error) = peer.advance_loading(&schemas, room, slot, now, tick) {
+                    } else if simulate {
+                        if let Err(error) =
+                            peer.advance_loading(&schemas, room, slot, now, room_tick)
+                        {
                             // Missing structural prerequisites are room faults. Other
                             // preparation errors keep the existing peer leave policy.
                             match error {
@@ -1019,7 +1157,7 @@ impl State {
                             replacements
                                 .iter()
                                 .cloned()
-                                .map(|bot| (now.saturating_add(SILENCE_TIME), bot)),
+                                .map(|bot| (room_now.saturating_add(SILENCE_TIME), bot)),
                         );
                     }
                     Ok(leave)
@@ -1041,23 +1179,25 @@ impl State {
                 continue;
             };
             let mut sender = sender;
+            let reliable_only = drain || !send_world;
+            let frame_tick = if drain { tick } else { room_tick };
             let sent = guard_room(room, RoomStage::Send, |room| {
                 room.with_peer(connection, |room, peer, _| {
                     if !peer.open {
                         return Ok(());
                     }
-                    if !drain {
-                        peer.flush_combat(&schemas, now)?;
+                    if !reliable_only {
+                        peer.flush_combat(&schemas, room_now)?;
                     }
-                    let movements = if drain {
+                    let movements = if reliable_only {
                         Vec::new()
                     } else {
                         match &room.world {
-                            Some(world) => peer.world.movement(&world.scene, tick)?,
+                            Some(world) => peer.world.movement(&world.scene, frame_tick)?,
                             None => Vec::new(),
                         }
                     };
-                    let simulation = if drain {
+                    let simulation = if reliable_only {
                         None
                     } else {
                         room.world
@@ -1065,9 +1205,9 @@ impl State {
                             .map(|world| world.scene.simulation_mut())
                     };
                     match peer.world.send_frame(
-                        tick,
+                        frame_tick,
                         movements,
-                        drain,
+                        reliable_only,
                         simulation,
                         &mut peer.egress,
                         |payload| {

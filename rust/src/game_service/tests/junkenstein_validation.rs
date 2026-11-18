@@ -124,6 +124,7 @@ fn configured_cassidy_immunity_routes_real_room_damage_and_death_notices() {
                 patrol: PatrolScript::load().unwrap(),
                 patrol_generation: 0,
             }),
+            debug_control: room::RoomDebugControl::new(FIRST_TICK, Duration::ZERO),
             injection: None,
         };
         for (step, amount) in input["amounts"].as_array().unwrap().iter().enumerate() {

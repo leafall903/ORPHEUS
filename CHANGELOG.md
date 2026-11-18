@@ -6,6 +6,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-18
 
+#### Add opt-in local room pause and single-step controls to inspector (#84)
+
+- Added opt-in `--debug-control` local room pause, resume, and bounded single-step (`1..=60` ticks, `MAX_DEBUG_STEP_BUDGET = 60`) mutation controls behind `--features inspector` and `--debug-port` (`rust/src/game_debug.rs`, `rust/src/game_service.rs`, `rust/src/game_service/{room.rs,state.rs,worker.rs}`, `rust/src/debug_http.rs`, `rust/src/server.rs`, `rust/src/bin/orpheus_server.rs`, and `rust/assets/inspector/`), while keeping default production builds and read-only `--debug-port` sessions strictly `GET`-only:
+  - **Opt-in gating & loopback CSRF/bounds enforcement:** `--debug-control` is rejected before startup in non-inspector builds (`Unsupported`) or without `--debug-port` (`InvalidInput`). When enabled, `DebugHttp::bind_with_control` serves `POST /api/debug/v1/rooms/<id>/control` requiring exact loopback `Host` and `Origin`, `Content-Type: application/json`, `Content-Length` in `1..=256`, and strict `#[serde(deny_unknown_fields)]` JSON (`pause`, `resume`, `step`), while rejecting `GET` on `/control` with `405 Allow: POST`.
+  - **Room-isolated virtual simulation clock & keepalive:** Each room maintains its own `RoomDebugControl` virtual `sim_tick` and `sim_now` so pausing one room freezes its bots, respawn deadlines, encounter timers, and input processing without blocking sibling rooms, causing input-backlog busy-spin, or producing timer catch-up spikes on resume. Paused rooms continue `SEND_EVERY` `reliable_only` keepalive frames (`Ping -> Pong`, ACKs, retransmits), link expiry, and `FIN` disconnect/reconnect cleanup, and flush stepped frames on the next `SEND_EVERY` boundary.
+- Added unit and integration tests in `rust/tests/runtime_preflight.rs`, `rust/src/debug_http.rs`, and `rust/src/game_service/tests.rs` covering disabled-by-default refusal, HTTP CSRF/header/payload validation, two-room pause/step/resume isolation and respawn timer preservation, and paused UDP keepalive/step-flush/disconnect behavior.
+
 #### Add bounded read-only physics, navigation, and VM overlays to inspector (#62)
 
 - Extended `--features inspector` (`rust/src/game_debug.rs`, `rust/src/game_combat.rs`, `rust/src/mover.rs`, `rust/src/game_bots.rs`, `rust/src/junkenstein_spawn.rs`, `rust/src/junkenstein_navigation.rs`, `rust/src/game_service/state.rs`, and `rust/assets/inspector/`) with bounded, read-only room overlays while keeping `rust/src/debug_http.rs` strictly `GET`-only and default non-inspector production builds free of overlay buffers:

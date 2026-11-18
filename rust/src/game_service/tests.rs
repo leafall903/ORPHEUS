@@ -302,6 +302,7 @@ fn busy_peers_resume_in_round_robin_order_after_the_global_input_budget() {
             map: scene.map().clone(),
             members: IndexMap::new(),
             players,
+            debug_control: room::RoomDebugControl::new(FIRST_TICK, Duration::ZERO),
             injection: None,
             world: Some(RoomWorld {
                 scene: Box::new(scene),
@@ -1229,6 +1230,453 @@ fn hot_reload_file_rejects_missing_or_invalid_file_and_server_config_defaults_op
     assert_eq!(reset.generation, 2);
     assert!(reset.changed);
     service.stop().unwrap();
+}
+
+#[test]
+fn debug_room_control_is_disabled_by_default() {
+    let mut service = GameService::bind_with_timing(local(), Arc::new(fixture()), true).unwrap();
+    let snapshot = service.debug_snapshot().unwrap();
+    assert!(!snapshot.control_enabled);
+    let err = service
+        .debug_room_control(MATCH, game_debug::RoomControlCommand::Pause)
+        .unwrap_err();
+    assert_eq!(err.kind(), io::ErrorKind::PermissionDenied);
+    service.stop().unwrap();
+
+    let mut enabled =
+        GameService::bind_with_options(local(), Arc::new(fixture()), true, true).unwrap();
+    let enabled_snapshot = enabled.debug_snapshot().unwrap();
+    assert!(enabled_snapshot.control_enabled);
+    let missing_err = enabled
+        .debug_room_control(MATCH, game_debug::RoomControlCommand::Pause)
+        .unwrap_err();
+    assert_eq!(missing_err.kind(), io::ErrorKind::NotFound);
+    enabled.stop().unwrap();
+}
+
+#[test]
+fn pausing_one_room_freezes_its_bots_and_timers_while_sibling_room_runs_unimpeded() {
+    use crate::{
+        game_bots::{BOT_ENTITY, BOT_RESPAWN_TIME, Bot},
+        game_clock::TICK_PERIOD,
+        game_debug::{MAX_DEBUG_STEP_BUDGET, RoomControlCommand},
+        scene_assets::PreparedScene,
+    };
+
+    let schemas = Arc::new(fixture());
+    let mut state = State::new(schemas, PatrolScript::load().unwrap());
+    state.debug_control_enabled = true;
+    let socket = UdpSocket::bind(local()).unwrap();
+    let paused_id = MATCH;
+    let sibling_id = [5, 9];
+    let mut now = Duration::ZERO;
+
+    for id in [paused_id, sibling_id] {
+        state
+            .open_match(
+                id,
+                GameMap::practice_range(),
+                player(),
+                Some(WorldStart {
+                    scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
+                        [0.0, 0.0, 10.0],
+                    )])),
+                    card: PlayerCard::default(),
+                }),
+                now,
+            )
+            .unwrap();
+    }
+
+    // Advance both rooms for 20 ticks so both bots are walking and active.
+    for _ in 0..20 {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+    }
+
+    // Stepping an unpaused room must be rejected with InvalidInput.
+    assert_eq!(
+        state
+            .handle_debug_control(paused_id, RoomControlCommand::Step(1))
+            .unwrap_err()
+            .kind(),
+        io::ErrorKind::InvalidInput
+    );
+
+    // Also schedule a bot respawn in the paused room right before pausing to prove
+    // respawn deadlines do not expire prematurely while paused.
+    let paused_sim_tick_before = state.rooms[&paused_id].debug_control.sim_tick();
+    let paused_sim_now_before = state.rooms[&paused_id].debug_control.sim_now();
+    {
+        let world = state
+            .rooms
+            .get_mut(&paused_id)
+            .unwrap()
+            .world
+            .as_mut()
+            .unwrap();
+        let (bots, _) = world.scene.bot_simulation();
+        bots.kill_bot_for_test(BOT_ENTITY, paused_sim_tick_before, paused_sim_now_before);
+    }
+
+    let paused_status = state
+        .handle_debug_control(paused_id, RoomControlCommand::Pause)
+        .unwrap();
+    assert!(paused_status.paused);
+    assert_eq!(paused_status.pending_steps, 0);
+    assert_eq!(paused_status.sim_tick, paused_sim_tick_before);
+
+    let sibling_pos_at_pause = state.rooms[&sibling_id]
+        .world
+        .as_ref()
+        .unwrap()
+        .scene
+        .bots()
+        .unwrap()
+        .find(|bot| bot.entity == BOT_ENTITY)
+        .unwrap()
+        .position;
+
+    // Advance global worker clock by 500 ticks (8 seconds > 5s BOT_RESPAWN_TIME).
+    for _ in 0..500 {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+    }
+
+    // Paused room must remain completely frozen (same sim_tick, same sim_now, dead bot not respawned).
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_tick(),
+        paused_sim_tick_before
+    );
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_now(),
+        paused_sim_now_before
+    );
+    let paused_bot = state.rooms[&paused_id]
+        .world
+        .as_ref()
+        .unwrap()
+        .scene
+        .bots()
+        .unwrap()
+        .find(|bot| bot.entity == BOT_ENTITY)
+        .unwrap();
+    assert!(
+        paused_bot.dead,
+        "paused bot respawn timer must not expire during pause"
+    );
+
+    // Sibling room must have advanced 500 ticks unimpeded.
+    assert_eq!(
+        state.rooms[&sibling_id].debug_control.sim_tick(),
+        paused_sim_tick_before + 500
+    );
+    let sibling_pos_after = state.rooms[&sibling_id]
+        .world
+        .as_ref()
+        .unwrap()
+        .scene
+        .bots()
+        .unwrap()
+        .find(|bot| bot.entity == BOT_ENTITY)
+        .unwrap()
+        .position;
+    assert_ne!(sibling_pos_after, sibling_pos_at_pause);
+
+    // Bounded step admission: 0 steps or > MAX_DEBUG_STEP_BUDGET must fail without mutating pending_steps.
+    for invalid_steps in [0, MAX_DEBUG_STEP_BUDGET + 1] {
+        assert_eq!(
+            state
+                .handle_debug_control(paused_id, RoomControlCommand::Step(invalid_steps))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidInput
+        );
+    }
+
+    // Single-step by 1 tick: advances exactly 1 tick and 1 TICK_PERIOD, then freezes again.
+    let step1 = state
+        .handle_debug_control(paused_id, RoomControlCommand::Step(1))
+        .unwrap();
+    assert_eq!(step1.pending_steps, 1);
+    now += TICK_PERIOD;
+    state.tick(&socket, now, 0).unwrap();
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_tick(),
+        paused_sim_tick_before + 1
+    );
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_now(),
+        paused_sim_now_before + TICK_PERIOD
+    );
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.status().pending_steps,
+        0
+    );
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.status().stepped_ticks,
+        1
+    );
+
+    // Next tick without pending steps keeps the paused room frozen.
+    now += TICK_PERIOD;
+    state.tick(&socket, now, 0).unwrap();
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_tick(),
+        paused_sim_tick_before + 1
+    );
+
+    // Multi-step by 3 ticks: advances 1 tick per worker tick for 3 ticks, then freezes on tick 4.
+    let step3 = state
+        .handle_debug_control(paused_id, RoomControlCommand::Step(3))
+        .unwrap();
+    assert_eq!(step3.pending_steps, 3);
+    // Overflowing cumulative budget while 3 steps are pending must be refused cleanly.
+    assert_eq!(
+        state
+            .handle_debug_control(
+                paused_id,
+                RoomControlCommand::Step(MAX_DEBUG_STEP_BUDGET - 2)
+            )
+            .unwrap_err()
+            .kind(),
+        io::ErrorKind::InvalidInput
+    );
+    for expected_offset in 2..=4 {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+        assert_eq!(
+            state.rooms[&paused_id].debug_control.sim_tick(),
+            paused_sim_tick_before + expected_offset
+        );
+    }
+    now += TICK_PERIOD;
+    state.tick(&socket, now, 0).unwrap();
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_tick(),
+        paused_sim_tick_before + 4
+    );
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.status().stepped_ticks,
+        4
+    );
+
+    // Resume: must continue smoothly from paused_sim_tick_before + 4 without a catch-up jump,
+    // and the dead bot must still wait its remaining respawn duration before respawning.
+    let resumed = state
+        .handle_debug_control(paused_id, RoomControlCommand::Resume)
+        .unwrap();
+    assert!(!resumed.paused);
+    assert_eq!(resumed.pending_steps, 0);
+    now += TICK_PERIOD;
+    state.tick(&socket, now, 0).unwrap();
+    assert_eq!(
+        state.rooms[&paused_id].debug_control.sim_tick(),
+        paused_sim_tick_before + 5
+    );
+    let still_dead = state.rooms[&paused_id]
+        .world
+        .as_ref()
+        .unwrap()
+        .scene
+        .bots()
+        .unwrap()
+        .find(|bot| bot.entity == BOT_ENTITY)
+        .unwrap()
+        .dead;
+    assert!(still_dead, "resuming must not cause a timer catch-up spike");
+
+    let respawn_ticks = (BOT_RESPAWN_TIME.as_millis() / TICK_PERIOD.as_millis()) as usize + 2;
+    for _ in 0..respawn_ticks {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+    }
+    let respawned_live = state.rooms[&paused_id]
+        .world
+        .as_ref()
+        .unwrap()
+        .scene
+        .bots()
+        .unwrap()
+        .any(|bot| !bot.dead);
+    assert!(
+        respawned_live,
+        "bot must respawn once the full simulation respawn duration elapses after resume"
+    );
+}
+
+#[test]
+fn paused_room_keeps_keepalive_disconnect_and_packet_budget_sane_without_busy_spin() {
+    use crate::{
+        game_bots::Bot,
+        game_clock::{FIRST_TICK, SEND_EVERY, TICK_PERIOD},
+        game_debug::RoomControlCommand,
+        scene_assets::PreparedScene,
+    };
+
+    let schemas = Arc::new(fixture());
+    let mut state = State::new(Arc::clone(&schemas), PatrolScript::load().unwrap());
+    state.debug_control_enabled = true;
+    let socket = UdpSocket::bind(local()).unwrap();
+    let addr = socket.local_addr().unwrap();
+    let mut now = Duration::ZERO;
+
+    let mut tickets = state
+        .open_match(
+            MATCH,
+            GameMap::practice_range(),
+            player(),
+            Some(WorldStart {
+                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
+                    [0.0, 0.0, 10.0],
+                )])),
+                card: PlayerCard::default(),
+            }),
+            now,
+        )
+        .unwrap();
+    let ticket = tickets.pop().unwrap();
+    let mut client = Client::new(addr, &ticket);
+    client
+        .socket
+        .set_read_timeout(Some(Duration::from_millis(50)))
+        .unwrap();
+
+    // Handshake with State directly.
+    let pump_inbound = |state: &mut State, socket: &UdpSocket, now: Duration| {
+        let mut buf = [0_u8; MAX_DATAGRAM];
+        while let Ok((count, peer_addr)) = socket.recv_from(&mut buf) {
+            state
+                .receive(socket, &buf[..count], peer_addr, now)
+                .unwrap();
+        }
+    };
+    client.send(SYN, Vec::new());
+    pump_inbound(&mut state, &socket, now);
+    let syn_ack = client.receive();
+    assert_eq!((syn_ack.kind, syn_ack.flags), (KIND_CONTROL, SYN | ACK));
+    assert!(client.window.accept(syn_ack.seq));
+    client.send(ACK, Vec::new());
+    pump_inbound(&mut state, &socket, now);
+
+    // Tick once to reach a SEND_EVERY boundary and drain the initial reliable frame.
+    while state.clock.frame() % SEND_EVERY != 0 {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+    }
+    let first_frame = client.receive();
+    assert!(client.window.accept(first_frame.seq));
+    client.send(ACK, Vec::new());
+    pump_inbound(&mut state, &socket, now);
+
+    // Pause the room and verify advance_input reports backlog == false even when input is queued.
+    let paused_status = state
+        .handle_debug_control(MATCH, RoomControlCommand::Pause)
+        .unwrap();
+    assert!(paused_status.paused);
+    let frozen_tick = paused_status.sim_tick;
+    assert!(frozen_tick > FIRST_TICK);
+
+    // Send a Ping while the room is paused.
+    let ping = encode(
+        &schemas,
+        21610,
+        &Fields::from([
+            (0x78, Value::Unsigned(99)),
+            (0x80, Value::Array(vec![Value::Unsigned(123)])),
+        ]),
+    )
+    .unwrap();
+    let mut payload = BitWriter::new();
+    write_channel(&mut payload, &[], &[ping]).unwrap();
+    client.send(ACK, payload.into_bytes());
+    pump_inbound(&mut state, &socket, now);
+
+    // advance_input must not report a backlog for a paused room.
+    assert!(!state.advance_input(now).unwrap());
+
+    // Advance 6 global ticks (two SEND_EVERY intervals): exactly 2 frames should be sent,
+    // carrying the Pong reliable reply and preserving the frozen sim_tick on the wire.
+    let mut frames_received = 0;
+    let mut pong_seen = false;
+    for _ in 0..6 {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+        while let Ok(packet) = {
+            let mut bytes = [0; MAX_DATAGRAM];
+            client
+                .socket
+                .recv(&mut bytes)
+                .map(|count| client.cipher.open(&bytes[..count]).unwrap())
+        } {
+            frames_received += 1;
+            assert!(client.window.accept(packet.seq));
+            let mut reader = BitReader::new(&packet.payload);
+            let wire_tick = reader.var_a().unwrap();
+            assert_eq!(
+                wire_tick, frozen_tick,
+                "paused frame must report frozen sim_tick"
+            );
+            for msg in messages(&schemas, &packet) {
+                if msg.message.id == 20306 {
+                    assert_eq!(msg.message.fields[&0x78], Value::Unsigned(99));
+                    pong_seen = true;
+                }
+            }
+        }
+    }
+    assert_eq!(
+        frames_received, 2,
+        "paused room must honor SEND_EVERY packet budget (2 frames across 6 ticks)"
+    );
+    assert!(pong_seen, "Ping must receive Pong while room is paused");
+
+    // Step(1) on a non-SEND_EVERY tick must flush the stepped tick on the next SEND_EVERY tick.
+    state
+        .handle_debug_control(MATCH, RoomControlCommand::Step(1))
+        .unwrap();
+    let mut stepped_wire_tick = None;
+    for _ in 0..SEND_EVERY {
+        now += TICK_PERIOD;
+        state.tick(&socket, now, 0).unwrap();
+        let mut bytes = [0; MAX_DATAGRAM];
+        if let Ok(count) = client.socket.recv(&mut bytes) {
+            let packet = client.cipher.open(&bytes[..count]).unwrap();
+            let mut reader = BitReader::new(&packet.payload);
+            stepped_wire_tick = Some(reader.var_a().unwrap());
+        }
+    }
+    assert_eq!(stepped_wire_tick, Some(frozen_tick + 1));
+
+    // Client FIN disconnect while paused must retire the member and room cleanly,
+    // allowing a fresh seat to be opened and connected afterward.
+    client.send(FIN | ACK, Vec::new());
+    pump_inbound(&mut state, &socket, now);
+    assert!(!state.rooms.contains_key(&MATCH));
+
+    let mut reconnect_tickets = state
+        .open_match(
+            MATCH,
+            GameMap::practice_range(),
+            player(),
+            Some(WorldStart {
+                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
+                    [0.0, 0.0, 10.0],
+                )])),
+                card: PlayerCard::default(),
+            }),
+            now,
+        )
+        .unwrap();
+    let reconnect_ticket = reconnect_tickets.pop().unwrap();
+    let mut reconnect_client = Client::new(addr, &reconnect_ticket);
+    reconnect_client.send(SYN, Vec::new());
+    pump_inbound(&mut state, &socket, now);
+    let reconnect_syn_ack = reconnect_client.receive();
+    assert_eq!(
+        (reconnect_syn_ack.kind, reconnect_syn_ack.flags),
+        (KIND_CONTROL, SYN | ACK)
+    );
 }
 
 #[test]

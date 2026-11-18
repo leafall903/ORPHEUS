@@ -1,9 +1,9 @@
 use std::{fs, path::Path, process::Command};
 
-use orpheus::runtime::{BNET_DESCRIPTORS, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA};
-
-#[cfg(not(feature = "inspector"))]
-use orpheus::server::{Server, ServerConfig};
+use orpheus::{
+    runtime::{BNET_DESCRIPTORS, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA},
+    server::{Server, ServerConfig},
+};
 
 fn check(root: &Path) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_orpheus_server"))
@@ -143,6 +143,7 @@ fn help_describes_the_inspector_feature_without_runtime_inputs() {
     assert!(output.stderr.is_empty());
     let help = String::from_utf8(output.stdout).unwrap();
     assert!(help.contains("--features inspector"));
+    assert!(help.contains("--debug-control"));
     assert!(help.contains("disabled by default"));
 }
 
@@ -211,6 +212,19 @@ fn debug_port_requires_the_inspector_feature_before_startup() {
             .contains("--debug-port requires a build with --features inspector")
     );
 
+    let control_output = Command::new(env!("CARGO_BIN_EXE_orpheus_server"))
+        .env_remove("ORPHEUS_RUNTIME_DIR")
+        .args(["--debug-control"])
+        .output()
+        .unwrap();
+    assert!(!control_output.status.success());
+    assert!(control_output.stdout.is_empty());
+    assert!(
+        String::from_utf8(control_output.stderr)
+            .unwrap()
+            .contains("--debug-control requires a build with --features inspector")
+    );
+
     let dir = tempfile::tempdir().unwrap();
     let state = dir.path().join("local-state");
     let mut config = ServerConfig::new(dir.path().to_owned(), state.clone());
@@ -218,5 +232,44 @@ fn debug_port_requires_the_inspector_feature_before_startup() {
     let error = Server::start(config).err().expect("feature disabled");
     assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
     assert!(error.to_string().contains("--features inspector"));
+    assert!(!state.exists());
+
+    let mut control_config = ServerConfig::new(dir.path().to_owned(), state.clone());
+    control_config.debug_control = true;
+    let control_error = Server::start(control_config)
+        .err()
+        .expect("control feature disabled");
+    assert_eq!(control_error.kind(), std::io::ErrorKind::Unsupported);
+    assert!(control_error.to_string().contains("--features inspector"));
+    assert!(!state.exists());
+}
+
+#[test]
+#[cfg(feature = "inspector")]
+fn debug_control_requires_debug_port_before_startup() {
+    let output = Command::new(env!("CARGO_BIN_EXE_orpheus_server"))
+        .env_remove("ORPHEUS_RUNTIME_DIR")
+        .args(["--debug-control"])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("--debug-control requires --debug-port")
+    );
+
+    let dir = tempfile::tempdir().unwrap();
+    let state = dir.path().join("local-state");
+    let mut config = ServerConfig::new(dir.path().to_owned(), state.clone());
+    config.debug_control = true;
+    let error = Server::start(config).err().expect("missing debug port");
+    assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+    assert!(
+        error
+            .to_string()
+            .contains("--debug-control requires --debug-port")
+    );
     assert!(!state.exists());
 }

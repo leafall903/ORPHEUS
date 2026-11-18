@@ -56,6 +56,7 @@ pub struct ServerConfig {
     pub stall_port: u16,
     pub rpc_port: u16,
     pub debug_port: Option<u16>,
+    pub debug_control: bool,
     pub junkenstein_validation: Option<PathBuf>,
     pub ai_script: Option<PathBuf>,
 }
@@ -71,6 +72,7 @@ impl ServerConfig {
             stall_port: bnet_service::STALL_PORT,
             rpc_port: bnet_service::RPC_PORT,
             debug_port: None,
+            debug_control: false,
             junkenstein_validation: None,
             ai_script: None,
         }
@@ -97,6 +99,18 @@ impl Server {
             return Err(io::Error::new(
                 io::ErrorKind::Unsupported,
                 "--debug-port requires a build with --features inspector",
+            ));
+        }
+        if config.debug_control && !cfg!(feature = "inspector") {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "--debug-control requires a build with --features inspector",
+            ));
+        }
+        if config.debug_control && config.debug_port.is_none() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "--debug-control requires --debug-port",
             ));
         }
         check_practice_runtime(&config.runtime)?;
@@ -147,6 +161,14 @@ impl Server {
         let SocketAddr::V4(lobby_addr) = listener.local_addr()? else {
             unreachable!("IPv4 lobby bind")
         };
+        #[cfg(feature = "inspector")]
+        let game = Arc::new(GameService::bind_with_options(
+            addr(config.game_port).into(),
+            game_schemas,
+            config.debug_port.is_some(),
+            config.debug_control,
+        )?);
+        #[cfg(not(feature = "inspector"))]
         let game = Arc::new(GameService::bind_with_timing(
             addr(config.game_port).into(),
             game_schemas,
@@ -167,9 +189,19 @@ impl Server {
         let debug = if let Some(port) = config.debug_port {
             let geometry = scene.debug_geometry();
             let worker = Arc::clone(&game);
-            Some(DebugHttp::bind(port, geometry, move || {
-                worker.debug_snapshot()
-            })?)
+            if config.debug_control {
+                let control_worker = Arc::clone(&game);
+                Some(DebugHttp::bind_with_control(
+                    port,
+                    geometry,
+                    move || worker.debug_snapshot(),
+                    move |id, command| control_worker.debug_room_control(id, command),
+                )?)
+            } else {
+                Some(DebugHttp::bind(port, geometry, move || {
+                    worker.debug_snapshot()
+                })?)
+            }
         } else {
             None
         };
