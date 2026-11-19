@@ -5,7 +5,7 @@
 pub use orpheus_collision::{
     collision_cache, collision_index, collision_scene, contact_body, contact_cache, contact_gjk,
     contact_hull, contact_manifolds, contact_math, contact_mesh, contact_round, contact_solver,
-    contact_triangle, contact_world, static_ray,
+    contact_triangle, contact_world, navigation, static_ray,
 };
 pub use orpheus_statescript::{
     script_codecs, script_destination, script_entity_state, script_expr, script_graph, script_init,

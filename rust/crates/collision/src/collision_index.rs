@@ -136,6 +136,7 @@ pub struct TriangleIndex {
     triangles: Vec<IndexedTriangle>,
     grid: ColumnGrid,
     lowest: Option<f64>,
+    scene_bounds: Option<(Vec3, Vec3)>,
 }
 
 impl TriangleIndex {
@@ -151,6 +152,13 @@ impl TriangleIndex {
                 .ok_or(IndexError::InvalidTriangle)?;
             let bottom = triangle.bounds.min[1];
             index.lowest = Some(index.lowest.map_or(bottom, |value| value.min(bottom)));
+            index.scene_bounds = Some(match index.scene_bounds {
+                None => (triangle.bounds.min, triangle.bounds.max),
+                Some((min, max)) => (
+                    std::array::from_fn(|axis| min[axis].min(triangle.bounds.min[axis])),
+                    std::array::from_fn(|axis| max[axis].max(triangle.bounds.max[axis])),
+                ),
+            });
             index
                 .grid
                 .insert(number, range)
@@ -166,6 +174,14 @@ impl TriangleIndex {
 
     pub fn triangle_count(&self) -> usize {
         self.triangles.len()
+    }
+
+    pub fn scene_bounds(&self) -> Option<(Vec3, Vec3)> {
+        self.scene_bounds
+    }
+
+    pub fn in_grid_range(&self, x: f64, z: f64) -> bool {
+        x.is_finite() && z.is_finite() && cell(x).is_some() && cell(z).is_some()
     }
 
     /// Return triangles whose bounds overlap the box, in first-column order.

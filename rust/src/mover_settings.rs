@@ -98,6 +98,20 @@ impl Default for MoverSettings {
     }
 }
 
+impl MoverSettings {
+    pub fn nav_agent(&self, category: u16) -> crate::navigation::NavAgent {
+        crate::navigation::NavAgent {
+            stand_radius: self.stand_radius,
+            stand_height: self.stand_height,
+            stand_pogo: self.stand_pogo,
+            step_up: 0.6,
+            step_down: self.step_down,
+            max_slope_deg: self.max_slope,
+            category,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct MoverCatalog {
     by_body: HashMap<u64, MoverSettings>,

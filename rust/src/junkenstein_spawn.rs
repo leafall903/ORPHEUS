@@ -4,12 +4,12 @@ use std::collections::{BTreeSet, VecDeque};
 
 use crate::{
     collision_scene::CollisionScene,
-    mover_ground::NOT_GROUND,
     mover_settings::MoverSettings,
+    navigation::{self, DEFAULT_NAV_CATEGORY},
     script_init::{Component, InitFault, SpawnSearch, SpawnSearchKey},
 };
 
-const CATEGORY: u16 = 0x18;
+const CATEGORY: u16 = DEFAULT_NAV_CATEGORY;
 const STEP_UP: f64 = 0.6;
 const STEP: f64 = 0.25;
 const STEP_BUDGET: usize = 320;
@@ -170,48 +170,8 @@ pub(crate) fn walk_edge(
     target_x: f64,
     target_z: f64,
 ) -> Option<[f64; 3]> {
-    let distance = (target_x - start[0]).hypot(target_z - start[2]);
-    let count = (distance / STEP).ceil().max(1.0) as usize;
-    let mut previous = start;
-    let radius = mover.stand_radius;
-    let top = mover.stand_height - radius;
-    for step in 1..=count {
-        let fraction = step as f64 / count as f64;
-        let x = start[0] + (target_x - start[0]) * fraction;
-        let z = start[2] + (target_z - start[2]) * fraction;
-        let y = walkable(
-            collision,
-            mover,
-            x,
-            z,
-            previous[1] + STEP_UP + 0.05,
-            previous[1] - mover.step_down - 0.05,
-        )?;
-        if top > radius && blocked(collision, [x, y + radius, z], [0.0, 1.0, 0.0], top - radius) {
-            return None;
-        }
-        let dx = x - previous[0];
-        let dz = z - previous[2];
-        let length = dx.hypot(dz);
-        if length > 0.0 {
-            let direction = [dx / length, 0.0, dz / length];
-            let side = [-direction[2] * radius, direction[0] * radius];
-            for offset in [-1.0, 0.0, 1.0] {
-                for height in [radius + 0.01, top] {
-                    let origin = [
-                        previous[0] + side[0] * offset,
-                        previous[1].max(y) + height,
-                        previous[2] + side[1] * offset,
-                    ];
-                    if blocked(collision, origin, direction, length) {
-                        return None;
-                    }
-                }
-            }
-        }
-        previous = [x, y, z];
-    }
-    Some(previous)
+    let agent = mover.nav_agent(CATEGORY);
+    navigation::walk_edge(collision, None, &agent, start, target_x, target_z).landed()
 }
 
 fn walkable(
@@ -222,20 +182,10 @@ fn walkable(
     top: f64,
     bottom: f64,
 ) -> Option<f64> {
-    collision
-        .triangles()
-        .ground(x, z, top, bottom, CATEGORY)
-        .filter(|hit| {
-            hit.surface & NOT_GROUND == 0 && hit.normal[1] >= mover.max_slope.to_radians().cos()
-        })
+    let agent = mover.nav_agent(CATEGORY);
+    navigation::walkable_ground(collision, &agent, x, z, top, bottom)
+        .walkable_hit()
         .map(|hit| hit.y)
-}
-
-fn blocked(collision: &CollisionScene, origin: [f64; 3], direction: [f64; 3], length: f64) -> bool {
-    !matches!(
-        collision.cast_ray(origin, direction, length, CATEGORY),
-        Ok(None)
-    )
 }
 
 #[cfg(test)]

@@ -686,3 +686,315 @@ fn elevated_practice_patrols_reach_their_hints_without_crossing_walls() {
     }
     assert_eq!(visited, [2; 2], "last positions {previous:?}");
 }
+
+#[test]
+#[ignore = "requires a prepared 104319 runtime pack with 0688.col and 00D4.col"]
+fn prepared_practice_range_and_kings_row_navigation_queries_route_around_walls_and_validate_spawns()
+{
+    use crate::{
+        game_content::MapCatalog,
+        navigation::{
+            ClearanceQuery, DEFAULT_NAV_CATEGORY, EdgeQuery, GroundQuery, NavAgent, PathOptions,
+            PathQuery, SpawnQuery, SpawnSearchRequest, capsule_clearance, find_path,
+            snap_spawn_points, valid_spawns, walk_edge, walkable_ground,
+        },
+    };
+
+    let runtime = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+    let assets = SceneAssets::load(&runtime).unwrap();
+    let practice = assets.prepare(GameMap::practice_range()).unwrap();
+    let soldier_mover = assets.movers.for_body(None);
+
+    // 1. Practice Range (0688.col): player spawn + all 15 AI spawners + upstairs patrol wall detour.
+    let player_spawn = practice.map().spawn_point(0, 0).unwrap().0;
+    let player_agent = soldier_mover.nav_agent(mover_category(practice.map(), 0));
+    assert!(matches!(
+        walkable_ground(
+            &practice.ground,
+            &player_agent,
+            player_spawn[0],
+            player_spawn[2],
+            player_spawn[1] + 1.0,
+            player_spawn[1] - 2.0,
+        ),
+        GroundQuery::Walkable(_)
+    ));
+
+    let bot_spawns: Vec<[f64; 3]> = practice
+        .bots()
+        .unwrap()
+        .map(|bot| bot.spawn.position)
+        .collect();
+    let bot_agent = soldier_mover.nav_agent(DEFAULT_NAV_CATEGORY);
+    match snap_spawn_points(
+        &practice.ground,
+        practice.contacts.as_deref(),
+        &bot_agent,
+        &bot_spawns,
+        15,
+    ) {
+        SpawnQuery::Found(snapped) => assert_eq!(snapped.len(), 15),
+        other => panic!("expected all 15 Practice Range bot spawns to be valid, got {other:?}"),
+    }
+
+    // Upstairs patrolling bot (BOT_ENTITY + 4, y ≈ 11.0): verify wall-blocked spawn->route[1]
+    // leg and all cyclic patrol legs via find_path detour.
+    let upstairs_bot = practice
+        .bots()
+        .unwrap()
+        .find(|bot| bot.entity == BOT_ENTITY + 4)
+        .expect("upstairs patrol bot");
+    let upstairs_agent = assets
+        .movers
+        .for_body(Some(upstairs_bot.spawn.body))
+        .nav_agent(mover_category(practice.map(), upstairs_bot.spawn.team));
+    let route = &upstairs_bot.spawn.route;
+    let options = PathOptions::default();
+
+    // Direct line from upstairs spawn.position to first patrol target route[1] crosses an upstairs wall.
+    assert_eq!(
+        capsule_clearance(
+            &practice.ground,
+            practice.contacts.as_deref(),
+            &upstairs_agent,
+            upstairs_bot.spawn.position,
+            route[1],
+        ),
+        ClearanceQuery::Blocked
+    );
+    assert_eq!(
+        walk_edge(
+            &practice.ground,
+            practice.contacts.as_deref(),
+            &upstairs_agent,
+            upstairs_bot.spawn.position,
+            route[1][0],
+            route[1][2],
+        ),
+        EdgeQuery::Blocked
+    );
+    let PathQuery::Found(upstairs_detour) = find_path(
+        &practice.ground,
+        practice.contacts.as_deref(),
+        &upstairs_agent,
+        upstairs_bot.spawn.position,
+        route[1],
+        &options,
+    ) else {
+        panic!("expected find_path to route around upstairs wall from spawn to route[1]");
+    };
+    assert!(
+        upstairs_detour.len() >= 3,
+        "wall-blocked upstairs spawn->route[1] must detour around wall: {upstairs_detour:?}"
+    );
+    for segment in upstairs_detour.windows(2) {
+        assert_eq!(
+            walk_edge(
+                &practice.ground,
+                practice.contacts.as_deref(),
+                &upstairs_agent,
+                segment[0],
+                segment[1][0],
+                segment[1][2],
+            ),
+            EdgeQuery::Walkable(segment[1]),
+            "upstairs detour segment not walkable: {segment:?}"
+        );
+    }
+
+    for index in 0..route.len() {
+        let from = route[(index + route.len() - 1) % route.len()];
+        let to = route[index];
+        let PathQuery::Found(path) = find_path(
+            &practice.ground,
+            practice.contacts.as_deref(),
+            &upstairs_agent,
+            from,
+            to,
+            &options,
+        ) else {
+            panic!("upstairs patrol leg {index} ({from:?} -> {to:?}) failed pathfinding");
+        };
+        for segment in path.windows(2) {
+            assert_eq!(
+                walk_edge(
+                    &practice.ground,
+                    practice.contacts.as_deref(),
+                    &upstairs_agent,
+                    segment[0],
+                    segment[1][0],
+                    segment[1][2],
+                ),
+                EdgeQuery::Walkable(segment[1]),
+                "upstairs leg {index} segment not walkable: {segment:?}"
+            );
+        }
+    }
+    assert_eq!(
+        find_path(
+            &practice.ground,
+            practice.contacts.as_deref(),
+            &upstairs_agent,
+            route[0],
+            [route[0][0], route[0][1] + 25.0, route[0][2]],
+            &options,
+        ),
+        PathQuery::NoPath
+    );
+    assert_eq!(
+        find_path(
+            &practice.ground,
+            practice.contacts.as_deref(),
+            &upstairs_agent,
+            route[0],
+            [65_000.0, 0.0, 65_000.0],
+            &options,
+        ),
+        PathQuery::Unknown
+    );
+
+    // 2. King's Row (00D4.col) + optional additional maps in the prepared pack (005B, 0165, 0CD3).
+    let map_catalog = MapCatalog::load(runtime.join("data/game_maps_174.json")).unwrap();
+    let kings_row_guid: u64 = 0x0800_0000_0000_00d4;
+    let kings_row_mode: u64 = 0x0230_0000_0000_0010; // Skirmish
+    let kings_row = map_catalog
+        .game_map(kings_row_guid, kings_row_mode, "Skirmish", false, &[6, 6])
+        .expect("King's Row map entry");
+    let kr_collision = assets.map_collision(&kings_row, true).unwrap();
+    let kr_contacts = kr_collision.contacts.as_deref();
+    let kr_agent = NavAgent::default();
+
+    let kr_spawns: Vec<[f64; 3]> = kings_row.spawns.iter().map(|s| s.position).collect();
+    let SpawnQuery::Found(kr_valid_spawns) =
+        snap_spawn_points(&kr_collision.ground, kr_contacts, &kr_agent, &kr_spawns, 4)
+    else {
+        panic!("expected walkable King's Row spawns");
+    };
+    let anchor = kr_valid_spawns[0];
+    let radial = valid_spawns(
+        &kr_collision.ground,
+        kr_contacts,
+        &kr_agent,
+        &SpawnSearchRequest {
+            origin: anchor,
+            direction: [1.0, 0.0, 0.0],
+            radius: 4.0,
+            half_angle_rad: std::f64::consts::PI,
+            minimum: 2,
+            maximum: 12,
+        },
+    );
+    let SpawnQuery::Found(radial_points) = radial else {
+        panic!("expected valid radial spawn candidates around King's Row spawn {anchor:?}");
+    };
+    let goal = *radial_points
+        .iter()
+        .max_by(|a, b| {
+            let da = (a[0] - anchor[0]).hypot(a[2] - anchor[2]);
+            let db = (b[0] - anchor[0]).hypot(b[2] - anchor[2]);
+            da.total_cmp(&db)
+        })
+        .unwrap();
+    let PathQuery::Found(kr_path) = find_path(
+        &kr_collision.ground,
+        kr_contacts,
+        &kr_agent,
+        anchor,
+        goal,
+        &options,
+    ) else {
+        panic!("expected path on King's Row between {anchor:?} and {goal:?}");
+    };
+    assert!(kr_path.len() >= 2);
+    for segment in kr_path.windows(2) {
+        assert_eq!(
+            walk_edge(
+                &kr_collision.ground,
+                kr_contacts,
+                &kr_agent,
+                segment[0],
+                segment[1][0],
+                segment[1][2],
+            ),
+            EdgeQuery::Walkable(segment[1])
+        );
+    }
+    assert_eq!(
+        find_path(
+            &kr_collision.ground,
+            kr_contacts,
+            &kr_agent,
+            anchor,
+            [anchor[0], anchor[1] + 40.0, anchor[2]],
+            &options,
+        ),
+        PathQuery::NoPath
+    );
+
+    // 3. Also verify any additional prepared maps present in the multi-map pack (Temple of Anubis 005B, Hanamura 0165, Kanezaka 0CD3).
+    for (hex, guid, mode) in [
+        (
+            "005B.col",
+            0x0800_0000_0000_005b_u64,
+            0x0230_0000_0000_0010_u64,
+        ),
+        (
+            "0165.col",
+            0x0800_0000_0000_0165_u64,
+            0x0230_0000_0000_0010_u64,
+        ),
+        (
+            "0CD3.col",
+            0x0800_0000_0000_0cd3_u64,
+            0x0230_0000_0000_001e_u64,
+        ),
+    ] {
+        if !runtime.join("collision").join(hex).is_file() {
+            continue;
+        }
+        let ffa = mode == 0x0230_0000_0000_001e;
+        let map = map_catalog
+            .game_map(guid, mode, "Navigation Probe", ffa, &[6, 6])
+            .expect(hex);
+        let col = assets.map_collision(&map, true).unwrap();
+        let raw_spawns: Vec<[f64; 3]> = map.spawns.iter().map(|s| s.position).collect();
+        let SpawnQuery::Found(valid) = snap_spawn_points(
+            &col.ground,
+            col.contacts.as_deref(),
+            &kr_agent,
+            &raw_spawns,
+            2,
+        ) else {
+            panic!("expected walkable spawns on {hex}");
+        };
+        let SpawnQuery::Found(cone) = valid_spawns(
+            &col.ground,
+            col.contacts.as_deref(),
+            &kr_agent,
+            &SpawnSearchRequest {
+                origin: valid[0],
+                direction: [1.0, 0.0, 0.0],
+                radius: 3.5,
+                half_angle_rad: std::f64::consts::PI,
+                minimum: 1,
+                maximum: 8,
+            },
+        ) else {
+            panic!(
+                "expected valid cone spawn around {hex} spawn {:?}",
+                valid[0]
+            );
+        };
+        assert!(matches!(
+            find_path(
+                &col.ground,
+                col.contacts.as_deref(),
+                &kr_agent,
+                valid[0],
+                cone[0],
+                &options,
+            ),
+            PathQuery::Found(_)
+        ));
+    }
+}

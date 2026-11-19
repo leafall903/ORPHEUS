@@ -405,8 +405,9 @@ impl SceneAssets {
         if let Some(world) = &contacts {
             for bot in bots.iter_mut().filter(|bot| !bot.spawn.route.is_empty()) {
                 let category = mover_category(&map, bot.spawn.team);
-                bot.attach_collision(
+                bot.attach_scene_collision(
                     self.movers.for_body(Some(bot.spawn.body)),
+                    Some(ground.as_ref()),
                     Arc::clone(world),
                     category,
                     ground_height(ground.triangles(), category),

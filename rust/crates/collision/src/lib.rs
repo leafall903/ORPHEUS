@@ -17,4 +17,5 @@ pub mod contact_round;
 pub mod contact_solver;
 pub mod contact_triangle;
 pub mod contact_world;
+pub mod navigation;
 pub mod static_ray;

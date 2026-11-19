@@ -15,6 +15,7 @@ use serde::Deserialize;
 
 use crate::accounts::parse_guid;
 use crate::ai_script::{AiActorSnapshot, AiPatrolSnapshot};
+use crate::collision_scene::CollisionScene;
 use crate::contact_body::CharacterBody;
 use crate::contact_math::{add, sub};
 use crate::contact_world::ContactWorld;
@@ -22,6 +23,7 @@ use crate::game_clock::TICK_PERIOD;
 use crate::game_debug::ContactClip;
 use crate::mover_ground::{pogo, standing_body, standing_origin};
 use crate::mover_settings::MoverSettings;
+use crate::navigation::{PathOptions, PathQuery, find_path};
 use crate::patrol_script::{PatrolScript, WaitEvent};
 use crate::world::{Movement, NO_INPUT};
 
@@ -458,23 +460,40 @@ impl Bot {
         settings: &MoverSettings,
         world: Arc<ContactWorld>,
         category: u16,
+        ground: impl FnMut(f64, f64, f64, f64) -> Option<f64>,
+    ) {
+        self.attach_scene_collision(settings, None, world, category, ground);
+    }
+
+    pub(crate) fn attach_scene_collision(
+        &mut self,
+        settings: &MoverSettings,
+        scene: Option<&CollisionScene>,
+        world: Arc<ContactWorld>,
+        category: u16,
         mut ground: impl FnMut(f64, f64, f64, f64) -> Option<f64>,
     ) {
         self.collision = Some(PatrolCollision {
-            body: standing_body(settings, world, self.position, category),
+            body: standing_body(settings, Arc::clone(&world), self.position, category),
             lift: pogo(settings, false) as f32,
             trace: None,
         });
         let count = self.spawn.route.len();
         if count != 0 {
+            let nav = scene.map(|s| (s, world.as_ref(), settings.nav_agent(category)));
             let first_index = (self.index + 1) % count;
             self.plans = Some(Arc::new(PatrolPlans {
                 first_index,
-                first: self.detour(self.position, self.spawn.route[first_index], &mut ground),
+                first: self.detour(
+                    self.position,
+                    self.spawn.route[first_index],
+                    nav,
+                    &mut ground,
+                ),
                 legs: (0..count)
                     .map(|index| {
                         let from = self.spawn.route[(index + count - 1) % count];
-                        self.detour(from, self.spawn.route[index], &mut ground)
+                        self.detour(from, self.spawn.route[index], nav, &mut ground)
                     })
                     .collect(),
             }));
@@ -546,6 +565,7 @@ impl Bot {
         &self,
         from: [f64; 3],
         target: [f64; 3],
+        nav: Option<(&CollisionScene, &ContactWorld, crate::navigation::NavAgent)>,
         ground: &mut impl FnMut(f64, f64, f64, f64) -> Option<f64>,
     ) -> Detour {
         let Some(collision) = &self.collision else {
@@ -590,6 +610,22 @@ impl Bot {
                 && collision.supported(b, target, ARRIVED, ground)
             {
                 return [Some(a), Some(b)];
+            }
+        }
+        if let Some((scene, world, agent)) = nav {
+            if let PathQuery::Found(path) = find_path(
+                scene,
+                Some(world),
+                &agent,
+                from,
+                target,
+                &PathOptions::default(),
+            ) {
+                if path.len() == 3 {
+                    return [Some(path[1]), None];
+                } else if path.len() >= 4 {
+                    return [Some(path[1]), Some(path[path.len() - 2])];
+                }
             }
         }
         [None; 2]
@@ -1438,6 +1474,85 @@ mod tests {
         assert!(blocked.position[2] < 2.0);
         assert!(allowed.position[2] > 3.0);
         assert!(blocked.velocity[2].abs() < 0.05);
+    }
+
+    #[test]
+    fn patrol_detour_routes_around_wide_wall_via_shared_navigation() {
+        use crate::collision_cache::{CollisionCache, Mesh, Triangle};
+        use serde_json::json;
+        use std::collections::BTreeSet;
+
+        // Floor [-6..6, -1..9] and a 3m-wide wall [-1.5..1.5] at z=4 (wider than 2*radius = 1m).
+        let floor = Mesh {
+            vertices: vec![
+                [-6.0, 0.0, -1.0],
+                [-6.0, 0.0, 9.0],
+                [6.0, 0.0, 9.0],
+                [6.0, 0.0, -1.0],
+            ],
+            triangles: vec![
+                Triangle {
+                    corners: [0, 1, 2],
+                    wings: [-1; 3],
+                    mask: 0x18,
+                    surface: 0,
+                },
+                Triangle {
+                    corners: [2, 3, 0],
+                    wings: [-1; 3],
+                    mask: 0x18,
+                    surface: 0,
+                },
+            ],
+        };
+        let wall = Mesh {
+            vertices: vec![
+                [-1.5, 0.0, 4.0],
+                [-1.5, 3.0, 4.0],
+                [1.5, 3.0, 4.0],
+                [1.5, 0.0, 4.0],
+            ],
+            triangles: vec![
+                Triangle {
+                    corners: [0, 1, 2],
+                    wings: [-1; 3],
+                    mask: 0x18,
+                    surface: 0,
+                },
+                Triangle {
+                    corners: [2, 3, 0],
+                    wings: [-1; 3],
+                    mask: 0x18,
+                    surface: 0,
+                },
+            ],
+        };
+        let cache = CollisionCache {
+            header: serde_json::from_value(json!({
+                "meshes": [[4, 2], [4, 2]],
+                "hulls": 0,
+                "models": 0,
+                "placements": 0,
+                "identifiers": [],
+            }))
+            .unwrap(),
+            meshes: vec![floor, wall],
+            hulls: vec![],
+            models: vec![],
+            placements: vec![],
+        };
+        let ids = BTreeSet::new();
+        let scene = CollisionScene::movement_probe(&cache, &ids).unwrap();
+        let world = Arc::new(ContactWorld::from_movement_cache(cache, &ids).unwrap());
+        let settings = MoverSettings::default();
+        let mut bot = walker([0.0, 0.0, 8.0]);
+        bot.attach_scene_collision(&settings, Some(&scene), world, 0x18, |_, _, _, _| Some(0.0));
+        let plans = bot.plans.as_ref().expect("planned patrol legs");
+        assert!(
+            plans.first[0].is_some(),
+            "shared navigation should compute a detour around the 3m-wide wall: {:?}",
+            plans.first
+        );
     }
 
     #[test]
