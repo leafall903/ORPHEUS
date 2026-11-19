@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-19
+
+#### Align paired Soldier golden-trace hero selection with controller delivery ack (#131) and close #72 docs
+
+- Updated `scripts/golden_python_room.py` (`PythonRoom._load`) to pick Soldier after `received_frame` confirms the initial controller StateScript frame (`player.script.delivered`) rather than immediately after `player.entity` creation ACK (`tick 1046`). This matches Rust's `controller_acked` boundary (`same_schedule/startup.rs`), eliminating the 1-frame `owner_component_start_frame` (`1046` vs `1047`) and 3-tick `setup_delivery_ticks` (`47` vs `50`) startup skew against pinned Python `45044d0d`.
+- Updated `docs/STATE.md` to close out engineering issue `#72` (root cause and semantic-identity + wire-descriptor fixes landed in `#149` / `#150` / `#153`, while live-client verification of the `08B6` / `004B -> 01CB` startup tree differences remains tracked under Practice Range acceptance `#3` / `#121`).
+
 ### 2026-11-18
 
 #### Build shared map-agnostic static navigation queries (#63)

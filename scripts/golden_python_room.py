@@ -155,11 +155,12 @@ class PythonRoom:
             instance_sent = not map_loaded and any(
                 index == 0 for index, _ in self.delivery.in_flight.get(previous, ((), ()))[0]
             )
-            if player.steps_done == 4 and self.delivery.controller_ready and self.vm_seed is None:
+            effects, gaps = self.delivery.received_frame(previous, now, self.identities, confirmed)
+            if (player.steps_done == 4 and self.delivery.controller_ready
+                    and player.script.delivered and self.vm_seed is None):
                 self.vm_seed = select_stock_body(m, player, now)
                 self.component_start_frame = player.body_script.frame
                 self.identities[player.body] = "player/0/body/1"
-            effects, gaps = self.delivery.received_frame(previous, now, self.identities, confirmed)
             if instance_sent:
                 m.map_loaded(player, now)
                 map_loaded = True

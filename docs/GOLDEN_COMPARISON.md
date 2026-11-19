@@ -37,7 +37,7 @@ The collector attempts both recordings for each implementation. A local recorder
 
 ## What has been recorded
 
-The current recorders wait for the room's map offer, load the map, select Soldier after the controller is ready, and advance real room ticks throughout. Recording starts on the next tick after acknowledgements for the selected bot, player body and possession. Each trace retains the actual startup duration, receipt frames and player VM construction frame. The schedule clock starts at zero at this boundary. Submitted command frames remain exactly as supplied. Earlier traces remain readable with their original startup metadata.
+The current recorders wait for the room's map offer, load the map, select Soldier after the initial controller StateScript frame has been acknowledged (`player.script.delivered` / `controller_acked`, aligning `owner_component_start_frame = 1047` and `setup_delivery_ticks = 50`), and advance real room ticks throughout. Recording starts on the next tick after acknowledgements for the selected bot, player body and possession. Each trace retains the actual startup duration, receipt frames and player VM construction frame. The schedule clock starts at zero at this boundary. Submitted command frames remain exactly as supplied. Earlier traces remain readable with their original startup metadata.
 
 In the earlier abbreviated-start experiment on Windows, the pinned Python reference and the Rust room each processed all 339
 inputs in three headless scenarios: sustained fire at a training bot, a single
