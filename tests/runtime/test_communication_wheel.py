@@ -39,6 +39,41 @@ from tests.runtime.test_game_entity_lifecycle import client as game_client
 
 
 class CommunicationWheelTests(unittest.TestCase):
+    def test_free_for_all_wheel_chat_uses_the_native_nodes_on_the_local_controller(self):
+        fixtures = Path(os.environ.get("ORPHEUS_BEHAVIOR_FIXTURES")
+                        or Path(__file__).resolve().parents[2] / "fixtures/behavior")
+        contract = json.loads((fixtures / "ffa-wheel-chat-v1.json").read_text(encoding="utf-8"))
+        inputs, expected = contract["input"], contract["expected"]
+        graph_index = int(inputs["graph_index"], 16)
+        instance = expected["instance"]
+        for mode in inputs["modes"]:
+            with self.subTest(mode=mode):
+                run = Run(replace(KANEZAKA_DM, mode_guid=int(mode, 16)), names=("Speaker", "Rival"))
+                speaker, rival = run.players
+                body = speaker.body_script
+                controller = decode.ClientBody()
+                rival.client.entities.clear()
+                selections = zip(inputs["actions"], expected["nodes"], strict=True)
+                for index, (action, position) in enumerate(selections):
+                    body.command(body.frame + 150, 0)
+                    speaker.client.entities.clear()
+                    run.match.communication_action(speaker, {
+                        "+0x78": 0x0A90000000000000 | int(action, 16), "+0x80": True,
+                    })
+                    run.match.deliver_body_messages()
+                    run.match.notices.update(100.0 + index)
+                    [update] = speaker.client.entities
+                    self.assertEqual(update.entity, speaker.entity)
+                    frame = controller.apply(update)
+                    self.assertEqual(frame.instances[instance].graph, graph_index)
+                    self.assertEqual(frame.actions, [(update.chunk_last, instance, position)])
+                    self.assertEqual(graph.graph(graph_index).node(position).cls, "STU_7106C356")
+                    self.assertFalse(any(event.node == position for event in body.world.wheel_callouts))
+                value = controller.vars[(instance, expected["text_variable"])]
+                self.assertEqual(dict(value.items)[expected["text_key"]],
+                                 expr.Asset(int(expected["acknowledge_text"], 16)))
+                self.assertEqual(rival.client.entities, [])
+
     def test_body_create_mounts_and_replicates_the_authored_wheels(self):
         match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)))
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)

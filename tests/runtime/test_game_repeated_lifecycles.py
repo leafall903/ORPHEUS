@@ -6,13 +6,16 @@ reader extracts the wire chunks into the existing ClientModel. Ticks are advance
 explicitly so packet loss and late ACKs do not depend on thread timing.
 """
 
+import json
 import logging
+import os
 import select
 import socket
 import struct
 import sys
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -151,7 +154,9 @@ def wire_frame(packet):
             start = reader.pos
             length = reader.bits(12)
             assert not reader.bit()  # reference movement record
-            read_movement(reader, tick)
+            movement = read_movement(reader, tick)
+            update.movement = world.Movement(movement["position"], movement["yaw"], movement["pitch"],
+                                             body_pitch=movement["body_pitch"])
             assert reader.pos == start + length
         if not reader.bit():
             records.append((update, {}))
@@ -408,6 +413,62 @@ class RepeatedLifecycleTests(unittest.TestCase):
         self.assertEqual(frame.entity_vars[heroselect.SELECT_SHOWN], (True, ()))
         if hero is not None:
             self.assertEqual(frame.entity_vars[heroselect.CURRENT_HERO], (expr.Asset(hero), ()))
+
+    def test_assembly_first_pick_and_change_hero_round_trip(self):
+        fixtures = Path(
+            os.environ.get("ORPHEUS_BEHAVIOR_FIXTURES")
+            or Path(__file__).resolve().parents[2] / "fixtures/behavior"
+        )
+        contract = json.loads((fixtures / "assembly-hero-selection-v1.json").read_text(encoding="utf-8"))
+        request = contract["input"]
+        expected = contract["expected"]
+        pvp = replace(PRACTICE_RANGE, mode_guid=0x0230000000000017, mode_name="Control", team_sizes=(6, 6))
+        (handoff,) = self.run.server.create_match(pvp, [(1, "Alpha", 0, 0, False)])
+        link, player = self.run.connect(handoff)
+        self.run.until(lambda: player.script.delivered > 0)
+        match = player.match
+        self.assertTrue(match.assembling())
+
+        def check_frame(step, previous):
+            self.run.until(lambda: player.script.delivered > previous)
+            frames = (decode.read_chunk(wire.getvalue(), wire.count)
+                      for _, wire in reversed(self.own_controller_chunks(link, player)))
+            frame = next(frame for frame in frames if frame.full)
+            self.assertGreater(frame.last, previous)
+            state = expected[step]
+            for name, number in expected["wire_variables"].items():
+                value = state["open" if name == "shown" else name]
+                value = expr.Asset(int(value, 16)) if isinstance(value, str) else value
+                self.assertEqual(frame.entity_vars[number], (value, ()))
+            screen = next(item for item in frame.instances.values() if item.graph == 0x288B)
+            self.assertEqual(25377 in screen.vars, state["open"])
+
+        def send_pick(step):
+            previous = player.script.data_last
+            self.run.message(link, request["client_message"], {
+                "+0x78": {"+0x0": player.entity},
+                "+0x80": bytes.fromhex(request["parameters"][step]),
+                "+0xA8": int(request["pick_message"], 16), "+0xB0": 3,
+            })
+            return previous
+
+        check_frame("first_pick", send_pick("first_pick"))
+        first_body = player.body
+        self.assertEqual(player.script.data_last, send_pick("malformed"))
+        check_frame("change_hero", send_pick("change_hero"))
+        self.assertEqual(player.body, first_body)
+        check_frame("first_pick", send_pick("first_pick"))
+        self.assertEqual(player.body, first_body)
+        check_frame("change_hero", send_pick("change_hero"))
+        check_frame("second_pick", send_pick("second_pick"))
+        self.assertNotEqual(player.body, first_body)
+        self.assertTrue(match.assembling())
+
+        previous = player.script.data_last
+        match.assemble_ends = self.run.now
+        check_frame("assembled", previous)
+        self.assertFalse(player.select_open)
+        self.assertEqual(player.script.data_last, send_pick("change_hero"))
 
     def hold_own_controller_create_ack(self):
         link, player = self.start_loading()

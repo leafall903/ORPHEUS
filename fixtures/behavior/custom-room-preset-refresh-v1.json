@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-room-preset-refresh-v1",
+  "target_build": 104319,
+  "source": "Build 104319 room handler RVA 6D1F90 and ordered hero override readers RVAs 6D0F80/6D10A0. Synthetic settings and owner.",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "map": "08000000000000D4",
+    "mayhem": {
+      "maps": ["08000000000000D4", "08000000000002C3"],
+      "modes": ["0230000000000016", "0230000000000015"],
+      "presets": ["0FD0000000000037", "0FD0000000000038"],
+      "hero_override": 315
+    },
+    "presets": [
+      {"mode": "0230000000000016", "preset": "0FD0000000000037", "teams": [[0, 6], [1, 6]]},
+      {"mode": "023000000000001E", "preset": "0FD000000000006F", "teams": [[4, 8]]},
+      {"mode": "0230000000000070", "preset": "0FD0000000000128", "teams": [[4, 6]]}
+    ]
+  },
+  "expected": {
+    "message_order": [53000, 23304, 23305, 53001, 53002],
+    "multipart_mayhem_order": [53000, 23304, 23305, 23307, 23305, 23307, 23306, 23306, 23307, 53001, 53002],
+    "owner_team": [0, 2, 2],
+    "capacity_summary": [[6, 6, 2], [0, 0, 2], [0, 0, 2]]
+  }
+}

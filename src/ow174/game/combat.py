@@ -57,7 +57,13 @@ from ow174.game import bots, contacts, observers, pools, projectiles, stats, ult
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command
-from ow174.game.content import JUNKENSTEIN_SHOCKING_SURPRISE, heroes
+from ow174.game.content import (
+    ATTACK_DEFEND_MODES,
+    FIRST_ATTACKING_TEAM,
+    FIRST_DEFENDING_TEAM,
+    JUNKENSTEIN_SHOCKING_SURPRISE,
+    heroes,
+)
 from ow174.game.mover import mover_data
 from ow174.game.props import ModelPose
 from ow174.game.script import expr, graph, nodes, runtime
@@ -79,6 +85,13 @@ DEAD = 0x2000  # movement-state flag: dead (the 3P anim's dead pose)
 # 003E.025's parameters, by the low 16 bits of their 026 identifiers (01CF rid4).
 KILLER, CRIT, LOADOUT, ASSISTS = 0x0012, 0x0095, 0x03E6, 0x03E7
 MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notices 1FC0 (client-only)
+PVP_PHASE_GRAPH = 0x0F4A
+MODE_PHASE_RECEIVER = 0x0CBB
+WAITING_FOR_PLAYERS_STATE = 5  # 0F4A sends 0700.025
+ASSEMBLE_HEROES_STATE = 9  # 0F4A sends 0692.025
+WAITING_FOR_PLAYERS = 19529  # set by 0CBB when it receives 0700.025
+ATTACKING_TEAM_VAR = 10795  # 0F4A's client-only 071D sender compares this to the local team
+DEFENDING_TEAM_VAR = 10796
 
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 #104319 STUFirstPersonComponent: m_E29993A5 standing, m_816B830F crouched.
@@ -827,11 +840,16 @@ class Combat:
 
     def spawned(self, player) -> None:
         """The player's client has the world: the game mode entity gets its UI graph (mode_frame). While
-        heroes are assembled the countdown's frames carry it."""
+        the countdown is active its frames carry the UI. Late viewers receive the completed countdown."""
+        from ow174.game.match import COUNTDOWN
+
         host = self.match.scene_host
-        if player.client is not None and not self.match.assembling() and not (host and host.client_ready):
+        if (player.client is not None and self.match.escort is None and not self.match.assembling()
+                and not (host and host.client_ready)):
+            values = {COUNTDOWN: 0.0} if self.match.assembled else {}
             player.client.queue_mode_frame(mode_frame(
-                {}, player.match.game_map.mode_guid, player.match.game_map.map_guid,
+                values, player.match.game_map.mode_guid, player.match.game_map.map_guid,
+                phase_state=WAITING_FOR_PLAYERS_STATE if self.match.in_custom_warmup else None,
             ))
         self.voice.spawned(player, self.now)
 
@@ -2162,7 +2180,21 @@ def respawn_seconds(match) -> float:
     return PRACTICE_RESPAWN if match.controller is heroselect.PRACTICE else RESPAWN
 
 
-def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | None = None) -> BitWriter:
+def waiting_hud(instance_id: int) -> InstanceWire:
+    """1FEB's waiting flag selects the presenter's localized Not Enough Players heading."""
+    presentation = graph.graph(0x1FEB)
+    heading = 16
+    return InstanceWire(
+        instance_id, presentation,
+        vars={1923: (expr.Asset(0x0DE0000000000105), ()), WAITING_FOR_PLAYERS: (True, ())},
+        states={heading: StateWire(presentation.state(heading).cls, True)},
+    )
+
+
+def mode_frame(
+    entity_vars: dict, mode_guid: int | None = None, map_guid: int | None = None,
+    *, phase_state: int | None = None,
+) -> BitWriter:
     """A plain full frame of the game mode entity: the mode's client UI graph 0CB6 as instance 1 (its
     client-only Entries make the kill feed 0DEA and the notices 1FC0) and the entity variables given (the
     PvP countdown). Every full frame of this entity has to list 0CB6, or it would destroy it."""
@@ -2175,7 +2207,23 @@ def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | 
 
     entrance = pve.entrance(mode_guid, map_guid) if mode_guid is not None else None
     if entrance is None:
-        return remote_full_frame([instance], values, {1: ui})
+        instances = [instance]
+        if phase_state is not None:
+            # Use the same phase senders as Escort for the modes with a shared UI frame.
+            phase, receiver = graph.graph(PVP_PHASE_GRAPH), graph.graph(MODE_PHASE_RECEIVER)
+            if mode_guid in ATTACK_DEFEND_MODES:
+                values[ATTACKING_TEAM_VAR] = (FIRST_ATTACKING_TEAM, ())
+                values[DEFENDING_TEAM_VAR] = (FIRST_DEFENDING_TEAM, ())
+            instances.extend([
+                InstanceWire(2, phase, states={phase_state: StateWire(phase.state(phase_state).cls, True)}),
+                InstanceWire(3, receiver, states={state: StateWire(receiver.state(state).cls, True)
+                                                 for state in (5, 11)}),
+            ])
+            waiting = phase_state == WAITING_FOR_PLAYERS_STATE
+            values[WAITING_FOR_PLAYERS] = (waiting, ())
+            if waiting:
+                instances.append(waiting_hud(4))
+        return remote_full_frame(instances, values, {item.id: item.graph for item in instances})
     primary = entrance.graph
     states = {}
     if entrance.ready_state is not None:

@@ -12,9 +12,9 @@ the screen. Retail OW2 traffic works the same way.
 More of the screen (read in the graphs and the client):
 - The skin selector shows while 288B's v25377 ("assembling heroes") is on. In retail the PvP mode
   script sets it for the assemble phase, and we do the same; in the Practice Range we set it whenever
-  the screen is open, and hide the assemble title that comes with it (v8535). With it on, the client
-  leaves the screen open after a pick, so the server closes it. A chosen skin goes to the lobby
-  (24500), and the body wears it (world.create).
+  the screen is open, and hide the assemble title that comes with it (v8535). During assembly the
+  screen stays open, with v2114 distinguishing a confirmed pick from browsing. "Change Hero" sends
+  1361.025 with an empty hero. A chosen skin goes to the lobby (24500), and the body wears it (world.create).
 - The team list: 288A's state 1 starts 288D, whose client-only nodes post their entity (game message
   134F.025) to the local player's 288B unless it is an enemy. On our own entity that puts us in the list.
   Every other player's controller entity gets 288D as its only (root) instance, in a plain frame that
@@ -24,7 +24,14 @@ More of the screen (read in the graphs and the client):
 from dataclasses import dataclass, replace
 
 from ow174.game.bits import BitWriter
-from ow174.game.content import PRACTICE_RANGE_MODE, SOLDIER, TUTORIAL_MODE, heroes
+from ow174.game.content import (
+    ATTACK_DEFEND_MODES,
+    FIRST_ATTACKING_TEAM,
+    PRACTICE_RANGE_MODE,
+    SOLDIER,
+    TUTORIAL_MODE,
+    heroes,
+)
 from ow174.game.script import graph as scripts
 from ow174.game.statescript import (
     CONTROLLER,
@@ -38,6 +45,7 @@ from ow174.game.statescript import (
     Entity,
     Graph,
     Instance,
+    Int,
     Value,
     owner_full_frame,
     subscript,
@@ -54,12 +62,40 @@ HIDE_ASSEMBLE = 8535
 PICK_HERO = 0x0240000000001361  # 1361.025 {hero}
 OPEN_OR_CLOSE = 0x0240000000001360  # 1360.025 {open}
 HERO_TYPE = 0x02E0  # the type bits of a 075 hero GUID
+_PICK_ASSET_PREFIX = bytes.fromhex("00 00 00 00 01 C1 5D 40 0A 0C 01 FF 04")  # one 005D asset row
 # The entity variables of a controller that the team list reads from another player's entity: the
 # hero he plays (0C90/13C1 set it once the hero is spawned), whether he has picked, and the pick (288B
 # sets both with the pick). The list shows v940, else the pick while v2114 is on, else "still choosing".
 CURRENT_HERO = 940
 PICKED = 2114
 PICKED_HERO = 13161
+
+# 288B receives these instance variables from 071D.025. The server supplies the
+# initial values because the PvP controller does not run the full mode graph.
+OBJECTIVE_TEXT = 8975
+OBJECTIVE_COLOR_TEAM = 6999
+OBJECTIVE_STRINGS = {
+    0x0230000000000007: 0x5886,  # Capture the Flag mode display name
+    0x0230000000000009: 0x531D,  # Elimination, graph 0D0B
+    0x0230000000000010: 0x5874,  # Skirmish, graph 0D76 reads the mode display name
+    0x0230000000000017: 0x0132,  # Control, graph 0EC2
+    0x023000000000001D: 0x69C8,  # Team Deathmatch, graph 0F60
+    0x023000000000001E: 0x69C5,  # Deathmatch, graph 0F73
+    0x0230000000000070: 0x69C5,  # Bounty Hunter uses the same objective graph as Deathmatch
+}
+
+
+def objective_variables(mode: int, team: int) -> dict[int, Value]:
+    """The localized objective and color team from the 104319 mode scripts."""
+    color_team = 1
+    if mode in ATTACK_DEFEND_MODES:
+        string = 0x6E64 if team == FIRST_ATTACKING_TEAM else 0x6E63
+        color_team = team
+    else:
+        string = OBJECTIVE_STRINGS.get(mode)
+    if string is None:
+        return {}
+    return {OBJECTIVE_TEXT: Asset(0x0DE0000000000000 | string), OBJECTIVE_COLOR_TEAM: Int(color_team)}
 
 
 @dataclass(frozen=True)
@@ -145,10 +181,13 @@ def controller_frame(
     cmfd: int,
     select_open: bool,
     skins: bool = False,
-    hide_assemble: bool = False,
+    hide_assemble: bool | None = None,
     presence: dict[int, Value] | None = None,
     hero: int | None = None,
     body: int | None = None,
+    *,
+    pick_confirmed: bool = False,
+    objective: dict[int, Value] | None = None,
 ):
     """The owner full frame for the player's entity: the controller (1) with hero select 288A (2) ->
     288B (3) under it, 13C1's HUD 20E4 (4), and 288A's team list entry 288D (the next index).
@@ -156,7 +195,8 @@ def controller_frame(
     and timer that come with it. `presence` adds presence bits of the controller (notices.py). `hero`
     is the hero he plays (None before the first pick): v940, which retail's controller graph sets on
     the server. The F1 hero info (288A's client-only 2931) shows v940's hero while hero select is
-    closed (2931 st3: v14152 = v31435 ? the browsed hero : v940)."""
+    closed (2931 st3: v14152 = v31435 ? the browsed hero : v940). `pick_confirmed` keeps 288B in its
+    waiting state while the assembly timer is running."""
     if isinstance(controller, FixedController):
         variables = {CURRENT_HERO: Asset(hero)} if hero else {}
         # Match owns body creation and possession. Keep the authored controller and body
@@ -170,7 +210,7 @@ def controller_frame(
     active = {controller.hero_select_bit: None, controller.select_bit: subscript(host_id)}
     host = Instance(host_id, HERO_SELECT_HOST, parent=(root, controller.select_state),
                     active={0: subscript(screen_id)})
-    screen = Instance(screen_id, HERO_SELECT, parent=(host_id, 0))
+    screen = Instance(screen_id, HERO_SELECT, parent=(host_id, 0), extra=dict(objective or {}))
     bits = {controller.allow_bit: Bool(True), **(presence or {})}
     instances = [
         Instance(root, controller.graph, presence=bits, active=active),
@@ -190,11 +230,13 @@ def controller_frame(
     instances.append(Instance(entry, TEAM_ENTRY, parent=(host_id, 1)))
     if skins:
         screen.presence[ASSEMBLING] = Bool(True)
-    if hide_assemble:
-        screen.extra[HIDE_ASSEMBLE] = Bool(True)
-    variables: dict[int, Value] = {OPEN_SELECT: Bool(select_open), SELECT_SHOWN: Bool(select_open)}
-    if hero:
-        variables[CURRENT_HERO] = Asset(hero)
+    if hide_assemble is not None:
+        screen.extra[HIDE_ASSEMBLE] = Bool(hide_assemble)
+    confirmed = hero if pick_confirmed else None
+    variables: dict[int, Value] = {
+        OPEN_SELECT: Bool(select_open), SELECT_SHOWN: Bool(select_open), CURRENT_HERO: Asset(hero or 0),
+        PICKED: Bool(bool(confirmed)), PICKED_HERO: Asset(confirmed or 0),
+    }
     return owner_full_frame(cmfd, instances, variables)
 
 
@@ -203,12 +245,9 @@ def team_entry_frame(hero: int | None) -> BitWriter:
     which puts him in this client's team list unless he is an enemy, and the variables the list reads
     from his entity. `hero` is the hero he picked and plays, None while he is still choosing. 288D has
     no presence bits and no states, so its instance block is a single bit."""
-    variables: dict[int, Value] = {}
-    if hero:
-        variables[CURRENT_HERO] = Asset(hero)
-    variables[PICKED] = Bool(bool(hero))
-    if hero:
-        variables[PICKED_HERO] = Asset(hero)
+    variables = {
+        CURRENT_HERO: Asset(hero or 0), PICKED: Bool(bool(hero)), PICKED_HERO: Asset(hero or 0),
+    }
     out = BitWriter()
     out.bit(0)  # lead
     out.bit(0)  # H: not the owner's frame
@@ -230,8 +269,12 @@ def team_entry_frame(hero: int | None) -> BitWriter:
 
 
 def picked_hero(parameters: bytes) -> int | None:
-    """The hero in a pick's parameters: an 8-byte little-endian GUID with the hero type bits (the pick
-    in OW2's traffic carries it that way; its exact parameter layout is not certain)."""
+    """Read a 1361.025 hero GUID. Zero is an explicit Change Hero request, None is an invalid pick."""
+    if len(parameters) == 29 and parameters.startswith(_PICK_ASSET_PREFIX):
+        # 104319 serializes the typed null hero as an Asset with a zero GUID, then two entity ids.
+        guid = int.from_bytes(parameters[13:21], "little")
+        return guid if not guid or guid >> 48 == HERO_TYPE else None
+    # Preserve the GUID scan for existing pick producers that use another parameter layout.
     for offset in range(len(parameters) - 7):
         value = int.from_bytes(parameters[offset : offset + 8], "little")
         if value >> 48 == HERO_TYPE and value in heroes():

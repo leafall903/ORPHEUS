@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "deathmatch-arena-spawns-v1",
+  "target_build": 104319,
+  "source": "Build 104319 arena map catalog. Dedicated arenas advertise team and solo Deathmatch with shared spawn points. The coordinates are synthetic.",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "map": "0800000000000890",
+    "team_mode": "023000000000001D",
+    "solo_mode": "023000000000001E",
+    "spawns": [
+      {"team": null, "ffa": true, "position": [0, 0, 1]},
+      {"team": null, "ffa": true, "position": [0, 0, 2]},
+      {"team": null, "ffa": true, "position": [0, 0, 3]},
+      {"team": null, "ffa": true, "position": [0, 0, 4]}
+    ]
+  },
+  "expected": {
+    "team_sizes": [4, 4],
+    "team_first_spawns": [[0, 0, 1], [0, 0, 2]],
+    "team_second_spawns": [[0, 0, 3], [0, 0, 4]],
+    "solo_spawn_count": 4
+  }
+}

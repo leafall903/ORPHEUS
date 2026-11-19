@@ -5,6 +5,7 @@ import math
 import re
 from dataclasses import dataclass
 from functools import cache
+from itertools import pairwise
 
 from ow174.paths import DATA_DIR
 
@@ -12,6 +13,11 @@ HEROES_PATH = DATA_DIR / "game_heroes_174.json"
 MAPS_PATH = DATA_DIR / "game_maps_174.json"  # tools/extract_game_maps.py
 SOLDIER = 0x02E000000000006E
 PRACTICE_RANGE_MODE = 0x0230000000000018
+ESCORT_MODE = 0x0230000000000015
+ATTACK_DEFEND_MODES = {0x0230000000000014, ESCORT_MODE, 0x0230000000000016}
+# 104319 lobby team descriptions (C473/C474.07C) and 0F4A's initial team assignment.
+FIRST_DEFENDING_TEAM, FIRST_ATTACKING_TEAM = 0, 1
+TEAM_DEATHMATCH_MODE = 0x023000000000001D
 TUTORIAL_MODE = 0x0230000000000019
 TUTORIAL_MAP = 0x0800000000000661
 # Modes whose loading screen waits for a state of the mode's own script (m_0FC17230 = 1 in the
@@ -72,17 +78,65 @@ class Spawn:
 
 
 @dataclass(frozen=True)
+class EscortRailPoint:
+    position: tuple[float, float, float]
+    curve: tuple[tuple[float, float, float], ...] = ()
+    checkpoint: int | None = None
+
+
+@dataclass(frozen=True)
+class EscortRoomPlacement:
+    index: int
+    rooms: tuple[tuple[int, int], ...]  # (checkpoint stage, room owner's team)
+    door: bool
+    collision: tuple = ()
+    position: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    rotation: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
+    scale: tuple[float, float, float] = (1.0, 1.0, 1.0)
+    viewers: tuple[int, ...] = ()  # prop with a viewer-specific visual overlay and no collision
+    open_seconds: float = 2.0  # 0D32 schema default for 07F0
+    close_seconds: float = 2.0  # 0D32 schema default for 07F3
+    open_delay: float = 0.0  # 0D32 waits on 09CB before playing the opening clip
+    has_transform: bool = True  # older local catalogs could omit the authored pose
+
+
+@dataclass(frozen=True)
+class EscortMap:
+    payload: int
+    rail: tuple[EscortRailPoint, ...]
+    later_spawns: tuple[tuple[Spawn, ...], ...]
+    stage_seconds: tuple[float, ...]
+    payload_collision: tuple = ()
+    payload_scale: tuple[float, float, float] = (1.0, 1.0, 1.0)
+    room_placeables: tuple[EscortRoomPlacement, ...] = ()
+    payload_origin: tuple[float, float, float] | None = None
+    payload_rotation: tuple[float, float, float, float] | None = None
+
+
+@dataclass(frozen=True)
 class GameMap:
     name: str
     map_guid: int  # 002; the type bits reversed: 0x0800...
     mode_guid: int  # the 0C5 game mode it is played with
-    placeables: tuple[int, ...]  # map entities the server creates; the loading screen waits for them
+    placeables: tuple[int, ...]  # map entities the server creates, including those needed to finish loading
     spawns: tuple[Spawn, ...]
     mode_name: str = ""
     # Players per team, from the ruleset. The hero select screen's team list shows the missing ones as
     # empty slots.
     team_sizes: tuple[int, ...] = (6, 6)
     free_for_all: bool = False  # one team, everyone against everyone (its one size is the player count)
+    preset_guid: int = 0  # custom rooms can use different presets for the same mode
+    escort: EscortMap | None = None
+    custom_start: int | None = None  # custom lobby's start rule, fixed when the match is created
+
+
+START_IMMEDIATELY = 0x25C9  # identifiers used by mode variable 9672 in 0F4A/0EC2
+START_WHEN_FULL = 0x25CA
+START_MANUALLY = 0x25CB
+
+
+FREE_FOR_ALL_TEAM = 4
+SPECTATOR_TEAM = 3  # custom-lobby roster ID; in the world this uses the spectator filter bit
 
 
 # Practice Range (0688.002 with 0018.0C5): its four server-owned placeables, the ones the running
@@ -169,21 +223,90 @@ def map_name(guid: int) -> str | None:
     return entry.get("name") if entry else None
 
 
-def _first_round_spawns(entry: dict, free_for_all: bool) -> tuple[Spawn, ...]:
+def _first_round_spawns(entry: dict, mode: int, free_for_all: bool) -> tuple[Spawn, ...]:
     """Each team's spawn points of the first objective (team 1 attacks it, team 0 defends), or of any
     objective when the map names none; the free-for-all points in a free-for-all mode."""
     spawns = entry.get("spawns") or []
-    if free_for_all:
-        chosen = [spawn for spawn in spawns if spawn.get("ffa") or spawn.get("team") is None]
-    else:
-        chosen = []
+    chosen = []
+    if not free_for_all:
         for team in (0, 1):
             mine = [spawn for spawn in spawns if spawn.get("team") == team and not spawn.get("ffa")]
             first = [spawn for spawn in mine if any(goal[0] == 0 for goal in spawn.get("objectives") or [])]
             chosen += first or mine
+    # Dedicated deathmatch arenas can advertise Team Deathmatch with shared spawn points only.
+    if free_for_all or (mode == TEAM_DEATHMATCH_MODE and not chosen):
+        return tuple(
+            Spawn(None, tuple(spawn["position"]), float(spawn.get("yaw", 0.0)))
+            for spawn in spawns if spawn.get("ffa") or spawn.get("team") is None
+        )
     return tuple(
         Spawn(spawn.get("team"), tuple(spawn["position"]), float(spawn.get("yaw", 0.0))) for spawn in chosen
     )
+
+
+def _escort_map(entry: dict, placeables: list[int]) -> EscortMap | None:
+    rail = entry.get("escort_rail")
+    if not rail:
+        return None
+    objectives = entry.get("objectives", ())
+    carts = [obj for obj in objectives if obj["kind"] == "payload"]
+    goals = sorted((obj for obj in objectives if obj["kind"] == "checkpoint"),
+                   key=lambda obj: obj["objective"])
+    checkpoints = [point["checkpoint"] for point in rail if "checkpoint" in point]
+    if (len(carts) != 1 or not goals or len(rail) < 2 or "checkpoint" in rail[0]
+            or rail[-1].get("checkpoint") != goals[-1]["placeable"]
+            or checkpoints != [obj["placeable"] for obj in goals]
+            or not {carts[0]["placeable"], *checkpoints} <= set(placeables)):
+        return None
+    points = tuple(
+        EscortRailPoint(tuple(point["position"]), tuple(tuple(vec) for vec in point.get("curve", ())),
+                        point.get("checkpoint"))
+        for point in rail
+    )
+    for point, next_point in pairwise(points):
+        if (len(point.curve) != 3 or any(len(vec) != 3 for vec in (point.position, *point.curve))
+                or len(next_point.position) != 3
+                or not all(math.isfinite(axis) for vec in (point.position, *point.curve) for axis in vec)):
+            return None
+        end = tuple(map(sum, zip(point.position, *point.curve, strict=True)))
+        if not 0 < math.dist(point.position, next_point.position) < math.inf:
+            return None
+        if math.dist(end, next_point.position) >= 0.01:
+            return None
+    # Older generated catalogs already have rails but predate the timing fields.
+    defaults = (240.0, 150.0, 90.0)
+    stage_seconds = tuple(float(goal.get("escort_seconds", defaults[min(i, len(defaults) - 1)]))
+                          for i, goal in enumerate(goals))
+    if not all(math.isfinite(seconds) and seconds > 0 for seconds in stage_seconds):
+        return None
+    later_spawns = tuple(
+        tuple(
+            Spawn(s["team"], tuple(s["position"]), float(s.get("yaw", 0.0)))
+            for s in entry.get("spawns", ())
+            if s.get("team") in (0, 1) and not s.get("ffa")
+            and [goal["objective"], ("defense", "attack")[s["team"]]] in (s.get("objectives") or ())
+        )
+        for goal in goals[1:]
+    )
+    cart = carts[0]
+    room_models = entry.get("escort_room_models", {})
+    room_placeables = tuple(
+        EscortRoomPlacement(
+            p["placeable"], tuple(tuple(room) for room in p["rooms"]),
+            p["kind"] in ("door", "checkpoint_gate"),
+            tuple(room_models.get(str(p.get("model")), ())), tuple(p.get("position", (0, 0, 0))),
+            tuple(p.get("rotation", (0, 0, 0, 1))), tuple(p.get("scale", (1, 1, 1))),
+            tuple(p.get("viewers", ())),
+            float(p.get("open_seconds", 2.0)), float(p.get("close_seconds", 2.0)),
+            float(p.get("open_delay", 0.0)),
+            has_transform="position" in p and "rotation" in p,
+        )
+        for p in entry.get("escort_room_placeables", ())
+    )
+    return EscortMap(cart["placeable"], points, later_spawns, stage_seconds,
+                     tuple(cart.get("collision", ())), tuple(cart.get("scale", (1.0, 1.0, 1.0))),
+                     room_placeables, tuple(cart["position"]) if "position" in cart else None,
+                     tuple(cart["rotation"]) if "rotation" in cart else None)
 
 
 def game_map(
@@ -210,25 +333,47 @@ def game_map(
         return None
     by_mode = {int(mode, 16): indexes for mode, indexes in (entry.get("placeables_by_mode") or {}).items()}
     placeables = by_mode.get(mode_guid, entry.get("placeables", []))
+    if mode_guid == ESCORT_MODE:
+        # The catalog includes server-managed scenery outside the loading gate.
+        mirrored = set(entry.get("mirrored") or ())
+        extra_placeables = {
+            objective["placeable"] for objective in (entry.get("objectives") or ())
+            if objective["kind"] in ("payload", "checkpoint") and objective["placeable"] in mirrored
+        }
+        extra_placeables.update(
+            pack["placeable"] for pack in (entry.get("health_packs") or ())
+            if pack["placeable"] in mirrored
+        )
+        extra_placeables.update(mirrored.intersection(entry.get("escort_scene_placeables", ())))
+        placeables = sorted(extra_placeables.union(placeables))
     if (map_guid == JUNKENSTEIN_MAP and mode_guid in JUNKENSTEIN_MODES
             and JUNKENSTEIN_GATE in entry.get("mirrored", ()) and JUNKENSTEIN_GATE not in placeables):
         placeables = sorted([*placeables, JUNKENSTEIN_GATE])
-    spawns = _first_round_spawns(entry, free_for_all)
+    spawns = _first_round_spawns(entry, mode_guid, free_for_all)
     if not spawns:
         return None
     sizes = tuple(team_sizes)
     return GameMap(
-        entry["name"], map_guid, mode_guid, tuple(placeables), spawns, mode_name, sizes, free_for_all
+        entry["name"], map_guid, mode_guid, tuple(placeables), spawns, mode_name, sizes, free_for_all,
+        escort=_escort_map(entry, placeables) if mode_guid == ESCORT_MODE else None,
     )
 
 
 SPAWN_SPACING = 1.5  # metres between players who get the same spawn point
 
 
-def spawn_point(game_map: GameMap, team: int, number: int) -> tuple[tuple[float, float, float], float]:
+def spawn_point(
+    game_map: GameMap, team: int, number: int, *, stage: int = 0,
+) -> tuple[tuple[float, float, float], float]:
     """Where the number-th player of a team starts: that team's spawn points in turn, and players who
     share a point stand side by side along its right-hand axis (-cos yaw, 0, sin yaw)."""
-    points = [spawn for spawn in game_map.spawns if spawn.team in (team, None)] or list(game_map.spawns)
+    points = []
+    if stage and game_map.escort is not None and stage <= len(game_map.escort.later_spawns):
+        points = [spawn for spawn in game_map.escort.later_spawns[stage - 1] if spawn.team == team]
+    if not points:
+        points = [spawn for spawn in game_map.spawns if spawn.team in (team, None)] or game_map.spawns
+    if game_map.mode_guid == TEAM_DEATHMATCH_MODE and all(spawn.team is None for spawn in points):
+        number = number * len(game_map.team_sizes) + team
     spawn = points[number % len(points)]
     row = number // len(points)
     side = (row + 1) // 2 * (1 if row % 2 else -1) * SPAWN_SPACING

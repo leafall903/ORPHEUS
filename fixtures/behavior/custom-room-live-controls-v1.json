@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-room-live-controls-104319-v1",
+  "target_build": "104319",
+  "source": "104319 JAM requests 24008–24013, 24017 and 24018, chat notice 23319, spectator filter bit and hero select graph 288B",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "Original client confirmed the admin action IDs and localized 23319 rendering",
+  "input": {
+    "owner_id": 42,
+    "match_id": [21, 22],
+    "next_match_id": [23, 24],
+    "restart_action": 3,
+    "lobby_action": 4,
+    "spectator_team": 3,
+    "auto_slot": 255,
+    "hero_before_team_move": "0x02E000000000006E",
+    "current_capacity": [6, 6, 2],
+    "next_spectator_capacity": 1
+  },
+  "expected": {
+    "roster_message": 53002,
+    "spectator_filter": "0x10000000",
+    "team_move_controller_variables": {"940": 0, "2114": false, "2438": true, "13161": 0, "31435": true},
+    "settings_messages": [23312, 23313, 23319],
+    "settings_notice": "0x0DE0000000000E3C",
+    "restart_notice": "0x0DE0000000000E3B",
+    "lobby_notice": "0x0DE0000000002B08",
+    "notice_message": 23319,
+    "resumed_room_messages": [53000, 23304, 23305, 53001, 53002]
+  }
+}

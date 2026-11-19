@@ -15,7 +15,7 @@ from ow174.jam.groups import CHAT_IN, FRIENDS, GROUPS, LOBBY, MATCH_LOBBY
 from ow174.jam.handshake import server_handshake
 from ow174.jam.values import id16
 from ow174.launcher.retail import RetailGames
-from ow174.lobby import lineup
+from ow174.lobby import custom_games, lineup
 from ow174.lobby.battle_tag_query import answer_query
 from ow174.lobby.handlers import build_router, leaving
 from ow174.lobby.matchmaker import Matchmaker
@@ -309,6 +309,7 @@ class LobbyServer:
                 if player.match.ranked:  # its VERSUS roster goes (lobby/lineup.py)
                     session.send(MATCH_LOBBY, 53002, lineup.NO_ROSTER)
                 self.notify_party(self.social.party_of(session.account))
+                custom_games.match_left(session, player.match.id)
         if player.match.card:  # not on the game server's thread, which runs the ticks
             threading.Thread(target=self.retry_matchmaking, args=(player.match.card,), daemon=True).start()
 

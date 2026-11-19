@@ -1461,6 +1461,14 @@ class Mover:
         )
         return None
 
+    def carry(self, displacement, dt: float) -> None:
+        """Move with the current support while still sweeping against nearby walls."""
+        body = self._engine_body()
+        final, _, touching = body.move(displacement, f32(dt), ROUNDS)
+        self._place(body, final, touching)
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
+
     def _place(self, body: contacts.CharacterBody, final, touching: bool) -> bool:
         self.flags_word = self.flags_word & ~TOUCHING | (TOUCHING if touching else 0)
         lift = self._lift()

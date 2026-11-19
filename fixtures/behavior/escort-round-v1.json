@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "case_id": "escort-round",
+  "target_build": 104319,
+  "source": "Synthetic rail exercised through the server-owned Escort round",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "placement": 20,
+    "checkpoints": [30, 31, 32],
+    "stage_seconds": [60, 20, 10],
+    "room_placeables": [
+      {"index": 40, "rooms": [[0, 1]], "door": true},
+      {"index": 41, "rooms": [[1, 1]], "door": true},
+      {"index": 42, "rooms": [[2, 1]], "door": true},
+      {"index": 43, "rooms": [[1, 1]], "door": true, "open_seconds": 7, "close_seconds": 10, "open_delay": 0.5},
+      {"index": 44, "rooms": [[2, 1]], "door": true},
+      {"index": 50, "rooms": [[0, 0]], "door": false},
+      {"index": 51, "rooms": [[1, 0], [2, 0]], "door": false},
+      {"index": 60, "rooms": [[0, 1]], "door": false},
+      {"index": 61, "rooms": [[1, 1]], "door": false},
+      {"index": 62, "rooms": [[2, 1]], "door": false},
+      {"index": 70, "rooms": [[0, 0]], "door": false, "viewers": [0]},
+      {"index": 71, "rooms": [[0, 0]], "door": false, "viewers": [1]}
+    ],
+    "assembly_ends": 30,
+    "rider": {"checkpoint": [0, 2, 4], "support_radius": 1, "seconds": 0.016, "ticks": 60},
+    "steps": [
+      {"now": 74, "players": [[101, 1, [0, 0, 0]]]},
+      {"now": 75, "players": []},
+      {"now": 80, "players": [[101, 1, [0, 0, 0]], [102, 0, [0, 0, 0]]]},
+      {"now": 90, "players": [[101, 1, [0, 0, 0]]]},
+      {"now": 106, "players": [[103, 3, [14, 0, 0]]]},
+      {"now": 116, "players": [[101, 1, [14, 0, 0]]]},
+      {"now": 126, "players": [[101, 1, [28, 0, 0]]]},
+      {"now": 226, "players": []}
+    ],
+    "payload_occupancy": [
+      {"seconds": 0, "attackers": 0, "defenders": 0},
+      {"seconds": 1, "attackers": 1, "defenders": 0},
+      {"seconds": 2, "attackers": 2, "defenders": 0},
+      {"seconds": 3, "attackers": 3, "defenders": 0},
+      {"seconds": 4, "attackers": 4, "defenders": 0},
+      {"seconds": 5, "attackers": 2, "defenders": 1},
+      {"seconds": 6, "attackers": 0, "defenders": 1},
+      {"seconds": 16, "attackers": 0, "defenders": 0}
+    ]
+  },
+  "expected": {
+    "presentation": {
+      "waiting_sender_state": 5,
+      "assembly_sender_state": 9,
+      "setup_sender_state": 14,
+      "active_sender_state": 18,
+      "setup_receiver_states": [10, 53],
+      "active_receiver_states": [2, 54],
+      "escort_hud_state": 111,
+      "active_mode_frame_graphs": ["0F4A", "0CBB", "1B4A"],
+      "escort_hud_progress_bindings": [105, 110],
+      "escort_hud_round_data": "59DC",
+      "escort_hud_clock": "0517",
+      "escort_hud_live_flag": "4C47",
+      "escort_hud_cart_reference": "4F21",
+      "assembly_heading": "0x0DE0000000006115",
+      "setup_heading": "0x0DE0000000006116",
+      "defend_heading": "0x0DE00000000000F7",
+      "attack_heading": "0x0DE00000000000F5",
+      "escort_objective": "0x0D80000000002933"
+    },
+    "payload_hud": {
+      "route_length": 42,
+      "checkpoint_fractions": [0.3333333333333333, 0.6666666666666666, 1.0],
+      "visual_selectors": {"SETUP": "2A56", "ACTIVE": "02BB", "COMPLETE": "60BA"},
+      "pusher_list_variable": "1A9F",
+      "blocker_list_variable": "1AA0",
+      "direction_variable": "01B3",
+      "occupancy_steps": [
+        {"count": 0, "contested": false, "direction": 0, "speed": 0},
+        {"count": 1, "contested": false, "direction": 1, "speed": 1.4},
+        {"count": 2, "contested": false, "direction": 1, "speed": 1.65},
+        {"count": 3, "contested": false, "direction": 1, "speed": 1.9},
+        {"count": 4, "contested": false, "direction": 1, "speed": 1.9},
+        {"count": 2, "contested": true, "direction": 0, "speed": 0},
+        {"count": 0, "contested": false, "direction": 0, "speed": 0},
+        {"count": 0, "contested": false, "direction": -1, "speed": -0.03}
+      ]
+    },
+    "gate_presentation": {
+      "index": 43,
+      "position": [43, 0, 0],
+      "opens_at": 90,
+      "clip_starts_at": 90.5,
+      "settles_at": 97.5,
+      "states": ["CLOSED", "OPENING", "OPEN"],
+      "closed_wire_states": [[], [1], [1, 8]],
+      "open_wire_states": [[0], [0, 5]],
+      "remaining_gate": 44
+    },
+    "rooms": [
+      {"closed": [40, 41, 42, 43, 44], "visible_defense": [60], "visible_attack": [50]},
+      {"closed": [41, 42, 43, 44], "visible_defense": [60], "visible_attack": [50]},
+      {"closed": [41, 42, 43, 44], "visible_defense": [60], "visible_attack": [50]},
+      {"closed": [42, 44], "visible_defense": [61], "visible_attack": [51]},
+      {"closed": [42, 44], "visible_defense": [61], "visible_attack": [51]},
+      {"closed": [], "visible_defense": [62], "visible_attack": [51]},
+      {"closed": [], "visible_defense": [], "visible_attack": []},
+      {"closed": [], "visible_defense": [], "visible_attack": []}
+    ],
+    "rider": {"body_pitch": -4836, "min_progress_m": 1.2, "max_drift_m": 0.08},
+    "steps": [
+      {"phase": "SETUP", "stage": 0, "distance": 0, "seconds": 1, "contested": false, "winner": null},
+      {"phase": "ACTIVE", "stage": 0, "distance": 0, "seconds": 60, "contested": false, "winner": null},
+      {"phase": "ACTIVE", "stage": 0, "distance": 0, "seconds": 55, "contested": true, "winner": null},
+      {"phase": "ACTIVE", "stage": 1, "distance": 14, "seconds": 65, "contested": false, "winner": null},
+      {"phase": "ACTIVE", "stage": 1, "distance": 14, "seconds": 49, "contested": false, "winner": null},
+      {"phase": "ACTIVE", "stage": 2, "distance": 28, "seconds": 49, "contested": false, "winner": null},
+      {"phase": "COMPLETE", "stage": 3, "distance": 42, "seconds": 0, "contested": false, "winner": 1},
+      {"phase": "COMPLETE", "stage": 3, "distance": 42, "seconds": 0, "contested": false, "winner": 1}
+    ],
+    "timeout_winner": 0,
+    "overtime_grace": 5
+  }
+}

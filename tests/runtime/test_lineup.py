@@ -211,7 +211,7 @@ class RosterTests(unittest.TestCase):
         """Also for a game that never connected: it had no match lobby of its own (handlers/leaving.py)."""
         sent = []
         session = SimpleNamespace(
-            account="A", send=lambda crc, msg_id, value: sent.append((crc, msg_id, value))
+            account="A", custom_room=None, send=lambda crc, msg_id, value: sent.append((crc, msg_id, value))
         )
         lobby = SimpleNamespace(
             session_of={1: session}.get,

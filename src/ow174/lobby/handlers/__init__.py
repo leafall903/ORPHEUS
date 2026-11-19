@@ -1,5 +1,6 @@
 """Message handlers, one module per topic. Each module exposes a `routes` Router."""
 
+from ow174.lobby import custom_games
 from ow174.lobby.handlers import chat, friends, gallery, leaving, login, lookups, matchmaking, party, settings
 from ow174.lobby.router import Router
 
@@ -7,6 +8,8 @@ from ow174.lobby.router import Router
 def build_router() -> Router:
     """A router with every handler registered."""
     router = Router()
-    for module in (chat, friends, gallery, leaving, login, lookups, matchmaking, party, settings):
+    for module in (
+        chat, custom_games, friends, gallery, leaving, login, lookups, matchmaking, party, settings,
+    ):
         router.include(module.routes)
     return router

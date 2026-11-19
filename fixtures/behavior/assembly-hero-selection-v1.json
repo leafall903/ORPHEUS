@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "case_id": "assembly-hero-selection-v1",
+  "target_build": "104319",
+  "source": "104319 graph 288B nodes 30, 39, 42, 178, 198 and 266, plus the native typed Asset parameter format",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "client_message": 21616,
+    "pick_message": "0x0240000000001361",
+    "parameters": {
+      "first_pick": "00 00 00 00 01 C1 5D 40 0A 0C 01 FF 04 02 00 00 00 00 00 E0 02 00 00 00 00 00 00 00 00",
+      "change_hero": "00 00 00 00 01 C1 5D 40 0A 0C 01 FF 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "second_pick": "00 00 00 00 01 C1 5D 40 0A 0C 01 FF 04 6E 00 00 00 00 00 E0 02 00 00 00 00 00 00 00 00",
+      "malformed": "00 00 00 00 01 C1 5D 40 0A 0C 01 FF 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  },
+  "expected": {
+    "parsed_guid": {
+      "first_pick": "0x02E0000000000002",
+      "change_hero": "0x0",
+      "second_pick": "0x02E000000000006E",
+      "malformed": null
+    },
+    "wire_variables": {"current_hero": 940, "confirmed": 2114, "open": 2438, "picked_hero": 13161, "shown": 31435},
+    "first_pick": {"open": true, "confirmed": true, "current_hero": "0x02E0000000000002", "picked_hero": "0x02E0000000000002"},
+    "change_hero": {"open": true, "confirmed": false, "current_hero": "0x02E0000000000002", "picked_hero": "0x0"},
+    "second_pick": {"open": true, "confirmed": true, "current_hero": "0x02E000000000006E", "picked_hero": "0x02E000000000006E"},
+    "assembled": {"open": false, "confirmed": false, "current_hero": "0x02E000000000006E", "picked_hero": "0x0"}
+  }
+}

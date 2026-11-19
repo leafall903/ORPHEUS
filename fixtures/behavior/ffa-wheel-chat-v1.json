@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "ffa-wheel-chat-104319-v1",
+  "target_build": 104319,
+  "source": "104319 wheel message 21608, graph 0686 and native StateScript owner frame encoding",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "controller": "0xA0000100",
+    "pawn": "0xA0000101",
+    "rival_controller": "0xA0000200",
+    "command_frame": 1000,
+    "graph_index": "0x0686",
+    "modes": ["0x023000000000001E", "0x0230000000000070"],
+    "actions": ["0x16B", "0x170"]
+  },
+  "expected": {
+    "instance": 256,
+    "nodes": [27, 59],
+    "text_variable": 29862,
+    "text_key": 2464,
+    "acknowledge_text": "0x0DE0000000001BA2",
+    "actions_before_controller_ack": 1,
+    "chunk_stamps": [1, 2]
+  }
+}

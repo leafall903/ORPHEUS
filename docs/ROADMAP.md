@@ -50,6 +50,8 @@ For completed test runs see [docs/STATE.md](STATE.md) and [CHANGELOG.md](../CHAN
 
 - [ ] **Research & Data Preparation:** 95 catalog maps have extracted collision caches; external runtime bundle excludes raw game assets and private signing/content keys.
 - [ ] **Lobby, Accounts & Communication Wheel:** login, hero select, skin equip, persisted settings (`22200`–`22204`), equipped voice lines, sprays, and emotes (Mercy Relax/Flurry weapon & 3P camera verified on 104319; displacement emotes like 「有胆就来」 still need root-motion work).
+- [x] **Private custom room basics:** original client verified creation, team switching, map preview, map loading and return to the room.
+- [ ] **Custom matches:** verify remaining lobby and hero selection presentation, shared room admission, and Escort gate poses, HUD pusher counts and arrows, health-pack pickup, and multi-round play. The single-round Escort flow and progress HUD are restored.
 - [ ] **Network Synchronization:** headless tests cover reliable body creation and retirement, packet budget trimming, and uint32 command rollover. Prepared loopback tests also verify body ID reuse after lost hits, destroy retries, and ID exhaustion ([#12](https://github.com/leafall903/ORPHEUS/issues/12)). Multiplayer client acceptance is tracked separately.
 - [ ] **Maps & Environment:** static collision caches built, but Practice Range out-of-bounds death plane / respawn (#13) and dynamic player-vs-player collision blocking remain open.
 - [ ] **HUD, Audio & Kill Feed:** enemy bot overhead HP bars (#7), localized bot names in kill feed (#8), headshot audio (#9), Athena multikill audio (#10), and bot death voice listeners (#11) remain open.

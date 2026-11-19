@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-room-create-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "1250297",
+    "reference": "Build 104319 lobby schema, create handling at RVAs 0x6CEAB0, 0x6D01E0 and 0x6D1F90, and room map preview at RVA 0xA2DCA0"
+  },
+  "evidence": "synthetic-build-compatibility",
+  "client_acceptance": "room-opened; team-swapped; selected-map-loaded; returned-and-recreated; default-and-changed-map-preview-visible",
+  "input": {
+    "crc": "A6E53896",
+    "message": 24000,
+    "kind": 1,
+    "name": "本地测试房",
+    "flags": 4,
+    "leave_message": 52902,
+    "start_message": 24018,
+    "start_action": 1,
+    "changed_map": "0x08000000000007F4"
+  },
+  "expected": {
+    "crc": "21286B49",
+    "message": 23304,
+    "name": "本地测试房",
+    "waiting_for_map": true,
+    "default_map": "0x08000000000000D4",
+    "default_map_header": "0x07900000000000D4",
+    "changed_map_header": "0x07900000000007F4",
+    "team_slots": [6, 6],
+    "lobby_type": 1,
+    "message_order": [53000, 23304, 23305, 53001, 53002],
+    "retry_reuses_room": true,
+    "leave_message_order": [53003, 23311],
+    "duplicate_start_handoffs": 1
+  }
+}

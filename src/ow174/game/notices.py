@@ -1,5 +1,4 @@
-"""The chat notices of a match: a player joined or left the game, and a hero switch. The clients have the
-texts (in their own language); the server only triggers them.
+"""Trigger the match client's localized player, hero switch, and wheel chat lines.
 
 Read in the client (image base 0x7FF788F10000):
 - 20308 {4 flags, card} (0x7FF7896E88B0) keeps the card and, with +0x78 and +0x7B on, posts the card's name
@@ -25,7 +24,8 @@ Read in the client (image base 0x7FF788F10000):
 from dataclasses import dataclass
 
 from ow174.game import heroselect
-from ow174.game.statescript import Asset, Entity, Value
+from ow174.game.script import expr, graph
+from ow174.game.statescript import Asset, Entity, InstanceWire, Value, owner_delta
 
 PLAYER_CARD = 20308
 # Retail modes whose teams' controller graph is 0C90 (0C5 m_teams[].m_controllerScript): only these have
@@ -46,6 +46,10 @@ OLD_HERO_BIT, NEW_HERO_BIT, PLAYER_BIT = 4, 6, 7
 # A frame of ours waits until the client has every controller frame sent before it, and a little more: the
 # Watch's events of one frame have to run before the next frame changes the variables again.
 NOTICE_GAP = 0.1
+# The normal controller tree uses the low instance IDs. Keep the temporary
+# text emitters separate from that tree and from one another.
+WHEEL_CHAT_INSTANCES = {0x0686: 0x100, 0x05AD: 0x101}
+MAX_WHEEL_CHAT = 32
 
 
 def card_message(card: dict) -> dict:
@@ -73,11 +77,19 @@ class Switch:
         return {OLD_HERO_BIT: Asset(self.old), NEW_HERO_BIT: Asset(self.new), PLAYER_BIT: Entity(self.player)}
 
 
+@dataclass(frozen=True)
+class WheelChat:
+    body: int
+    graph_index: int
+    node: int
+    values: tuple
+
+
 class Notices:
     def __init__(self, match) -> None:
         self.match = match
         self.entered: dict[int, int] = {}  # player slot -> the tick he came into the world
-        self.waiting: dict[int, list[Switch]] = {}  # player slot -> switches still to show him
+        self.waiting: dict[int, list[Switch | WheelChat]] = {}  # player slot -> pending chat
         self.notice_chunk: dict[int, int] = {}  # player slot -> the chunk of his last notice frame
         self.sent_at: dict[int, float] = {}  # player slot -> when we last sent him a frame
         self.sending: tuple[int, Switch] | None = None  # (slot, switch) while its frame is made
@@ -132,10 +144,34 @@ class Notices:
             if reader.spawned and reader.client is not None and reader.steps_done >= 4:
                 self.waiting.setdefault(reader.slot, []).append(switch)
 
+    def wheel_chat(self, player, graph_index: int, node: int, values: tuple) -> None:
+        waiting = self.waiting.setdefault(player.slot, [])
+        if len(waiting) < MAX_WHEEL_CHAT:
+            waiting.append(WheelChat(player.body, graph_index, node, values))
+
+    def _send_wheel_chat(self, player, event: WheelChat) -> None:
+        if not player.has_body or player.body != event.body:
+            return
+        definition = graph.graph(event.graph_index)
+        target = WHEEL_CHAT_INSTANCES[event.graph_index]
+        instance_vars, entity_vars = {}, {}
+        for (scope, variable), (value, bindings) in event.values:
+            if value == expr.Entity(event.body):
+                value = expr.Entity(player.entity)
+            bank = instance_vars if scope else entity_vars
+            bank[variable] = value, bindings
+        instance = InstanceWire(target, definition, descriptor=True, vars=instance_vars)
+        stream = player.script
+        cmfd = stream.next_cmfd(self.match._newest_frame(player))
+        frame = owner_delta(
+            cmfd, False, [instance], entity_vars, {target: definition},
+            callout=(stream.last + 1, target, event.node),
+        )
+        player.client.queue_entities(stream.reliable_frames(frame, frame.count, full=False))
+
     def update(self, now: float) -> None:
-        """Send the waiting switches, one controller frame each, once the client has every controller frame
-        sent before. When his last one was a notice frame, a plain controller frame goes first: it clears the
-        three (the old hero goes too, so that posts nothing)."""
+        """Wait for controller ACKs before posting chat. Separate hero switch notices with a plain
+        controller frame so the client's Watch can clear the three variables without posting a line."""
         for player in self.match.players:
             waiting = self.waiting.get(player.slot)
             if not waiting:
@@ -148,7 +184,9 @@ class Notices:
             script = player.script
             if script.delivered < script.data_last or now < self.sent_at.get(player.slot, 0.0) + NOTICE_GAP:
                 continue
-            if script.data_last == self.notice_chunk.get(player.slot):
+            if isinstance(waiting[0], WheelChat):
+                self._send_wheel_chat(player, waiting.pop(0))
+            elif script.data_last == self.notice_chunk.get(player.slot):
                 self.match.send_controller(player)
             else:
                 self.sending = (player.slot, waiting.pop(0))

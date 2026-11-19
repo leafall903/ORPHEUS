@@ -17,6 +17,7 @@ party stays), else only the player, who also leaves the party. 21801 leaves the 
 """
 
 from ow174.jam.groups import MATCH_LOBBY, MATCH_LOBBY_OUT, OUT_CONNECT
+from ow174.lobby.custom_games import CUSTOM_LOBBY, close_room
 from ow174.lobby.router import Router
 from ow174.lobby.session import Session
 
@@ -26,16 +27,15 @@ LEAVE_MATCH_LOBBY = 52902  # {+0x78 lobby id, +0x88 as group, +0x89 bool} (0x7FF
 LEAVING_GAME = 21801  # {}: the client leaves its game by itself 3 s later (0x7FF7896831A0)
 LOBBY_STATE = 53000
 LOBBY_LEFT = 53003
-# 53000 type of a game's match lobby: 0 (UNKNOWN). The dialog sends 52902 with any type. 4 (GAME_QUEUE)
+# Default type of a game's match lobby: 0 (UNKNOWN). The dialog sends 52902 with any type. 4 (GAME_QUEUE)
 # would also turn the client's play state to 5 for the whole match (0x7FF789A9D590), which the menu's search
 # widget shows as "Game Found!"; with 0 the play state stays 0.
 LOBBY_TYPE = 0
 
 
-def lobby_state(match_id: tuple) -> dict:
-    """53000: the match lobby of the player's match. No queue key, so the client always resets the lobby
-    itself after its own 52902 (0x7FF789A9DBC0 keeps it only for a queue card asset)."""
-    return {"+0x78": {"+0x30": {"+0x0": list(match_id)}, "+0x60": LOBBY_TYPE}, "+0xE0": False, "+0xE8": 0}
+def lobby_state(match_id: tuple, lobby_type: int = LOBBY_TYPE) -> dict:
+    """53000 updates the match lobby identity and type."""
+    return {"+0x78": {"+0x30": {"+0x0": list(match_id)}, "+0x60": lobby_type}, "+0xE0": False, "+0xE8": 0}
 
 
 def lobby_left(match_id: tuple) -> dict:
@@ -48,7 +48,12 @@ def game_joined(server, player) -> None:
     session = server.session_of(player.account_lo)
     if session is None:
         return
-    if session.send(MATCH_LOBBY, LOBBY_STATE, lobby_state(player.match.id)):
+    room = session.custom_room
+    is_custom_match = room is not None and room.match_id == player.match.id
+    # Both map header presenters call RVA 928920, which reads the room's saved
+    # preset and mode description only while the lobby is type 1.
+    lobby_type = CUSTOM_LOBBY if is_custom_match else LOBBY_TYPE
+    if session.send(MATCH_LOBBY, LOBBY_STATE, lobby_state(player.match.id, lobby_type)):
         server.match_lobbies[player.account_lo] = player.match.id
         session.log(f"[>>>] Match lobby of {player.match.label()} (53000)")
 
@@ -88,6 +93,10 @@ def leave_match_lobby(session: Session, value: dict) -> None:
         # Only STU_3618B2A9 sets it, while a match lobby request (52900) waits (0x7FF78999E3A0): a cancel in
         # the menu, not a leave.
         session.log("[<<<] Leave match lobby (52902) for a waiting request: nothing to leave")
+        return
+    room = session.custom_room
+    if room is not None and room.id == lobby_id and room.match_id is None:
+        close_room(session, room)
         return
     game = server.game
     player = game.player_of(account.account_lo) if game is not None else None

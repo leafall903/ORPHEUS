@@ -87,7 +87,8 @@ def read_movement(reader: BitReader, frame: int, *, parent: int | None = None) -
     else:
         state["input_throttles"] = (_throttle(reader), _throttle(reader))
     state["yaw"] = _field(reader, (8, 10, 16))
-    assert _field(reader, (8, 10, 16)) == 0 and _field(reader, (8, 10, 16)) == 0  # Euler pitch, roll
+    state["body_pitch"] = _field(reader, (8, 10, 16))
+    assert _field(reader, (8, 10, 16)) == 0  # Euler roll
     state["position"] = tuple(_field(reader, (8, 10, 24)) / 1024 for _ in range(3))
     if reader.bit():
         state["velocity"] = tuple(_field(reader, (8, 10, 24)) / 1024 for _ in range(3))

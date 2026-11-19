@@ -236,6 +236,7 @@ class LeaveHandlerTests(unittest.TestCase):
 
         session = SimpleNamespace(
             account=account,
+            custom_room=None,
             server=self.server,
             log=lambda *args: None,
             send=send,
@@ -418,7 +419,8 @@ class GroupLeaveTests(unittest.TestCase):
         party = social.party_of(alpha)
         social.join(beta, party)
         sessions = [
-            SimpleNamespace(account=account, server=server, log=lambda *a: None) for account in (alpha, beta)
+            SimpleNamespace(account=account, custom_room=None, server=server, log=lambda *a: None)
+            for account in (alpha, beta)
         ]
         handoffs = game_server.create_match(
             PRACTICE_RANGE,

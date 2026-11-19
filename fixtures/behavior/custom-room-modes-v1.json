@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-room-modes-104319-v1",
+  "target_build": "104319",
+  "source": "Build 104319 custom settings and map catalog; roster grouping at RVA B84BB0",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {"map": "0800000000000717", "mode": "0230000000000007", "preset": "0FD000000000009B", "slots": [6, 6]},
+      {"map": "0800000000000717", "mode": "0230000000000007", "preset": "0FD0000000000029", "slots": [6, 6]},
+      {"map": "080000000000005B", "mode": "023000000000001D", "preset": "0FD000000000006A", "slots": [4, 4]},
+      {"map": "080000000000005B", "mode": "023000000000001E", "preset": "0FD000000000006F", "slots": [8]},
+      {"map": "080000000000005B", "mode": "0230000000000070", "preset": "0FD0000000000128", "slots": [6]}
+    ]
+  },
+  "expected": {
+    "team_roster_id": 0,
+    "free_for_all_rules_id": 4,
+    "free_for_all_roster_id": 2,
+    "move_message": 24017,
+    "free_for_all_move_slot": 3,
+    "game_team": 0,
+    "handoff_count": 1
+  }
+}

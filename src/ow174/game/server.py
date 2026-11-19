@@ -57,6 +57,7 @@ from ow174.game.npc_navigation import RIALTO_MAP
 from ow174.game.projectiles import MAX_LEASE_FRAME, MINE_FIRST, MINE_SPAN, _ObservedProjectile
 from ow174.game.script.bot import practice_nameplate
 from ow174.game.script.driver import KILL_FEED_PULSERS, BodyStream, Snapshot, warm_up
+from ow174.game.statescript import Stream
 from ow174.jam.codec import DecodeError
 from ow174.jam.values import to_jsonable
 
@@ -592,6 +593,18 @@ class Client:
         return True
 
     def _ack_entity_create(self, entity: int) -> None:
+        escort = getattr(self.player.match, "escort", None)
+        if escort is not None and entity == escort.payload:
+            self.player.escort_payload_ready = True
+        elif (escort is not None and (stream := self.player.escort_checkpoint_scripts.get(entity)) is not None
+              and not stream.data_last):
+            stage = next(i for i, (_, checkpoint) in enumerate(escort.checkpoints) if checkpoint == entity)
+            self.queue_entities([stream.full_frame(escort.checkpoint_frame(stage))])
+        elif escort is not None and entity in escort.doors:
+            self.player.escort_door_scripts.setdefault(entity, Stream(entity))
+        elif (escort is not None and entity in self.player.escort_room_visuals
+              and (frame := escort.room_visual_frame(entity, self.player.team)) is not None):
+            self.queue_entities([Stream(entity).full_frame(frame)])
         if entity == self.player.entity and not self._own_controller_acked:
             self._own_controller_acked = True
             possession = self._pending_possessions.get(entity)
@@ -731,6 +744,7 @@ class Client:
         generations = getattr(self, "_entity_record_generations", None)
         if generations is None:
             generations = self._entity_record_generations = weakref.WeakKeyDictionary()
+        escort = getattr(self.player.match, "escort", None)
         for item in updates:
             generation, alive = lifecycles.get(item.entity, (0, True))
             if item not in generations:
@@ -757,8 +771,22 @@ class Client:
                         self._mode_create_acked = False
                         self._mode_fragments.clear()
                         self.player.mode_script.delivered = 0
+                        if getattr(self.player, "escort_mode_state", None) is not None:
+                            self.player.mode_script.data_last = 0
+                            self.player.escort_mode_state = None
+                            self.player.escort_hud_bound = False
                         if not alive:
                             self._pending_mode_frame = None
+                    elif escort is not None and item.entity == escort.payload:
+                        self.player.escort_payload_ready = False
+                        self.player.escort_payload_script = Stream(escort.payload)
+                        self.player.escort_payload_state = None
+                        self.player.escort_hud_bound = False
+                    elif escort is not None and item.entity in self.player.escort_checkpoint_scripts:
+                        self.player.escort_checkpoint_scripts[item.entity] = Stream(item.entity)
+                    elif escort is not None and item.entity in escort.doors:
+                        self.player.escort_door_scripts.pop(item.entity, None)
+                        self.player.escort_door_states.pop(item.entity, None)
                     self._pending_possessions.pop(item.entity, None)
                     old = self._confirmed_possessions.pop(item.entity, None)
                     if old is not None:
@@ -1361,6 +1389,27 @@ class GameServer:
                     if player.account_lo == account_lo and player.client is not None:
                         return match.switch_hero(player, hero)
         return False
+
+    def move_custom_player(self, account_lo: int, match_id: tuple[int, int], team: int) -> bool:
+        with self.lock:
+            player = self.player_of(account_lo)
+            if player is None or player.match.id != match_id or self.going_home(player):
+                return False
+            return player.match.move_custom_player(player, team)
+
+    def start_custom_mode(self, account_lo: int, match_id: tuple[int, int]) -> bool:
+        with self.lock:
+            player = self.player_of(account_lo)
+            if player is None or player.match.id != match_id or not player.spawned:
+                return False
+            client = player.client
+            if (
+                client is None or client.closed or client.leaving_since is not None
+                or self._clock_ticks_left is not None
+            ):
+                return False
+            now = self.environment.wall_time(callsite="server.start_custom_mode")
+            return player.match.start_custom_mode(now)
 
     def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:
         """Serialize debug-console actions with the ordinary game tick."""

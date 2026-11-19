@@ -67,19 +67,19 @@ class StatescriptTests(unittest.TestCase):
     def test_the_hero_select_entity_blocks(self):
         # The controller with HeroSelect on, 288A -> 288B (v25377 on: the skin selector) and 288D (the
         # team list entry), 13C1's HUD 20E4, hero select open, CmFD 123456, the first chunk: the entity
-        # blocks as the spec's reference encoder wrote them.
+        # blocks include the explicit empty hero and unconfirmed pick before the first selection.
         expected = {
             heroselect.PRACTICE: (
-                446,
-                "05 10 70 00 00 04 c8 37 40 03 89 07 00 88 e0 09 10 8a 28 14 60 85 58 44 21 01 00 04 39 08 05"
-                " 50 21 1a 51 48 40 00 30 c3 04 a8 65 3d 08 00 08 01 00 00 00 04 20 92 00 6b 54 e0 10 00 00"
-                " 00 00 bb 01",
+                550,
+                "05 10 70 00 00 04 c8 44 40 03 89 07 00 88 e0 09 10 8a 28 14 60 85 58 44 21 01 00 04 39 08 05"
+                " 50 21 1a 51 48 40 00 30 c3 04 a8 65 3d 28 d6 81 0c 00 20 21 04 a0 b4 99 0c 00 00 00 08 01"
+                " 00 00 00 04 20 92 00 6b 54 e0 10 00 00 00 00 bb 01",
             ),
             heroselect.PVP: (
-                485,
-                "05 10 70 00 00 04 a8 3c 40 03 89 07 00 08 48 06 10 8a 28 14 e0 8e 58 44 21 01 00 44 23 0a 09"
-                " 08 00 66 98 00 b5 ac 07 01 00 00 40 08 00 01 00 00 00 00 00 00 00 00 00 00 00 40 02 00 58"
-                " 23 02 87 00 00 00 00 d8 00",
+                589,
+                "05 10 70 00 00 04 a8 49 40 03 89 07 00 08 48 06 10 8a 28 14 e0 8e 58 44 21 01 00 44 23 0a 09"
+                " 08 00 66 98 00 b5 ac 07 c5 3a 90 01 00 24 84 00 94 36 93 01 00 00 00 00 40 08 00 01 00 00"
+                " 00 00 00 00 00 00 00 00 00 40 02 00 58 23 02 87 00 00 00 00 d8 00",
             ),
         }
         for controller, (bits, data) in expected.items():

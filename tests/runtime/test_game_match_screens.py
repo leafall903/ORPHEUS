@@ -326,12 +326,28 @@ class EncryptedPossessionTests(unittest.TestCase):
         self.assertEqual(self.team_frames(final), [])
         self.assertEqual(self.possessions(final), [])
 
+    def test_a_player_joining_my_team_clears_their_previous_pick(self):
+        self.assertIn(self.other.entity, self.creates(self.send(100)))
+        self.ack()
+        self.assertTrue(self.match.switch_hero(self.other, heroes()[REAPER]))
+        picked, = self.team_frames(self.send(103))
+        self.assertEqual(picked.entity_vars[heroselect.PICKED_HERO], (expr.Asset(REAPER), ()))
+        self.ack()
+
+        self.assertTrue(self.match.move_custom_player(self.other, self.viewer.team))
+        choosing, = self.team_frames(self.send(106))
+        self.assertEqual(choosing.entity_vars, {
+            heroselect.CURRENT_HERO: (expr.Asset(0), ()),
+            heroselect.PICKED: (False, ()),
+            heroselect.PICKED_HERO: (expr.Asset(0), ()),
+        })
+
     def test_remote_possession_waits_for_a_lost_body_create(self):
         self.assertIn(self.other.entity, self.creates(self.send(100)))
         self.ack()
         first_team = self.send(103)
         team, = self.team_frames(first_team)
-        self.assertNotIn(heroselect.CURRENT_HERO, team.entity_vars)
+        self.assertEqual(team.entity_vars[heroselect.CURRENT_HERO], (expr.Asset(0), ()))
         self.ack()
         self.assertTrue(self.match.switch_hero(self.other, heroes()[REAPER]))
 
@@ -459,13 +475,14 @@ class HeroInfoTests(unittest.TestCase):
         self.assertEqual(entity_vars[heroselect.CURRENT_HERO], expr.Asset(SOLDIER))
         plain = heroselect.controller_frame(heroselect.PVP, 1234, False)
         made = chunk(plain, 0, 1)
-        self.assertNotIn(heroselect.CURRENT_HERO, read_chunk(made.getvalue(), made.count).entity_vars)
+        decoded = read_chunk(made.getvalue(), made.count)
+        self.assertEqual(decoded.entity_vars[heroselect.CURRENT_HERO], (expr.Asset(0), ()))
 
-    def test_the_match_sends_the_hero_after_a_pick_that_kept_the_screen(self):
+    def test_the_match_sends_the_hero_after_a_server_side_switch(self):
         match = Match(PVP, collision_provider=StaticCollisionProvider(flat_world(1.0)))
         alpha = match.add_player(1, "Alpha", 0, 0, False)
         into_world(match, alpha, 100)
-        match.assemble_ends = 1000.0  # assembling: the pick leaves the screen open, no controller frame
+        match.assemble_ends = 1000.0  # keep the selector visible during the server-side switch
         match.switch_hero(alpha, heroes()[REAPER])
         self.assertIsNone(alpha.controller_hero)
         match.update(10.0, 101)

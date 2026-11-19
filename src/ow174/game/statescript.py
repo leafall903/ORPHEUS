@@ -995,7 +995,9 @@ def remote_fields(cls: str, payload: dict) -> dict:
         volleys = get("volleys", 1) & 0xFF
         return {"has_volleys": volleys != 1, "volleys": volleys, "counter": get("counter", 0) & 63}
     if kind == "anim":
-        return {"counter": get("counter", 0) & 7, "has_time": 0}
+        time = get("time")
+        return {"counter": get("counter", 0) & 7, "has_time": time is not None,
+                "time_set": bool(time), "time": time}
     if kind == "chase":
         cur = get("cur", 0.0)
         vector = hasattr(cur, "x")

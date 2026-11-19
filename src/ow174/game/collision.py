@@ -695,6 +695,9 @@ def _placement_groups(header: dict, identifiers: frozenset[int]) -> frozenset[in
 class World(_TriangleScene):
     """A movement world with the static physics engine for character contacts."""
 
+    # Live matches can attach moving support to their private copy of the static world.
+    moving_ground = None
+
     def __init__(self, triangles, masks=None, surfaces=None, name: str = "", engine=None) -> None:
         super().__init__(triangles, masks, surfaces, name)
         self.ray_geometry: RayWorld | None = None
@@ -702,6 +705,14 @@ class World(_TriangleScene):
             mesh = soup_mesh(triangles, self.masks, self.surfaces)
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
         self.engine = engine
+
+    def ground(self, x: float, z: float, top: float, bottom: float, category: int = MOVER) -> Ground | None:
+        static = super().ground(x, z, top, bottom, category)
+        moving_ground = self.moving_ground
+        if moving_ground is None:
+            return static
+        moving = moving_ground(x, z, top, bottom, category)
+        return moving if moving is not None and (static is None or moving.y > static.y) else static
 
     def static_sphere_cast(self, start, end, radius: float, category: int) -> StaticSweepHit | None:
         """Sweep against the static scene. Radius zero uses the expanded ray geometry when present."""

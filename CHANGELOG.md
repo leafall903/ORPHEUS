@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-20
+
+#### Custom Escort
+
+- Restore the full single-round Escort flow from assembly and setup through payload movement, checkpoints, overtime, and results.
+- Restore the native Escort progress HUD. The mode creates the objective HUD once and synchronizes the cart's route, checkpoint markers, current distance, and phase. Verified the progress bar, cart icon, and route markers on Gibraltar in the original 104319 client.
+- Synchronize the nearby attackers and defenders and the cart's direction for the pusher count, contest state, and movement arrows. Encrypted loopback covers these values. Original-client checks for the count, arrows, and final gate poses are pending. Health-pack pickup, multi-round play, and stored-state replay remain open.
+
+### 2026-11-19
+
+#### Private custom games
+
+- Restore build 104319 private room creation, map previews, multipart preset saves, team and room names, slot changes, match handoff and return. Preserve the Total Mayhem preset after a save. Prepare Capture the Flag, Team Deathmatch, Deathmatch and Bounty Hunter handoff, including shared arena spawns and correct free-for-all roster encoding.
+- Enable in-match lobby controls for renames, team and spectator changes, next-match settings, return and restart. Honor the immediate, full-room and manual start policies. Keep the native waiting and assembly prompts, support confirming and changing heroes during assembly, and reset the old hero and pick on team change. Preserve the localized loading and first-round objective titles.
+- Show the player's localized communication-wheel chat on their controller in Deathmatch and Bounty Hunter.
+- Run a single Escort round with setup, cart movement and collision, checkpoint progress, overtime and results. Load Escort objectives, health-pack placements and eligible scenery using catalogs generated from local 104319 data.
+- Fix Escort spawn-room logic. Select respawns using the current checkpoint and update doors, collision, and team-specific barriers as the round advances. Keep players supported by the moving payload and synchronize its segment and overall progress to the client.
+- The original client verified basic private room and map loading, team and spectator transitions, in-match room controls, and returning and restarting. Remaining checks include preset subtitles, assembly prompts, free-for-all chat styling, and multi-client spectating. Shared rooms and Workshop execution remain open.
+
 ### 2026-11-18
 
 - Mirror the synthetic [owner-first-command-anchor-v1](fixtures/behavior/owner-first-command-anchor-v1.json) contract in `tests/public/test_behavior_contracts.py` against `CommandQueue.before_limit`, keeping Python and Rust first-command admission aligned across fresh body scripts and existing input history.

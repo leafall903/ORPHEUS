@@ -15,7 +15,7 @@ from ow174.game import messages
 from ow174.game import server as server_module
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.collision import StaticCollisionProvider, flat_world
-from ow174.game.content import PRACTICE_RANGE, Spawn
+from ow174.game.content import PRACTICE_RANGE, SPECTATOR_TEAM, Spawn
 from ow174.game.link import ACK, KIND_FRAME, SYN, LinkCipher, Packet
 from ow174.game.match import Match
 from ow174.game.server import GameServer, Handoff
@@ -210,16 +210,23 @@ class GameServerTests(unittest.TestCase):
         self.assertEqual([player.name for player in self.left], ["Alpha"])
         self.assertEqual(self.server.matches, [])  # its only player is gone, so the match ended
 
-    def test_a_free_for_all_puts_everyone_on_the_free_for_all_team(self):
-        # Six players on teams 0-5: team 5's own bit would be the spectator bit 0x10000000.
+    def test_free_for_all_team_excludes_spectators(self):
         points = tuple(Spawn(None, (float(n), 1.0, 0.0), 0.0) for n in range(6))
         arena = dataclasses.replace(PRACTICE_RANGE, spawns=points, team_sizes=(6,), free_for_all=True)
         match = Match(arena)
-        players = [match.add_player(n, f"P{n}", 0, n, False) for n in range(6)]
-        self.assertEqual({player.team_bit for player in players}, {0x8000000})
-        self.assertEqual(len({player.spawn[0] for player in players}), 6)  # one spawn point each
-        (team,) = match.game_struct(players[0])["+0x0"]["+0x0"]["+0xC0"]
-        self.assertEqual((team["+0x60"], team["+0x61"], len(team["+0x18"])), (4, 6, 6))
+        # The lobby hands playing FFA slots to the match as team 0.
+        players = [match.add_player(n + 1, f"P{n}", 0, 0, False) for n in range(6)]
+        spectator = match.add_player(7, "Spectator", 0, SPECTATOR_TEAM, False)
+        self.assertEqual({player.team_bit for player in players}, {0x08000000})
+        self.assertEqual(spectator.team_bit, 0x10000000)
+        self.assertEqual([player.spawn[0] for player in players], [point.position for point in points])
+        self.assertEqual(match.free_places(), [0])
+        playing_entities = [player.entity for player in players]
+        for viewer in (players[0], spectator):
+            with self.subTest(viewer=viewer.name):
+                (team,) = match.game_struct(viewer)["+0x0"]["+0x0"]["+0xC0"]
+                self.assertEqual((team["+0x60"], team["+0x61"]), (4, 6))
+                self.assertEqual([slot["+0x0"] for slot in team["+0x18"]], playing_entities)
 
     def test_a_ping_gets_its_pong(self):
         (handoff,) = self.server.create_match(PRACTICE_RANGE, [(1, "Alpha", 0, 0, False)])

@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from ow174.game import messages, replay_values
 from ow174.game.bits import BitWriter
 from ow174.game.collision import StaticCollisionProvider, World, flat_world
-from ow174.game.content import PRACTICE_RANGE, SOLDIER, Spawn
+from ow174.game.content import PRACTICE_RANGE, SOLDIER, EscortMap, EscortRailPoint, EscortRoomPlacement, Spawn
 from ow174.game.environment import SystemEnvironment
 from ow174.game.environment_tape import EnvironmentTapeError
 from ow174.game.link import ACK, FIN, KIND_FRAME, SYN, LinkCipher, Packet, ReceiveWindow, peek_connection
@@ -24,6 +24,7 @@ from ow174.game.server import FIRST_TICK, HANDOFF_SECONDS, GameServer
 from ow174.game.server_journal import (
     RecordingServerSession,
     ServerJournalError,
+    _game_map,
     _ReplaySession,
     replay_server_session,
 )
@@ -35,6 +36,23 @@ MAP = dataclasses.replace(
     placeables=(), spawns=(Spawn(0, (0.0, 0.0, 0.0), 0.0), Spawn(1, (0.0, 0.0, 5.0), 180.0)),
     team_sizes=(1, 1),
 )
+
+
+class EscortJournalMapTests(unittest.TestCase):
+    def test_map_decodes_new_room_placements_and_older_escort_records(self):
+        escort = EscortMap(
+            10, (EscortRailPoint((1.0, 0.0, 1.0), checkpoint=11),), (MAP.spawns,), (240.0,),
+            room_placeables=(EscortRoomPlacement(12, ((0, 1),), True),),
+            payload_origin=(0.0, 0.0, 0.0), payload_rotation=(0.0, 0.0, 0.0, 1.0),
+        )
+        scene = dataclasses.replace(MAP, escort=escort)
+        record = dataclasses.asdict(scene)
+        self.assertEqual(_game_map(record), scene)
+
+        for field in ("room_placeables", "payload_origin", "payload_rotation"):
+            record["escort"].pop(field)
+        older = dataclasses.replace(escort, room_placeables=(), payload_origin=None, payload_rotation=None)
+        self.assertEqual(_game_map(record), dataclasses.replace(scene, escort=older))
 
 
 class FixedSource:

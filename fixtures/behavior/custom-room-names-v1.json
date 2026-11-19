@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-room-names-104319-v1",
+  "target_build": "104319",
+  "source": "Build 104319 request 24019 sender RVA B86D30; room update 23310 handler RVA 6CE7F0 and team-name getter RVA 5FA4B0",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "message": 24019,
+    "edits": [[1, "练习房"], [2, "Blue Foxes"], [3, "Red Cranes"]],
+    "in_game_name": "局内改名",
+    "clear_team": [2, ""]
+  },
+  "expected": {
+    "message": 23310,
+    "room_name": "练习房",
+    "team_names": [[0, "Blue Foxes"], [1, "Red Cranes"]]
+  }
+}

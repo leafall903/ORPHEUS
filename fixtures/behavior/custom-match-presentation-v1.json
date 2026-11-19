@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-match-presentation-v1",
+  "target_build": 104319,
+  "source": "Synthetic cases based on 104319 graphs 0147, 288B, 0F4A, 0F60 and 0F73, first-round roles C473/C474.07C, and the custom description reader at RVA 928920.",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {"map": "08000000000000D4", "mode": "0230000000000016", "team": 0},
+      {"map": "08000000000000D4", "mode": "0230000000000016", "team": 1},
+      {"map": "080000000000005B", "mode": "0230000000000014", "team": 0},
+      {"map": "0800000000000891", "mode": "0230000000000014", "team": 1},
+      {"map": "0800000000000184", "mode": "0230000000000015", "team": 0},
+      {"map": "0800000000000184", "mode": "0230000000000015", "team": 1},
+      {"map": "0800000000000891", "mode": "023000000000001E", "team": 0},
+      {"map": "0800000000000890", "mode": "023000000000001E", "team": 0},
+      {"map": "0800000000000890", "mode": "023000000000001D", "team": 0},
+      {"map": "0800000000000890", "mode": "0230000000000070", "team": 0}
+    ]
+  },
+  "expected": {
+    "objective_variable": 8975,
+    "color_team_variable": 6999,
+    "room_lobby_type": 1,
+    "custom_match_lobby_type": 1,
+    "other_match_lobby_type": 0,
+    "queue_card": 0,
+    "pregame": {
+      "mode": "0230000000000016",
+      "map": "08000000000000D4",
+      "phase_states": [5, 9],
+      "objective_sender_state": 79,
+      "objective_message": "0x024000000000071D",
+      "attacking_variable": 10795,
+      "defending_variable": 10796,
+      "attacking_team": 1,
+      "defending_team": 0
+    },
+    "cases": [
+      {"objective": "0DE0000000006E63", "color_team": 0},
+      {"objective": "0DE0000000006E64", "color_team": 1},
+      {"objective": "0DE0000000006E63", "color_team": 0},
+      {"objective": "0DE0000000006E64", "color_team": 1},
+      {"objective": "0DE0000000006E63", "color_team": 0},
+      {"objective": "0DE0000000006E64", "color_team": 1},
+      {"objective": "0DE00000000069C5", "color_team": 1},
+      {"objective": "0DE00000000069C5", "color_team": 1},
+      {"objective": "0DE00000000069C8", "color_team": 1},
+      {"objective": "0DE00000000069C5", "color_team": 1}
+    ]
+  }
+}

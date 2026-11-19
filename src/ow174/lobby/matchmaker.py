@@ -36,13 +36,17 @@ import threading
 import time
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ow174.game.content import PRACTICE_RANGE, TUTORIAL_MAP, TUTORIAL_MODE, game_map
+from ow174.game.content import FREE_FOR_ALL_TEAM, PRACTICE_RANGE, TUTORIAL_MAP, TUTORIAL_MODE, game_map
 from ow174.game.match import CARD_RANK, CARD_ROLE
 from ow174.jam.groups import CHAT_IN, HANDOFF, MATCH_LOBBY, QUEUE
 from ow174.lobby import lineup
 from ow174.paths import DATA_DIR
 from ow174.services.social import Party
+
+if TYPE_CHECKING:
+    from ow174.lobby.custom_games import CustomRoom
 
 log = logging.getLogger("ow174.lobby")
 
@@ -601,7 +605,25 @@ class Matchmaker:
         ticket = Ticket(party, {}, 0, time.time(), [(session.account, [])])
         return self._start(scene, Roster([[], [(ticket, session.account, 0)]]), popped=False)
 
-    def _start(self, game_map, roster: Roster, popped: bool = True, card: int = 0) -> bool:
+    def custom(self, session, room: "CustomRoom", scene) -> None:
+        """Start the owner's private game without entering a matchmaking queue."""
+        with self.lock:
+            account = session.account
+            game = self.server.game
+            if game is None or not self._online(session) or game.in_match(account.account_lo):
+                return
+            party = self.server.social.party_of(account)
+            ticket = Ticket(party, {}, 0, time.time(), [(account, [])])
+            team = 0 if scene.free_for_all and room.team == FREE_FOR_ALL_TEAM else room.team
+            teams = [[] for _ in range(max(len(scene.team_sizes), team + 1))]
+            teams[team].append((ticket, account, 0))
+            if not self._start(scene, Roster(teams), popped=False, custom_room=room):
+                session.log("[custom game] The game server could not reserve a match yet")
+
+    def _start(
+        self, game_map, roster: Roster, popped: bool = True, card: int = 0,
+        custom_room: "CustomRoom | None" = None,
+    ) -> bool:
         server = self.server
         game = server.game
         if game is None:
@@ -618,6 +640,8 @@ class Matchmaker:
         handoffs = game.create_match(game_map, self._game_players(entries, card), card)
         if handoffs is None:
             return False
+        if custom_room is not None:
+            custom_room.match_id = handoffs[0].match_id
         if popped:
             used = {id(ticket) for team in roster.teams for ticket, _, _ in team}
             self.tickets = [ticket for ticket in self.tickets if id(ticket) not in used]

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-mode-start-104319-v1",
+  "target_build": "104319",
+  "source": "104319 mode rules and 24018, the 04E7.05A IsInWaiting button binding, and graphs 0F4A, 0EC2, 0CBB, 1FEB and 288B",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "setting_id": 9672,
+    "setting_value_type": 3,
+    "room_start_action": 1,
+    "admin_start_mode_action": 5,
+    "choices": {"full": 9674, "immediate": 9673, "manual": 9675}
+  },
+  "expected": {
+    "default": 9674,
+    "practice_start_automatically": true,
+    "spectators_fill_playing_slots": false,
+    "wait_heading": "0x0DE0000000007029",
+    "wait_heading_fallback": "0x0DE0000000000105",
+    "wait_graph": "0x1FEB",
+    "wait_presenter_state": 16,
+    "wait_enabled_variable": 19529,
+    "wait_sender": {"graph": "0x0F4A", "state": 5, "message": "0x0240000000000700"},
+    "assembly_sender": {"graph": "0x0F4A", "state": 9, "message": "0x0240000000000692"},
+    "manual_override_while_waiting": [9674, 9675],
+    "assembly_seconds": 30
+  }
+}

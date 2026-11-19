@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "case_id": "escort-objective-placeables-v1",
+  "target_build": 104319,
+  "source": "Synthetic placements and late viewer state exercising the Escort opening world and completed assembly countdown.",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "map": "0x0800000000CAFE01",
+    "escort_mode": "0x0230000000000015",
+    "other_mode": "0x0230000000000010",
+    "catalog": {
+      "name": "Test Escort",
+      "modes": ["0x0230000000000015", "0x0230000000000010"],
+      "placeables": [10, 20, 30],
+      "placeables_by_mode": {
+        "0x0230000000000015": [10, 20],
+        "0x0230000000000010": [20, 30]
+      },
+      "mirrored": [11, 21, 31, 42, 43, 44, 46],
+      "escort_scene_placeables": [46, 47],
+      "objectives": [
+        {"kind": "checkpoint", "placeable": 21},
+        {"kind": "checkpoint", "placeable": 20},
+        {"kind": "checkpoint", "placeable": 41},
+        {"kind": "point", "placeable": 31},
+        {"kind": "payload", "placeable": 11}
+      ],
+      "health_packs": [
+        {"kind": "large", "placeable": 43},
+        {"kind": "small", "placeable": 44},
+        {"kind": "small", "placeable": 45}
+      ],
+      "spawns": [{"team": 0, "position": [0, 0, 0]}, {"team": 1, "position": [0, 0, 5]}]
+    }
+  },
+  "expected": {
+    "escort_placeables": [10, 11, 20, 21, 43, 44, 46],
+    "old_catalog_escort_placeables": [10, 11, 20, 21],
+    "other_placeables": [20, 30],
+    "legacy_placeables": [10, 20],
+    "late_viewer": {"countdown_var": 1303, "seconds": 0.0, "select_open_with_hero": false}
+  }
+}

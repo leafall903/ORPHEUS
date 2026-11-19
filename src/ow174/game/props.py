@@ -9,8 +9,8 @@ modes) ...
 The client makes every entity placeable that has a client id (body +104) itself, with its definition's
 STUModelComponent model, and keeps one with an identifier (body +8) only when the game mode lists that
 identifier (STUGameMode m_A43573F4, the rule of the pending list 0x7FF78969EFD0; Eichenwalde's clip boxes
-carry the free-for-all one). Placeables without a client id are the server's (spawn doors, the payload);
-we do not make them, so the client does not collide with them either. Client-only breakables (the
+carry the free-for-all one). Placeables without a client id are the server's (spawn doors, the payload).
+Escort adds the payload's collision separately at its current pose. Client-only breakables (the
 STUModelComponent's m_breakableConfig with m_clientOnly = 1: gas bottles, small boxes, 119 definitions)
 are left out of the data: they are dynamic bodies, which the mover does not meet (below).
 

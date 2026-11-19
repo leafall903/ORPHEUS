@@ -800,6 +800,21 @@ class BodyWorld(runtime.World):
             entity_scope = row.get("m_56341592") == expr.ENTITY
             slot = (component.vars if entity_scope else instance.vars).get(var)
             values.append(((0 if entity_scope else instance.id, var), (slot.value() if slot else None, ())))
+        if (
+            index in (0x05AD, 0x0686)
+            and node.cls == "STU_7106C356"
+            and self.match is not None
+            and self.match.game_map.free_for_all
+            and expr.to_entity(instance.evaluate(node.field("m_78468866"))) == self.body
+            and not expr.truthy(instance.evaluate(node.field("m_D030750C")))
+        ):
+            # AD1AB2 checks friendship against the local controller. In FFA,
+            # C1D7D1 accepts the same entity before comparing the competing sides.
+            player = self.match._message_player(self.body)
+            if player is not None:
+                self.match.notices.wheel_chat(player, index, node.pos, tuple(values))
+                self._play_healing_callout(instance, node)
+                return
         if key == nodes.WHEEL_VOICE_PULSE and selected is not None:
             values.append(((instance.id, 29699), (selected.value(), ())))
         serial = self.wheel_callouts[-1].serial + 1 if self.wheel_callouts else 1

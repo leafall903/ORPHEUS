@@ -26,6 +26,7 @@ from ow174.jam.framing import (
 from ow174.jam.groups import CHAT_IN, IN_CONNECT, PARTY, TELEMETRY
 from ow174.jam.handshake import Channel
 from ow174.jam.values import to_jsonable
+from ow174.lobby.custom_games import CustomRoom
 
 if TYPE_CHECKING:
     from ow174.lobby.server import LobbyServer
@@ -70,6 +71,7 @@ class Session:
         self.ident: Identity | None = None
         self.logged_in = False
         self.party_channel: dict | None = None  # the party chat channel the client has joined
+        self.custom_room: CustomRoom | None = None
         self.npc_menu_open = False
         self.watched_groups: set[tuple] = set()  # party ids picked in the group finder (52204)
         self.crc_at: dict[int, int] = {}  # wire index -> protocol group CRC, from the announcement
@@ -257,6 +259,7 @@ class Session:
     def _cleanup(self) -> None:
         """Take the player out of the queue and tell the others it left."""
         self.logged_in = False  # ends the session's presence refresh thread (login._after_menu_ready)
+        self.custom_room = None
         server = self.server
         if not self.account or server.social.sessions.get(self.account.account_lo) is not self:
             return

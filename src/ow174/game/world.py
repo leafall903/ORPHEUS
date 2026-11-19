@@ -240,10 +240,13 @@ class Movement:
         spring=(0, 0),
         spring_speed=0.0,
         fall=0.0,
+        *,
+        body_pitch: int = 0,
     ) -> None:
         self.position = tuple(position)
         self.yaw = int(yaw)
         self.pitch = int(pitch)
+        self.body_pitch = int(body_pitch)
         self.velocity = tuple(velocity)
         self.flags = int(flags)
         self.throttles = tuple(throttles)
@@ -396,7 +399,7 @@ def write_movement(
     else:
         out.bit(0)
     _input_fields(out, state, frame)
-    for angle in (state.yaw & 0xFFFF, 0, 0):  # Euler yaw, pitch, roll; widths 8, 10, 16
+    for angle in (state.yaw & 0xFFFF, state.body_pitch & 0xFFFF, 0):  # Euler yaw, pitch, roll
         if angle:
             _selector(out, angle, 2, 16)
         else:
