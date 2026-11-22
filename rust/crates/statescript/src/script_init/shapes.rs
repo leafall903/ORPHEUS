@@ -918,6 +918,27 @@ pub(super) fn is_vertical_velocity_impulse(node: &Node) -> bool {
         && is_row(impulse, "STU_4635C5E2", "m_CFEC5F76", 1)
 }
 
+/// Supported single-row edits of the local body's velocity.
+pub(super) fn local_velocity_edit(node: &Node) -> Option<(&Json, bool)> {
+    if !is_local_velocity_action(node) || !node.runs_on_server() {
+        return None;
+    }
+    let [row] = array_field(&node.fields, "m_BC5E91CF") else {
+        return None;
+    };
+    let (selector, cap) = match field(row, "$").as_str()? {
+        "STU_95A10547" => ("m_CFEC5F76", false),
+        "STU_748FC65A" => ("m_A9561CA0", true),
+        _ => return None,
+    };
+    let value = field(row, "m_9B7A63EA");
+    (script_expr::native_fields(row, &[selector, "m_priority", "m_9B7A63EA"])
+        && field(row, selector).as_u64() == Some(1)
+        && field(row, "m_priority").is_null()
+        && !value.is_null())
+    .then_some((value, cap))
+}
+
 fn is_local_velocity_action(node: &Node) -> bool {
     let fields = &node.fields;
     node.state.is_none()

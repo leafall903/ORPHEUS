@@ -195,11 +195,7 @@ impl World for BodyWorld {
     }
 
     fn edit_velocity(&mut self, site: Site, frame: u32, value: Value, cap: bool) -> bool {
-        if self.hero != CASSIDY
-            || !self.is_player_site(site)
-            || site.graph != 0x01f0
-            || !matches!((site.node, cap), (Some(8 | 11), false) | (Some(17), true))
-        {
+        if !self.is_player_site(site) {
             return false;
         }
         let change = match (value, cap) {
@@ -931,10 +927,8 @@ impl World for BodyWorld {
     }
 
     fn native(&mut self, site: Site, config: &Json) -> Option<Value> {
-        if self.hero == CASSIDY
-            && self.is_player_site(site)
-            && site.graph == 0x01f0
-            && matches!(site.node, Some(8 | 11 | 19))
+        if self.is_player_site(site)
+            && crate::script_expr::native_fields(config, &["m_entity"])
             && config
                 .get("m_entity")
                 .is_some_and(|entity| native_shape(entity, "STU_B5A0CAF0", None))
@@ -944,7 +938,7 @@ impl World for BodyWorld {
             let vector = match config.get("$").and_then(Json::as_str) {
                 Some("STU_021D01CD") => Some([sin, 0.0, cos]),
                 Some("STU_66F3B89E") => Some([cos, 0.0, -sin]),
-                Some("STU_2200A66D") if site.node == Some(19) => Some(aim_direction(&Command {
+                Some("STU_2200A66D") => Some(aim_direction(&Command {
                     yaw: self.movement.yaw,
                     pitch: self.movement.pitch,
                     ..Command::default()

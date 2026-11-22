@@ -21,9 +21,10 @@ use super::super::{
         is_owner_movement_sampler, is_parent_owned_timed_graph, is_projected_self_message,
         is_self_shield_recharge, is_self_stat_timer, is_self_target, is_stat_action,
         is_static_map_explosion, is_vertical_velocity_impulse, is_wave_health_pool,
-        living_body_array_shape, named_temporary_shield, parent_owned_graph_duration,
-        participant_filter, persistent_message, placement_collection_tag, pool_number, raw_indices,
-        registered_state, source_key, static_target_operand, stored,
+        living_body_array_shape, local_velocity_edit, named_temporary_shield,
+        parent_owned_graph_duration, participant_filter, persistent_message,
+        placement_collection_tag, pool_number, raw_indices, registered_state, source_key,
+        static_target_operand, stored,
     },
     types::{InitFault, Issue, SpawnSearch, SpawnSearchKey, State, StateKind},
     world::{
@@ -731,31 +732,19 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 }
                 self.follow(id, node, "m_outPlug", caller, depth)
             }
-            "STU_FF3471E9"
-                if registration
-                    .permits(self.graph(id).index == 0x01f0 && matches!(node.pos, 8 | 11 | 17)) =>
-            {
-                let rows = array_field(&node.fields, "m_BC5E91CF");
-                let [row] = rows else { return Ok(false) };
-                let cap = node.pos == 17;
-                let (class, selector) = if cap {
-                    ("STU_748FC65A", "m_A9561CA0")
-                } else {
-                    ("STU_95A10547", "m_CFEC5F76")
-                };
-                if row.get("$").and_then(Json::as_str) != Some(class)
-                    || row.get(selector).and_then(Json::as_u64) != Some(1)
-                    || !field(row, "m_priority").is_null()
-                {
-                    return Ok(false);
-                }
-                let Some(value) = self.evaluate(id, node, field(row, "m_9B7A63EA"), None) else {
+            "STU_FF3471E9" if registration.shape(local_velocity_edit(node).is_some()) => {
+                let Some((config, cap)) = local_velocity_edit(node) else {
                     return Ok(false);
                 };
+                let Some(value) = self.evaluate(id, node, config, None) else {
+                    return Ok(false);
+                };
+                let site = self.site(id, node);
                 if !self
                     .world
-                    .edit_velocity(self.site(id, node), self.machine.frame, value, cap)
+                    .edit_velocity(site, self.machine.frame, value, cap)
                 {
+                    self.report(site, Issue::UnsupportedField("local velocity edit"));
                     return Ok(false);
                 }
                 self.follow(id, node, "m_outPlug", caller, depth)

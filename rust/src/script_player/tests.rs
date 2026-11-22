@@ -816,17 +816,16 @@ fn player_bound_body_angles_follow_the_live_pose_in_each_mode() {
 }
 
 #[test]
-fn roll_velocity_bridge_preserves_sampled_delta_and_rejects_foreign_owners() {
+fn local_velocity_bridge_preserves_sampled_delta_and_rejects_foreign_owners() {
     use crate::mover::VelocityChange;
     let (factory, spawn) = fixture_body_factory();
     let mut runtime = factory.start(spawn).unwrap();
-    runtime.world.hero = CASSIDY;
     runtime.world.movement.velocity = [3.0, 2.0, 4.0];
     let site = Site {
         entity: spawn.entity,
         instance: 6,
-        graph: 0x01f0,
-        node: Some(8),
+        graph: 991,
+        node: Some(1),
     };
     assert!(
         runtime
@@ -855,10 +854,10 @@ fn roll_velocity_bridge_preserves_sampled_delta_and_rejects_foreign_owners() {
     assert!(
         !runtime
             .world
-            .edit_velocity(site, 10, Value::Float(5.5), true)
+            .edit_velocity(site, 10, Value::Vector([5.5; 3]), true)
     );
     let cap = Site {
-        node: Some(17),
+        node: Some(4),
         ..site
     };
     assert!(

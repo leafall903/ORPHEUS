@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "script-local-velocity-edit-v1",
+  "evidence": "rust-synthetic",
+  "input": { "graph": 991, "frame": 125 },
+  "cases": [
+    {
+      "row": { "$": "STU_95A10547", "m_CFEC5F76": 1, "m_9B7A63EA": { "$": "STUConfigVarVec3", "m_value": { "X": 1.0, "Y": 2.0, "Z": 3.0 } } },
+      "vector": [1.0, 2.0, 3.0],
+      "supported": true
+    },
+    {
+      "row": { "$": "STU_748FC65A", "m_A9561CA0": 1, "m_9B7A63EA": { "$": "STUConfigVarFloat", "m_value": 5.5 } },
+      "cap": 5.5,
+      "supported": true
+    },
+    {
+      "row": { "$": "STU_748FC65A", "m_A9561CA0": 2, "m_9B7A63EA": { "$": "STUConfigVarFloat", "m_value": 5.5 } },
+      "supported": false
+    },
+    {
+      "row": { "$": "STU_748FC65A", "m_A9561CA0": 1, "m_priority": 10, "m_9B7A63EA": { "$": "STUConfigVarFloat", "m_value": 5.5 } },
+      "supported": false
+    }
+  ]
+}

@@ -7,9 +7,15 @@ const MARKER: u32 = 901;
 struct ImpulseHost {
     accepts: bool,
     attempts: Vec<(Site, u32, f64, [f64; 3])>,
+    edits: Vec<(Site, u32, Value, bool)>,
 }
 
 impl World for ImpulseHost {
+    fn edit_velocity(&mut self, site: Site, frame: u32, value: Value, cap: bool) -> bool {
+        self.edits.push((site, frame, value, cap));
+        self.accepts
+    }
+
     fn apply_velocity_impulse(
         &mut self,
         site: Site,
@@ -98,6 +104,7 @@ fn ordered_velocity_impulse_admits_both_operands_atomically() {
         let mut host = ImpulseHost {
             accepts: kind != "no_host",
             attempts: Vec::new(),
+            edits: Vec::new(),
         };
         let component = Component::start(
             Arc::new(store(vec![graph])),
@@ -146,5 +153,80 @@ fn ordered_velocity_impulse_admits_both_operands_atomically() {
             (kind == "accepted").then_some(&Value::Bool(true)),
             "{kind}",
         );
+    }
+}
+
+#[test]
+fn single_row_velocity_edits_follow_the_field_schema_on_a_synthetic_graph() {
+    let fixture: Json = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../fixtures/behavior/script-local-velocity-edit-v1.json"
+    )))
+    .unwrap();
+    let graph_id = fixture["input"]["graph"].as_u64().unwrap() as u32;
+    let frame = fixture["input"]["frame"].as_u64().unwrap() as u32;
+    for case in fixture["cases"].as_array().unwrap() {
+        let valid = case["supported"].as_bool().unwrap();
+        let nodes = vec![
+            node(
+                0,
+                "STUStatescriptEntry",
+                None,
+                json!({"m_outPlug": plug(&[(3, "m_inPlug")], &[])}),
+            ),
+            node(
+                3,
+                ACTION,
+                None,
+                json!({"m_BC5E91CF": [case["row"]], "m_outPlug": plug(&[(4, "m_inPlug")], &[])}),
+            ),
+            node(
+                4,
+                "STUStatescriptActionSetVar",
+                None,
+                json!({"m_out_Var":var(MARKER,true),"m_value":true}),
+            ),
+        ];
+        let mut host = ImpulseHost {
+            accepts: true,
+            attempts: Vec::new(),
+            edits: Vec::new(),
+        };
+        let mut test_graph = graph(graph_id, nodes, json!([]), json!([0]));
+        test_graph["items"] = json!(5);
+        test_graph["nodes"][1]["fields"]["m_ADEB6E05"] = json!(true);
+        let component = Component::start(
+            Arc::new(store(vec![test_graph])),
+            OWNER,
+            Variables::new(),
+            vec![Root::new(1, graph_id)],
+            frame,
+            &mut host,
+            MAX_INIT_WORK,
+        )
+        .unwrap();
+        let snapshot = component.snapshot().unwrap();
+        assert_eq!(
+            snapshot.initialization_complete(),
+            valid,
+            "{:?}",
+            snapshot.diagnostics
+        );
+        assert_eq!(
+            snapshot.variables.get(&MARKER),
+            valid.then_some(&Value::Bool(true))
+        );
+        assert_eq!(host.edits.len(), usize::from(valid));
+        assert!(host.attempts.is_empty());
+        if let Some((site, applied, value, cap)) = host.edits.pop() {
+            let expected = if let Some(cap) = case["cap"].as_f64() {
+                Value::Float(cap)
+            } else {
+                Value::Vector(serde_json::from_value(case["vector"].clone()).unwrap())
+            };
+            assert_eq!((site.graph, site.node, applied), (graph_id, Some(3), frame));
+            assert_eq!(cap, case["cap"].is_f64());
+            assert_eq!(value, expected);
+        }
     }
 }

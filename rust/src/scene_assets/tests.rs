@@ -728,6 +728,103 @@ fn stock_soldier_casts_biotic_field() {
 }
 
 #[test]
+#[ignore = "requires a prepared 104319 Practice Range pack"]
+fn prepared_cassidy_roll_projects_authored_animation_on_both_views() {
+    use crate::{
+        commands::Command,
+        game_replication::BodyStep,
+        script_init::StateKind,
+        script_snapshot_wire::View,
+        script_stream::{BodyStream, ChangeKey, DeltaKind},
+    };
+
+    let runtime = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+    let assets = SceneAssets::load(runtime).unwrap();
+    let scene = assets.prepare(GameMap::practice_range()).unwrap();
+    let hero = scene.heroes().find_hero("Cassidy").unwrap();
+    let mut mover = scene.player_spawn_mover(hero.body, 0).unwrap();
+    let spawn = OwnerBodySpawn {
+        slot: 0,
+        controller: 0xa000_0100,
+        entity: 0xa000_0101,
+        body_filter: team_bit(0).unwrap(),
+        frame: FIRST_TICK,
+        pose: mover.pose(),
+        eye_position: script_eye_position(hero.guid, &mover),
+        skin: 0,
+        quanta: RETAIL_QUANTA,
+    };
+    let mut owner = scene.owner_body_runtime(hero, spawn).unwrap().unwrap();
+    let mut streams = [View::Owner, View::Observer].map(|view| {
+        let encoder = owner.encoder();
+        let before = encoder.project(owner.snapshot().unwrap(), view).unwrap();
+        let mut stream = BodyStream::new(spawn.entity);
+        stream.create_arrived();
+        let base = encoder.queue_full(&mut stream, &before).unwrap();
+        assert!(stream.arrived(base.last).advanced);
+        (view, stream, false)
+    });
+    let mut saw_motion = false;
+    for step in 1..=95 {
+        let command = Command {
+            frame: FIRST_TICK + step,
+            buttons: if step == 50 { 8 } else { 0 },
+            ..Default::default()
+        };
+        mover
+            .step(scene.movement_index(), command, 0.016, |mover, command| {
+                owner.advance(command, mover, BodyStep::Posed).unwrap();
+                for (frame, change) in owner.take_velocity_changes() {
+                    saw_motion = true;
+                    mover.queue_velocity_change(frame, change);
+                }
+                mover.track_modifiers(command.frame, owner.movement_modifiers().unwrap());
+            })
+            .unwrap();
+        let snapshot = owner.snapshot().unwrap();
+        assert!(
+            snapshot.initialization_complete(),
+            "step {step}: {:?}",
+            snapshot.diagnostics
+        );
+        let (&instance, roll) = snapshot
+            .instances
+            .iter()
+            .find(|(_, row)| row.graph == 0x01f0)
+            .unwrap();
+        if !roll
+            .states
+            .get(&4)
+            .is_some_and(|state| state.active && state.kind == StateKind::Anim)
+        {
+            continue;
+        }
+        let encoder = owner.encoder();
+        for (view, stream, seen) in &mut streams {
+            if *seen {
+                continue;
+            }
+            let projected = encoder
+                .project_next(snapshot, stream.base().unwrap().1)
+                .unwrap();
+            let kind = match view {
+                View::Owner => DeltaKind::InitialOwner(command.frame),
+                View::Observer => DeltaKind::Observer { resend: true },
+            };
+            let update = encoder
+                .queue_delta(stream, &projected, kind, 16)
+                .unwrap()
+                .unwrap();
+            assert!(stream.touched().contains(&ChangeKey::State(instance, 4)));
+            assert!(stream.arrived(update.last).advanced);
+            *seen = true;
+        }
+    }
+    assert!(saw_motion);
+    assert!(streams.iter().all(|(_, _, seen)| *seen));
+}
+
+#[test]
 #[ignore = "requires a tagged 104319 Practice Range pack"]
 fn stock_soldier_quick_melee_runs_and_projects_on_owner_and_observer_streams() {
     use crate::{
