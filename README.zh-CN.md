@@ -73,7 +73,7 @@ return {
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
-python scripts/runtime.py check "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+python scripts/runtime.py check
 ```
 
 在构建命令后追加 `--inputs <目录>` 可复用已有的授权输入，追加 `--output <目录>` 可指定新的输出位置。已有运行包可以在受支持的服务端平台上校验，无需安装游戏。

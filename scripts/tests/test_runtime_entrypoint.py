@@ -160,6 +160,14 @@ class RuntimeEntrypointTest(unittest.TestCase):
         self.native.assert_called_once_with("orpheus_server", "--runtime", self.dest, "--check-runtime-graphs")
         self.generate.assert_not_called()
 
+    def test_check_defaults_to_the_normal_install_directory(self):
+        default_pack = self.root / "ORPHEUS/runtime-104319"
+        write_pack(default_pack)
+        with patch.object(runtime.os, "environ", {"LOCALAPPDATA": str(self.root)}), redirect_stdout(io.StringIO()):
+            runtime.main(["check"])
+        self.native.assert_called_once_with("orpheus_server", "--runtime", default_pack, "--check-runtime-graphs")
+        self.generate.assert_not_called()
+
     def test_generator_failure_is_not_published(self):
         self.inputs()
         self.generate.side_effect = OSError("synthetic extractor failure")

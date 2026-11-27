@@ -73,7 +73,7 @@ Use your local **1.74.0.0.104319** installation to prepare a private Practice Ra
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
-python scripts/runtime.py check "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+python scripts/runtime.py check
 ```
 
 To reuse authorized prepared inputs or choose a new output directory, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation.

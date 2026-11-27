@@ -193,13 +193,15 @@ def main(argv=None):
            Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))) / "ORPHEUS"
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="command", required=True)
+    default_pack = app / "runtime-104319"
     create = subs.add_parser("build", help="generate from a local Overwatch installation")
     create.add_argument("game", type=Path)
-    create.add_argument("--output", type=Path, default=app / "runtime-104319")
+    create.add_argument("--output", type=Path, default=default_pack)
     create.add_argument("--inputs", type=Path, default=Path(os.environ.get("ORPHEUS_RUNTIME_SOURCE", app / "inputs-104319")))
     create.add_argument("--cache", type=Path, default=app / "build-cache")
     verify = subs.add_parser("check", help="verify an existing runtime without starting the server")
-    verify.add_argument("pack", type=Path)
+    verify.add_argument("pack", type=Path, nargs="?", default=default_pack,
+                        help="runtime directory (default: the build output directory)")
     args = parser.parse_args(argv)
     try:
         if args.command == "check":

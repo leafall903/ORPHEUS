@@ -8,7 +8,7 @@ Run the preparation command from the repository root on Windows. Supply the dire
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
-python scripts/runtime.py check "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+python scripts/runtime.py check
 ```
 
 For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK and the x64 .NET 6 runtime. The first build fetches pinned open-source tools and their build dependencies. It reads game data locally. [Extraction tool setup](../scripts/runtime_tools.py)
@@ -27,7 +27,7 @@ Verification checks the stock graph loader and reports unresolved graph referenc
 
 If preparation reports missing inputs, supply the listed files in the inputs directory and rerun the same command. Protocol schemas, templates, StateScript codecs, Battle.net descriptors and the private content and signing inputs require separate local preparation. The installer derives Practice Range rules from the local mode, hero and schema records. A prepared graph or a supplied `mode-rulesets.json` can provide existing profiles. The provenance tables below list the input filenames.
 
-On a supported server platform, use `python scripts/runtime.py check <pack>` with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
+On a supported server platform, use `python scripts/runtime.py check` for the default pack or `python scripts/runtime.py check <pack>` for a custom output with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
 
 On a build using only the seven supplemental files and the retail installation, the
 server loaded 606 graphs, 32 tagged bodies, 1,309 stock attachments and 985 Practice

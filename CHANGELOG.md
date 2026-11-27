@@ -7,6 +7,7 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Add `scripts/runtime.py build` and `check` for private 104319 runtimes. Setup caches local
   Practice Range data and stock model attachments. Verification checks manifest hashes,
   gameplay graph data, and native server preflight before publishing a pack.
+  The check command defaults to the same directory as the build command.
   Repacking preserves emote timing, scalar tracks, greeting durations, and StateScript labels.
   A local 104319 build using the seven supplemental inputs produced 606 graphs,
   32 tagged hero bodies, 1,309 stock model attachments and 985 Practice Range rules.
