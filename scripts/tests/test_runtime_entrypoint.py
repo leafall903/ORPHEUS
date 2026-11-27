@@ -28,12 +28,18 @@ def manifest(root):
     }), encoding="utf-8")
 
 
-def write_pack(folder):
+def write_pack(folder, *, stock_models=True):
     target = folder / GRAPH
     target.parent.mkdir(parents=True)
     graph = "0x058000000000002A"
     teams = {str(team): {"body": graph, "controller": graph} for team in (0, 1)}
     body = {"target_tags": ["0x0D60000000000001"]}
+    if stock_models:
+        body["model_hardpoints"] = [{
+            "skin": "0x0000000000000000",
+            "reference_positions": {"0x0DC0000000000042": [0, 1, 0]},
+            "reference_bones": [[1, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]]],
+        }]
     bundle = {
         "version": 1, "graphs": [{"index": 42}],
         "mode_scripts": {PRACTICE_MODE: {"graph": graph, "teams": teams}},
@@ -160,6 +166,19 @@ class RuntimeEntrypointTest(unittest.TestCase):
         self.native.assert_called_once_with("orpheus_server", "--runtime", self.dest, "--check-runtime-graphs")
         self.generate.assert_not_called()
 
+    def test_existing_legacy_pack_reports_missing_models_without_being_overwritten(self):
+        write_pack(self.dest, stock_models=False)
+        before = (self.dest / GRAPH).read_bytes()
+        output = io.StringIO()
+        with redirect_stdout(output):
+            runtime.main(["check", str(self.dest)])
+        self.assertIn("Missing stock model", output.getvalue())
+        self.assertIn("0x0400000000000001", output.getvalue())
+        self.assertIn("--inputs", output.getvalue())
+        self.build(failure="Missing stock model")
+        self.generate.assert_not_called()
+        self.assertEqual((self.dest / GRAPH).read_bytes(), before)
+
     def test_check_defaults_to_the_normal_install_directory(self):
         default_pack = self.root / "ORPHEUS/runtime-104319"
         write_pack(default_pack)
@@ -206,13 +225,14 @@ class RuntimeEntrypointTest(unittest.TestCase):
 
     def test_failed_final_verification_is_not_published(self):
         self.inputs()
-        for fail_at in ("packer", "hash", "server"):
+        for fail_at, error in [("packer", "packer failed"), ("hash", "SHA-256 mismatch"),
+                               ("models", "Missing stock model"), ("server", "server failed")]:
             with self.subTest(fail_at=fail_at):
                 def native(binary, *args):
                     self.assertFalse(self.dest.exists())
                     if binary == "prepare_server_runtime":
                         pack = args[args.index("--destination") + 1]
-                        write_pack(pack)
+                        write_pack(pack, stock_models=fail_at != "models")
                         if fail_at == "packer":
                             raise OSError("packer failed")
                         if fail_at == "hash":
@@ -223,7 +243,7 @@ class RuntimeEntrypointTest(unittest.TestCase):
                         self.fail(f"unexpected invocation of {binary}")
 
                 self.native.side_effect = native
-                self.build(failure="SHA-256 mismatch" if fail_at == "hash" else f"{fail_at} failed")
+                self.build(failure=error)
                 self.assert_not_published()
 
     def test_output_is_published_by_rename_only_after_verification(self):

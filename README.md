@@ -76,7 +76,7 @@ python scripts/runtime.py build "C:\Games\Overwatch"
 python scripts/runtime.py check
 ```
 
-To reuse authorized prepared inputs or choose a new output directory, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation.
+To reuse authorized prepared inputs or choose a new output directory, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation. The check reports stock-model coverage and how to rebuild an older pack.
 
 Once the pack passes, the Windows launcher builds the server with the inspector and Lua mod support, opens the 3D viewer at `http://127.0.0.1:3726/` and stores player state under `%LOCALAPPDATA%\ORPHEUS\state`.
 

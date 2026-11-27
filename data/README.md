@@ -19,7 +19,7 @@ For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK
 | `%LOCALAPPDATA%\ORPHEUS\build-cache` | Public extraction tools and reusable private exports |
 | `%LOCALAPPDATA%\ORPHEUS\runtime-104319` | Finished pack, published after verification |
 
-Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
+Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. The check reports missing stock attachment positions or bone transforms by body ID. A legacy pack can still pass server preflight. To fill its model data, pass that pack as `--inputs` and choose a new `--output`. The build command requires all 32 default models before reporting success. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
 
 The extraction path targets Practice Range and the 32 default hero models. For each stock skin the builder requires both hardpoint positions and reference-pose bone transforms. It reports the specific body if either inventory is missing. Supply existing authorized inputs for additional maps. Keep exports, game files and the finished pack private. [Model anchor exporter](../scripts/tools/model_anchors/README.md)
 

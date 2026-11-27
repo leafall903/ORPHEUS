@@ -53,10 +53,10 @@ def native(binary, *args):
     subprocess.run([*command, *map(str, args)], cwd=ROOT, check=True)
 
 
-def check(pack):
-    validate_pack(pack)
+def check(pack, *, require_stock_models=False):
+    validate_pack(pack, require_stock_models=require_stock_models)
     native("orpheus_server", "--runtime", pack.resolve(), "--check-runtime-graphs")
-    print(f"Verified build {VERSION}, manifest hashes and Practice Range data: {pack}", flush=True)
+    print(f"Verified build {VERSION}, manifest hashes and Practice Range startup data: {pack}", flush=True)
 
 
 def link_input(source, target):
@@ -135,7 +135,7 @@ def build(game, dest, source, cache):
     outside(source, (cache,))
     if dest.exists():
         print("Checking the existing destination. To generate another pack, choose a new --output.", flush=True)
-        check(dest)
+        check(dest, require_stock_models=True)
         return
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".orpheus-build-", dir=dest.parent) as scratch:
@@ -174,13 +174,13 @@ def build(game, dest, source, cache):
                              f"in {source} and rerun:\n  " + "\n  ".join(missing))
         pack = staging / "runtime"
         native("prepare_server_runtime", "--source", view, "--destination", pack, *pack_args)
-        check(pack)
+        check(pack, require_stock_models=True)
         try:
             pack.rename(dest)
         except OSError:
             if not dest.is_dir():
                 raise
-            check(dest)
+            check(dest, require_stock_models=True)
             return
     print(f"Installed verified runtime: {dest}", flush=True)
 

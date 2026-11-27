@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Report missing stock model transforms when checking an older 104319 runtime.
+  The build command now requires model data for all 32 default heroes before
+  accepting a new or existing output. The check prints the recovery command.
+  The Windows extractor now preserves empty values in inherited Git settings.
+
 - Preserve Unicode letters and digits when looking up heroes by name.
   Localized 104319 catalogs now support distinct names and unambiguous prefixes.
 

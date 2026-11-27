@@ -16,10 +16,15 @@ def stock_model_issue(bodies):
     """Generation requires both kinds of reference data on every stock skin."""
     if len(bodies) != 32:
         return f"Expected 32 stock 104319 hero bodies, found {len(bodies)}"
-    missing = [key for key, body in bodies.items() if not any(
-        row.get("skin") == "0x0000000000000000" and row.get("reference_positions") and row.get("reference_bones")
-        for row in body.get("model_hardpoints", [])
-    )]
+    missing = []
+    for key, body in bodies.items():
+        rows = body.get("model_hardpoints") if isinstance(body, dict) else None
+        if not isinstance(rows, list) or not any(
+            isinstance(row, dict) and row.get("skin") == "0x0000000000000000"
+            and row.get("reference_positions") and row.get("reference_bones")
+            for row in rows
+        ):
+            missing.append(key)
     if missing:
         return "Missing stock model attachment positions or bone transforms for " + ", ".join(sorted(missing))
     return None
@@ -159,8 +164,8 @@ def _check_graphs(bundle):
         print("Referenced graphs absent from this bundle: " + ", ".join(f"{index:04X}" for index in missing))
 
 
-def validate_pack(path: Path) -> None:
-    """Validate listed digests and the gameplay graph data the file preflight cannot inspect."""
+def validate_pack(path: Path, *, require_stock_models: bool = False) -> None:
+    """Verify the runtime and report stock model coverage for gameplay."""
     try:
         root = Path(path).resolve(strict=True)
         entries = verify_manifest(root)
@@ -168,6 +173,17 @@ def validate_pack(path: Path) -> None:
             raise ValueError(f"manifest SHA-256 inventory must include {GRAPH}")
         _check_payload_inventory(root, entries)
         with gzip.open(_pack_file(root, GRAPH), "rt", encoding="utf-8") as source:
-            _check_graphs(json.load(source))
+            graph = json.load(source)
+        _check_graphs(graph)
+        model_issue = stock_model_issue(graph["bodies"])
     except (OSError, EOFError, RuntimeError, zlib.error) as error:
         raise ValueError(f"runtime validation failed: {error}") from error
+
+    if model_issue:
+        message = (f"{model_issue}\nRebuild from the installation with the old pack as input:\n"
+                   '  python scripts/runtime.py build "<OW1 folder>" --inputs "<old pack>" --output "<new directory>"')
+        if require_stock_models:
+            raise ValueError(message)
+        print(message, flush=True)
+    else:
+        print("Stock model attachments and bone transforms: all 32 default hero models present.", flush=True)

@@ -76,7 +76,7 @@ python scripts/runtime.py build "C:\Games\Overwatch"
 python scripts/runtime.py check
 ```
 
-在构建命令后追加 `--inputs <目录>` 可复用已有的授权输入，追加 `--output <目录>` 可指定新的输出位置。已有运行包可以在受支持的服务端平台上校验，无需安装游戏。
+在构建命令后追加 `--inputs <目录>` 可复用已有的授权输入，追加 `--output <目录>` 可指定新的输出位置。已有运行包可以在受支持的服务端平台上校验，无需安装游戏。校验会列出缺少骨骼或挂点数据的模型，并给出补生成命令。
 
 运行包校验通过后，Windows 启动脚本会编译带调试器和 Lua Mod 支持的服务端，启动 `http://127.0.0.1:3726/` 上的 3D 查看器，并将玩家存档保存在 `%LOCALAPPDATA%\ORPHEUS\state`。
 

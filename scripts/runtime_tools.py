@@ -49,7 +49,9 @@ def _msbuild_environment() -> dict[str, str]:
 def _git(folder: Path, *args: str) -> str:
     return subprocess.check_output(
         [_program("git"), "--no-optional-locks", "-C", str(folder), *args],
-        text=True, encoding="utf-8",
+        # Windows may drop empty Git config values from the process environment
+        # when it is restored. Pass the complete key/value block to the child.
+        env=os.environ.copy(), text=True, encoding="utf-8",
     ).strip()
 
 
