@@ -67,18 +67,25 @@ Type `reload` + Enter in the server console at any time to hot-reload your Lua m
 
 ---
 
-## Run the Native Server (One-Click Unified Launcher)
+## Prepare a runtime and run the native server
 
-Starting the native server requires a single unified **1.74.0.0.104319** runtime pack sourced strictly from your own local game files (never commit game clients, commercial assets, or keys). When building a pack from scratch, make sure `data/game_graphs_174.json.gz` includes `--mode-xml` (`0C5` mode scripts/variables), `--target-tags-xml` (`003` hero/entity tags), and `--mode-rulesets` — `--check-runtime` alone does not catch missing mode data or hero `target_tags`. See [data/README.md](data/README.md) for the complete packing command and verification checklist.
+Use your local **1.74.0.0.104319** installation to prepare a private Practice Range pack on Windows. Separately supply the required research tables, protocol descriptors and private signing inputs. The build command lists anything missing and caches completed extraction stages for the next run. The runtime guide lists the prerequisites and inputs. [Runtime data guide](data/README.md)
 
-Use the unified launcher to pack (if `-SourceDir` is supplied), build `orpheus_server` (`inspector` + `lua-mods`), run `--check-runtime`, start the Web 3D Viewer on `http://127.0.0.1:3726/`, and launch with persistent saves (`%LOCALAPPDATA%\ORPHEUS\state`):
+```powershell
+python scripts/runtime.py build "C:\Games\Overwatch"
+python scripts/runtime.py check "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+```
+
+To reuse authorized prepared inputs or choose a new output directory, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation.
+
+Once the pack passes, the Windows launcher builds the server with the inspector and Lua mod support, opens the 3D viewer at `http://127.0.0.1:3726/` and stores player state under `%LOCALAPPDATA%\ORPHEUS\state`.
 
 ```powershell
 # Double-click scripts\PLAY_ORPHEUS.cmd, or run:
-powershell -ExecutionPolicy Bypass -File scripts\setup_and_play.ps1 -RuntimeDir 'C:\path\to\orpheus-runtime-104319'
+pwsh -File scripts\setup_and_play.ps1 -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
 
 # Launch with the ABI v2 Workshop Mod + Web 3D Viewer:
-powershell -ExecutionPolicy Bypass -File scripts\setup_and_play.ps1 -RuntimeDir 'C:\path\to\orpheus-runtime-104319' -ModScript rust\scripts\mods\dance_party_workshop.lua
+pwsh -File scripts\setup_and_play.ps1 -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
 ```
 
 ---

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DataTool;TankLib;TACTLib;SharpDX.Mathematics">
+      <HintPath>$(DataToolDir)/%(Identity).dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="RequireDataTool" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(DataToolDir)/DataTool.dll')" Text="Set DataToolDir to a built build-104319-compatible DataTool directory."/>
+  </Target>
+</Project>

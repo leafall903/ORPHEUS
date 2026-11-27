@@ -83,6 +83,15 @@ fn check_runtime_checks_signing_length_without_reading_runtime_payloads() {
             .unwrap()
             .contains("Runtime file presence and signing input length checks passed.")
     );
+    let graphs = Command::new(env!("CARGO_BIN_EXE_orpheus_server"))
+        .args(["--check-runtime-graphs", "--runtime"])
+        .arg(root)
+        .output()
+        .unwrap();
+    assert!(
+        !graphs.status.success(),
+        "an empty graph bundle passed the graph loader"
+    );
 }
 
 #[test]

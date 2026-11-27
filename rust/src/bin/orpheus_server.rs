@@ -10,6 +10,7 @@ const USAGE: &str = "Usage: orpheus_server --data-dir <directory> [--runtime <di
        [--stall-port <port>] [--rpc-port <port>] [--debug-port <port>] [--debug-control]
        [--junkenstein-validation <local-json>] [--ai-script <lua-file>] [--mod-script <lua-file>]
        orpheus_server --check-runtime [--runtime <directory>]
+       orpheus_server --check-runtime-graphs [--runtime <directory>]
 
 The native 1.74 server listens on loopback. Use an authorized base runtime
 directory or set ORPHEUS_RUNTIME_DIR. --check-runtime lists missing inputs
@@ -37,6 +38,7 @@ fn main() -> ExitCode {
 fn run() -> io::Result<()> {
     let mut args = env::args_os().skip(1);
     let mut check_runtime = false;
+    let mut check_graphs = false;
     let mut config = ServerConfig::new(
         env::var_os("ORPHEUS_RUNTIME_DIR").map_or_else(PathBuf::new, PathBuf::from),
         PathBuf::new(),
@@ -46,8 +48,9 @@ fn run() -> io::Result<()> {
             println!("{USAGE}");
             return Ok(());
         }
-        if arg == "--check-runtime" {
+        if arg == "--check-runtime" || arg == "--check-runtime-graphs" {
             check_runtime = true;
+            check_graphs |= arg == "--check-runtime-graphs";
             continue;
         }
         if arg == "--debug-control" {
@@ -112,6 +115,12 @@ fn run() -> io::Result<()> {
     }
     if check_runtime {
         check_practice_runtime(&config.runtime)?;
+        if check_graphs {
+            orpheus::script_graph::GraphStore::load(
+                config.runtime.join("data/game_graphs_174.json.gz"),
+            )?;
+            println!("StateScript graph loader accepted the runtime bundle.");
+        }
         println!("Runtime file presence and signing input length checks passed.");
         return Ok(());
     }

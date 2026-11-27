@@ -7,8 +7,9 @@
     "body": "0x0400000000007062",
     "hardpoint": "0x0DC0000000007134",
     "model_hardpoints": [
-      {"skin": "0x0000000000000000", "hardpoints": ["0x0DC0000000007134"]},
-      {"skin": "0x0A50000000007135", "hardpoints": []}
+      {"skin": "0x0000000000000000", "hardpoints": ["0x0DC0000000007134"],
+       "reference_positions": {"0x0DC0000000007134": [0.25, 0.75, -0.5]}},
+      {"skin": "0x0A50000000007135", "hardpoints": [], "reference_positions": {}}
     ],
     "selections": ["0x0000000000000000", "0x0A50000000007135", "0x0A50000000007136"]
   },

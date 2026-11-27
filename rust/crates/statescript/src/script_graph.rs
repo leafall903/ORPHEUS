@@ -1495,6 +1495,10 @@ pub struct Body {
 impl Body {
     /// Complete authored launch-model inventory for the exact skin. Skin zero is stock.
     pub fn model_hardpoints(&self, skin: u64) -> Option<Arc<BTreeSet<u64>>> {
+        Some(Arc::clone(&self.model_hardpoints.get(&skin)?.ids))
+    }
+
+    pub fn model_geometry(&self, skin: u64) -> Option<Arc<ModelHardpoints>> {
         self.model_hardpoints.get(&skin).cloned()
     }
 
@@ -2579,6 +2583,7 @@ fn rule_value(value: RuleValue) -> crate::script_wire::Value {
         RuleValue::Bool(value) => Value::Bool(value),
         RuleValue::Integer(value) => Value::Integer(value),
         RuleValue::Float(value) => Value::Float(value),
+        RuleValue::Asset(value) => Value::Asset(value),
     }
 }
 
@@ -2614,20 +2619,43 @@ fn body_target_tags<'de, D: serde::Deserializer<'de>>(
         .transpose()
 }
 
-type ModelHardpointsBySkin = BTreeMap<u64, Arc<BTreeSet<u64>>>;
+type ModelHardpointsBySkin = BTreeMap<u64, Arc<ModelHardpoints>>;
+
+#[derive(Debug, Default)]
+pub struct ModelHardpoints {
+    ids: Arc<BTreeSet<u64>>,
+    reference_positions: Option<BTreeMap<u64, [f64; 3]>>,
+}
+
+impl ModelHardpoints {
+    pub fn contains(&self, id: &u64) -> bool {
+        self.ids.contains(id)
+    }
+
+    /// Model-space position after applying the bone hierarchy in its reference pose.
+    pub fn reference_position(&self, id: u64) -> Option<[f64; 3]> {
+        self.reference_positions.as_ref()?.get(&id).copied()
+    }
+
+    pub fn has_reference_positions(&self) -> bool {
+        self.reference_positions.is_some()
+    }
+}
 
 fn body_model_hardpoints<'de, D: serde::Deserializer<'de>>(
     decoder: D,
 ) -> Result<ModelHardpointsBySkin, D::Error> {
     #[derive(Deserialize)]
     #[serde(deny_unknown_fields)]
-    struct ModelHardpoints {
+    struct ModelEntry {
         skin: Value,
         hardpoints: Vec<Value>,
+        #[serde(default)]
+        reference_positions: Option<BTreeMap<String, [f64; 3]>>,
     }
 
     let mut by_skin = BTreeMap::new();
-    for entry in Vec::<ModelHardpoints>::deserialize(decoder)? {
+    for entry in Vec::<ModelEntry>::deserialize(decoder)? {
         let skin = asset_guid(&entry.skin)
             .ok_or_else(|| serde::de::Error::custom("model skin must be a canonical GUID"))?;
         let hardpoints = entry
@@ -2641,7 +2669,34 @@ fn body_model_hardpoints<'de, D: serde::Deserializer<'de>>(
                     })
             })
             .collect::<Result<BTreeSet<_>, D::Error>>()?;
-        if by_skin.insert(skin, Arc::new(hardpoints)).is_some() {
+        let reference_positions = entry
+            .reference_positions
+            .map(|entries| -> Result<_, D::Error> {
+                let mut positions = BTreeMap::new();
+                for (key, position) in entries {
+                    let id = asset_guid(&Value::String(key))
+                        .filter(|id| hardpoints.contains(id))
+                        .ok_or_else(|| {
+                            serde::de::Error::custom(
+                                "reference position names an unknown hardpoint",
+                            )
+                        })?;
+                    if !position.iter().all(|axis| axis.is_finite())
+                        || positions.insert(id, position).is_some()
+                    {
+                        return Err(serde::de::Error::custom(
+                            "invalid or repeated hardpoint position",
+                        ));
+                    }
+                }
+                Ok(positions)
+            })
+            .transpose()?;
+        let geometry = ModelHardpoints {
+            ids: Arc::new(hardpoints),
+            reference_positions,
+        };
+        if by_skin.insert(skin, Arc::new(geometry)).is_some() {
             return Err(serde::de::Error::custom("duplicate model skin"));
         }
     }
@@ -3223,6 +3278,8 @@ mod tests {
             json!([{"mode": mode, "rules": [{"id": 7, "body": "BA", "value": 12}]}]),
             json!([{"mode": mode, "rules": [{"id": 7, "body": "0x0000000000000000", "value": 12}]}]),
             json!([{"mode": mode, "rules": [{"id": 7, "value": [1]}]}]),
+            json!([{"mode": mode, "rules": [{"id": 7, "value": "0x0000000000000000"}]}]),
+            json!([{"mode": mode, "rules": [{"id": 7, "value": "bad"}]}]),
             json!([{"mode": mode, "rules": [{"id": 7, "value": u64::MAX}]}]),
             json!([{"mode": mode, "rules": [{"id": 7}]}]),
             json!([{"mode": mode, "rules": [{"id": 7, "value": 1, "boddy": body}]}]),
@@ -3394,7 +3451,8 @@ mod tests {
 
         data["bodies"][&body]["model_hardpoints"] = json!([
             {"skin": "0x0000000000000000", "hardpoints": []},
-            {"skin": "0x0A6000000000002A", "hardpoints": ["0x0DC0000000000042"]},
+            {"skin": "0x0A6000000000002A", "hardpoints": ["0x0DC0000000000042"],
+             "reference_positions":{"0x0DC0000000000042":[0.4, 0.75, -0.2]}},
         ]);
         let parsed = load(&data).unwrap();
         let definition = &parsed.bodies()[&BODY];
@@ -3404,6 +3462,19 @@ mod tests {
             BTreeSet::from([HARDPOINT])
         );
         assert!(definition.model_hardpoints(SKIN + 1).is_none());
+        assert!(
+            !definition
+                .model_geometry(0)
+                .unwrap()
+                .has_reference_positions()
+        );
+        assert_eq!(
+            definition
+                .model_geometry(SKIN)
+                .unwrap()
+                .reference_position(HARDPOINT),
+            Some([0.4, 0.75, -0.2])
+        );
 
         for invalid in [
             json!([
@@ -3413,6 +3484,8 @@ mod tests {
             json!([{"skin": "0x0A6000000000002A", "hardpoints": ["0x0400000000000042"]}]),
             json!([{"skin": "0x0A6000000000002A", "hardpoints": ["0x0DC0000000000000"]}]),
             json!([{"skin": "0xINVALID", "hardpoints": []}]),
+            json!([{"skin":"0x0000000000000000","hardpoints":[],
+                    "reference_positions":{"0x0DC0000000000042":[1,2,3]}}]),
         ] {
             data["bodies"][&body]["model_hardpoints"] = invalid;
             assert_eq!(load(&data).unwrap_err().kind(), io::ErrorKind::InvalidData);

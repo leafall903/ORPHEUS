@@ -4,6 +4,7 @@ import argparse
 import gzip
 import io
 import json
+import math
 from pathlib import Path, PurePosixPath
 import re
 from zipfile import BadZipFile, ZipFile
@@ -205,6 +206,93 @@ def asset_textures(path):
     return assets
 
 
+def guid_key(value, kind=None):
+    if not isinstance(value, str) or not re.fullmatch(r"0x[0-9A-Fa-f]{16}", value):
+        raise ValueError(f"expected canonical GUID, got {value!r}")
+    number = int(value, 16)
+    if kind is not None and (number >> 48 != kind or (number & 0xFFFFFFFFFFFF) == 0):
+        raise ValueError(f"unexpected resource type or empty ID in {value}")
+    return f"0x{number:016X}"
+
+
+def unique_entries(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate key {key!r}")
+        result[key] = value
+    return result
+
+
+def point_ids(row):
+    values = row["hardpoints"]
+    if not isinstance(values, list):
+        raise ValueError("expected model hardpoint inventory list")
+    return unique_entries((guid_key(value, 0x0DC0), None) for value in values).keys()
+
+
+def point_positions(values, inventory):
+    if not isinstance(values, dict):
+        raise ValueError("expected reference_positions object")
+    positions = unique_entries((guid_key(key, 0x0DC0), pos) for key, pos in values.items())
+    for key, pos in positions.items():
+        if key not in inventory:
+            raise ValueError(f"position absent from model inventory: {key}")
+        if not isinstance(pos, list) or len(pos) != 3 or not all(
+            type(axis) in (float, int) and math.isfinite(axis) for axis in pos
+        ):
+            raise ValueError(f"expected three finite coordinates for {key}")
+    return positions
+
+
+def import_model_hardpoints(bundle, path):
+    with path.open(encoding="utf-8-sig") as source:
+        export = json.load(source, object_pairs_hook=unique_entries)
+    if (
+        not isinstance(export, dict)
+        or export.get("build") != 104319
+        or not isinstance(export.get("bodies"), dict)
+    ):
+        raise ValueError("expected a build 104319 model hardpoint export")
+    if not isinstance(bundle.get("bodies"), dict):
+        raise ValueError("expected a model body table in the prepared graph bundle")
+    bodies = unique_entries((guid_key(key, 0x0400), body) for key, body in bundle["bodies"].items())
+    supplied = unique_entries((guid_key(key, 0x0400), rows) for key, rows in export["bodies"].items())
+    count = 0
+    for body, rows in supplied.items():
+        if not isinstance(bodies.get(body), dict) or not isinstance(rows, list) or not rows:
+            raise ValueError(f"unknown body or missing model rows: {body}")
+        models = bodies[body].setdefault("model_hardpoints", [])
+        if not isinstance(models, list):
+            raise ValueError(f"invalid model inventory for {body}")
+        by_skin = unique_entries((guid_key(row["skin"]), row) for row in models)
+        incoming = unique_entries((guid_key(row["skin"]), row) for row in rows)
+        for skin, row in incoming.items():
+            ids = point_ids(row)
+            positions = point_positions(row["reference_positions"], ids)
+            if not positions:
+                raise ValueError(f"missing model reference positions for {body}/{skin}")
+            if skin not in by_skin:
+                models.append({
+                    "skin": skin, "hardpoints": sorted(ids), "reference_positions": positions,
+                })
+            else:
+                model = by_skin[skin]
+                if point_ids(model) != ids:
+                    raise ValueError(f"conflicting model inventory for {body}/{skin}")
+                saved = model.setdefault("reference_positions", {})
+                previous = point_positions(saved, ids)
+                for key, pos in positions.items():
+                    if key not in previous:
+                        saved[key] = pos
+                    elif previous[key] != pos:
+                        raise ValueError(f"conflicting reference position for {body}/{skin}/{key}")
+            count += len(positions)
+    if count == 0:
+        raise ValueError("model export contains no positioned hardpoints")
+    return count
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--graph-bundle", type=Path, required=True, help="version 1 gzip graph bundle")
@@ -219,10 +307,14 @@ def main():
     )
     parser.add_argument("--asset-categories", type=Path, help="local 104319 asset category catalog")
     parser.add_argument("--asset-textures", type=Path, help="local 104319 action-to-texture catalog")
+    parser.add_argument(
+        "--model-hardpoints", type=Path,
+        help="local 104319 model inventory and model-space reference positions by body and skin",
+    )
     parser.add_argument("--output", type=Path, required=True, help="new private gzip bundle")
     args = parser.parse_args()
-    if not (args.evidence or args.directed_numeric_message or args.asset_categories or args.asset_textures):
-        parser.error("provide --evidence, --directed-numeric-message, --asset-categories, or --asset-textures")
+    if not (args.evidence or args.directed_numeric_message or args.asset_categories or args.asset_textures or args.model_hardpoints):
+        parser.error("provide --evidence, --directed-numeric-message, --asset-categories, --asset-textures, or --model-hardpoints")
 
     try:
         with gzip.open(args.graph_bundle, "rt", encoding="utf-8") as source:
@@ -258,8 +350,10 @@ def main():
             if "asset_textures" in bundle:
                 raise ValueError("cannot replace existing asset texture metadata")
             bundle["asset_textures"] = asset_textures(args.asset_textures)
+        if args.model_hardpoints is not None:
+            positioned = import_model_hardpoints(bundle, args.model_hardpoints)
         write_bundle(args.output, bundle)
-    except (OSError, ValueError, KeyError, TypeError, BadZipFile) as error:
+    except (OSError, ValueError, KeyError, TypeError, OverflowError, BadZipFile) as error:
         parser.error(str(error))
 
     if args.evidence is not None:
@@ -277,6 +371,8 @@ def main():
         print(f"Imported categories for {len(bundle['asset_categories'])} assets.")
     if args.asset_textures is not None:
         print(f"Imported textures for {len(bundle['asset_textures'])} actions.")
+    if args.model_hardpoints is not None:
+        print(f"Verified {positioned} model reference positions.")
 
 
 if __name__ == "__main__":

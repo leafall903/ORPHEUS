@@ -1,16 +1,45 @@
 # Runtime Data Guide (`rust`)
 
-Public Rust tests use synthetic JSON fixtures and run without game data. Starting `orpheus_server` or running `--ignored` prepared-runtime tests requires a unified **1.74.0.0.104319** runtime pack (`ORPHEUS_RUNTIME_DIR`) sourced strictly from your own local game installation.
+Public Rust tests use synthetic fixtures. The native server and its prepared-runtime tests use a private build **1.74.0.0.104319** pack with data derived from your own game installation and additional authorized local inputs.
 
-For one-click packing, preflight, and persistent-save launch, use [`scripts/setup_and_play.ps1`](../scripts/setup_and_play.ps1) (or double-click [`scripts/PLAY_ORPHEUS.cmd`](../scripts/PLAY_ORPHEUS.cmd)).
+## Build a Practice Range pack
 
-Keep extracted game assets, XML dumps, keys, and generated packs out of Git.
+Run the preparation command from the repository root on Windows. Supply the directory containing the retail `.build.info` and game data.
+
+```powershell
+python scripts/runtime.py build "C:\Games\Overwatch"
+python scripts/runtime.py check "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+```
+
+For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK and the x64 .NET 6 runtime. The first build fetches pinned open-source tools and their build dependencies. It reads game data locally. [Extraction tool setup](../scripts/runtime_tools.py)
+
+| Default Windows directory | Purpose |
+| --- | --- |
+| `%LOCALAPPDATA%\ORPHEUS\inputs-104319` | Separately prepared inputs with their normal subdirectories, including protocol schemas, descriptors and private signing inputs |
+| `%LOCALAPPDATA%\ORPHEUS\build-cache` | Public extraction tools and reusable private exports |
+| `%LOCALAPPDATA%\ORPHEUS\runtime-104319` | Finished pack, published after verification |
+
+Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
+
+The extraction path targets Practice Range and the 32 default hero models. It generates model reference skeletons and hardpoint positions locally and imports the positions into the graph bundle. Supply existing authorized inputs for additional maps. Keep exports, game files and the finished pack private. [Model anchor exporter](../scripts/tools/model_anchors/README.md)
+
+Verification checks the stock graph loader and reports unresolved graph references. The tested 104319 installation and the previous prepared pack both lack `0F9C`. A shared script references it from a message handler. The runtime can start without this graph; the handler's behavior remains unverified.
+
+If preparation reports missing inputs, supply the listed files in the inputs directory and rerun the same command. Protocol schemas, templates, StateScript codecs, Battle.net descriptors and the private content and signing inputs require separate local preparation. The installer derives Practice Range rules from the local mode, hero and schema records. A prepared graph or a supplied `mode-rulesets.json` can provide existing profiles. The provenance tables below list the input filenames.
+
+On a supported server platform, use `python scripts/runtime.py check <pack>` with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
+
+On a build using only the seven supplemental files and the retail installation, the
+server loaded 606 graphs, 32 tagged bodies, 1,309 stock attachments and 985 Practice
+Range rules. Both movement and ray collision caches were generated. This pack started
+the native server on loopback. An enriched source pack can include other maps and
+optional voice, emote and research data.
 
 ---
 
-## Preflight & Packing
+## Native preflight and manual packing
 
-Validate any existing pack before starting the server:
+To run the native preflight stage alone:
 
 ```powershell
 $env:ORPHEUS_RUNTIME_DIR = 'C:\path\to\authorized-base-runtime'
@@ -22,7 +51,7 @@ cargo run --locked --bin orpheus_server -- --check-runtime
 >
 > A bare graph bundle (e.g. ~388 graphs, `0/32` bodies with `target_tags`, no `mode_scripts`/`mode_variables`) will pass `--check-runtime` **but will reject hero spawns with StateScript initialization faults and stick clients on the "Assemble Your Team" / hero-select screen.**
 
-### Recommended Complete Pack Command
+### Manual packer for prepared source data
 
 Export `game_graphs_174.json.gz` with the `python` branch extractor (`tools/extract_game_graphs.py`) **including `--mode-xml` (`0C5` mode XMLs) and entity/bot definitions**, then pack with **`--game-graphs`**, **`--target-tags-xml` (`003` entity XMLs)**, and **`--mode-rulesets`**:
 
@@ -69,6 +98,7 @@ The packer also preserves optional enriched files present in `--source` and hash
 | `data/extracted_{items,general_unlocks,heroes,maps}.json` | `tools/prepare_client_catalogs.py` (pinned OWLib DataTool) |
 | `data/arcade_cards_174.json`, `data/game_{heroes,maps,movers,queues,stats}_174.json` | `tools/extract_*.py` from local XML exports |
 | `data/ai_spawners_174.json`, `data/game_graphs_174.json.gz` | `tools/extract_ai_spawners.py`, `tools/extract_game_graphs.py` (pass `--mode-xml` for `0C5` + `--entity` for bots/NPCs) |
+| `data/collision_props_174.json` | Local map collision-prop placements and mode filters from the gameplay extraction stage |
 | `data/collision_keys_174.json`, `collision/0688.col` (and optional `*.rays.col` / extra maps `005B`, `00D4`, `0165`, `0CD3`) | `tools/export_casc_records.ps1`, `tools/build_collision.py` |
 
 Rust uses the optional map-specific `*.rays.col` for hitscan, scripted
@@ -89,7 +119,6 @@ movement-based probes and sweeps.
 | `data/schemas_174.json`, `data/game_schemas_174.json` | 707 lobby schemas and game-link message layouts |
 | `data/statescript_codecs_174.json` | StateScript owner/observer frame field codecs |
 | `data/retail_templates.json`, `bnet/descriptors.pb` | Lobby response templates and Battle.net protobuf descriptors |
-| `data/collision_props_174.json` | Per-map prop placement keys and mode filters |
 
 ### 3. Private Local Inputs (Keep Confidential)
 
@@ -124,3 +153,24 @@ contact against the listed bodies. Movement contacts, healing and navigation kee
 their own geometry. Bodies without a calibration keep the existing
 compatibility proxy. Use local measurements for the intended body and build.
 See the [synthetic schema example](../fixtures/behavior/combat-hurt-volumes-v1.json).
+
+### Model attachment coordinates
+
+The graph bundle can carry model-space hardpoint positions for each body and skin.
+For a local 104319 model export, resolve each hardpoint's local translation through its
+parent bone's world matrix in the model's reference pose. Include the complete hardpoint
+inventory for that model. Omit a coordinate if its parent bone cannot be resolved.
+Use the stock skin key only for the stock model. A model-space reference position
+describes a static pose. Animated attachments require a bone pose for the sampled frame.
+
+To add a private export to a new graph bundle, run the following command. The input JSON
+contains `build` (104319) and `bodies`, keyed by the body-definition GUID. Each body's
+value is an array of skin records with `skin`, `hardpoints`, and `reference_positions`.
+Each position has three finite coordinates in metres. A [synthetic skin record](../fixtures/behavior/owner-model-hardpoints-v1.json)
+illustrates the shape.
+
+```powershell
+python -B scripts/build_runtime_state_metadata.py --graph-bundle .\game_graphs_174.json.gz --model-hardpoints .\local-models.json --output .\game_graphs_with_models.json.gz
+```
+
+Pass the new bundle to `prepare_server_runtime --game-graphs`. Keep measured model data in the private runtime.
