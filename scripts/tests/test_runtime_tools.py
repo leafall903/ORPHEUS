@@ -74,7 +74,7 @@ class ExtractionToolsTests(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "Windows extractor")
     def test_explicit_tools_need_no_cache_download_or_build(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp).resolve()
             reference, owlib, explicit = root / "ref", root / "src", root / "provided/DataTool.exe"
             markers = [reference / "tools/prepare_client_catalogs.py", owlib / tools.PROJECT, explicit]
             for file in markers:
