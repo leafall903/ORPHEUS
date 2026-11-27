@@ -6,14 +6,18 @@
     "hero": 207165582859068803,
     "body": "0x0400000000007062",
     "hardpoint": "0x0DC0000000007134",
+    "bone": "0x08800000000000AB",
+    "bone_local_point": [1, 2, 3],
     "model_hardpoints": [
       {"skin": "0x0000000000000000", "hardpoints": ["0x0DC0000000007134"],
-       "reference_positions": {"0x0DC0000000007134": [0.25, 0.75, -0.5]}},
+       "reference_positions": {"0x0DC0000000007134": [0.25, 0.75, -0.5]},
+       "reference_bones": [[171, [0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 2, 0, 6, 7, 8, 1]]]},
       {"skin": "0x0A50000000007135", "hardpoints": [], "reference_positions": {}}
     ],
     "selections": ["0x0000000000000000", "0x0A50000000007135", "0x0A50000000007136"]
   },
   "expected": {
+    "bone_reference_point": [4, 8, 14],
     "model_has_hardpoint": [true, false, null],
     "body_generations": [1, 2, 2]
   }

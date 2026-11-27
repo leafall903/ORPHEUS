@@ -175,6 +175,35 @@ class RuntimeEntrypointTest(unittest.TestCase):
         self.assert_not_published()
         self.native.assert_not_called()
 
+    def test_generated_stock_models_require_bones_on_every_body(self):
+        contract = json.loads((Path(__file__).resolve().parents[2]
+                               / "fixtures/behavior/owner-model-hardpoints-v1.json").read_bytes())
+        model = contract["input"]["model_hardpoints"][0].copy()
+        bones = [{"id": index, "model_reference_matrix": matrix}
+                 for index, matrix in model.pop("reference_bones")]
+        bodies = [f"0x0400{index:012X}" for index in range(1, 33)]
+        export = {"build": 104319, "units": "metres", "pose": "model reference",
+                  "matrix_convention": "row vector, row-major; root parent is -1",
+                  "bodies": {body: {"skin": model["skin"], "bones": bones} for body in bodies}}
+        (self.root / "stock-model-anchors.json").write_text(json.dumps({
+            "build": 104319, "bodies": {body: [model] for body in bodies}
+        }), encoding="utf-8")
+        skeletons = self.root / "stock-skeletons.json"
+        skeletons.write_text(json.dumps(export), encoding="utf-8")
+        def fresh():
+            return {"bodies": {body: {} for body in bodies}}
+
+        self.assertEqual(runtime_install.import_stock_models(fresh(), self.root), (32, 32))
+        last = bodies[-1]
+        export["bodies"][last]["bones"] = []
+        skeletons.write_text(json.dumps(export), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, last):
+            runtime_install.import_stock_models(fresh(), self.root)
+        del export["bodies"][last]
+        skeletons.write_text(json.dumps(export), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, last):
+            runtime_install.import_stock_models(fresh(), self.root)
+
     def test_failed_final_verification_is_not_published(self):
         self.inputs()
         for fail_at in ("packer", "hash", "server"):

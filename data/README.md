@@ -21,7 +21,13 @@ For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK
 
 Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
 
-The extraction path targets Practice Range and the 32 default hero models. It generates model reference skeletons and hardpoint positions locally and imports the positions into the graph bundle. Supply existing authorized inputs for additional maps. Keep exports, game files and the finished pack private. [Model anchor exporter](../scripts/tools/model_anchors/README.md)
+The extraction path targets Practice Range and the 32 default hero models. For each stock skin the builder requires both hardpoint positions and reference-pose bone transforms. It reports the specific body if either inventory is missing. Supply existing authorized inputs for additional maps. Keep exports, game files and the finished pack private. [Model anchor exporter](../scripts/tools/model_anchors/README.md)
+
+An older pack with only hardpoint positions still works with `python scripts/runtime.py check <pack>`. A bone lookup in that pack returns unknown. To add the skeletons, build into a new directory using the older pack as input.
+
+```powershell
+python scripts/runtime.py build "C:\Games\Overwatch" --inputs "D:\private\old-pack" --output "D:\private\pack-with-bones"
+```
 
 Verification checks the stock graph loader and reports unresolved graph references. The tested 104319 installation and the previous prepared pack both lack `0F9C`. A shared script references it from a message handler. The runtime can start without this graph; the handler's behavior remains unverified.
 
@@ -154,7 +160,7 @@ their own geometry. Bodies without a calibration keep the existing
 compatibility proxy. Use local measurements for the intended body and build.
 See the [synthetic schema example](../fixtures/behavior/combat-hurt-volumes-v1.json).
 
-### Model attachment coordinates
+### Model attachment and bone coordinates
 
 The graph bundle can carry model-space hardpoint positions for each body and skin.
 For a local 104319 model export, resolve each hardpoint's local translation through its
@@ -163,14 +169,18 @@ inventory for that model. Omit a coordinate if its parent bone cannot be resolve
 Use the stock skin key only for the stock model. A model-space reference position
 describes a static pose. Animated attachments require a bone pose for the sampled frame.
 
-To add a private export to a new graph bundle, run the following command. The input JSON
-contains `build` (104319) and `bodies`, keyed by the body-definition GUID. Each body's
-value is an array of skin records with `skin`, `hardpoints`, and `reference_positions`.
-Each position has three finite coordinates in metres. A [synthetic skin record](../fixtures/behavior/owner-model-hardpoints-v1.json)
-illustrates the shape.
+The exporter writes two local files. `stock-model-anchors.json` contains hardpoint membership and positions by body and skin. `stock-skeletons.json` contains the bone indices and model-space reference transforms. The importer records each bone once under its exact body and skin. The runtime uses the 32-bit skeleton index of a typed bone GUID and applies the row-vector transform to a local offset in metres. A missing skin, bone or transform returns unknown. [Synthetic skin record](../fixtures/behavior/owner-model-hardpoints-v1.json)
+
+The unified installer imports both files. To enrich a graph bundle manually, use the exports from the same 104319 installation.
 
 ```powershell
-python -B scripts/build_runtime_state_metadata.py --graph-bundle .\game_graphs_174.json.gz --model-hardpoints .\local-models.json --output .\game_graphs_with_models.json.gz
+python -B scripts/build_runtime_state_metadata.py --graph-bundle .\game_graphs_174.json.gz --model-hardpoints .\stock-model-anchors.json --model-skeletons .\stock-skeletons.json --output .\game_graphs_with_models.json.gz
 ```
 
 Pass the new bundle to `prepare_server_runtime --game-graphs`. Keep measured model data in the private runtime.
+
+For the prepared regression, set `ORPHEUS_RUNTIME_DIR` to the new pack and `ORPHEUS_MODEL_SKELETONS` to the matching local `stock-skeletons.json`. The test compares imported bone origins and transformed local attachment offsets with the exporter's model-space positions.
+
+```powershell
+cargo test --locked -p orpheus-statescript --test model_reference_bones -- --ignored
+```

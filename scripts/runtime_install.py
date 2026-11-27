@@ -10,8 +10,9 @@ import subprocess
 import sys
 import tempfile
 
-from build_runtime_state_metadata import import_model_hardpoints, write_bundle
+from build_runtime_state_metadata import import_model_hardpoints, import_model_skeletons, write_bundle
 from runtime_tools import extraction_tools
+from runtime_validation import stock_model_issue
 
 
 def variant(files):
@@ -50,6 +51,14 @@ def sdk_tool(project, scratch, dependencies):
         subprocess.run(["dotnet", "build", str(workspace / project.name), "-c", "Release",
                         f"-p:DataToolDir={dependencies}", "--output", str(binary.parent)], check=True)
     return ["dotnet", str(binary), str(dependencies)]
+
+
+def import_stock_models(graph, directory):
+    points = import_model_hardpoints(graph, directory / "stock-model-anchors.json")
+    bones = import_model_skeletons(graph, directory / "stock-skeletons.json")
+    if issue := stock_model_issue(graph["bodies"]):
+        raise ValueError(issue)
+    return points, bones
 
 
 def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules):
@@ -192,9 +201,9 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules):
         models = checkpoint(raw / f"models-{variant([hero_table])}", export_models)
         with gzip.open(stored, "rt", encoding="utf-8") as stream:
             graph = json.load(stream)
-        count = import_model_hardpoints(graph, models / "stock-model-anchors.json")
+        count, bones = import_stock_models(graph, models)
         output = scratch / GRAPH
         write_bundle(output, graph)
-        print(f"Imported {count} model attachment positions.", flush=True)
+        print(f"Imported {count} attachment positions and {bones} reference bone transforms.", flush=True)
         args.extend(["--game-graphs", output])
     return args

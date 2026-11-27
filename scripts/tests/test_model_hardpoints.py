@@ -87,6 +87,38 @@ class ModelHardpointImportTest(unittest.TestCase):
         self.assertEqual(merged["bodies"][OTHER_BODY]["model_hardpoints"], [self.stock])
         self.assertEqual(merged["bodies"][BODY], self.bundle["bodies"][BODY])
 
+    def test_skeletons_merge_into_the_exact_model_and_validate_affine_transforms(self):
+        contract = json.loads((SCRIPT.parents[1] / "fixtures/behavior/owner-model-hardpoints-v1.json").read_bytes())
+        rows = contract["input"]["model_hardpoints"][0]["reference_bones"]
+        bones = [{"id": index, "model_reference_matrix": matrix} for index, matrix in rows]
+        self.bundle["bodies"][BODY]["model_hardpoints"].append({"skin": SKIN, "hardpoints": []})
+        with gzip.open(self.source, "wt", encoding="utf-8") as handle:
+            json.dump(self.bundle, handle)
+        document = {"build": 104319, "units": "metres", "pose": "model reference",
+                    "matrix_convention": "row vector, row-major; root parent is -1",
+                    "bodies": {BODY: {"skin": SKIN, "bones": bones}}}
+
+        def run(doc, output):
+            self.export.write_text(json.dumps(doc), encoding="utf-8")
+            return subprocess.run([sys.executable, str(SCRIPT), "--graph-bundle", str(self.source),
+                                   "--model-skeletons", str(self.export), "--output", str(output)],
+                                  capture_output=True, text=True)
+
+        result = run(document, self.output)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        merged = json.loads(gzip.decompress(self.output.read_bytes()))
+        stock, skin = merged["bodies"][BODY]["model_hardpoints"]
+        self.assertNotIn("reference_bones", stock)
+        self.assertEqual(skin["reference_bones"], rows)
+        bad = self.output.with_name("bad.gz")
+        for rig in ({"skin": STOCK, "bones": bones * 2},
+                    {"skin": SKIN, "bones": [{"id": -1, "model_reference_matrix": rows[0][1]}]},
+                    {"skin": SKIN, "bones": [{"id": 2, "model_reference_matrix": [0] * 16}]},
+                    {"skin": "0x0A60000000000099", "bones": bones}):
+            with self.subTest(rig=rig):
+                self.assertNotEqual(run({**document, "bodies": {BODY: rig}}, bad).returncode, 0)
+                self.assertFalse(bad.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

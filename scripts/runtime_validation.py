@@ -12,6 +12,19 @@ GRAPH = "data/game_graphs_174.json.gz"
 PRACTICE_MODE = "0x0230000000000018"
 
 
+def stock_model_issue(bodies):
+    """Generation requires both kinds of reference data on every stock skin."""
+    if len(bodies) != 32:
+        return f"Expected 32 stock 104319 hero bodies, found {len(bodies)}"
+    missing = [key for key, body in bodies.items() if not any(
+        row.get("skin") == "0x0000000000000000" and row.get("reference_positions") and row.get("reference_bones")
+        for row in body.get("model_hardpoints", [])
+    )]
+    if missing:
+        return "Missing stock model attachment positions or bone transforms for " + ", ".join(sorted(missing))
+    return None
+
+
 def _unique(pairs):
     result = {}
     for key, value in pairs:

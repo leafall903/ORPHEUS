@@ -4,6 +4,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Include reference-pose bone transforms for all 32 default hero models when building a private 104319 runtime. StateScript consumers can resolve a bone-local point by body, skin and bone GUID. The installer imported 9,140 bone transforms and 1,309 hardpoint positions from a local 104319 installation. Native preflight accepted the new pack and the previous pack. Bone queries on the older pack return unknown.
+
 - Add `scripts/runtime.py build` and `check` for private 104319 runtimes. Setup caches local
   Practice Range data and stock model attachments. Verification checks manifest hashes,
   gameplay graph data, and native server preflight before publishing a pack.

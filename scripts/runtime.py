@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 
-from runtime_validation import validate_pack
+from runtime_validation import stock_model_issue, validate_pack
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.74.0.0.104319"
@@ -110,12 +110,9 @@ def graph_status(path):
     if not isinstance(graph, dict) or not isinstance(graph.get("bodies"), dict):
         raise ValueError(f"Expected a graph bundle with a body table in {path}")
     bodies = graph.get("bodies", {})
-    def stock(row):
-        return any(item.get("skin") == "0x0000000000000000" and item.get("reference_positions")
-                   for item in row.get("model_hardpoints", []))
     return (bool(graph.get("mode_scripts") and graph.get("mode_variables")),
             bool(bodies) and all(b.get("target_tags") for b in bodies.values()),
-            len(bodies) == 32 and all(stock(b) for b in bodies.values()), bool(graph.get("mode_rulesets")))
+            stock_model_issue(bodies) is None, bool(graph.get("mode_rulesets")))
 
 
 def raw_cache(cache, game):
