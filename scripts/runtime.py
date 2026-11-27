@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 
+from runtime_projectiles import persistent_entity_issue
 from runtime_validation import stock_model_issue, validate_pack
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,8 +54,8 @@ def native(binary, *args):
     subprocess.run([*command, *map(str, args)], cwd=ROOT, check=True)
 
 
-def check(pack, *, require_stock_models=False):
-    validate_pack(pack, require_stock_models=require_stock_models)
+def check(pack, *, require_gameplay_data=False):
+    validate_pack(pack, require_gameplay_data=require_gameplay_data)
     native("orpheus_server", "--runtime", pack.resolve(), "--check-runtime-graphs")
     print(f"Verified build {VERSION}, manifest hashes and Practice Range startup data: {pack}", flush=True)
 
@@ -104,7 +105,7 @@ def stage_inputs(source, view, verified=None):
 
 def graph_status(path):
     if not path.is_file():
-        return False, False, False, False
+        return False, False, False, False, False
     with gzip.open(path, "rt", encoding="utf-8") as stream:
         graph = json.load(stream)
     if not isinstance(graph, dict) or not isinstance(graph.get("bodies"), dict):
@@ -112,7 +113,8 @@ def graph_status(path):
     bodies = graph.get("bodies", {})
     return (bool(graph.get("mode_scripts") and graph.get("mode_variables")),
             bool(bodies) and all(b.get("target_tags") for b in bodies.values()),
-            stock_model_issue(bodies) is None, bool(graph.get("mode_rulesets")))
+            stock_model_issue(bodies) is None, bool(graph.get("mode_rulesets")),
+            persistent_entity_issue(graph) is None)
 
 
 def raw_cache(cache, game):
@@ -135,7 +137,7 @@ def build(game, dest, source, cache):
     outside(source, (cache,))
     if dest.exists():
         print("Checking the existing destination. To generate another pack, choose a new --output.", flush=True)
-        check(dest, require_stock_models=True)
+        check(dest, require_gameplay_data=True)
         return
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".orpheus-build-", dir=dest.parent) as scratch:
@@ -149,7 +151,7 @@ def build(game, dest, source, cache):
             verified = verify_manifest(source)
         stage_inputs(source, view, verified)
         data = view / "data"
-        mode, tags, anchors, rules = graph_status(data / GRAPH)
+        mode, tags, anchors, rules, projectiles = graph_status(data / GRAPH)
         raw = raw_cache(cache, game)
         missing = [name for name in PRIVATE_INPUTS if not (view / name).is_file()]
         if missing:
@@ -158,11 +160,11 @@ def build(game, dest, source, cache):
         profiles = source / "mode-rulesets.json"
         supplied_rules = profiles.is_file() and (verified is None or "mode-rulesets.json" in verified)
         generate_rules = not rules and not supplied_rules
-        if (generate_rules or not (mode and tags and anchors) or not all((data / n).is_file() for n in GENERATED)
+        if (generate_rules or not (mode and tags and anchors and projectiles) or not all((data / n).is_file() for n in GENERATED)
                 or not (view / "collision/0688.col").is_file()
                 or not (data / "game_queues_174.json").is_file()):
             from runtime_install import generate
-            pack_args = generate(game, cache, raw, view, staging, mode, tags, anchors, generate_rules)
+            pack_args = generate(game, cache, raw, view, staging, mode, tags, anchors, generate_rules, projectiles)
         if not rules:
             if generate_rules:
                 profiles = staging / "mode-rulesets.json"
@@ -174,13 +176,13 @@ def build(game, dest, source, cache):
                              f"in {source} and rerun:\n  " + "\n  ".join(missing))
         pack = staging / "runtime"
         native("prepare_server_runtime", "--source", view, "--destination", pack, *pack_args)
-        check(pack, require_stock_models=True)
+        check(pack, require_gameplay_data=True)
         try:
             pack.rename(dest)
         except OSError:
             if not dest.is_dir():
                 raise
-            check(dest, require_stock_models=True)
+            check(dest, require_gameplay_data=True)
             return
     print(f"Installed verified runtime: {dest}", flush=True)
 

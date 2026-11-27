@@ -4,6 +4,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Include landed projectile entity definitions and their StateScript roots in
+  the private runtime. The builder reads referenced definitions from the local
+  installation and checks them alongside the stock hero model data.
+  A 104319 Practice Range build now includes the six missing roots and one
+  transitive child, for 613 graphs. Native graph preflight passed.
+
 - Report missing stock model transforms when checking an older 104319 runtime.
   The build command now requires model data for all 32 default heroes before
   accepting a new or existing output. The check prints the recovery command.

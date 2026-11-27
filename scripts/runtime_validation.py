@@ -7,6 +7,8 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import zlib
 
+from runtime_projectiles import persistent_entity_issue
+
 
 GRAPH = "data/game_graphs_174.json.gz"
 PRACTICE_MODE = "0x0230000000000018"
@@ -164,7 +166,7 @@ def _check_graphs(bundle):
         print("Referenced graphs absent from this bundle: " + ", ".join(f"{index:04X}" for index in missing))
 
 
-def validate_pack(path: Path, *, require_stock_models: bool = False) -> None:
+def validate_pack(path: Path, *, require_gameplay_data: bool = False) -> None:
     """Verify the runtime and report stock model coverage for gameplay."""
     try:
         root = Path(path).resolve(strict=True)
@@ -175,15 +177,19 @@ def validate_pack(path: Path, *, require_stock_models: bool = False) -> None:
         with gzip.open(_pack_file(root, GRAPH), "rt", encoding="utf-8") as source:
             graph = json.load(source)
         _check_graphs(graph)
-        model_issue = stock_model_issue(graph["bodies"])
+        issues = []
+        if model_issue := stock_model_issue(graph["bodies"]):
+            issues.append(model_issue)
+        else:
+            print("Stock model attachments and bone transforms: all 32 default hero models present.", flush=True)
+        if projectile_issue := persistent_entity_issue(graph):
+            issues.append(projectile_issue)
     except (OSError, EOFError, RuntimeError, zlib.error) as error:
         raise ValueError(f"runtime validation failed: {error}") from error
 
-    if model_issue:
-        message = (f"{model_issue}\nRebuild from the installation with the old pack as input:\n"
+    if issues:
+        message = ("\n".join(issues) + "\nRebuild from the installation with the old pack as input:\n"
                    '  python scripts/runtime.py build "<OW1 folder>" --inputs "<old pack>" --output "<new directory>"')
-        if require_stock_models:
+        if require_gameplay_data:
             raise ValueError(message)
         print(message, flush=True)
-    else:
-        print("Stock model attachments and bone transforms: all 32 default hero models present.", flush=True)

@@ -179,6 +179,29 @@ class RuntimeEntrypointTest(unittest.TestCase):
         self.generate.assert_not_called()
         self.assertEqual((self.dest / GRAPH).read_bytes(), before)
 
+    def test_build_requires_landed_entity_definitions_used_by_the_gameplay_graphs(self):
+        write_pack(self.dest)
+        with gzip.open(self.dest / GRAPH, "rt", encoding="utf-8") as stream:
+            graph = json.load(stream)
+        entity = "0x0400000000000101"
+        graph["graphs"][0]["nodes"] = [{
+            "class": "STUStatescriptStateWeaponVolley",
+            "fields": {
+                "m_55E8761C": {"m_147777B3": {"$": "STUConfigVarBool", "m_value": True}},
+                "m_projectileEntity": {"m_entityDef": {"$": "STU_8556841E", "m_entityDef": entity}},
+            },
+        }]
+        def save():
+            (self.dest / GRAPH).write_bytes(gzip.compress(json.dumps(graph).encode()))
+            manifest(self.dest)
+        save()
+        self.build(failure="Missing persistent projectile")
+        self.native.assert_not_called()
+        graph["persistent_projectiles"] = {entity: {"graphs": [], "graph_refs": [], "components": ["STUTargetTagComponent"]}}
+        save()
+        self.build()
+        self.native.assert_called_once()
+
     def test_check_defaults_to_the_normal_install_directory(self):
         default_pack = self.root / "ORPHEUS/runtime-104319"
         write_pack(default_pack)

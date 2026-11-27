@@ -61,7 +61,7 @@ def import_stock_models(graph, directory):
     return points, bones
 
 
-def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules):
+def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, projectiles):
     from runtime import GRAPH, ROOT, link_input
 
     reference, owlib, tool = extraction_tools(cache / "tools")
@@ -123,8 +123,10 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules):
     families = {family for name in missing_core for family in gameplay.XML_TYPES[name]}
     if not mode:
         families.update((*gameplay.XML_TYPES[GRAPH], "0C5"))
-    if not tags:
+    if not tags or not projectiles:
         families.add("003")
+    if not projectiles:
+        families.add("01B")
     if need_rules:
         families.update(("075", "0C5", "0C6"))
     if need_queues:
@@ -192,6 +194,18 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules):
         sources = [data / "game_heroes_174.json", data / "ai_spawners_174.json"]
         exported = checkpoint(raw / f"graphs-guid-v1-{variant(sources)}", export_graph)
         use(exported / GRAPH)
+    if not anchors or not projectiles:
+        with gzip.open(stored, "rt", encoding="utf-8") as stream:
+            graph = json.load(stream)
+    if not projectiles:
+        from runtime_projectiles import import_persistent_entities
+        enums = extract_game_graphs.EnumTables(owlib / "TankLib/STU/Types")
+        previous_count = len(graph["graphs"])
+        import_persistent_entities(graph, xml / "003", enums, extract_game_graphs)
+        added_graphs = len(graph["graphs"]) - previous_count
+        print(f"Imported {len(graph['persistent_projectiles'])} persistent projectile definitions "
+              f"and {added_graphs} additional StateScript graphs.", flush=True)
+    if not mode or (not projectiles and added_graphs):
         args.extend(["--state-groups-xml", xml / "01B"])
     if not anchors:
         hero_table = data / "game_heroes_174.json"
@@ -199,11 +213,10 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules):
             helper = sdk_tool(ROOT / "scripts/tools/model_anchors/ModelAnchors.csproj", scratch, tool.parent)
             subprocess.run([*helper, str(game), str(hero_table), str(out)], check=True)
         models = checkpoint(raw / f"models-{variant([hero_table])}", export_models)
-        with gzip.open(stored, "rt", encoding="utf-8") as stream:
-            graph = json.load(stream)
         count, bones = import_stock_models(graph, models)
+        print(f"Imported {count} attachment positions and {bones} reference bone transforms.", flush=True)
+    if not anchors or not projectiles:
         output = scratch / GRAPH
         write_bundle(output, graph)
-        print(f"Imported {count} attachment positions and {bones} reference bone transforms.", flush=True)
         args.extend(["--game-graphs", output])
     return args

@@ -19,7 +19,7 @@ For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK
 | `%LOCALAPPDATA%\ORPHEUS\build-cache` | Public extraction tools and reusable private exports |
 | `%LOCALAPPDATA%\ORPHEUS\runtime-104319` | Finished pack, published after verification |
 
-Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. The check reports missing stock attachment positions or bone transforms by body ID. A legacy pack can still pass server preflight. To fill its model data, pass that pack as `--inputs` and choose a new `--output`. The build command requires all 32 default models before reporting success. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
+Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. The check reports missing stock attachment positions or bone transforms by body ID. A legacy pack can still pass server preflight. To fill its model data, pass that pack as `--inputs` and choose a new `--output`. The build command requires all 32 default models and the entity definitions referenced by persistent projectile volleys. It reads the component maps and ordered StateScript roots from the local installation. The private pack stores those definitions separately from player bodies. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
 
 The extraction path targets Practice Range and the 32 default hero models. For each stock skin the builder requires both hardpoint positions and reference-pose bone transforms. It reports the specific body if either inventory is missing. Supply existing authorized inputs for additional maps. Keep exports, game files and the finished pack private. [Model anchor exporter](../scripts/tools/model_anchors/README.md)
 
@@ -28,6 +28,8 @@ An older pack with only hardpoint positions still works with `python scripts/run
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch" --inputs "D:\private\old-pack" --output "D:\private\pack-with-bones"
 ```
+
+A local build from the zhCN 104319 installation and the seven supplemental inputs produced 613 graphs. Seven landed projectile definitions reference 11 graphs, including six roots and one additional child omitted by the earlier 606-graph build. The server loaded the resulting pack.
 
 Verification checks the stock graph loader and reports unresolved graph references. The tested 104319 installation and the previous prepared pack both lack `0F9C`. A shared script references it from a message handler. The runtime can start without this graph; the handler's behavior remains unverified.
 
