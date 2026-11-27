@@ -45,7 +45,7 @@ class ProjectileImport(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "000000000053.01B.xml"):
                 import_persistent_entities(bundle, xml, None, extractor)
             (scripts / "000000000053.01B.xml").touch()
-            import_persistent_entities(bundle, xml, None, extractor)
+            self.assertEqual(import_persistent_entities(bundle, xml, None, extractor), {82, 83})
         self.assertIsNone(persistent_entity_issue(bundle))
         self.assertEqual(bundle["entities"][guid]["graphs"], [{"graph": 82}])
         self.assertNotIn("components", bundle["entities"][guid])

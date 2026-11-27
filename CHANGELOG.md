@@ -9,6 +9,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   installation and checks them alongside the stock hero model data.
   A 104319 Practice Range build now includes the six missing roots and one
   transitive child, for 613 graphs. Native graph preflight passed.
+  Upgrading an existing 606-graph pack preserved all 606 original graph records.
 
 - Report missing stock model transforms when checking an older 104319 runtime.
   The build command now requires model data for all 32 default heroes before

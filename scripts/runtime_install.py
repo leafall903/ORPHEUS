@@ -200,12 +200,19 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
     if not projectiles:
         from runtime_projectiles import import_persistent_entities
         enums = extract_game_graphs.EnumTables(owlib / "TankLib/STU/Types")
-        previous_count = len(graph["graphs"])
-        import_persistent_entities(graph, xml / "003", enums, extract_game_graphs)
-        added_graphs = len(graph["graphs"]) - previous_count
+        added = import_persistent_entities(graph, xml / "003", enums, extract_game_graphs)
+        if mode and added:
+            # Existing prepared graphs may include local state-group observations.
+            # Supply XML only for graphs appended by this build.
+            groups = scratch / "projectile-state-groups"
+            groups.mkdir()
+            for index in sorted(added):
+                name = f"{index:012X}.01B.xml"
+                link_input(xml / "01B" / name, groups / name)
+            args.extend(["--state-groups-xml", groups])
         print(f"Imported {len(graph['persistent_projectiles'])} persistent projectile definitions "
-              f"and {added_graphs} additional StateScript graphs.", flush=True)
-    if not mode or (not projectiles and added_graphs):
+              f"and {len(added)} additional StateScript graphs.", flush=True)
+    if not mode:
         args.extend(["--state-groups-xml", xml / "01B"])
     if not anchors:
         hero_table = data / "game_heroes_174.json"

@@ -100,3 +100,4 @@ def import_persistent_entities(bundle, xml, enums, extractor):
     bundle["missing"] = sorted(set(bundle.get("missing", [])) - recovered)
     bundle["persistent_projectiles"] = records
     bundle["projectile_graph_dependencies"] = edges
+    return recovered
