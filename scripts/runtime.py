@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 from runtime_projectiles import persistent_entity_issue
-from runtime_validation import stock_model_issue, validate_pack
+from runtime_validation import PRACTICE_COLLISION, stock_model_issue, validate_pack
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.74.0.0.104319"
@@ -161,7 +161,7 @@ def build(game, dest, source, cache):
         supplied_rules = profiles.is_file() and (verified is None or "mode-rulesets.json" in verified)
         generate_rules = not rules and not supplied_rules
         if (generate_rules or not (mode and tags and anchors and projectiles) or not all((data / n).is_file() for n in GENERATED)
-                or not (view / "collision/0688.col").is_file()
+                or any(not (view / name).is_file() for name in PRACTICE_COLLISION)
                 or not (data / "game_queues_174.json").is_file()):
             from runtime_install import generate
             pack_args = generate(game, cache, raw, view, staging, mode, tags, anchors, generate_rules, projectiles)

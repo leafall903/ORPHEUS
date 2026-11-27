@@ -4,6 +4,7 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Rebuild the Practice Range ray cache when a movement-only source pack is supplied. Verify that both collision files are inventoried before publishing a new runtime.
 - Include landed projectile entity definitions and their StateScript roots in
   the private runtime. The builder reads referenced definitions from the local
   installation and checks them alongside the stock hero model data.

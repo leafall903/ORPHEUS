@@ -63,6 +63,7 @@ def import_stock_models(graph, directory):
 
 def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, projectiles):
     from runtime import GRAPH, ROOT, link_input
+    from runtime_validation import PRACTICE_COLLISION
 
     reference, owlib, tool = extraction_tools(cache / "tools")
     sys.path[:0] = [str(reference), str(reference / "src")]
@@ -98,7 +99,7 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         geo = checkpoint(raw / "practice-map", geometry)
         for name in geo_names:
             use(geo / name)
-    caches = (view / "collision/0688.col", view / "collision/0688.rays.col")
+    caches = [view / name for name in PRACTICE_COLLISION]
     if any(not file.is_file() for file in caches):
         inputs = {f"data/{name}": data / name for name in geo_names}
         def collision(out):

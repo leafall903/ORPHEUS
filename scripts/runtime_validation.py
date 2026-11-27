@@ -12,6 +12,7 @@ from runtime_projectiles import persistent_entity_issue
 
 GRAPH = "data/game_graphs_174.json.gz"
 PRACTICE_MODE = "0x0230000000000018"
+PRACTICE_COLLISION = ("collision/0688.col", "collision/0688.rays.col")
 
 
 def stock_model_issue(bodies):
@@ -177,7 +178,8 @@ def validate_pack(path: Path, *, require_gameplay_data: bool = False) -> None:
         with gzip.open(_pack_file(root, GRAPH), "rt", encoding="utf-8") as source:
             graph = json.load(source)
         _check_graphs(graph)
-        issues = []
+        issues = [f"Missing Practice Range collision cache: {name}" for name in PRACTICE_COLLISION
+                  if name not in entries]
         if model_issue := stock_model_issue(graph["bodies"]):
             issues.append(model_issue)
         else:

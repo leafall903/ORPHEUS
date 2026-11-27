@@ -15,7 +15,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import runtime
 import runtime_install
-from runtime_validation import GRAPH, PRACTICE_MODE
+from runtime_validation import GRAPH, PRACTICE_COLLISION, PRACTICE_MODE
 
 
 def manifest(root):
@@ -30,7 +30,7 @@ def manifest(root):
 
 def write_pack(folder, *, stock_models=True):
     target = folder / GRAPH
-    target.parent.mkdir(parents=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
     graph = "0x058000000000002A"
     teams = {str(team): {"body": graph, "controller": graph} for team in (0, 1)}
     body = {"target_tags": ["0x0D60000000000001"]}
@@ -47,6 +47,10 @@ def write_pack(folder, *, stock_models=True):
         "mode_rulesets": [{"mode": PRACTICE_MODE, "rules": [{"id": 30, "value": 1}]}],
         "bodies": {f"0x0400{index:012X}": body for index in range(1, 33)},
     }
+    for name in PRACTICE_COLLISION:
+        cache = folder / name
+        cache.parent.mkdir(exist_ok=True)
+        cache.write_bytes(b"synthetic collision test data")
     target.write_bytes(gzip.compress(json.dumps(bundle).encode()))
     manifest(folder)
 
@@ -158,6 +162,26 @@ class RuntimeEntrypointTest(unittest.TestCase):
         self.build(failure="mode-rulesets.json")
         self.assert_not_published()
         self.native.assert_not_called()
+
+    def test_missing_ray_cache_reenters_extraction_and_cannot_be_published(self):
+        self.inputs()
+        write_pack(self.source)
+        (self.source / "collision/0688.rays.col").unlink()
+        for name in (*runtime.GENERATED, "game_queues_174.json"):
+            path = self.source / "data" / name
+            if not path.exists():
+                path.write_bytes(b"{}")
+        manifest(self.source)
+        def native(binary, *args):
+            self.assertEqual(binary, "prepare_server_runtime")
+            pack = args[args.index("--destination") + 1]
+            write_pack(pack)
+            (pack / "collision/0688.rays.col").unlink()
+            manifest(pack)
+        self.native.side_effect = native
+        self.build(failure="Missing Practice Range collision cache: collision/0688.rays.col")
+        self.generate.assert_called_once()
+        self.assert_not_published()
 
     def test_check_command_requires_only_the_pack(self):
         write_pack(self.dest)

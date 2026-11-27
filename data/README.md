@@ -38,8 +38,9 @@ If preparation reports missing inputs, supply the listed files in the inputs dir
 On a supported server platform, use `python scripts/runtime.py check` for the default pack or `python scripts/runtime.py check <pack>` for a custom output with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
 
 On a build using only the seven supplemental files and the retail installation, the
-server loaded 606 graphs, 32 tagged bodies, 1,309 stock attachments and 985 Practice
-Range rules. Both movement and ray collision caches were generated. This pack started
+server loaded 613 graphs, 32 tagged bodies, 1,309 stock attachments, 9,140 bone
+transforms and 985 Practice Range rules. The build and verification commands check
+both the movement cache (`collision/0688.col`) and the ray cache (`collision/0688.rays.col`). This pack started
 the native server on loopback. An enriched source pack can include other maps and
 optional voice, emote and research data.
 
