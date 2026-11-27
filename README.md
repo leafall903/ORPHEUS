@@ -69,7 +69,7 @@ Type `reload` + Enter in the server console at any time to hot-reload your Lua m
 
 ## Run the Native Server (One-Click Unified Launcher)
 
-Starting the native server requires a single unified **1.74.0.0.104319** runtime pack sourced strictly from your own local game files (never commit game clients, commercial assets, or keys). See [data/README.md](data/README.md) for the input checklist.
+Starting the native server requires a single unified **1.74.0.0.104319** runtime pack sourced strictly from your own local game files (never commit game clients, commercial assets, or keys). When building a pack from scratch, make sure `data/game_graphs_174.json.gz` includes `--mode-xml` (`0C5` mode scripts/variables), `--target-tags-xml` (`003` hero/entity tags), and `--mode-rulesets` — `--check-runtime` alone does not catch missing mode data or hero `target_tags`. See [data/README.md](data/README.md) for the complete packing command and verification checklist.
 
 Use the unified launcher to pack (if `-SourceDir` is supplied), build `orpheus_server` (`inspector` + `lua-mods`), run `--check-runtime`, start the Web 3D Viewer on `http://127.0.0.1:3726/`, and launch with persistent saves (`%LOCALAPPDATA%\ORPHEUS\state`):
 

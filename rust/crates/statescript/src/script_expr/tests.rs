@@ -1254,6 +1254,20 @@ fn enemy_hero_and_health_queries_preserve_known_and_unknown_entities() {
         ),
         Ok(Value::Asset(0x0400_0000_0000_171c))
     );
+    assert_eq!(
+        evaluate(
+            &json!({"$":"STU_8556841E","m_entityDef":null,"m_resourceKey":null}),
+            &mut EmptyContext
+        ),
+        Ok(Value::Asset(0))
+    );
+    for config in [
+        json!({"$":"STU_8556841E"}),
+        json!({"$":"STU_8556841E","m_entityDef":null}),
+        json!({"$":"STU_8556841E","m_resourceKey":null}),
+    ] {
+        assert!(evaluate(&config, &mut EmptyContext).is_err(), "{config}");
+    }
     let mut keyed = hero;
     keyed["m_resourceKey"] = json!("0x0A90000000000001");
     assert!(evaluate(&keyed, &mut EnemyFacts).is_err());

@@ -3335,6 +3335,40 @@ fn impact_spawn_uses_declared_resources_on_a_relocated_volley() {
 }
 
 #[test]
+fn unleased_damaging_volley_poses_projectile_without_definition() {
+    let (_, spawn) = fixture_body_factory();
+    let mover = Mover::new(
+        MoverSettings::default(),
+        Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+        spawn.pose.position,
+        0,
+        0x18,
+    )
+    .unwrap();
+    let fire = Command {
+        frame: spawn.frame + 1,
+        buttons: crate::commands::SECONDARY,
+        yaw: 16_384,
+        ..Command::default()
+    };
+    let mut fields = fixture_projectile_fields(40.0);
+    fields["m_projectileEntity"] = serde_json::json!({
+        "$": "STU_8E565E79",
+        "m_entityDef": {"$": "STU_8556841E", "m_entityDef": null, "m_resourceKey": null}
+    });
+    let mut runtime = fixture_volley_factory(29, true, fields)
+        .start(spawn)
+        .unwrap();
+    runtime.advance(fire, &mover, BodyStep::Posed).unwrap();
+    let shots = runtime.take_shots(Some(fire), &mover);
+    let [PosedShot::Projectile(rocket)] = shots.as_slice() else {
+        panic!("expected an unleased posed rocket");
+    };
+    assert_eq!(rocket.ballistics.definition, None);
+    assert_eq!(rocket.ballistics.direct.unwrap().amount, 40.0);
+}
+
+#[test]
 fn player_volley_projects_each_authored_ring_pellet_once() {
     use serde_json::json;
 

@@ -1501,7 +1501,10 @@ impl Evaluator {
                 }
             }
             "STU_8556841E" => {
-                if child(config, "m_entityDef").is_null() {
+                if native_fields(config, &["m_entityDef", "m_resourceKey"])
+                    && config.get("m_resourceKey") == Some(&Json::Null)
+                    && config.get("m_entityDef") == Some(&Json::Null)
+                {
                     Value::Asset(0)
                 } else {
                     literal_asset(config, class, "m_entityDef", 0x0400)

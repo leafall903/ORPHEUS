@@ -105,6 +105,20 @@ impl ProjectileBallistics {
         }
         let definition = match field("m_projectileEntity.m_entityDef") {
             Some(config) => match evaluate(config)? {
+                Value::Asset(0)
+                    if config["$"] == "STU_8556841E"
+                        && config.get("m_entityDef") == Some(&Json::Null)
+                        && config.get("m_resourceKey") == Some(&Json::Null)
+                        && crate::script_expr::native_fields(
+                            config,
+                            &["m_entityDef", "m_resourceKey"],
+                        ) =>
+                {
+                    None
+                }
+                Value::Asset(0) => {
+                    return Err(EvalError::MalformedConfig("projectile entity definition"));
+                }
                 Value::Asset(definition) => Some(definition),
                 _ => None,
             },
@@ -1924,5 +1938,37 @@ mod tests {
             "m_3E7A533D": 1
         }));
         assert!(!non_heal.healing && !non_heal.affects_allies && non_heal.affects_enemies);
+    }
+
+    #[test]
+    fn projectile_definition_maps_explicit_null_stu_to_none_and_rejects_malformed_zero() {
+        let fixture: Json = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/projectile-tokenless-v1.json"
+        ))
+        .unwrap();
+        let evaluate = |config: &Json| {
+            crate::script_expr::evaluate(config, &mut crate::script_expr::EmptyContext)
+        };
+        let ballistics = ProjectileBallistics::from_fields(&fixture["fields"], evaluate)
+            .unwrap()
+            .unwrap();
+        assert_eq!(ballistics.definition, None);
+        assert_eq!(
+            ballistics.direct.unwrap().amount,
+            fixture["expected_damage"].as_f64().unwrap()
+        );
+
+        let mut malformed = fixture["fields"].clone();
+        malformed["m_projectileEntity"]["m_entityDef"] = serde_json::json!({"$": "Other"});
+        assert!(matches!(
+            ProjectileBallistics::from_fields(&malformed, |config| {
+                if config.get("$").and_then(Json::as_str) == Some("Other") {
+                    Ok(Value::Asset(0))
+                } else {
+                    evaluate(config)
+                }
+            }),
+            Err(EvalError::MalformedConfig("projectile entity definition"))
+        ));
     }
 }

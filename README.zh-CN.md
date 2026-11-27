@@ -69,7 +69,7 @@ return {
 
 ## 启动原生服务端（一键整合启动脚本）
 
-启动原生服务端只需准备一份来自你本地合法客户端文件的完整 **1.74.0.0.104319** 运行包（严禁向仓库提交游戏客户端、暴雪商业资源或密钥）。文件清单见 [data/README.md](data/README.md)。
+启动原生服务端只需准备一份来自你本地合法客户端文件的完整 **1.74.0.0.104319** 运行包（严禁向仓库提交游戏客户端、暴雪商业资源或密钥）。从零提取打包时，请务必在生成 `data/game_graphs_174.json.gz` 与打包时附带 `--mode-xml`（`0C5` 模式脚本与变量）、`--target-tags-xml`（`003` 全部 32 英雄/实体目标标签）及 `--mode-rulesets`——仅通过 `--check-runtime` 不会检测图包内部是否缺模式数据或 `target_tags`（缺失会导致选角卡在「准备战斗」）。完整打包命令与自检方式见 [data/README.md](data/README.md)。
 
 使用整合启动脚本可一键完成数据打包（若指定 `-SourceDir`）、编译 `orpheus_server`（含 `inspector` 与 `lua-mods`）、执行 `--check-runtime` 预检、开启 `http://127.0.0.1:3726/` Web 3D 查看器，并将玩家皮肤、战利品箱和设置持久化到 `%LOCALAPPDATA%\ORPHEUS\state`：
 

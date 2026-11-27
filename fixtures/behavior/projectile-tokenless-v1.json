@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "projectile-tokenless.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "fields": {
+    "m_projectileEntity": {"m_entityDef": {"$": "STU_8556841E", "m_entityDef": null, "m_resourceKey": null}},
+    "m_projectileSpeed": 100.0,
+    "m_6396149F": {"m_modifyHealth": {"m_amount": 25.0}}
+  },
+  "expected_damage": 25.0
+}
