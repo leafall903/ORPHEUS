@@ -70,6 +70,7 @@ pub(super) struct StockBotWorld {
     placement_graphs: Vec<u32>,
     spatial_frame: Option<Arc<RoomSpatialFrame>>,
     script_requests: RoomScriptRequests,
+    velocity_changes: Vec<(u32, crate::mover::VelocityChange)>,
     voice_variant_counter: usize,
 }
 
@@ -80,6 +81,31 @@ impl StockBotWorld {
 }
 
 impl World for StockBotWorld {
+    fn admits_velocity_ops(&self, site: Site) -> bool {
+        site.entity == self.entity && !self.dead
+    }
+
+    fn apply_velocity_ops(
+        &mut self,
+        site: Site,
+        frame: u32,
+        ops: &[crate::script_init::VelocityOp],
+    ) -> bool {
+        if site.entity != self.entity || self.dead {
+            return false;
+        }
+        let mut applied = false;
+        for &op in ops {
+            let change = crate::mover::VelocityChange::from_script_op(op);
+            if change.valid() && self.velocity_changes.len() < MAX_INIT_WORK {
+                self.velocity_changes
+                    .push((frame.saturating_add(1), change));
+                applied = true;
+            }
+        }
+        applied
+    }
+
     fn queue_room_message(&mut self, site: Site, target: u32, message: RoomMessage) -> bool {
         site.entity == self.entity
             && !self.dead
@@ -546,7 +572,21 @@ impl World for StockBotWorld {
                 Some(Value::Bool(false))
             }
             "STU_295D117D" => Some(Value::Null),
-            "STU_ED45C5E8" if is_zeroed_owner_selector(config) => Some(Value::Null),
+            "STU_ED45C5E8"
+                if is_zeroed_owner_selector(config)
+                    || crate::script_expr::native_fields(
+                        config,
+                        &[
+                            "m_B2ABF4FF",
+                            "m_2BA6230F",
+                            "m_5912C8DF",
+                            "m_5A72EEF5",
+                            "m_C9E6F46B",
+                        ],
+                    ) =>
+            {
+                Some(Value::Null)
+            }
             _ => None,
         }
     }
@@ -582,6 +622,10 @@ impl StockBotScript {
             .map_err(|error| error.to_string())?;
         self.world = world;
         Ok(outcome)
+    }
+
+    pub(super) fn take_velocity_changes(&mut self) -> Vec<(u32, crate::mover::VelocityChange)> {
+        std::mem::take(&mut self.world.velocity_changes)
     }
     pub(super) fn start(
         catalog: &StockBotCatalog,
@@ -657,6 +701,7 @@ impl StockBotScript {
             placement_graphs,
             spatial_frame: None,
             script_requests: RoomScriptRequests::default(),
+            velocity_changes: Vec::new(),
             voice_variant_counter: 0,
         };
         let component = match Component::start_with_public_schema(

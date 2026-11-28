@@ -5814,3 +5814,157 @@ fn prepared_all_32_heroes_compile_start_and_step_cleanly() {
         failures.join("\n")
     );
 }
+
+#[test]
+fn cone_targets_directed_adds_yaw_offset_for_entity_origin_and_swept_falls_back_without_capsules() {
+    use crate::{
+        game_clock::FIRST_TICK,
+        game_combat::{PlayerBodyState, RoomSimulation},
+        game_replication::BodyId,
+        script_graph::RoomSpatialNeeds,
+    };
+    let (factory, spawn) = fixture_body_factory();
+    let mut body = factory.start(spawn).unwrap();
+    let cache = crate::collision_cache::CollisionCache {
+        header: serde_json::from_value(serde_json::json!({
+            "meshes": [[3, 1]], "hulls": 0, "models": 0, "placements": 0, "identifiers": []
+        }))
+        .unwrap(),
+        meshes: vec![crate::collision_cache::Mesh {
+            vertices: vec![[-10.0, 0.0, -10.0], [10.0, 0.0, -10.0], [10.0, 0.0, 10.0]],
+            triangles: vec![crate::collision_cache::Triangle {
+                corners: [0, 1, 2],
+                wings: [-1; 3],
+                mask: 0x18,
+                surface: 0,
+            }],
+        }],
+        hulls: vec![],
+        models: vec![],
+        placements: vec![],
+    };
+    let ground = Arc::new(
+        crate::collision_scene::CollisionScene::movement_probe(&cache, &BTreeSet::new()).unwrap(),
+    );
+    let mut room = RoomSimulation::new(Vec::new()).unwrap();
+    room.enable_spatial_queries(false, ground, RoomSpatialNeeds::Queries);
+    let owner_mover = crate::mover::Mover::new(
+        MoverSettings::default(),
+        Arc::new(crate::contact_world::ContactWorld::new(Vec::new()).unwrap()),
+        [0.0, 0.0, 0.0],
+        0x4000,
+        0x18,
+    )
+    .unwrap();
+    room.spawn_player_body(PlayerBodyState::new(
+        BodyId {
+            entity: spawn.entity,
+            generation: 1,
+        },
+        spawn.controller,
+        0,
+        0,
+        factory.hero,
+        owner_mover,
+        None,
+        FIRST_TICK,
+        None,
+    ))
+    .unwrap();
+    let enemy = BodyId {
+        entity: spawn.entity + 1,
+        generation: 1,
+    };
+    let enemy_mover = crate::mover::Mover::new(
+        MoverSettings::default(),
+        Arc::new(crate::contact_world::ContactWorld::new(Vec::new()).unwrap()),
+        [2.0, 0.0, 0.0],
+        0,
+        0x18,
+    )
+    .unwrap();
+    room.spawn_player_body(PlayerBodyState::new(
+        enemy,
+        spawn.controller + 1,
+        1,
+        1,
+        factory.hero,
+        enemy_mover,
+        None,
+        FIRST_TICK + 1,
+        None,
+    ))
+    .unwrap();
+    let frame = room.capture_spatial_frame(FIRST_TICK + 1).unwrap().unwrap();
+    body.world.spatial_frame = Some(frame);
+    body.world.position = [0.0, 0.0, 0.0];
+    // Facing east (+X, yaw = +0x4000 = +90 deg).
+    body.world.movement.yaw = 0x4000;
+    body.world.movement.pitch = 0;
+    let site = Site {
+        entity: spawn.entity,
+        instance: 1,
+        graph: 0x1203,
+        node: Some(58),
+    };
+    let enemy_filter = serde_json::json!({
+        "$": "STUConfigVarFilter",
+        "m_66747E7D": 2,
+        "m_89831602": 0
+    });
+    // Entity-anchored cone with 0 deg yaw offset looks along entity yaw (+X) -> finds enemy at +X.
+    let relative_hits = body
+        .world
+        .cone_targets_directed(
+            site,
+            spawn.entity,
+            [0.0, 1.0, 0.0],
+            5.0,
+            30.0,
+            0.0,
+            Some(0.0),
+            Some(0.0),
+            false,
+            &enemy_filter,
+        )
+        .expect("relative cone targets");
+    assert_eq!(
+        relative_hits.iter().map(|t| t.entity).collect::<Vec<_>>(),
+        vec![enemy.entity]
+    );
+    // World-space cone (`origin == 0`) with 0 deg yaw looks north (+Z) -> misses enemy at +X.
+    let world_north = body
+        .world
+        .cone_targets_directed(
+            site,
+            0,
+            [0.0, 1.0, 0.0],
+            5.0,
+            30.0,
+            0.0,
+            Some(0.0),
+            Some(0.0),
+            false,
+            &enemy_filter,
+        )
+        .expect("world cone targets");
+    assert!(world_north.is_empty());
+    // `swept_tracked_targets` still finds enemy without `actor_capsules` enabled.
+    let swept = body
+        .world
+        .swept_tracked_targets(
+            site,
+            spawn.entity,
+            [0.0, 1.0, 0.0],
+            None,
+            false,
+            5.0,
+            false,
+            &enemy_filter,
+        )
+        .expect("swept targets without actor_capsules");
+    assert_eq!(
+        swept.iter().map(|t| t.entity).collect::<Vec<_>>(),
+        vec![enemy.entity]
+    );
+}

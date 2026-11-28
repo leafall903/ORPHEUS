@@ -24,10 +24,10 @@ fn prepared_all_stock_movers_stop_at_their_authored_enemy_radius() {
         let settings = movers
             .authored_for_body(hero.body)
             .expect("missing stock mover");
-        let expected = settings.stand_radius + f64::from(other.radius);
         let mut mover = scene
             .player_spawn_mover_at(hero.body, 0, [x, y, z + 3.0], 0x8000)
             .unwrap();
+        let mut expected = settings.stand_radius + f64::from(other.radius);
         let mut held = 0;
         for frame in 1..=110 {
             mover
@@ -45,6 +45,7 @@ fn prepared_all_stock_movers_stop_at_their_authored_enemy_radius() {
                 )
                 .unwrap();
             let [px, _, pz] = mover.pose().position;
+            expected = crate::contact_body::planar_contact_radius(mover.contact_capsule(), other);
             let gap = (px - x).hypot(pz - z) - expected;
             assert!(gap >= -0.002, "{} overlapped by {} m", hero.name, -gap);
             if frame >= 60 && gap.abs() < 0.08 {
@@ -164,7 +165,8 @@ fn prepared_owner_holds_against_enemy_and_can_cross_an_ally() {
                 };
                 let capsule = state.mover.contact_capsule();
                 let distance = (pose.position[0] - x).hypot(pose.position[2] - z);
-                let gap = distance - f64::from(capsule.radius + other.radius);
+                let expected = crate::contact_body::planar_contact_radius(capsule, *other);
+                let gap = distance - expected;
                 deepest = deepest.min(gap);
                 if step < 110 || gap.abs() >= 0.08 {
                     continue;

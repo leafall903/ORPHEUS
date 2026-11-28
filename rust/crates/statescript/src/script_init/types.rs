@@ -59,6 +59,7 @@ pub enum StateKind {
     ModifyHealth,
     GenericModifyHealth {
         continuous: bool,
+        on_enter: bool,
     },
     Pet {
         entity: Option<u32>,

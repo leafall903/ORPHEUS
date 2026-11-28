@@ -59,6 +59,19 @@ pub enum VelocityChange {
 }
 
 impl VelocityChange {
+    pub(crate) fn from_script_op(op: crate::script_init::VelocityOp) -> Self {
+        use crate::script_init::VelocityOp;
+        match op {
+            VelocityOp::AddVector(delta) => Self::Impulse(delta),
+            VelocityOp::SetVector(target) => Self::SetVelocity(target),
+            VelocityOp::SetHorizontalVector(target) => Self::SetHorizontalVelocity(target),
+            VelocityOp::SetSpeed { axis, value } => Self::SetAxisSpeed { axis, value },
+            VelocityOp::CapSpeed { axis, max } => Self::CapAxisSpeed { axis, max },
+            VelocityOp::ScaleSpeed { axis, factor } => Self::ScaleAxisSpeed { axis, factor },
+            VelocityOp::ClampSpeed { axis, min, max } => Self::ClampAxisSpeed { axis, min, max },
+        }
+    }
+
     /// Apply this edit and report a positive launch that should leave the ground.
     pub(crate) fn apply(self, velocity: &mut [f64; 3]) -> bool {
         self.apply_with_jump(velocity, 6.0)
@@ -511,6 +524,37 @@ impl Mover {
 
     pub(crate) fn queue_velocity_change(&mut self, frame: u32, change: VelocityChange) {
         Self::push_merged_velocity_change(&mut self.velocity_changes, frame, change);
+    }
+
+    /// Stage a velocity edit produced by a room-triggered status script
+    /// (such as Piledriver `0x165A` or Uppercut `0x0E7D`). Non-impulse resets
+    /// and clamps apply before any external combat impulse queued for the same
+    /// frame so a victim script clears prior momentum without cancelling the
+    /// knockback that attached it.
+    pub(crate) fn queue_status_velocity_change(&mut self, frame: u32, change: VelocityChange) {
+        Self::push_status_velocity_change(&mut self.velocity_changes, frame, change);
+    }
+
+    pub(crate) fn push_status_velocity_change(
+        queue: &mut Vec<(u32, VelocityChange)>,
+        frame: u32,
+        change: VelocityChange,
+    ) {
+        if !change.valid() {
+            return;
+        }
+        if matches!(change, VelocityChange::Impulse(_)) {
+            Self::push_merged_velocity_change(queue, frame, change);
+            return;
+        }
+        if let Some(index) = queue
+            .iter()
+            .position(|(due, queued)| *due == frame && matches!(queued, VelocityChange::Impulse(_)))
+        {
+            queue.insert(index, (frame, change));
+        } else {
+            queue.push((frame, change));
+        }
     }
 
     pub(crate) fn push_merged_velocity_change(
@@ -3141,6 +3185,41 @@ mod tests {
             mover.pose().position[1].abs() < 0.05,
             "ball override feet must rest on floor y=0, got {}",
             mover.pose().position[1]
+        );
+    }
+
+    #[test]
+    fn status_velocity_reset_precedes_same_frame_combat_impulse() {
+        let mut queue = Vec::new();
+        Mover::push_merged_velocity_change(
+            &mut queue,
+            10,
+            VelocityChange::Impulse([2.0, 11.0, 0.0]),
+        );
+        Mover::push_status_velocity_change(
+            &mut queue,
+            10,
+            VelocityChange::SetAxisSpeed {
+                axis: VelocityAxis::Vertical,
+                value: 0.0,
+            },
+        );
+        Mover::push_status_velocity_change(
+            &mut queue,
+            10,
+            VelocityChange::SetAxisSpeed {
+                axis: VelocityAxis::Horizontal,
+                value: 0.0,
+            },
+        );
+        let mut velocity = [-6.0, -4.0, 3.0];
+        for (_, change) in queue {
+            change.apply(&mut velocity);
+        }
+        assert_eq!(
+            velocity,
+            [2.0, 11.0, 0.0],
+            "same-frame status velocity resets must clear prior velocity before combat knockback"
         );
     }
 }

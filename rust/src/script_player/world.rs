@@ -382,30 +382,12 @@ impl World for BodyWorld {
         frame: u32,
         ops: &[crate::script_init::VelocityOp],
     ) -> bool {
-        use crate::script_init::VelocityOp;
         if !self.is_player_site(site) || self.vitals.death().is_some() {
             return false;
         }
         let mut applied = false;
         for &op in ops {
-            let change = match op {
-                VelocityOp::AddVector(delta) => VelocityChange::Impulse(delta),
-                VelocityOp::SetVector(target) => VelocityChange::SetVelocity(target),
-                VelocityOp::SetHorizontalVector(target) => {
-                    VelocityChange::SetHorizontalVelocity(target)
-                }
-                VelocityOp::SetSpeed { axis, value } => {
-                    VelocityChange::SetAxisSpeed { axis, value }
-                }
-                VelocityOp::CapSpeed { axis, max } => VelocityChange::CapAxisSpeed { axis, max },
-                VelocityOp::ScaleSpeed { axis, factor } => {
-                    VelocityChange::ScaleAxisSpeed { axis, factor }
-                }
-                VelocityOp::ClampSpeed { axis, min, max } => {
-                    VelocityChange::ClampAxisSpeed { axis, min, max }
-                }
-            };
-            applied |= self.queue_velocity_change(frame, change);
+            applied |= self.queue_velocity_change(frame, VelocityChange::from_script_op(op));
         }
         applied
     }
@@ -555,30 +537,48 @@ impl World for BodyWorld {
         if self.vitals.death().is_some() {
             return Some(Vec::new());
         }
-        let origin_pos = if origin == self.entity && offset == [0.0; 3] {
+        let (origin_pos, origin_yaw) = if origin == self.entity && offset == [0.0; 3] {
             let [x, y, z] = self.position;
             let crouched = self.movement.flags & crate::mover_posture::CROUCHED != 0;
-            self.eye_position
-                .unwrap_or([x, y + eye_height(self.hero, crouched), z])
+            (
+                self.eye_position
+                    .unwrap_or([x, y + eye_height(self.hero, crouched), z]),
+                self.movement.yaw,
+            )
         } else if origin == 0 {
-            offset
+            (offset, self.movement.yaw)
         } else {
-            let base = if origin == self.entity {
-                self.position
+            let (base, yaw) = if origin == self.entity {
+                (self.position, self.movement.yaw)
             } else {
-                self.spatial_frame
-                    .as_deref()
-                    .and_then(|frame| frame.actor_pose(origin).map(|(pos, _)| pos))?
+                self.spatial_frame.as_deref().and_then(|frame| {
+                    frame
+                        .actor_pose(origin)
+                        .map(|(pos, angles)| (pos, angles[0]))
+                })?
             };
-            [
-                base[0] + offset[0],
-                base[1] + offset[1],
-                base[2] + offset[2],
-            ]
+            (
+                [
+                    base[0] + offset[0],
+                    base[1] + offset[1],
+                    base[2] + offset[2],
+                ],
+                yaw,
+            )
         };
         let angle_units = |degrees: f64| (degrees * (65_536.0 / 360.0)).round() as i32;
+        // When `m_8DCA77B6` names a reference entity (`origin != 0`), retail
+        // `m_D45E22FA` is a yaw offset in degrees relative to that entity's yaw
+        // (e.g. Wrecking Ball Fireball `0x1203:58` and Brigitte `0x1537:16`
+        // compute `yaw(normalize(velocity)) - entity_yaw`). When `origin == 0`,
+        // `m_D45E22FA` supplies the world-space yaw directly.
+        let yaw = match yaw_deg {
+            Some(deg) if origin != 0 => origin_yaw.wrapping_add(angle_units(deg)),
+            Some(deg) => angle_units(deg),
+            None => origin_yaw,
+        };
         let forward = aim_direction(&Command {
-            yaw: yaw_deg.map_or(self.movement.yaw, angle_units),
+            yaw,
             pitch: pitch_deg
                 .map_or(self.movement.pitch, angle_units)
                 .clamp(-16_384, 16_384),
@@ -1882,7 +1882,7 @@ impl World for BodyWorld {
                 _ => candidate.entity != self.entity,
             })
         {
-            let target = frame.measured_actor_pose(candidate.entity)?;
+            let target = frame.actor_target_pose(candidate.entity, candidate.position);
             let distance = target.surface_distance(start, end);
             if distance <= radius && (!visible || frame.aim_point_visible(start, target)) {
                 matches.push((distance, candidate.entity));

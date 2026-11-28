@@ -1100,11 +1100,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 }
                 self.follow(id, node, "m_outPlug", caller, depth)
             }
-            "STU_FF3471E9"
-                if self
-                    .world
-                    .admits_generic_player_runtime(self.site(id, node)) =>
-            {
+            "STU_FF3471E9" if self.world.admits_velocity_ops(self.site(id, node)) => {
                 self.apply_generic_velocity_ops(id, node, caller);
                 self.follow(id, node, "m_outPlug", caller, depth)
             }
@@ -2595,8 +2591,11 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     .admits_generic_player_runtime(self.site(id, node))
                     && node.is_state() =>
             {
+                let continuous = field(&node.fields, "m_7B2B3F5C").as_u64() == Some(1);
+                let on_enter = !continuous && field(&node.fields, "m_DD792FF0").as_u64() == Some(1);
                 StateKind::GenericModifyHealth {
-                    continuous: field(&node.fields, "m_7B2B3F5C").as_u64() == Some(1),
+                    continuous,
+                    on_enter,
                 }
             }
             "STUStatescriptStatePet"
@@ -2961,9 +2960,22 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             StateKind::ForCode => self.begin_for_code(key, node)?,
             StateKind::ExplosionContact => self.refresh_contact(key, node)?,
             StateKind::ModifyHealth => self.begin_npc_health_change(key, node)?,
-            StateKind::GenericModifyHealth { continuous } => {
+            StateKind::GenericModifyHealth {
+                continuous,
+                on_enter,
+            } => {
                 if continuous {
                     self.register_tick(key, self.machine.now_ms);
+                } else if on_enter {
+                    let applied = self.apply_generic_modify_health_on_enter(key, node)?;
+                    if applied
+                        && (field(&node.fields, "m_8B707686").as_u64() == Some(1)
+                            || node.links("m_onFinishedPlug").next().is_some())
+                    {
+                        self.post(id, Event::Finish(key.raw))?;
+                    } else {
+                        self.register_tick(key, self.machine.now_ms);
+                    }
                 } else {
                     self.apply_generic_modify_health(key, node, None)?;
                     // Discrete one-shot ModifyHealth states (e.g. Piledriver `160A:15` victim loop)

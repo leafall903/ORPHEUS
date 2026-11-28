@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Stage room-triggered status script velocity edits and movement modifiers onto
+  the receiving player or stock bot immediately, ordering non-impulse resets
+  ahead of same-frame external combat impulses so Piledriver (`0x165A`) and
+  Rising Uppercut (`0x0E7D`) clear prior momentum without cancelling knockback.
+- Implement `m_DD792FF0 == 1` on-target-enter tracking for generic
+  `STUStatescriptStateModifyHealth` states (such as Wrecking Ball Fireball
+  `0x1203:63`) and treat `m_D45E22FA` as a yaw offset relative to entity yaw
+  when `STUStatescriptStateTrackTargets` anchors on an entity (`origin != 0`).
+- Fall back to `actor_target_pose` in `swept_tracked_targets` when spatial
+  capsule caches are absent, forward `named_pool_losses` on `ScriptEffect::Contact`
+  damage so ability hits absorbed by Adaptive Shield do not feed enemy ultimate
+  charge, and admit authored `STU_ED45C5E8` / `STU_FF3471E9` forms on stock bots.
+- Use 3D `planar_contact_radius` in Practice Range actor contact regressions to
+  match rounded capsule geometry across differing authored `stand_pogo` heights.
+
 - Include active pets and impact deployables in late-join room snapshots and
   track their health and retirement through the existing entity stream.
 - Publish autonomous pet poses as movement and preserve separate cumulative

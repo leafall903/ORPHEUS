@@ -152,7 +152,9 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                             .expect("modify health state");
                         self.world.modify_health(self.site(id, node), elapsed_ms);
                     }
-                    Some(StateKind::GenericModifyHealth { continuous: true }) => {
+                    Some(StateKind::GenericModifyHealth {
+                        continuous: true, ..
+                    }) => {
                         // Retail continuous beams (Winston Tesla, Zarya, Symmetra, Moira)
                         // settle at 20 Hz (~48 ms) rather than flooding 62.5 Hz hit notices.
                         if elapsed_ms < 48 {
@@ -171,6 +173,19 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                             .state(usize::from(raw))
                             .expect("generic modify health state");
                         self.apply_generic_modify_health(key, node, Some(elapsed_ms))?;
+                    }
+                    Some(StateKind::GenericModifyHealth { on_enter: true, .. }) => {
+                        let node = self
+                            .graph(id)
+                            .state(usize::from(raw))
+                            .expect("generic modify health state");
+                        let applied = self.apply_generic_modify_health_on_enter(key, node)?;
+                        if applied
+                            && (field(&node.fields, "m_8B707686").as_u64() == Some(1)
+                                || node.links("m_onFinishedPlug").next().is_some())
+                        {
+                            self.post(id, Event::Finish(raw))?;
+                        }
                     }
                     Some(StateKind::GenericContactSweep) => {
                         let node = self

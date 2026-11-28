@@ -1266,6 +1266,19 @@ impl Bot {
         }
     }
 
+    pub(crate) fn queue_status_velocity_changes(
+        &mut self,
+        changes: Vec<(u32, crate::mover::VelocityChange)>,
+    ) {
+        for (frame, change) in changes {
+            crate::mover::Mover::push_status_velocity_change(
+                &mut self.velocity_changes,
+                frame,
+                change,
+            );
+        }
+    }
+
     /// Cancel pending movement edits when this body dies.
     pub(crate) fn clear_velocity_changes(&mut self) {
         self.velocity_changes.clear();
@@ -1306,10 +1319,11 @@ impl Bot {
         let continuing = self.combat_motion_tick.is_some() && velocity != [0.0; 3];
         let mut applied_impulse = false;
         self.velocity_changes.retain(|&(due, change)| {
-            if due <= tick && matches!(change, VelocityChange::Impulse(_)) {
+            if due <= tick {
                 let before = velocity;
                 change.apply(&mut velocity);
-                applied_impulse |= before != velocity;
+                applied_impulse |=
+                    matches!(change, VelocityChange::Impulse(_)) && before != velocity;
                 false
             } else {
                 true

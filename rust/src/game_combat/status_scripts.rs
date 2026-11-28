@@ -99,14 +99,44 @@ impl RoomSimulation {
         op: StatusScriptOp<'_>,
     ) -> Option<Result<Option<u16>, String>> {
         let result = if let Some(id) = self.player_handle_for_wire(wire) {
-            self.player_body_mut(id)?
-                .runtime
-                .as_mut()?
-                .status_script(op)
+            let player = self.player_body_mut(id)?;
+            let runtime = player.runtime.as_mut()?;
+            let outcome = runtime.status_script(op);
+            if outcome.is_ok() {
+                player.mover.set_cinematic_aim(runtime.cinematic_aim());
+                player.mover.set_authored_facing(runtime.authored_facing());
+                player.mover.set_tether(runtime.active_tether());
+                player.mover.set_ball_roll_speed(runtime.ball_roll_speed());
+                player.mover.set_mover_override(runtime.mover_override());
+                let velocity_changes = runtime.take_velocity_changes();
+                if runtime
+                    .vitals()
+                    .is_some_and(|vitals| vitals.death().is_some())
+                {
+                    player.mover.clear_pending_motion();
+                } else if !player.mover.is_stunned() {
+                    player.mover.set_move_request(runtime.move_request());
+                    for (frame, change) in velocity_changes {
+                        player.mover.queue_status_velocity_change(frame, change);
+                    }
+                }
+                if let Some(modifiers) = runtime.movement_modifiers() {
+                    let frame = player.mover.pose().frame.unwrap_or(player.frame);
+                    player.mover.track_modifiers(frame, modifiers);
+                }
+            }
+            outcome
         } else {
             let bot = self.state_mut(wire).ok()??;
             if let Some(script) = bot.stock_script.as_mut() {
-                script.status_script(op)
+                let outcome = script.status_script(op);
+                if outcome.is_ok() {
+                    let changes = script.take_velocity_changes();
+                    if !changes.is_empty() && !bot.bot.dead && bot.vitals.death().is_none() {
+                        bot.bot.queue_status_velocity_changes(changes);
+                    }
+                }
+                outcome
             } else {
                 let enemy = bot.enemy.as_mut().filter(|enemy| enemy.fault.is_none())?;
                 enemy

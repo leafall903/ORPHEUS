@@ -34,6 +34,7 @@ impl HealthEffect {
 pub(super) struct SettledHealth {
     pub(super) delta: f64,
     pub(super) killed: bool,
+    pub(super) named_pool_losses: Vec<crate::vitals::NamedPoolLoss>,
 }
 
 impl RoomSimulation {
@@ -216,7 +217,11 @@ impl RoomSimulation {
                     self.mod_on_heal(source.killer, wire, delta, source.frame, now);
                 }
             }
-            return Ok(Some(SettledHealth { delta, killed }));
+            return Ok(Some(SettledHealth {
+                delta,
+                killed,
+                named_pool_losses: named_pool_losses.unwrap_or_default(),
+            }));
         }
         let Some((id, victim_team)) = self
             .player_handle_for_wire(wire)
@@ -250,6 +255,7 @@ impl RoomSimulation {
                     return Ok(Some(SettledHealth {
                         delta: -dealt,
                         killed,
+                        named_pool_losses: Vec::new(),
                     }));
                 }
             }
@@ -269,6 +275,7 @@ impl RoomSimulation {
                     settled = SettledHealth {
                         delta: -outcome.dealt,
                         killed: outcome.killed,
+                        named_pool_losses: outcome.named_pool_losses,
                     };
                     if outcome.dealt > 0.0 || outcome.killed {
                         self.record_actor_hurt_voice(

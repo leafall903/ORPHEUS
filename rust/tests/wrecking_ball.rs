@@ -1320,3 +1320,102 @@ fn real_pack_adaptive_shield_enforces_los_and_survives_owner_death() {
         "var[11] target count must clear to 0 when owner dies"
     );
 }
+
+#[test]
+fn modify_health_on_target_enter_hits_each_new_target_once_until_it_leaves() {
+    let graphs = graph_store(
+        0x1203,
+        vec![
+            node_json(
+                0,
+                "STUStatescriptEntry",
+                None,
+                0,
+                json!({
+                    "m_outPlug": {
+                        "$": "STUStatescriptOutputPlug",
+                        "links": [[1, "m_beginPlug"], [2, "m_beginPlug"]]
+                    }
+                }),
+            ),
+            node_json(
+                1,
+                "STUStatescriptStateTrackTargets",
+                Some(0),
+                1,
+                json!({
+                    "m_beginPlug": { "$": "STUStatescriptInputPlug", "links": [] },
+                    "m_radius": { "$": "STUConfigVarFloat", "m_value": 3.0 },
+                    "m_A30B383E": { "$": "STUConfigVarInt", "m_value": 70 },
+                    "m_8A2905A0": dyn_var(375, 0)
+                }),
+            ),
+            node_json(
+                2,
+                "STUStatescriptStateModifyHealth",
+                Some(1),
+                2,
+                json!({
+                    "m_beginPlug": { "$": "STUStatescriptInputPlug", "links": [] },
+                    "m_DD792FF0": 1,
+                    "m_7B2B3F5C": 0,
+                    "m_8B707686": 0,
+                    "m_FA3ECC43": dyn_var(375, 0),
+                    "m_modifyHealth": {
+                        "$": "STUStatescriptModifyHealth",
+                        "m_93CDFD2F": 1,
+                        "m_amount": { "$": "STUConfigVarFloat", "m_value": 50.0 },
+                        "m_E33EFEE1": { "$": "STUConfigVarFloat", "m_value": 22.0 },
+                        "m_583C208B": { "$": "STUConfigVarFloat", "m_value": 5.0 },
+                        "m_10399AE7": { "$": "STUConfigVarInt", "m_value": 1 }
+                    }
+                }),
+            ),
+        ],
+        vec![1, 2],
+        vec![0],
+    );
+    let owner = 0xa000_0101;
+    let enemy = 0xa000_0201;
+    let mut world = WbTestWorld {
+        owner,
+        positions: vec![(owner, [0.0, 0.0, 0.0]), (enemy, [0.0, 0.0, 2.0])],
+        forward: [0.0, 0.0, 1.0],
+        grounded: true,
+        ..Default::default()
+    };
+    let mut comp = Component::start(
+        graphs,
+        owner,
+        Variables::new(),
+        vec![Root::new(1, 0x1203)],
+        1,
+        &mut world,
+        MAX_INIT_WORK,
+    )
+    .unwrap();
+    // Spawn with empty targets: no damage yet.
+    comp.advance_frame(2, &mut world).unwrap();
+    assert!(world.contact_hits.is_empty());
+
+    // Enemy enters tracked array: exactly one 50-damage hit with knockback.
+    world.cone_targets = vec![enemy];
+    for frame in 3..=6 {
+        comp.advance_frame(frame, &mut world).unwrap();
+    }
+    assert_eq!(world.contact_hits.len(), 1, "must hit once per entry");
+    assert_eq!(world.contact_hits[0].0, 50.0);
+    assert!(world.contact_hits[0].1[0].1.is_some());
+
+    // Enemy leaves, then re-enters on a second pass: hits once more.
+    world.cone_targets.clear();
+    comp.advance_frame(7, &mut world).unwrap();
+    world.cone_targets = vec![enemy];
+    comp.advance_frame(8, &mut world).unwrap();
+    comp.advance_frame(9, &mut world).unwrap();
+    assert_eq!(
+        world.contact_hits.len(),
+        2,
+        "leaving and re-entering must trigger a fresh hit"
+    );
+}

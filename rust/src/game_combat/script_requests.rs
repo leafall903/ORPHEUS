@@ -827,7 +827,7 @@ impl RoomSimulation {
                                 self.deliver_applied_damage_by_wire(super::AppliedDamage {
                                     source: source.wire,
                                     amount: dealt,
-                                    named_pool_losses: Vec::new(),
+                                    named_pool_losses: outcome.named_pool_losses,
                                     tags: contact_impact.tags,
                                     target_facts: facts,
                                 });

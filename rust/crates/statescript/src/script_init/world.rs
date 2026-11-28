@@ -649,6 +649,12 @@ pub trait World {
         false
     }
 
+    /// Whether generic `STU_FF3471E9` velocity ops should route through
+    /// `apply_velocity_ops` for this site.
+    fn admits_velocity_ops(&self, site: Site) -> bool {
+        self.admits_generic_player_runtime(site)
+    }
+
     /// Queue an ordered list of authored `STU_FF3471E9` velocity operations.
     fn apply_velocity_ops(&mut self, _site: Site, _frame: u32, _ops: &[VelocityOp]) -> bool {
         false

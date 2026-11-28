@@ -15,6 +15,7 @@ mod fault_shapes;
 mod grapple;
 mod lifecycle_voice;
 mod piledriver;
+mod wrecking_ball_combat;
 
 fn declared_reload_flag(graph: &Graph) -> bool {
     let reload = Variable {

@@ -713,7 +713,77 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         node: &Node,
         elapsed_ms: Option<u64>,
     ) -> Result<(), InitFault> {
-        if self.machine.owner_dead || elapsed_ms == Some(0) {
+        let targets = self.evaluate_modify_health_targets(key, node);
+        if targets.is_empty() {
+            return Ok(());
+        }
+        self.apply_generic_modify_health_to_targets(key, node, elapsed_ms, &targets)
+    }
+
+    /// Retail `m_DD792FF0 == 1` (`STUStatescriptStateModifyHealth` on-target-enter mode,
+    /// e.g. Wrecking Ball Fireball `0x1203:63`): fire once for each entity entering the
+    /// tracked target set, and allow a fresh hit only after that entity leaves and re-enters.
+    pub(in crate::script_init) fn apply_generic_modify_health_on_enter(
+        &mut self,
+        key: StateKey,
+        node: &Node,
+    ) -> Result<bool, InitFault> {
+        let current = self.evaluate_modify_health_targets(key, node);
+        let previous = self
+            .state(key)
+            .map(|state| state.tracked_targets.as_slice())
+            .unwrap_or(&[]);
+        let newly_entered: Vec<u32> = current
+            .iter()
+            .copied()
+            .filter(|entity| !previous.contains(entity))
+            .collect();
+        if let Some(state) = self.state_mut(key) {
+            state.tracked_targets = current;
+        }
+        if newly_entered.is_empty() {
+            return Ok(false);
+        }
+        self.apply_generic_modify_health_to_targets(key, node, None, &newly_entered)?;
+        Ok(true)
+    }
+
+    fn evaluate_modify_health_targets(&mut self, key: StateKey, node: &Node) -> Vec<u32> {
+        let id = key.instance;
+        let site = self.site(id, node);
+        let target_field = field(&node.fields, "m_FA3ECC43");
+        let target_value = if target_field.is_null() {
+            Value::Entity(site.entity)
+        } else {
+            match self.evaluate(id, node, target_field, None) {
+                Some(value) => value,
+                None => return Vec::new(),
+            }
+        };
+        let items = match target_value {
+            Value::Array(items) => items,
+            Value::Null => Vec::new(),
+            other => vec![other],
+        };
+        let mut out = Vec::with_capacity(items.len());
+        for item in items {
+            if let Value::Entity(target) = item {
+                if script_expr::valid_entity(target) && !out.contains(&target) {
+                    out.push(target);
+                }
+            }
+        }
+        out
+    }
+
+    fn apply_generic_modify_health_to_targets(
+        &mut self,
+        key: StateKey,
+        node: &Node,
+        elapsed_ms: Option<u64>,
+        targets: &[u32],
+    ) -> Result<(), InitFault> {
+        if self.machine.owner_dead || elapsed_ms == Some(0) || targets.is_empty() {
             return Ok(());
         }
         let id = key.instance;
@@ -757,15 +827,6 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         if amount <= 0.0 && knockback.is_none() && direct_knockback.is_none() {
             return Ok(());
         }
-        let target_field = field(&node.fields, "m_FA3ECC43");
-        let target_value = if target_field.is_null() {
-            Value::Entity(site.entity)
-        } else {
-            match self.evaluate(id, node, target_field, None) {
-                Some(value) => value,
-                None => return Ok(()),
-            }
-        };
         let damage = field(effect, "m_93CDFD2F").as_u64() == Some(1);
         let delta = if amount > 0.0 {
             if damage { -amount } else { amount }
@@ -807,34 +868,24 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 let _ = hit_tags.push(guid);
             }
         }
-        let targets = match target_value {
-            Value::Array(items) => items,
-            Value::Null => Vec::new(),
-            other => vec![other],
-        };
-        for item in targets {
-            if let Value::Entity(target) = item {
-                if script_expr::valid_entity(target) {
-                    let impulse = direct_knockback.or_else(|| {
-                        let kb = knockback.as_ref()?;
-                        let origin = kb_origin?;
-                        let target_pos = self.world.position(target)?;
-                        let [dx, dy, dz] =
-                            std::array::from_fn(|axis| target_pos[axis] - origin[axis]);
-                        let distance = dx.hypot(dy).hypot(dz);
-                        if dx == 0.0 && dz == 0.0 {
-                            let forward = self.world.forward(site.entity).unwrap_or([0.0; 3]);
-                            kb.radial_delta([forward[0], forward[2]], distance, true, 1.0)
-                        } else {
-                            kb.radial_delta([dx, dz], distance, true, 1.0)
-                        }
-                    });
-                    if delta != 0.0 || impulse.is_some() {
-                        let _ = self.world.queue_modify_health_with_meta(
-                            site, target, delta, impulse, loadout, hit_tags,
-                        );
-                    }
+        for &target in targets {
+            let impulse = direct_knockback.or_else(|| {
+                let kb = knockback.as_ref()?;
+                let origin = kb_origin?;
+                let target_pos = self.world.position(target)?;
+                let [dx, dy, dz] = std::array::from_fn(|axis| target_pos[axis] - origin[axis]);
+                let distance = dx.hypot(dy).hypot(dz);
+                if dx == 0.0 && dz == 0.0 {
+                    let forward = self.world.forward(site.entity).unwrap_or([0.0; 3]);
+                    kb.radial_delta([forward[0], forward[2]], distance, true, 1.0)
+                } else {
+                    kb.radial_delta([dx, dz], distance, true, 1.0)
                 }
+            });
+            if delta != 0.0 || impulse.is_some() {
+                let _ = self
+                    .world
+                    .queue_modify_health_with_meta(site, target, delta, impulse, loadout, hit_tags);
             }
         }
         Ok(())
