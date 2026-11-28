@@ -5,7 +5,8 @@ import unittest
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from runtime_status import status_scripts
+from runtime_status import status_scripts, status_graph_issue
+import json
 
 
 class StatusScriptTest(unittest.TestCase):
@@ -31,3 +32,15 @@ class StatusScriptTest(unittest.TestCase):
         self.record("000000000011.053.xml", field.replace(".01B", ".00D"))
         with self.assertRaisesRegex(ValueError, "Expected .01B"):
             status_scripts(self.root)
+
+    def test_packed_status_roots_and_transitive_children_must_be_loadable(self):
+        catalog = self.root / "status.json"
+        catalog.write_text(json.dumps({"version": 1, "on_apply": {"0x04A0000000000001": 21}}),
+                           encoding="utf-8")
+        bundle = {"graphs": [{"index": 21}],
+                  "status_graph_dependencies": {"21": [22], "22": [21]}}
+        self.assertIn("0016", status_graph_issue(bundle, catalog))
+        bundle["graphs"].append({"index": 22})
+        self.assertIsNone(status_graph_issue(bundle, catalog))
+        del bundle["status_graph_dependencies"]["21"]
+        self.assertIn("0015", status_graph_issue(bundle, catalog))

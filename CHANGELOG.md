@@ -21,7 +21,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   104319 installation. Preserve line conditions and read durations from local
   audio headers without packaging the recordings. Export the status effects
   that reference an on-apply StateScript graph in the same build. Include the
-  generated catalogs in the runtime manifest and verify their hashes.
+  generated catalogs in the runtime manifest and verify their hashes. Also
+  load the scripts these effects name and their transitive dependencies. A
+  manifest-valid index alone could previously refer to an absent victim
+  script, including the one used by Sleep Dart.
 
 - Rebuild the Practice Range ray cache when a movement-only source pack is supplied. Verify that both collision files are inventoried before publishing a new runtime. Use `runtime.py check --complete` to apply the same gameplay checks to an existing pack. Add `--files-only` to skip the native build and preflight.
 - Include landed projectile entity definitions and their StateScript roots in

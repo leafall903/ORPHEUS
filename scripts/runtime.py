@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 from runtime_projectiles import persistent_entity_issue
-from runtime_status import STATUS_SCRIPTS
+from runtime_status import STATUS_SCRIPTS, status_graph_issue
 from runtime_validation import PRACTICE_COLLISION, stock_model_issue, validate_pack
 from runtime_voice import VOICE_CATALOGS
 
@@ -108,7 +108,7 @@ def stage_inputs(source, view, verified=None):
 
 def graph_status(path):
     if not path.is_file():
-        return False, False, False, False, False
+        return False, False, False, False, False, False
     with gzip.open(path, "rt", encoding="utf-8") as stream:
         graph = json.load(stream)
     if not isinstance(graph, dict) or not isinstance(graph.get("bodies"), dict):
@@ -117,7 +117,8 @@ def graph_status(path):
     return (bool(graph.get("mode_scripts") and graph.get("mode_variables")),
             bool(bodies) and all(b.get("target_tags") for b in bodies.values()),
             stock_model_issue(bodies) is None, bool(graph.get("mode_rulesets")),
-            persistent_entity_issue(graph) is None)
+            persistent_entity_issue(graph) is None,
+            status_graph_issue(graph, path.with_name(STATUS_SCRIPTS)) is None)
 
 
 def raw_cache(cache, game):
@@ -154,7 +155,7 @@ def build(game, dest, source, cache):
             verified = verify_manifest(source)
         stage_inputs(source, view, verified)
         data = view / "data"
-        mode, tags, anchors, rules, projectiles = graph_status(data / GRAPH)
+        mode, tags, anchors, rules, projectiles, statuses = graph_status(data / GRAPH)
         raw = raw_cache(cache, game)
         if not (view / "data/lobby_state_blob.key").is_file():
             (view / "data/lobby_state_blob.key").write_bytes(secrets.token_bytes(64))
@@ -177,12 +178,12 @@ def build(game, dest, source, cache):
         profiles = source / "mode-rulesets.json"
         supplied_rules = profiles.is_file() and (verified is None or "mode-rulesets.json" in verified)
         generate_rules = not rules and not supplied_rules
-        if (generate_rules or need_protocol or not (mode and tags and anchors and projectiles)
+        if (generate_rules or need_protocol or not (mode and tags and anchors and projectiles and statuses)
                 or not all((data / n).is_file() for n in GENERATED)
                 or any(not (view / name).is_file() for name in PRACTICE_COLLISION)
                 or not (data / "game_queues_174.json").is_file()):
             from runtime_install import generate
-            pack_args = generate(game, cache, raw, view, staging, mode, tags, anchors, generate_rules, projectiles)
+            pack_args = generate(game, cache, raw, view, staging, mode, tags, anchors, generate_rules, projectiles, statuses)
         if not rules:
             if generate_rules:
                 profiles = staging / "mode-rulesets.json"

@@ -12,7 +12,7 @@ import tempfile
 
 from build_runtime_state_metadata import import_model_hardpoints, import_model_skeletons, write_bundle
 from runtime_tools import extraction_tools
-from runtime_status import STATUS_SCRIPTS, status_scripts
+from runtime_status import STATUS_SCRIPTS, read_status_roots, status_scripts
 from runtime_validation import stock_model_issue
 from runtime_voice import VOICE_CATALOGS, user_locale, voice_locales
 
@@ -63,7 +63,7 @@ def import_stock_models(graph, directory):
     return points, bones
 
 
-def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, projectiles):
+def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, projectiles, statuses):
     from runtime import GRAPH, ROOT, VERSION, link_input
     from runtime_validation import PRACTICE_COLLISION
 
@@ -145,9 +145,9 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
     families = {family for name in missing_core for family in gameplay.XML_TYPES[name]}
     if not mode:
         families.update((*gameplay.XML_TYPES[GRAPH], "0C5"))
-    if not tags or not projectiles:
+    if not tags or not projectiles or not statuses:
         families.add("003")
-    if not projectiles:
+    if not projectiles or not statuses:
         families.add("01B")
     if need_rules:
         families.update(("075", "0C5", "0C6"))
@@ -252,17 +252,28 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         sources = [data / "game_heroes_174.json", data / "ai_spawners_174.json"]
         exported = checkpoint(raw / f"graphs-guid-v1-{variant(sources)}", export_graph)
         use(exported / GRAPH)
-    if not anchors or not projectiles:
+    if not (anchors and projectiles and statuses):
         with gzip.open(stored, "rt", encoding="utf-8") as stream:
             graph = json.load(stream)
-    if not projectiles:
+    if not (projectiles and statuses):
+        from runtime_graph_closure import import_graph_dependencies
         from runtime_projectiles import import_persistent_entities
         enums = extract_game_graphs.EnumTables(owlib / "TankLib/STU/Types")
-        added = import_persistent_entities(graph, xml / "003", enums, extract_game_graphs)
+        added = set()
+        if not statuses:
+            roots = read_status_roots(data / STATUS_SCRIPTS)
+            known = {row["index"] for row in graph["graphs"]}
+            edges = {}
+            rows = import_graph_dependencies(roots, xml / "01B", enums, extract_game_graphs, known, edges)
+            graph["status_graph_dependencies"] = edges
+            graph["graphs"] = sorted([*graph["graphs"], *rows], key=lambda row: row["index"])
+            added.update(row["index"] for row in rows)
+            graph["missing"] = sorted(set(graph.get("missing", [])) - added)
+            print(f"Resolved {len(roots)} status roots and {len(edges)} reachable StateScript graphs.", flush=True)
+        # A newly imported status graph can introduce another persistent projectile.
+        added.update(import_persistent_entities(graph, xml / "003", enums, extract_game_graphs))
         if mode and added:
-            # Existing prepared graphs may include local state-group observations.
-            # Supply XML only for graphs appended by this build.
-            groups = scratch / "projectile-state-groups"
+            groups = scratch / "additional-state-groups"
             groups.mkdir()
             for index in sorted(added):
                 name = f"{index:012X}.01B.xml"
@@ -280,7 +291,7 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         models = checkpoint(raw / f"models-{variant([hero_table])}", export_models)
         count, bones = import_stock_models(graph, models)
         print(f"Imported {count} attachment positions and {bones} reference bone transforms.", flush=True)
-    if not anchors or not projectiles:
+    if not (anchors and projectiles and statuses):
         output = scratch / GRAPH
         write_bundle(output, graph)
         args.extend(["--game-graphs", output])

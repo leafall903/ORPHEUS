@@ -138,7 +138,7 @@ movement-based probes and sweeps.
 | `data/combat_voice_174.json` | Optional local multikill and actor hurt/death voice catalog, packed and hashed when present |
 | `data/player_voice_174.json` | The build command generates hero and skin voice sets, StateScript criteria, equipped stimuli and locally readable clip durations. It reads the installation's text and speech manifests. Lines with an independent StateScript condition are recorded separately in `state_conditioned_sets` until the server supports that condition. |
 | `data/voice_effects_174.json` | The build command generates the voice-unlock to playback-effect mapping alongside the actor catalog. Existing packs retain their verified local files. |
-| `data/status_scripts_174.json` | Optional status-to-StateScript index derived from the on-apply field of each local `.053` definition. Contains script indices only. |
+| `data/status_scripts_174.json` | Status-to-StateScript index derived from the on-apply field of each local `.053` definition. A complete pack includes these graphs and every graph they reference. The standard builder can enrich an older pack supplied with `--inputs`. |
 | `data/emote_aliases_174.json`, `data/emote_blend_trees_174.json` | Optional untagged emote mappings from equipped unlocks to animation aliases and blend trees. Generate locally with `tools/extract_emote_aliases.py` on the `python` branch. |
 | `data/emote_durations_174.json`, `data/emote_scalar_tracks_174.json`, `data/greeting_durations_174.json` | Optional emote/greeting clip durations and scalar camera/pose tracks preserved when present. |
 | `data/map_environment_174.json` | Optional map boundary hazards and per-map/mode respawn delay overrides (Practice Range defaults to 3s). |

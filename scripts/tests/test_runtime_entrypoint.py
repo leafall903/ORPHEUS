@@ -41,7 +41,7 @@ def write_pack(folder, *, stock_models=True):
             "reference_bones": [[1, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]]],
         }]
     bundle = {
-        "version": 1, "graphs": [{"index": 42}],
+        "version": 1, "graphs": [{"index": 42}], "status_graph_dependencies": {"42": []},
         "mode_scripts": {PRACTICE_MODE: {"graph": graph, "teams": teams}},
         "mode_variables": {PRACTICE_MODE: {"10": True}},
         "mode_rulesets": [{"mode": PRACTICE_MODE, "rules": [{"id": 30, "value": 1}]}],
@@ -59,6 +59,9 @@ def write_pack(folder, *, stock_models=True):
     }), encoding="utf-8")
     (target.parent / "voice_effects_174.json").write_text(
         '{"0x0250000000000001":"0x0300000000000001"}', encoding="utf-8")
+    (target.parent / "status_scripts_174.json").write_text(json.dumps({
+        "version": 1, "on_apply": {"0x04A0000000000001": 42},
+    }), encoding="utf-8")
     target.write_bytes(gzip.compress(json.dumps(bundle).encode()))
     manifest(folder)
 

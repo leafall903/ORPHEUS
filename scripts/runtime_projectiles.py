@@ -1,6 +1,9 @@
 """Import the .003 bindings named by persistent projectile volleys."""
 
 
+from runtime_graph_closure import dependency_issue, import_graph_dependencies
+
+
 def persistent_entities(bundle):
     result = set()
     for graph in bundle.get("graphs", []):
@@ -41,20 +44,7 @@ def persistent_entity_issue(bundle):
         if any(type(index) is not int for index in record["graph_refs"]):
             return f"Invalid graph references for persistent projectile {guid}."
         pending.update(record["graph_refs"])
-    checked = set()
-    while pending:
-        index = min(pending)
-        pending.remove(index)
-        if index in checked:
-            continue
-        children = edges.get(str(index))
-        if index not in loaded or not isinstance(children, list):
-            return f"Missing persistent projectile graph or dependency record {index:04X}."
-        if any(type(child) is not int for child in children):
-            return f"Invalid child graph reference in persistent projectile graph {index:04X}."
-        checked.add(index)
-        pending.update(children)
-    return None
+    return dependency_issue(pending, edges, loaded, "persistent projectile")
 
 
 def import_persistent_entities(bundle, xml, enums, extractor):
@@ -79,22 +69,9 @@ def import_persistent_entities(bundle, xml, enums, extractor):
                          "components": sorted(extractor.tag(entry) for entry in components)}
         pending = set(references)
         pending.update(binding["graph"] for binding in record["graphs"] if binding.get("graph") is not None)
-        while pending:
-            index = pending.pop()
-            if str(index) in edges:
-                continue
-            path = xml.parent / "01B" / f"{index:012X}.01B.xml"
-            if not path.is_file():
-                raise ValueError(f"Missing persistent projectile graph dependency {path.name} (entity {guid})")
-            graph = extractor.GraphXml(path, enums)
-            children = graph.graph_refs()
-            edges[str(index)] = sorted(children)
-            pending.update(children)
-            if index not in known:
-                row = graph.record(index)
-                additional.append(row)
-                known.add(index)
-                pending_entities.update(persistent_entities({"graphs": [row]}) - records.keys())
+        new_graphs = import_graph_dependencies(pending, xml.parent / "01B", enums, extractor, known, edges)
+        additional.extend(new_graphs)
+        pending_entities.update(persistent_entities({"graphs": new_graphs}) - records.keys())
     bundle["graphs"] = sorted([*bundle["graphs"], *additional], key=lambda g: g["index"])
     recovered = {graph["index"] for graph in additional}
     bundle["missing"] = sorted(set(bundle.get("missing", [])) - recovered)

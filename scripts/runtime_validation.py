@@ -8,6 +8,7 @@ import re
 import zlib
 
 from runtime_projectiles import persistent_entity_issue
+from runtime_status import STATUS_SCRIPTS, status_graph_issue
 from runtime_voice import VOICE_CATALOGS
 
 
@@ -198,6 +199,10 @@ def validate_pack(path: Path, *, require_gameplay_data: bool = False) -> None:
             issues.append(model_issue)
         else:
             print("Stock model attachments and bone transforms: all 32 default hero models present.", flush=True)
+        if f"data/{STATUS_SCRIPTS}" not in entries:
+            issues.append(f"Missing inventoried status script catalog: data/{STATUS_SCRIPTS}")
+        elif status_issue := status_graph_issue(graph, root / "data" / STATUS_SCRIPTS):
+            issues.append(status_issue)
         if projectile_issue := persistent_entity_issue(graph):
             issues.append(projectile_issue)
     except (OSError, EOFError, RuntimeError, zlib.error) as error:
