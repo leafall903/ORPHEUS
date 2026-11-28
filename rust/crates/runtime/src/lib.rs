@@ -49,6 +49,7 @@ pub const WHEEL_EMOTE_ALIASES: &str = "data/emote_aliases_174.json";
 pub const WHEEL_EMOTE_BLEND_TREES: &str = "data/emote_blend_trees_174.json";
 pub const WHEEL_VOICE_EFFECTS: &str = "data/voice_effects_174.json";
 pub const ACTOR_VOICE_CATALOG: &str = "data/player_voice_174.json";
+pub const STATUS_SCRIPTS: &str = "data/status_scripts_174.json";
 pub const COMBAT_VOICE_CATALOG: &str = "data/combat_voice_174.json";
 pub const MAP_ENVIRONMENT: &str = "data/map_environment_174.json";
 const PRACTICE_COLLISION: &str = "collision/0688.col";
@@ -272,9 +273,14 @@ fn inputs(
     for name in [
         COMBAT_HURT_VOLUMES,
         ACTOR_VOICE_CATALOG,
+        STATUS_SCRIPTS,
         WHEEL_VOICE_EFFECTS,
         WHEEL_EMOTE_ALIASES,
         WHEEL_EMOTE_BLEND_TREES,
+        "data/emote_durations_174.json",
+        "data/emote_scalar_tracks_174.json",
+        "data/greeting_durations_174.json",
+        "data/statescript_names_174.json",
         COMBAT_VOICE_CATALOG,
         MAP_ENVIRONMENT,
     ] {
@@ -640,7 +646,7 @@ mod tests {
             (r#"[{"mode":"0x00000000000000A1"}]"#, "duplicate mode ruleset"),
             (
                 r#"[{"mode":"0x00000000000000A2","rules":[{"id":7,"value":18446744073709551616}]}]"#,
-                "requires null, a Boolean, a signed integer or a finite float",
+                "requires null, a Boolean, a signed integer, a finite float or a canonical asset GUID",
             ),
         ]
         .into_iter()
@@ -701,6 +707,16 @@ mod tests {
         );
         let voice = br#"{"hurt_cooldown_ticks":12,"hurt":{"minor":{"stimulus":"0x0EE0000000000001","lines":["0x0760000000000002"]}}}"#;
         fixture.write(&format!("source/{COMBAT_VOICE_CATALOG}"), voice);
+        let optional = [
+            STATUS_SCRIPTS,
+            "data/emote_durations_174.json",
+            "data/emote_scalar_tracks_174.json",
+            "data/greeting_durations_174.json",
+            "data/statescript_names_174.json",
+        ];
+        for name in optional {
+            fixture.write(&format!("source/{name}"), b"{}");
+        }
         let destination = fixture.root.join("new/pack");
         let output = prepare(
             &source,
@@ -730,10 +746,13 @@ mod tests {
         let entries = manifest["sha256"].as_object().unwrap();
         assert!(entries.contains_key(MAP_ENVIRONMENT));
         assert!(entries.contains_key(COMBAT_VOICE_CATALOG));
+        for name in optional {
+            assert!(entries.contains_key(name));
+        }
         assert_eq!(fs::read(output.join(COMBAT_VOICE_CATALOG)).unwrap(), voice);
         assert_eq!(
             entries.len(),
-            LOBBY_RUNTIME_DATA.len() + MATCH_RUNTIME_DATA.len() + 6
+            LOBBY_RUNTIME_DATA.len() + MATCH_RUNTIME_DATA.len() + 6 + optional.len()
         );
         for (name, hash) in entries {
             let copied = fs::read(output.join(name)).unwrap();

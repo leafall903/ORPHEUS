@@ -45,6 +45,8 @@ $RelayPathFile = Join-Path $OrpheusAppDir "relay_path.txt"
 if ([string]::IsNullOrWhiteSpace($RuntimeDir)) {
     if (-not [string]::IsNullOrWhiteSpace($env:ORPHEUS_RUNTIME_DIR)) {
         $RuntimeDir = $env:ORPHEUS_RUNTIME_DIR
+    } elseif (Test-Path -LiteralPath (Join-Path $OrpheusAppDir "runtime-104319\manifest.json") -PathType Leaf) {
+        $RuntimeDir = Join-Path $OrpheusAppDir "runtime-104319"
     } else {
         $RuntimeDir = Join-Path (Split-Path $RepoRoot -Parent) "orpheus-runtime-104319"
     }
@@ -361,7 +363,7 @@ try {
             throw "prepare_server_runtime failed with exit code $LASTEXITCODE"
         }
     } elseif (-not (Test-Path -LiteralPath $RuntimeDir)) {
-        throw "Runtime directory not found: $RuntimeDir`nProvide -RuntimeDir <prepared-pack> or -SourceDir <local-extracted-1.74-source>."
+        throw "Runtime directory not found: $RuntimeDir`nFrom the repository root, run: python scripts/runtime.py build <OW1-install-directory>. For an existing pack, pass -RuntimeDir <prepared-pack>."
     }
 
     $ServerExe = Join-Path $RepoRoot "target\release\orpheus_server.exe"

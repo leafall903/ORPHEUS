@@ -67,18 +67,30 @@ Type `reload` + Enter in the server console at any time to hot-reload your Lua m
 
 ---
 
-## Run the Native Server (One-Click Unified Launcher)
+## Prepare a runtime and run the native server
 
-Starting the native server requires a single unified **1.74.0.0.104319** runtime pack sourced strictly from your own local game files (never commit game clients, commercial assets, or keys). When building a pack from scratch, make sure `data/game_graphs_174.json.gz` includes `--mode-xml` (`0C5` mode scripts/variables), `--target-tags-xml` (`003` hero/entity tags), and `--mode-rulesets` — `--check-runtime` alone does not catch missing mode data or hero `target_tags`. See [data/README.md](data/README.md) for the complete packing command and verification checklist.
+Use your own local **1.74.0.0.104319** installation on Windows to generate a complete, verified Practice Range runtime pack in **one command** — no separately prepared external tables, descriptors, or signing keys are required. All client-derived catalogs, PE message schemas, CASC resource keys, StateScript graphs, model attachments/bones, collision caches, rulesets, Battle.net descriptors, StateScript codecs, lobby templates, and a local 64-byte signing key are generated automatically and cached locally (never commit game files or generated packs). See the [Runtime data guide](data/README.md) for prerequisites and optional overrides.
 
-Use the unified launcher to pack (if `-SourceDir` is supplied), build `orpheus_server` (`inspector` + `lua-mods`), run `--check-runtime`, start the Web 3D Viewer on `http://127.0.0.1:3726/`, and launch with persistent saves (`%LOCALAPPDATA%\ORPHEUS\state`):
+```powershell
+# 1. Build and verify the runtime pack from your local Overwatch 1.74.0.0.104319 folder
+python scripts/runtime.py build "C:\Games\Overwatch"
+
+# 2. (Optional) Re-check an existing runtime pack at any time
+python scripts/runtime.py check --complete
+```
+
+To reuse existing local overrides/extra maps or choose a custom destination, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation.
+
+For a quick data check without compiling Rust, use `python scripts/runtime.py check --complete --files-only`. The full check uses `ORPHEUS_SERVER_BIN` if set, or builds the server with Cargo on first use. The Windows launcher works with built-in Windows PowerShell 5.1 and PowerShell 7 (extracting the collision index from the game requires PowerShell 7).
+
+Once the pack passes, the Windows launcher builds the server with the inspector and Lua mod support, opens the 3D viewer at `http://127.0.0.1:3726/`, and stores player state under `%LOCALAPPDATA%\ORPHEUS\state`:
 
 ```powershell
 # Double-click scripts\PLAY_ORPHEUS.cmd, or run:
-powershell -ExecutionPolicy Bypass -File scripts\setup_and_play.ps1 -RuntimeDir 'C:\path\to\orpheus-runtime-104319'
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
 
 # Launch with the ABI v2 Workshop Mod + Web 3D Viewer:
-powershell -ExecutionPolicy Bypass -File scripts\setup_and_play.ps1 -RuntimeDir 'C:\path\to\orpheus-runtime-104319' -ModScript rust\scripts\mods\dance_party_workshop.lua
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
 ```
 
 ---

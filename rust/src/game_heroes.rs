@@ -108,7 +108,7 @@ fn plain(text: &str) -> String {
         .filter_map(|ch| match ch {
             'ö' => Some('o'),
             'ú' => Some('u'),
-            'a'..='z' | '0'..='9' => Some(ch),
+            ch if ch.is_alphanumeric() => Some(ch),
             _ => None,
         })
         .collect()
@@ -145,6 +145,21 @@ mod tests {
         "0x6": {"name":"Target Alpha", "class":"Training", "body":"0x16"},
         "0x5": {"name":"Target Beta", "class":"Training", "body":"0x15"}
     }"#;
+
+    #[test]
+    fn localized_hero_names_remain_distinct_and_support_unique_prefixes() {
+        let catalog = HeroCatalog::from_json(
+            r#"{
+            "0x2": {"name":"测试甲号","class":"Tank","body":"0x12"},
+            "0x3": {"name":"测试乙号","class":"Tank","body":"0x13"}
+        }"#,
+        )
+        .unwrap();
+        assert_eq!(catalog.find_hero("测试甲号"), catalog.get(2));
+        assert_eq!(catalog.find_hero("测试乙"), catalog.get(3));
+        assert!(catalog.find_hero("测试").is_none());
+        assert!(catalog.find_hero("---").is_none());
+    }
 
     #[test]
     fn normalized_names_and_unique_prefixes_precede_hex_lookup() {

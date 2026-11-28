@@ -4,6 +4,52 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Eliminate all seven external private inputs from `scripts/runtime.py build` so a fresh
+  Windows machine with only a local 1.74.0.0.104319 Overwatch installation can build and
+  verify a playable Practice Range runtime pack in one command:
+  - Auto-generate a local 64-byte `data/lobby_state_blob.key` when absent.
+  - Extract `data/resource_keys_174.json` from local CASC `090` (`STUResourceKey`) assets.
+  - Extract `data/schemas_174.json` (87 lobby protocols) and `data/game_schemas_174.json`
+    (11 game-link protocols) offline directly from `_retail_/Overwatch.exe`.
+  - Generate clean-room Battle.net RPC descriptors (`bnet/descriptors.pb`), 104319
+    StateScript wire codecs (`data/statescript_codecs_174.json`), and schema-conformant
+    lobby message templates (`data/retail_templates.json`) from local catalogs and schemas.
+  - Verified with an empty `--inputs` directory: `runtime.py build`, `runtime.py check`,
+    97 Python unit tests, 11/11 Rust `bnet_` tests, and full loopback `orpheus_server` boot.
+
+- Build locale-matched player voice and equipped voice metadata from the local
+  104319 installation. Preserve line conditions and read durations from local
+  audio headers without packaging the recordings. Export the status effects
+  that reference an on-apply StateScript graph in the same build. Include the
+  generated catalogs in the runtime manifest and verify their hashes.
+
+- Rebuild the Practice Range ray cache when a movement-only source pack is supplied. Verify that both collision files are inventoried before publishing a new runtime. Use `runtime.py check --complete` to apply the same gameplay checks to an existing pack. Add `--files-only` to skip the native build and preflight.
+- Include landed projectile entity definitions and their StateScript roots in
+  the private runtime. The builder reads referenced definitions from the local
+  installation and checks them alongside the stock hero model data.
+  A 104319 Practice Range build now includes the six missing roots and one
+  transitive child, for 613 graphs. Native graph preflight passed.
+  Upgrading an existing 606-graph pack preserved all 606 original graph records.
+
+- Report missing stock model transforms when checking an older 104319 runtime.
+  The build command now requires model data for all 32 default heroes before
+  accepting a new or existing output. The check prints the recovery command.
+  The Windows extractor now preserves empty values in inherited Git settings.
+
+- Preserve Unicode letters and digits when looking up heroes by name.
+  Localized 104319 catalogs now support distinct names and unambiguous prefixes.
+
+- Include reference-pose bone transforms for all 32 default hero models when building a private 104319 runtime. StateScript consumers can resolve a bone-local point by body, skin and bone GUID. The installer imported 9,140 bone transforms and 1,309 hardpoint positions from a local 104319 installation. Native preflight accepted the new pack and the previous pack. Bone queries on the older pack return unknown.
+
+- Add `scripts/runtime.py build` and `check` for private 104319 runtimes. Setup caches local
+  Practice Range data and stock model attachments. Verification checks manifest hashes,
+  gameplay graph data, and native server preflight before publishing a pack.
+  The check command defaults to the same directory as the build command.
+  Repacking preserves emote timing, scalar tracks, greeting durations, and StateScript labels.
+  A local 104319 build using the seven supplemental inputs produced 606 graphs,
+  32 tagged hero bodies, 1,309 stock model attachments and 985 Practice Range rules.
+  The native server started on loopback with this pack and shut down normally.
+
 - Treat unavailable static grapple queries as misses instead of reusing the
   previous hit. Upward scripted pulls that leave walkable support now publish
   takeoff on the first swept pose rather than reseating on the departure floor.

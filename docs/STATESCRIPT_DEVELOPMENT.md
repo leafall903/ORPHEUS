@@ -1084,7 +1084,9 @@ itself as a local JSON file and pass it with `--mode-rulesets`. See the
 Use a nonzero canonical GUID for the mode and any `body` override. The
 body key is the actor's profile GUID, shared by the player and AI host
 lookups. A rule ID is a 32-bit unsigned integer. Values accept Boolean,
-signed 64-bit integer, finite floating-point, or explicit `null`. A mode
+signed 64-bit integer, finite floating-point, or explicit `null`. For a
+ruleset enum, encode its selected identifier as a canonical nonzero asset GUID
+string. The VM returns the identifier as a type 4 asset. A mode
 must appear once, and each rule ID must be unique within its scope.
 
 The VM checks its existing entity variable first when it has a value.
@@ -1094,9 +1096,15 @@ authored result and prevents compatibility fallback. A fully missing
 rule retains the VM's existing integer-zero fallback. Graph bundles
 without the optional section retain the existing host rules.
 
+The Windows runtime preparer reads the ordered `m_gameRulesetSchemas`
+references on the mode (`0C5`) and each playable hero (`075`). It resolves
+their entries from local `0C6` XML. The first schema declaring a key wins,
+with mode schemas taking precedence over hero schemas. The exported body
+rows therefore contain only keys outside the mode defaults.
+
 A mode row can also declare `engine_settings`. This is the separate table
 used by native engine-setting expressions and watchers. Keys are unsigned
-32-bit hashes. Values use the same scalar types as rules. The table is
+32-bit hashes. Values accept Boolean, integer, float or explicit `null`. The table is
 mode-wide, with unique keys. Player, NPC, mode and
 scene-object scripts read the table for their current mode.
 

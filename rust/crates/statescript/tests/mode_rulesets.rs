@@ -43,6 +43,7 @@ fn scalar(value: &Json) -> Value {
     match value {
         Json::Null => Value::Null,
         Json::Bool(value) => Value::Bool(*value),
+        Json::String(asset) => Value::Asset(guid(asset)),
         Json::Number(value) => value
             .as_i64()
             .map_or_else(|| Value::Float(value.as_f64().unwrap()), Value::Integer),

@@ -17,7 +17,8 @@
             {"id": 102, "body": "0x00000000000000B2", "value": null},
             {"id": 103, "body": "0x00000000000000B1", "value": 1.25},
             {"id": 104, "value": -9007199254740993},
-            {"id": 105, "value": null}
+            {"id": 105, "value": null},
+            {"id": 106, "value": "0x0D8000000000C0DE"}
           ],
           "engine_settings": [
             {"id": 101, "value": false},
@@ -76,18 +77,20 @@
       ["0x00000000000000A1", "0x00000000000000B1", 105],
       ["0x00000000000000A2", "0x00000000000000B1", 102],
       ["0x00000000000000A2", "0x00000000000000B1", 101],
-      ["0x00000000000000A3", "0x00000000000000B1", 101]
+      ["0x00000000000000A3", "0x00000000000000B1", 101],
+      ["0x00000000000000A1", "0x00000000000000B1", 106]
     ],
     "expressions": [
       {"lookup": 4, "entity_value": false},
       {"lookup": 4, "entity_value": 5},
       {"lookup": 4, "entity_value": null},
       {"lookup": 5, "entity_value": null},
-      {"lookup": 7, "entity_value": null}
+      {"lookup": 7, "entity_value": null},
+      {"lookup": 13, "entity_value": null}
     ]
   },
   "expected": {
-    "lookups": [[false], [true], [true], [false], [12], [null], [1.25], [], [-9007199254740993], [null], [-0.5], [], []],
-    "expressions": [false, 5, 12, null, 0]
+    "lookups": [[false], [true], [true], [false], [12], [null], [1.25], [], [-9007199254740993], [null], [-0.5], [], [], ["0x0D8000000000C0DE"]],
+    "expressions": [false, 5, 12, null, 0, "0x0D8000000000C0DE"]
   }
 }
