@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "script-room-broadcast.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "sender": 14,
+  "message_id": 51,
+  "message_receivers": [27, 14, 9],
+  "cue_only_listener": 3,
+  "expected_recipients": [9, 27]
+}

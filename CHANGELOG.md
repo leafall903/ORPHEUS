@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Resolve script instance scope against the calling component. Cross-entity
+  calls now create or replace projected instances in the receiving component,
+  even when a server-only instance shares the caller's ID.
+- Queue room script broadcasts as a single batch in recipient ID order. When
+  the batch exceeds available capacity, the outbox keeps its existing work
+  intact. Synthetic fixtures cover both cases.
+
 - Treat unavailable static grapple queries as misses instead of reusing the
   previous hit. Upward scripted pulls that leave walkable support now publish
   takeoff on the first swept pose rather than reseating on the departure floor.

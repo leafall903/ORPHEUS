@@ -1786,11 +1786,12 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             self.report(site, Issue::UnsupportedField("PlayScript policy"));
             return Ok(());
         }
-        let scope = match self.instance_scope(site.instance) {
-            InstanceScope::Isolated if site.entity != self.machine.snapshot.entity => {
-                InstanceScope::Projected
-            }
-            scope => scope,
+        // Instance IDs belong to their component. Only a local caller's
+        // instance can determine the scope inside this component.
+        let scope = if site.entity == self.machine.snapshot.entity {
+            self.instance_scope(site.instance)
+        } else {
+            InstanceScope::Projected
         };
         let matches: Vec<_> = self
             .machine

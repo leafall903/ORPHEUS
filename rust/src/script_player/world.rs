@@ -342,7 +342,9 @@ impl World for BodyWorld {
             return false;
         }
         if let Some(frame) = self.spatial_frame.as_deref() {
-            self.script_requests.queue_broadcast_others(
+            // The VM's return value describes routing support. A full room
+            // outbox rejects this broadcast without invalidating the script.
+            let _ = self.script_requests.queue_broadcast_others(
                 frame,
                 self.entity,
                 RoomMessage {
