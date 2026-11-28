@@ -19,6 +19,11 @@ This log records tested changes and their acceptance status. Entries are grouped
   including when the owner has stopped sending movement commands. Hold the
   input replay window until delivery is confirmed and scope retries to the
   active body generation.
+- Refresh player collision snapshots after NPC movement in the same room
+  tick, including in single-player rooms. Keep the existing snapshot available
+  to the NPC and combat stages until a player next moves.
+- Return a finite contact normal when a sphere center lies on the axis of a
+  capsule with coincident endpoints or a reversed axis.
 
 - Treat unavailable static grapple queries as misses instead of reusing the
   previous hit. Upward scripted pulls that leave walkable support now publish

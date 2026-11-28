@@ -175,6 +175,96 @@ fn hostile_actor_contact_corrects_ordinary_movement_with_or_without_an_owner_scr
 }
 
 #[test]
+fn solo_owner_input_uses_the_npc_pose_committed_earlier_in_the_same_tick() {
+    use crate::{
+        game_bots::Bot,
+        script_init::{ScriptedMotion, SweptDisplacement},
+    };
+
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/npc-contact-after-input-v1.json"
+    ))
+    .unwrap();
+    let input = &fixture["input"];
+    let tick = u32::try_from(input["tick"].as_u64().unwrap()).unwrap();
+    let vector = |key: &str| serde_json::from_value::<[f64; 3]>(input[key].clone()).unwrap();
+    let npc_start = vector("npc_position");
+    let npc_step = SweptDisplacement::new(vector("npc_displacement")).unwrap();
+    let owner_step = SweptDisplacement::new(vector("player_displacement")).unwrap();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &PlayerCard::default(),
+    };
+    let id = avatar(1, 1);
+    let settings = MoverSettings::default();
+    let run = |move_npc: bool| {
+        let mut npc = Bot::fixture_walker(npc_start);
+        npc.position = npc_start;
+        npc.attach_collision(
+            &settings,
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            0x18,
+            |_, _, _, _| Some(0.0),
+        );
+        let wire = npc.entity;
+        let mut scene = PreparedScene::fixture_for_bots(vec![npc]);
+        let mut world = WorldDelivery::new(OWNER);
+        world.started = Some(tick - 1);
+        world.create_bot(
+            crate::match_scene::bot_create(scene.bots().unwrap().next().unwrap(), None).unwrap(),
+        );
+        let create = world.ready()[0].tracked();
+        world.sent(&eligible(&world));
+        world.acknowledge(outcome(create, true), Duration::ZERO);
+        assert!(world.actor_contact_ready(wire));
+
+        let room = scene.simulation_mut();
+        world.input.processed = Some(tick - 1);
+        activate_script(&mut world, room, id, 7, Arc::default());
+        room.enable_movement_contacts(false, Arc::default());
+        room.prepare_npc_movement_frame(tick).unwrap();
+        if move_npc {
+            let before = room.movement_contact_frame().unwrap();
+            let npc = room.body_mut(wire).unwrap();
+            before.stage_bot(npc, tick);
+            assert!(npc.apply_scripted_motion(tick, ScriptedMotion::Sweep(npc_step)));
+        }
+        room.prepare_peer_movement_frame(tick).unwrap();
+        assert!(
+            room.player_body_mut(id)
+                .unwrap()
+                .mover
+                .queue_swept_displacement(tick, owner_step)
+        );
+        world.queue_commands(
+            tick,
+            &[Command {
+                frame: tick,
+                ..Command::default()
+            }],
+        );
+        world
+            .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+            .unwrap();
+        let room = scene.simulation();
+        let owner = room.player_body(id).unwrap().mover.pose();
+        assert_eq!(owner.frame, Some(tick));
+        let npc_x = room.bodies().unwrap().next().unwrap().position[0];
+        (owner.position[0], npc_x)
+    };
+    let (control_owner, stationary_npc) = run(false);
+    let (blocked_owner, moved_npc) = run(true);
+    let separation = 2.0 * settings.stand_radius;
+    let tolerance = f64::from(crate::contact_triangle::TOUCH);
+    assert!(moved_npc < stationary_npc);
+    assert!(stationary_npc - control_owner >= separation - tolerance);
+    assert!(moved_npc - control_owner < separation - 0.1);
+    assert!(moved_npc - blocked_owner >= separation - tolerance);
+}
+
+#[test]
 fn combat_impulse_uses_the_resolved_owner_pose_with_or_without_a_script() {
     use crate::mover::VelocityChange;
 

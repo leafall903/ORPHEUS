@@ -17,6 +17,7 @@ pub(super) struct MovementContacts {
     movers: Arc<MoverCatalog>,
     frame: Option<(u32, Arc<MovementContactFrame>)>,
     captured_player_count: usize,
+    refresh_for_peer: bool,
 }
 
 pub(crate) struct MovementContactFrame {
@@ -155,6 +156,7 @@ impl RoomSimulation {
             movers,
             frame: None,
             captured_player_count: 0,
+            refresh_for_peer: false,
         });
     }
 
@@ -166,12 +168,23 @@ impl RoomSimulation {
     /// Input batches are resolved in scheduler order. Each peer sees the poses
     /// already committed by earlier peers, even within the same room tick.
     pub(crate) fn prepare_peer_movement_frame(&mut self, tick: u32) -> Result<(), CombatError> {
-        self.capture_movement_frame(tick, self.players_by_wire.len() > 1)
+        let refresh = self.players_by_wire.len() > 1
+            || self
+                .movement_contacts
+                .as_ref()
+                .is_some_and(|contacts| contacts.refresh_for_peer);
+        self.capture_movement_frame(tick, refresh)
     }
 
     /// Freeze current player poses once before advancing any NPCs.
     pub(crate) fn prepare_npc_movement_frame(&mut self, tick: u32) -> Result<(), CombatError> {
-        self.capture_movement_frame(tick, !self.players_by_wire.is_empty())
+        self.capture_movement_frame(tick, !self.players_by_wire.is_empty())?;
+        if let Some(contacts) = &mut self.movement_contacts {
+            // NPC and combat stages can still use this frozen frame. The next
+            // input stage must see the NPC movement those stages commit.
+            contacts.refresh_for_peer = true;
+        }
+        Ok(())
     }
 
     /// Reuse the frozen contact frame within the same update stage.
@@ -239,6 +252,7 @@ impl RoomSimulation {
         if let Some(contacts) = &mut self.movement_contacts {
             contacts.frame = Some((tick, Arc::new(MovementContactFrame { actors })));
             contacts.captured_player_count = player_count;
+            contacts.refresh_for_peer = false;
         }
         Ok(())
     }
