@@ -521,18 +521,20 @@ impl Mover {
         self.queue_scripted_motion(frame, ScriptedMotion::Sweep(displacement))
     }
 
-    /// Drop script work that has not reached a pose on this body.
+    /// Drop queued and continuous script controls while keeping the resolved
+    /// pose, current momentum and queued external impulses.
     pub(crate) fn clear_pending_script_motion(&mut self) {
         self.velocity_changes
             .retain(|(_, change)| matches!(change, VelocityChange::Impulse(_)));
         self.scripted_motion = None;
         self.owner_move = None;
+        self.move_request = None;
+        self.ball_roll_speed = None;
     }
 
     pub(crate) fn clear_pending_motion(&mut self) {
         self.velocity_changes.clear();
-        self.scripted_motion = None;
-        self.owner_move = None;
+        self.clear_pending_script_motion();
     }
 
     pub(crate) fn has_pending_script_motion(&self) -> bool {

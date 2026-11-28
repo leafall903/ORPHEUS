@@ -754,6 +754,143 @@ fn posed_owner_fault_cancels_future_velocity_before_the_recovered_batch_continue
 }
 
 #[test]
+fn owner_runtime_stop_releases_continuous_movement_within_a_recovered_batch() {
+    use crate::mover::VelocityChange;
+
+    #[derive(serde::Deserialize)]
+    struct Input {
+        spawn_frame: u32,
+        warm_frame: u32,
+        fault_frame: u32,
+        impulse_frame: u32,
+        recovered_frame: u32,
+        destination: [f64; 3],
+        drive_speed: f64,
+        roll_speed: f64,
+        normal_speed: f64,
+        external_impulse: [f64; 3],
+    }
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/owner-continuous-motion-stop-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+    let card = PlayerCard::default();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &card,
+    };
+
+    for continuous_drive in [true, false] {
+        for faulted in [false, true] {
+            let mut scene = PreparedScene::fixture_for_bots(Vec::new());
+            let mut world = WorldDelivery::new(OWNER);
+            let owner = avatar(1, 1);
+            let fault = Arc::new(AtomicBool::new(false));
+            world.started = Some(case.spawn_frame);
+            world.input.processed = world.started;
+            let mut runtime = synthetic_owner(owner.entity, case.spawn_frame, Arc::clone(&fault));
+            runtime.move_request = continuous_drive.then_some((case.destination, case.drive_speed));
+            runtime.ball_roll_speed = (!continuous_drive).then_some(case.roll_speed);
+            activate_synthetic_runtime(&mut world, scene.simulation_mut(), owner, 7, runtime);
+            scene.simulation_mut().player_body_mut(owner).unwrap().mover = Mover::new(
+                MoverSettings {
+                    gravity_scale: 0.0,
+                    run_forward: case.normal_speed,
+                    accel_air: 500.0,
+                    decel_air_base: 1.0,
+                    decel_air_per_speed: 0.0,
+                    ..MoverSettings::default()
+                },
+                Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+                [0.0; 3],
+                0,
+                0x18,
+            )
+            .unwrap();
+            world.queue_commands(
+                case.warm_frame,
+                &[Command {
+                    frame: case.warm_frame,
+                    ..Command::default()
+                }],
+            );
+            assert_eq!(
+                world
+                    .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+                    .unwrap(),
+                (1, false)
+            );
+
+            if continuous_drive {
+                scene
+                    .simulation_mut()
+                    .player_body_mut(owner)
+                    .unwrap()
+                    .mover
+                    .queue_velocity_change(
+                        case.impulse_frame,
+                        VelocityChange::Impulse(case.external_impulse),
+                    );
+            }
+            // The first reconstructed pose uses the staged output of the warm
+            // command. The VM fails after posing it, before the next two poses.
+            fault.store(faulted, Ordering::Relaxed);
+            let recovered = if continuous_drive {
+                Command {
+                    frame: case.recovered_frame,
+                    ..Command::default()
+                }
+            } else {
+                forward(case.recovered_frame)
+            };
+            world.queue_commands(case.recovered_frame, &[recovered]);
+            assert_eq!(
+                world
+                    .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+                    .unwrap(),
+                (3, false)
+            );
+            assert_eq!(world.body_script.is_none(), faulted);
+            assert_eq!(
+                world
+                    .owner_script_fault
+                    .as_ref()
+                    .map(|fault| (fault.frame, fault.step)),
+                faulted.then_some((case.fault_frame, Some(BodyStep::Posed)))
+            );
+            let mover = &scene.simulation().player_body(owner).unwrap().mover;
+            let pose = mover.pose();
+            assert_eq!(pose.frame, Some(case.recovered_frame));
+            if continuous_drive {
+                assert_eq!(mover.scripted_motion_at(case.recovered_frame), !faulted);
+                if faulted {
+                    assert!(pose.position[0] > 0.0, "{pose:?}");
+                    assert!(pose.velocity[0] > 0.0 && pose.velocity[0] < case.drive_speed);
+                    assert!(pose.velocity[2] > 0.0, "external impulse lost: {pose:?}");
+                } else {
+                    assert_eq!(pose.velocity[0], case.drive_speed);
+                    assert_eq!(pose.velocity[2], 0.0, "active drive must own velocity");
+                }
+            } else {
+                assert_eq!(
+                    pose.velocity[2],
+                    if faulted {
+                        case.normal_speed
+                    } else {
+                        case.roll_speed
+                    }
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn player_displacement_uses_room_actor_contacts_for_the_authoritative_pose() {
     use crate::{mover::VelocityChange, script_init::SweptDisplacement};
 

@@ -100,6 +100,8 @@ The [owner actor contact fixture](../fixtures/behavior/owner-actor-contact-v1.js
 
 The [blocked sweep correction fixture](../fixtures/behavior/owner-blocked-sweep-correction-v1.json) checks owner correction when a hostile capsule clips a scripted sweep and the resulting position rounds back to its starting coordinate. It exercises the outbound movement record with and without a body script.
 
+The [continuous movement stop fixture](../fixtures/behavior/owner-continuous-motion-stop-v1.json) faults the movement runtime after the first pose of a recovered batch. Subsequent poses release the continuous destination and speed override while retaining committed momentum and a queued external impulse.
+
 The [late join observer fixture](../fixtures/behavior/late-join-observer-create-v1.json) boots a new observer after the existing body's spawn event has been consumed. The observer receives the current transform and health once, then receives subsequent poses and admits the body to contact queries after acknowledging its creation.
 
 The Rust-only [stock bot script isolation fixture](../fixtures/behavior/stock-bot-script-isolation-v1.json) checks that a zeroed owner selector is valid and that an unsupported public selector suspends only the affected bot's script projection. Both physical bots remain in the room. The [mode presentation variables fixture](../fixtures/behavior/mode-presentation-variables-v1.json) checks mode selection and preservation of typed values in the mode bootstrap.

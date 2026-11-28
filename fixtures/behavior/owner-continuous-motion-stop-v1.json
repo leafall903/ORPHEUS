@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "owner-continuous-motion-stop.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "An active continuous movement target or elevated speed is staged by a fixture runtime. A fault occurs after the first of three recovered poses. The remaining poses fall back to ordinary movement with prior momentum and scheduled external impulses."
+  },
+  "input": {
+    "spawn_frame": 100,
+    "warm_frame": 101,
+    "fault_frame": 102,
+    "impulse_frame": 103,
+    "recovered_frame": 104,
+    "destination": [
+      10,
+      0,
+      0
+    ],
+    "drive_speed": 12,
+    "roll_speed": 18,
+    "normal_speed": 5.5,
+    "external_impulse": [
+      0,
+      0,
+      2
+    ]
+  }
+}

@@ -1263,6 +1263,8 @@ struct SyntheticOwner {
     received_room_messages: Arc<Mutex<Vec<(u32, crate::script_init::RoomMessage)>>>,
     script_requests: crate::game_combat::RoomScriptRequests,
     authored_facing: Arc<Mutex<Option<[i32; 2]>>>,
+    move_request: Option<([f64; 3], f64)>,
+    ball_roll_speed: Option<f64>,
     queued_hitscan: Option<PosedHitscan>,
     hitscan_fault: Option<(u32, PosedHitscan)>,
 }
@@ -1308,6 +1310,14 @@ impl OwnerBodyRuntime for SyntheticOwner {
 
     fn authored_facing(&self) -> Option<[i32; 2]> {
         *self.authored_facing.lock().unwrap()
+    }
+
+    fn move_request(&self) -> Option<([f64; 3], f64)> {
+        self.move_request
+    }
+
+    fn ball_roll_speed(&self) -> Option<f64> {
+        self.ball_roll_speed
     }
 
     fn set_spatial_frame(&mut self, frame: Arc<crate::game_combat::RoomSpatialFrame>) {
@@ -1481,6 +1491,8 @@ fn synthetic_owner_with_vitals(
         received_room_messages: Arc::default(),
         script_requests: Default::default(),
         authored_facing: Arc::default(),
+        move_request: None,
+        ball_roll_speed: None,
         queued_hitscan: None,
         hitscan_fault: None,
     }

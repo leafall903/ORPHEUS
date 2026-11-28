@@ -4,6 +4,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Clear continuous script-controlled movement and speed overrides when the
+  body runtime stops or the body dies. A runtime stop preserves committed
+  momentum and queued external impulses.
+
 - Introduce existing player bodies to peers that join after their spawn event.
   Use the current transform and health, then admit movement and collision when
   the peer acknowledges the body.
