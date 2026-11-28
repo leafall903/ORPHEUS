@@ -67,6 +67,14 @@ pub(super) enum BotLifetime {
     RetiringEnemy,
 }
 
+fn acknowledged_contact(
+    entity: u32,
+    created: &HashSet<u32>,
+    pending_respawn: &HashSet<u32>,
+) -> bool {
+    created.contains(&entity) && !pending_respawn.contains(&entity)
+}
+
 impl WorldDelivery {
     pub(crate) fn new(owner: u32) -> Self {
         Self {
@@ -100,6 +108,7 @@ impl WorldDelivery {
             input: InputQueue::default(),
             body_script: None,
             detached_motion: None,
+            pending_owner_correction: None,
             #[cfg(test)]
             owner_script_fault: None,
             projectile_destroys: HashMap::new(),
@@ -138,6 +147,7 @@ impl WorldDelivery {
         self.encounter_outcome_queued = false;
         self.body_script = None;
         self.detached_motion = None;
+        self.pending_owner_correction = None;
         self.projectile_destroys.clear();
         self.biotic_views.clear();
         self.scene_views.clear();
@@ -179,7 +189,8 @@ impl WorldDelivery {
     }
 
     pub(crate) fn actor_contact_ready(&self, entity: u32) -> bool {
-        self.identity_ready(entity) && !self.pending_respawn_presentation.contains(&entity)
+        self.world_started()
+            && acknowledged_contact(entity, &self.created, &self.pending_respawn_presentation)
     }
 
     pub(super) fn owner_movement_blockers(
@@ -460,9 +471,27 @@ impl WorldDelivery {
         }
     }
 
+    fn current_owner_correction(&self) -> Option<PendingOwnerCorrection> {
+        let pending = self.pending_owner_correction?;
+        self.body
+            .is_some_and(|body| body.id == pending.id)
+            .then_some(pending)
+    }
+
     pub(crate) fn acknowledge(&mut self, report: DeliveryReport<Arc<Record>>, now: Duration) {
         if self.started.is_none() {
             return;
+        }
+        if let Some((sequence, arrived)) = report.owner_correction {
+            if let Some(pending) = self
+                .current_owner_correction()
+                .filter(|pending| pending.sequence == sequence)
+            {
+                self.pending_owner_correction = (!arrived).then_some(PendingOwnerCorrection {
+                    retry: true,
+                    ..pending
+                });
+            }
         }
         let mut retry = Vec::new();
         for packet in report.packets {
@@ -883,12 +912,25 @@ impl WorldDelivery {
             (self.body.is_some_and(|body| body.id == *id)).then_some((*id, history))
         });
         let history = owner_history.map(|(_, history)| history);
+        let pending = self.current_owner_correction();
+        let protect_correction = pending.is_some()
+            || history.is_some_and(|history| history.impulse_correction().is_some());
         let correction = if reliable_only {
             None
         } else {
-            owner_history.and_then(|(id, history)| {
-                history.candidate(tick, self.created.contains(&id.entity))
-            })
+            owner_history
+                .and_then(|(id, history)| {
+                    history.candidate(tick, self.created.contains(&id.entity))
+                })
+                .or_else(|| {
+                    pending
+                        .filter(|pending| {
+                            pending.retry
+                                && pending.pose.frame() <= tick
+                                && self.created.contains(&pending.id.entity)
+                        })
+                        .map(|pending| pending.pose)
+                })
         };
         if let Some(last) = self.last_sent_remote_movement {
             movements.sort_unstable_by_key(|record| (record.entity <= last, record.entity));
@@ -938,8 +980,11 @@ impl WorldDelivery {
                             .any(|record| std::ptr::eq(*record, &movements[index]))
                     })
                     .and(correction.as_ref());
-                history.map_or(newest, |history| {
+                let ack = history.map_or(newest, |history| {
                     history.command_ack(tick, Some(newest), selected)
+                });
+                pending.map_or(ack, |pending| {
+                    selected.unwrap_or(&pending.pose).limit_replay_ack(ack)
                 })
             },
             |source| match source {
@@ -980,6 +1025,15 @@ impl WorldDelivery {
             .zip(correction)
             .filter(|(index, _)| sent.records.contains(&RecordSource::Movement(*index)));
         if let Some((_, correction)) = selected {
+            if let Some(body) = self.body.filter(|_| protect_correction) {
+                egress.track_owner_correction(sent.sequence);
+                self.pending_owner_correction = Some(PendingOwnerCorrection {
+                    id: body.id,
+                    sequence: sent.sequence,
+                    pose: correction,
+                    retry: false,
+                });
+            }
             if detached {
                 if let Some((_, history)) = &mut self.detached_motion {
                     if history.sent(&correction) && history.impulse_correction().is_none() {
@@ -1999,7 +2053,7 @@ impl WorldDelivery {
             return Ok((1, true));
         };
         let alive = state.alive();
-        state.mover.block_player_input(!alive);
+        state.mover.set_player_dead(!alive);
         let pending = pending.get_or_insert_with(|| {
             PendingCommand::new(
                 state.mover.pending_poses(command),
@@ -2012,18 +2066,11 @@ impl WorldDelivery {
         let blockers = motion_frame.as_ref().map_or_else(Vec::new, |frame| {
             self.owner_movement_blockers(frame, id.entity, team)
         });
-        let ally_sep = if alive && self.body_script.is_some() {
-            motion_frame.as_ref().map_or([0.0; 2], |frame| {
-                frame.ally_separation_where(
-                    id.entity,
-                    team,
-                    state.mover.contact_capsule(),
-                    |entity| self.actor_contact_ready(entity),
-                )
-            })
-        } else {
-            [0.0; 2]
-        };
+        let world_started = self.world_started();
+        let created = &self.created;
+        let pending_respawn = &self.pending_respawn_presentation;
+        let can_contact =
+            |entity| world_started && acknowledged_contact(entity, created, pending_respawn);
         let previously_processed = self.input.processed;
         let script = &mut self.body_script;
         let detached_motion = &mut self.detached_motion;
@@ -2036,9 +2083,6 @@ impl WorldDelivery {
             hitscan,
             ..
         } = state;
-        if ally_sep != [0.0; 2] {
-            mover.set_ally_separation(ally_sep);
-        }
         let mut buffers = StepBuffers {
             frame: body_frame,
             fields,
@@ -2068,15 +2112,28 @@ impl WorldDelivery {
             }
         }
         let mut posed_buttons: Vec<u32> = Vec::new();
+        let dt = f64::from(frame_us) / 1_000_000.0;
         let stepped = mover.step_pending(
             rays,
             &mut pending.poses,
-            f64::from(frame_us) / 1_000_000.0,
+            dt,
             budget - used,
             || &blockers,
             |mover, command| {
                 if alive {
                     posed_buttons.push(command.buttons);
+                    if let Some(frame) = &motion_frame {
+                        // Use the resulting capsule on every posed frame, before
+                        // saving it for owner correction or running body scripts.
+                        let separation = frame.ally_separation_where(
+                            id.entity,
+                            team,
+                            mover.contact_capsule(),
+                            dt,
+                            can_contact,
+                        );
+                        mover.apply_ally_separation(separation, &blockers, dt);
+                    }
                 }
                 if script.is_none()
                     && frame_us != 0
@@ -2132,22 +2189,14 @@ impl WorldDelivery {
             },
         );
         let complete = pending.poses.len() == 0;
-        if alive && (!posed_buttons.is_empty() || complete) {
+        if alive && !posed_buttons.is_empty() {
             if let Some(state) = simulation.player_body_mut(id) {
-                if posed_buttons.is_empty() {
-                    let pressed = command.buttons & !state.last_buttons;
-                    let released = state.last_buttons & !command.buttons;
-                    state.last_buttons = command.buttons;
+                for buttons in posed_buttons {
+                    let pressed = buttons & !state.last_buttons;
+                    let released = state.last_buttons & !buttons;
+                    state.last_buttons = buttons;
                     state.pending_pressed_buttons |= pressed;
                     state.pending_released_buttons |= released;
-                } else {
-                    for buttons in posed_buttons {
-                        let pressed = buttons & !state.last_buttons;
-                        let released = state.last_buttons & !buttons;
-                        state.last_buttons = buttons;
-                        state.pending_pressed_buttons |= pressed;
-                        state.pending_released_buttons |= released;
-                    }
                 }
             }
         }
@@ -2589,6 +2638,12 @@ impl WorldDelivery {
 
     pub(super) fn retire_body(&mut self, id: BodyId) {
         if self
+            .pending_owner_correction
+            .is_some_and(|pending| pending.id == id)
+        {
+            self.pending_owner_correction = None;
+        }
+        if self
             .detached_motion
             .as_ref()
             .is_some_and(|(owner, _)| *owner == id)
@@ -2669,15 +2724,15 @@ impl WorldDelivery {
                 ..EntityUpdate::default()
             })
             .collect();
-        if tick % SEND_EVERY == 0 {
-            for (entity, movement) in scene.simulation().observer_player_movements(self.owner) {
-                if self.created.contains(&entity) {
-                    updates.push(EntityUpdate {
-                        entity,
-                        movement: Some(movement),
-                        ..EntityUpdate::default()
-                    });
-                }
+        // The room already selected this world send, which can fall between
+        // exact cadence multiples when the clock skips simulation ticks.
+        for (entity, movement) in scene.simulation().observer_player_movements(self.owner) {
+            if self.created.contains(&entity) {
+                updates.push(EntityUpdate {
+                    entity,
+                    movement: Some(movement),
+                    ..EntityUpdate::default()
+                });
             }
         }
         Ok(updates)

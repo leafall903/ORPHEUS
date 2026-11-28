@@ -283,7 +283,9 @@ pub struct Mover {
     cinematic_aim: Option<[i32; 2]>,
     authored_facing: Option<[i32; 2]>,
     move_request: Option<([f64; 3], f64)>,
-    player_input_blocked: bool,
+    player_dead: bool,
+    player_stunned: bool,
+    stop_for_stun: Option<u32>,
     velocity_changes: Vec<(u32, VelocityChange)>,
     scripted_motion: Option<(u32, ScriptedMotion)>,
     scripted_motion_frame: Option<u32>,
@@ -295,7 +297,7 @@ pub struct Mover {
     /// is no scripted motion). Set by `move_body`, consumed by `step`.
     drive_pose_moved: bool,
     actor_contact: bool,
-    pending_ally_separation: [f64; 2],
+    corrected_input: bool,
     ball_roll_speed: Option<f64>,
     last_command: Option<Command>,
     last_input: Option<u32>,
@@ -329,7 +331,9 @@ impl Mover {
             cinematic_aim: None,
             authored_facing: None,
             move_request: None,
-            player_input_blocked: false,
+            player_dead: false,
+            player_stunned: false,
+            stop_for_stun: None,
             velocity_changes: Vec::new(),
             scripted_motion: None,
             scripted_motion_frame: None,
@@ -337,7 +341,7 @@ impl Mover {
             owner_move_result: None,
             drive_pose_moved: false,
             actor_contact: false,
-            pending_ally_separation: [0.0; 2],
+            corrected_input: false,
             ball_roll_speed: None,
             last_command: None,
             last_input: None,
@@ -447,6 +451,10 @@ impl Mover {
         // Room ticks and input frames can diverge. Use the next frame on the
         // capsule's own clock to include newly started or retired intervals.
         let frame = self.pose.frame.unwrap_or(admitted_at).wrapping_add(1);
+        self.character_collision_at(frame)
+    }
+
+    fn character_collision_at(&self, frame: u32) -> bool {
         self.modifiers.at(frame).character_collision(&self.base)
     }
 
@@ -519,18 +527,21 @@ impl Mover {
         self.queue_scripted_motion(frame, ScriptedMotion::Sweep(displacement))
     }
 
-    /// Drop script work that has not reached a pose on this body.
+    /// Drop queued and continuous script controls while keeping the resolved
+    /// pose, current momentum and queued external impulses.
     pub(crate) fn clear_pending_script_motion(&mut self) {
         self.velocity_changes
             .retain(|(_, change)| matches!(change, VelocityChange::Impulse(_)));
         self.scripted_motion = None;
         self.owner_move = None;
+        self.move_request = None;
+        self.ball_roll_speed = None;
     }
 
     pub(crate) fn clear_pending_motion(&mut self) {
         self.velocity_changes.clear();
-        self.scripted_motion = None;
-        self.owner_move = None;
+        self.stop_for_stun = None;
+        self.clear_pending_script_motion();
     }
 
     pub(crate) fn has_pending_script_motion(&self) -> bool {
@@ -553,13 +564,8 @@ impl Mover {
     }
 
     pub(crate) fn needs_owner_correction_at(&self, frame: u32) -> bool {
-        self.scripted_motion_at(frame) || (self.pose.frame == Some(frame) && self.actor_contact)
-    }
-
-    pub(crate) fn set_ally_separation(&mut self, delta: [f64; 2]) {
-        if delta[0].is_finite() && delta[1].is_finite() {
-            self.pending_ally_separation = delta;
-        }
+        self.scripted_motion_at(frame)
+            || (self.pose.frame == Some(frame) && (self.actor_contact || self.corrected_input))
     }
 
     pub(crate) fn set_ball_roll_speed(&mut self, speed: Option<f64>) {
@@ -572,14 +578,18 @@ impl Mover {
         delta: [f64; 2],
         blockers: &[CapsulePose],
         dt: f64,
-    ) -> bool {
+    ) {
         if delta == [0.0; 2]
             || !delta[0].is_finite()
             || !delta[1].is_finite()
             || dt <= 0.0
             || !dt.is_finite()
+            || !self
+                .pose
+                .frame
+                .is_some_and(|frame| self.character_collision_at(frame))
         {
-            return false;
+            return;
         }
         let start = self.body.position();
         let mut staged = self.body.fresh_at(start);
@@ -588,20 +598,19 @@ impl Mover {
             dt as f32,
             blockers,
         ) else {
-            return false;
+            return;
         };
         let feet = std::array::from_fn(|axis| {
             self.pose.position[axis] + f64::from(moved.position[axis]) - f64::from(start[axis])
         })
         .map(snap);
         if feet == self.pose.position {
-            return false;
+            return;
         }
         staged.teleport(self.capsule_origin(feet));
         self.body = staged;
         self.pose.position = feet;
         self.actor_contact = true;
-        true
     }
 
     /// Simulate the newest command and any reconstructible poses before it.
@@ -634,8 +643,22 @@ impl Mover {
         poses(self.last_command, newest)
     }
 
-    pub(crate) fn block_player_input(&mut self, blocked: bool) {
-        self.player_input_blocked = blocked;
+    pub(crate) fn set_player_dead(&mut self, dead: bool) {
+        self.player_dead = dead;
+    }
+
+    pub(crate) fn stun(&mut self, frame: u32) {
+        self.player_stunned = true;
+        self.clear_pending_script_motion();
+        self.stop_for_stun = Some(self.stop_for_stun.map_or(frame, |due| due.min(frame)));
+    }
+
+    pub(crate) fn clear_stun(&mut self) {
+        self.player_stunned = false;
+    }
+
+    pub(crate) fn is_stunned(&self) -> bool {
+        self.player_stunned
     }
 
     pub(crate) fn step_pending<B: AsRef<[CapsulePose]>>(
@@ -654,8 +677,13 @@ impl Mover {
         };
         let blockers = blockers.as_ref().map_or(&[][..], AsRef::as_ref);
         let mut stepped = 0;
+        let mut last_stepped = None;
         for mut command in pending.by_ref().take(limit) {
-            if self.player_input_blocked {
+            let corrected_input = self.player_stunned
+                && (command.right != 0
+                    || command.forward != 0
+                    || command.buttons & (crate::commands::CROUCH | crate::commands::JUMP) != 0);
+            if self.player_dead || self.player_stunned {
                 command = Command {
                     frame: command.frame,
                     yaw: command.yaw,
@@ -663,15 +691,17 @@ impl Mover {
                     ..Command::default()
                 };
             }
+            last_stepped = Some(command);
             if let Some(aim) = self.cinematic_aim.or(self.authored_facing) {
                 [command.yaw, command.pitch] = aim;
             }
             self.step_pose(rays, command, dt, blockers)?;
+            self.corrected_input = corrected_input;
             after_pose(self, command);
             stepped += 1;
         }
-        if stepped != 0 && pending.len() == 0 {
-            self.last_command = Some(pending.newest());
+        if let Some(command) = last_stepped.filter(|_| pending.len() == 0) {
+            self.last_command = Some(command);
         }
         Ok(stepped)
     }
@@ -717,6 +747,7 @@ impl Mover {
         self.scripted_motion_frame = None;
         self.owner_move_result = None;
         let mut scripted_motion_changed = false;
+        let mut swept_actor_contact = false;
         if self
             .scripted_motion
             .is_some_and(|(frame, _)| frame <= command.frame)
@@ -727,7 +758,8 @@ impl Mover {
                 let before = self.pose.position;
                 match motion {
                     ScriptedMotion::Sweep(displacement) => {
-                        self.apply_swept_displacement(displacement, dt, blockers)?;
+                        swept_actor_contact =
+                            self.apply_swept_displacement(displacement, dt, blockers)?;
                     }
                     ScriptedMotion::Relocate(relocation) => {
                         self.apply_relocation(relocation, blockers)?;
@@ -741,6 +773,16 @@ impl Mover {
         }
         let mut launched = false;
         let mut velocity_edited = false;
+        if self
+            .stop_for_stun
+            .is_some_and(|frame| frame <= command.frame)
+        {
+            self.stop_for_stun = None;
+            velocity_edited = self.pose.velocity[0] != 0.0 || self.pose.velocity[2] != 0.0;
+            self.pose.velocity[0] = 0.0;
+            self.pose.velocity[2] = 0.0;
+            scripted_motion_changed |= velocity_edited;
+        }
         self.velocity_changes.retain(|&(frame, change)| {
             if frame <= command.frame {
                 let before = self.pose.velocity;
@@ -874,7 +916,7 @@ impl Mover {
             },
             &mut self.pose.position,
             &mut self.pose.velocity,
-            |radius, top| self.body.try_resize(radius, top),
+            |radius, top| self.body.try_resize_against(radius, top, blockers),
         )?;
         let ground = self.posture.ground();
         let velocity = if let Some(mv) = move_to_velocity {
@@ -919,12 +961,6 @@ impl Mover {
         // ordinary motion, not scripted motion).
         scripted_motion_changed |= self.drive_pose_moved;
         self.posture.finish_fall(settings.gravity_scale, vertical);
-        let pending_ally = std::mem::take(&mut self.pending_ally_separation);
-        let ally_pushed = if pending_ally != [0.0; 2] {
-            self.apply_ally_separation(pending_ally, blockers, dt)
-        } else {
-            false
-        };
 
         if input.throttles != [0; 2] {
             self.last_input = Some(command.frame);
@@ -946,7 +982,9 @@ impl Mover {
         self.pose.spring_speed = f64::from(self.posture.spring_speed());
         self.pose.fall = self.posture.fall;
         self.scripted_motion_frame = scripted_motion_changed.then_some(command.frame);
-        self.actor_contact = actor_contact || standing_on_actor || ally_pushed;
+        // A clipped sweep can leave the snapped pose unchanged while still
+        // needing to correct the owner's prediction of that displacement.
+        self.actor_contact = swept_actor_contact || actor_contact || standing_on_actor;
         Ok(())
     }
 
@@ -955,12 +993,13 @@ impl Mover {
         displacement: SweptDisplacement,
         dt: f64,
         actor_capsules: &[CapsulePose],
-    ) -> Result<(), HullContactError> {
+    ) -> Result<bool, HullContactError> {
         let start = self.body.position();
         let mut staged = self.body.fresh_at(start);
-        let end = staged
-            .move_capsule_against(displacement.delta(), dt as f32, actor_capsules)?
-            .position;
+        let movement =
+            staged.move_capsule_against(displacement.delta(), dt as f32, actor_capsules)?;
+        let actor_contact = movement.actor_contact;
+        let end = movement.position;
         let feet = std::array::from_fn(|axis| {
             self.pose.position[axis] + f64::from(end[axis]) - f64::from(start[axis])
         })
@@ -968,7 +1007,7 @@ impl Mover {
         staged.teleport(self.capsule_origin(feet));
         self.body = staged;
         self.pose.position = feet;
-        Ok(())
+        Ok(actor_contact)
     }
 
     fn apply_relocation(
@@ -1010,9 +1049,6 @@ impl Mover {
         let lifted_origin = self.capsule_origin(lifted);
         if self.body.relocate_if_clear(lifted_origin, blockers)? {
             self.pose.position = lifted;
-        } else {
-            self.body.teleport(origin);
-            self.pose.position = feet;
         }
         Ok(())
     }
@@ -1079,7 +1115,7 @@ impl Mover {
             })
         });
         let movement = self.body.move_capsule_against(displacement, dt, blockers)?;
-        let mut actor_contact = movement.actor_contact;
+        let actor_contact = movement.actor_contact;
         let [mut x, mut y, mut z] = clip_velocity([x, y, z], movement.planes).map(f64::from);
         if grounded {
             let squared = (x * x + y * y) + z * z;
@@ -1108,72 +1144,7 @@ impl Mover {
         let [px, py, pz] = capsule_end;
         let feet = f64::from(py - lift);
         let floor = rays.lowest() - ABYSS;
-        let mut resolved = [f64::from(px), feet.max(floor), f64::from(pz)];
-        // Hard-block against enemy capsules: use true standing bounds (`blocker.position[1]`
-        // is `feet + pogo` and `blocker.top` is `segment + radius`), allow standing cleanly
-        // on top of an enemy's head, and wall-safely depenetrate all side overlaps.
-        if !blockers.is_empty() {
-            let self_radius = if self.posture.crouched() {
-                self.base.crouch_radius
-            } else {
-                self.base.stand_radius
-            };
-            let self_height = if self.posture.crouched() {
-                self.base.crouch_height
-            } else {
-                self.base.stand_height
-            };
-            let self_top = resolved[1] + self_height;
-            let mut depen_x = 0.0_f64;
-            let mut depen_z = 0.0_f64;
-            for blocker in blockers {
-                let b_top = f64::from(blocker.position[1] + blocker.top + blocker.radius);
-                let b_bottom = f64::from(blocker.position[1] - blocker.radius) - 0.55;
-                if resolved[1] >= b_top - 0.35 || b_bottom >= self_top {
-                    continue;
-                }
-                let cur_x = resolved[0] + depen_x;
-                let cur_z = resolved[2] + depen_z;
-                let dx = cur_x - f64::from(blocker.position[0]);
-                let dz = cur_z - f64::from(blocker.position[2]);
-                let min_dist = self_radius + f64::from(blocker.radius);
-                let dist = dx.hypot(dz);
-                if dist < min_dist && min_dist > 0.0 {
-                    let (nx, nz) = if dist > 1.0e-5 {
-                        (dx / dist, dz / dist)
-                    } else {
-                        (1.0, 0.0)
-                    };
-                    let push = min_dist - dist + 0.01;
-                    depen_x += nx * push;
-                    depen_z += nz * push;
-                    let inward = x * nx + z * nz;
-                    if inward < 0.0 {
-                        x -= inward * nx;
-                        z -= inward * nz;
-                    }
-                    actor_contact = true;
-                }
-            }
-            if depen_x != 0.0 || depen_z != 0.0 {
-                let start = [
-                    resolved[0] as f32,
-                    (resolved[1] + f64::from(lift)) as f32,
-                    resolved[2] as f32,
-                ];
-                let mut staged = self.body.fresh_at(start);
-                if let Ok(pushed) =
-                    staged.move_capsule_against([depen_x as f32, 0.0, depen_z as f32], dt, &[])
-                {
-                    resolved[0] += f64::from(pushed.position[0]) - f64::from(start[0]);
-                    resolved[2] += f64::from(pushed.position[2]) - f64::from(start[2]);
-                } else {
-                    resolved[0] += depen_x;
-                    resolved[2] += depen_z;
-                }
-            }
-        }
-        let feet_raw = resolved;
+        let feet_raw = [f64::from(px), feet.max(floor), f64::from(pz)];
         self.pose.position = feet_raw.map(snap);
         #[cfg(any(test, feature = "inspector"))]
         {
@@ -1205,8 +1176,8 @@ impl Mover {
             let applied = std::array::from_fn::<_, 3, _>(|i| capsule_end[i] - start[i]);
             [x, y, z] = applied.map(|delta| f64::from(delta / dt));
             if grounded && self.drive_pose_moved && y > 0.0 && py > previous_feet[1] {
-                // Check the committed feet, after actor depenetration, without
-                // the standing step-down band that can reseat on the old floor.
+                // Check the committed feet without the standing step-down band
+                // that can reseat the mover on the old floor.
                 let support = self.probe.probe(
                     rays,
                     self.body.world(),
@@ -1355,6 +1326,79 @@ mod tests {
         assert_eq!(fixture["case_id"], "native-swept-displacement.synthetic.v1");
         assert_eq!(fixture["evidence"], "synthetic-native");
         fixture
+    }
+
+    #[test]
+    fn grounded_crouch_release_waits_for_clearance_from_other_actors() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            stand_height: f64,
+            stand_radius: f64,
+            crouch_height: f64,
+            crouch_radius: f64,
+            floor_lift: f64,
+            blocker_feet: [[f64; 3]; 2],
+        }
+        let case: Case = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/actor-stance-clearance-v1.json"
+        ))
+        .unwrap();
+        let settings = MoverSettings {
+            stand_height: case.stand_height,
+            stand_radius: case.stand_radius,
+            crouch_height: case.crouch_height,
+            crouch_radius: case.crouch_radius,
+            stand_pogo: case.floor_lift,
+            crouch_pogo: case.floor_lift,
+            ..MoverSettings::default()
+        };
+        let ground = TriangleIndex::new([crate::collision_index::SceneTriangle {
+            vertices: [[-10.0, 0.0, -10.0], [0.0, 0.0, 10.0], [10.0, 0.0, -10.0]],
+            mask: 0x18,
+            surface: 0,
+        }])
+        .unwrap();
+        let geometry = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let step = |mover: &mut Mover, frame, buttons, blockers: &[CapsulePose]| {
+            mover
+                .step_against(
+                    &ground,
+                    Command {
+                        frame,
+                        buttons,
+                        ..Command::default()
+                    },
+                    0.016,
+                    blockers,
+                    |_, _| {},
+                )
+                .unwrap();
+        };
+        for feet in case.blocker_feet {
+            let blocker = crate::mover_ground::standing_capsule(&settings, feet);
+            let mut mover = Mover::new(settings, Arc::clone(&geometry), [0.0; 3], 0, 0x18).unwrap();
+            let standing = mover.contact_capsule();
+            step(&mut mover, 1, CROUCH, &[]);
+            assert!(mover.crouched());
+            assert_eq!(mover.posture.ground(), Ground::Standing);
+            let crouched = mover.contact_capsule();
+            let position = mover.pose().position;
+            for frame in 2..=3 {
+                step(&mut mover, frame, 0, &[blocker]);
+                let actual = mover.contact_capsule();
+                assert!(mover.crouched(), "blocker at {feet:?}");
+                assert_eq!((actual.radius, actual.top), (crouched.radius, crouched.top));
+                assert_eq!(mover.pose().position, position);
+                assert_eq!(mover.pose().crouch_frame, None);
+                assert!(!mover.needs_owner_correction_at(frame));
+            }
+            step(&mut mover, 4, 0, &[]);
+            let actual = mover.contact_capsule();
+            assert!(!mover.crouched());
+            assert_eq!((actual.radius, actual.top), (standing.radius, standing.top));
+            assert_eq!(mover.pose().position, position);
+            assert_eq!(mover.pose().crouch_frame, Some(4));
+        }
     }
 
     #[test]
@@ -2016,7 +2060,7 @@ mod tests {
     }
 
     #[test]
-    fn relocation_shares_deadline_and_marks_only_a_clear_destination() {
+    fn scripted_relocation_and_teleport_require_a_clear_destination() {
         let fixture = swept_fixture();
         let input = &fixture["input"];
         let category = u16::try_from(input["category"].as_u64().unwrap()).unwrap();
@@ -2026,29 +2070,144 @@ mod tests {
             stand_radius: input["stand_radius"].as_f64().unwrap(),
             ..MoverSettings::default()
         };
-        let mut mover = Mover::new(
-            settings,
-            swept_wall_world(input, category),
-            [0.0; 3],
-            0,
-            category,
-        )
-        .unwrap();
         let destination = serde_json::from_value(input["wall_displacement"].clone()).unwrap();
         let blocker = crate::mover_ground::standing_capsule(&settings, destination);
-        let motion = ScriptedMotion::Relocate(Relocation::new(destination).unwrap());
+        let relocation = Relocation::new(destination).unwrap();
         let rays = TriangleIndex::new([]).unwrap();
-        assert!(mover.queue_scripted_motion(2, motion));
-        assert!(!mover.queue_swept_displacement(2, SweptDisplacement::new(destination).unwrap()));
-        for frame in 1..=4 {
-            if frame == 3 {
-                assert!(mover.queue_scripted_motion(frame, motion));
+        for motion in [
+            ScriptedMotion::Relocate(relocation),
+            ScriptedMotion::Teleport(relocation),
+        ] {
+            let mut mover = Mover::new(
+                settings,
+                swept_wall_world(input, category),
+                [0.0; 3],
+                0,
+                category,
+            )
+            .unwrap();
+            assert!(mover.queue_scripted_motion(2, motion));
+            assert!(
+                !mover.queue_swept_displacement(2, SweptDisplacement::new(destination).unwrap())
+            );
+            for frame in 1..=4 {
+                if frame == 3 {
+                    assert!(mover.queue_scripted_motion(frame, motion));
+                }
+                let blockers = if frame < 3 {
+                    std::slice::from_ref(&blocker)
+                } else {
+                    &[]
+                };
+                mover
+                    .step_against(
+                        &rays,
+                        Command {
+                            frame,
+                            ..Command::default()
+                        },
+                        0.016,
+                        blockers,
+                        |_, _| {},
+                    )
+                    .unwrap();
+                assert_eq!(mover.has_pending_script_motion(), frame == 1);
+                assert_eq!(mover.scripted_motion_at(frame), frame == 3);
+                assert_eq!(
+                    mover.pose.position,
+                    if frame < 3 { [0.0; 3] } else { destination }
+                );
             }
-            let blockers = if frame < 3 {
-                std::slice::from_ref(&blocker)
-            } else {
-                &[]
+        }
+    }
+
+    #[test]
+    fn elevated_hostile_capsule_does_not_push_the_owner_into_a_neighbor() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/hostile-capsule-glance-v1.json"
+        ))
+        .unwrap();
+        let input = &fixture["vertical_clearance"];
+        let feet = |key: &str| serde_json::from_value::<[f64; 3]>(input[key].clone()).unwrap();
+        let settings = MoverSettings {
+            gravity_scale: 0.0,
+            stand_radius: 0.5,
+            stand_height: 2.0,
+            stand_pogo: 0.5,
+            ..MoverSettings::default()
+        };
+        let geometry = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let rays = TriangleIndex::new([]).unwrap();
+        let elevated = crate::mover_ground::standing_capsule(&settings, feet("elevated"));
+        let neighbor = crate::mover_ground::standing_capsule(&settings, feet("neighbor"));
+        for blockers in [[elevated, neighbor], [neighbor, elevated]] {
+            let mut owner = Mover::new(settings, Arc::clone(&geometry), [0.0; 3], 0, 0x18).unwrap();
+            assert!(elevated.bounds().low[1] > owner.contact_capsule().bounds().high[1]);
+            let command = Command {
+                frame: 1,
+                ..Command::default()
             };
+            owner
+                .step_against(&rays, command, 0.016, &blockers, |_, _| {})
+                .unwrap();
+            assert_eq!(owner.pose().position, [0.0; 3]);
+            assert!(!owner.needs_owner_correction_at(command.frame));
+        }
+
+        let support = crate::mover_ground::standing_capsule(&settings, [0.0; 3]);
+        let crown = f64::from(support.bounds().high[1]);
+        let mut owner = Mover::new(settings, geometry, [0.0, crown, 0.0], 0, 0x18).unwrap();
+        owner
+            .step_against(
+                &rays,
+                Command {
+                    frame: 1,
+                    ..Command::default()
+                },
+                0.016,
+                &[support],
+                |_, _| {},
+            )
+            .unwrap();
+        assert_eq!(owner.pose().position, [0.0, crown, 0.0]);
+        assert!(owner.needs_owner_correction_at(1));
+    }
+
+    #[test]
+    fn repeated_hostile_contact_holds_the_boundary_and_allows_a_glance() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/hostile-capsule-glance-v1.json"
+        ))
+        .unwrap();
+        let input = &fixture["held_contact"];
+        let dt = input["step_seconds"].as_f64().unwrap();
+        let tolerance = input["tolerance"].as_f64().unwrap();
+        let actor_feet: [f64; 3] = serde_json::from_value(input["actor_feet"].clone()).unwrap();
+        let speed = input["normal_speed"].as_f64().unwrap();
+        let tangent = input["tangent_speed"].as_f64().unwrap();
+        let head_on = u32::try_from(input["head_on_frames"].as_u64().unwrap()).unwrap();
+        let glance = u32::try_from(input["glance_frames"].as_u64().unwrap()).unwrap();
+        let settings = MoverSettings {
+            gravity_scale: 0.0,
+            decel_air_base: 0.0,
+            decel_air_per_speed: 0.0,
+            ..MoverSettings::default()
+        };
+        let actor = crate::mover_ground::standing_capsule(&settings, actor_feet);
+        let rays = TriangleIndex::new([]).unwrap();
+        let mut mover = Mover::new(
+            settings,
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            [0.0; 3],
+            0,
+            0x18,
+        )
+        .unwrap();
+        let combined_radius = f64::from(mover.contact_capsule().radius + actor.radius);
+        let mut previous = 0.0;
+        for frame in 1..=head_on + glance {
+            let vn = if frame <= head_on { 0.0 } else { tangent };
+            mover.queue_velocity_change(frame, VelocityChange::SetVelocity([vn, 0.0, speed]));
             mover
                 .step_against(
                     &rays,
@@ -2056,18 +2215,32 @@ mod tests {
                         frame,
                         ..Command::default()
                     },
-                    0.016,
-                    blockers,
+                    dt,
+                    &[actor],
                     |_, _| {},
                 )
                 .unwrap();
-            assert_eq!(mover.has_pending_script_motion(), frame == 1);
-            assert_eq!(mover.scripted_motion_at(frame), frame == 3);
-            assert_eq!(
-                mover.pose.position,
-                if frame < 3 { [0.0; 3] } else { destination }
+            let [x, _, z] = mover.pose().position;
+            let distance = (x - actor_feet[0]).hypot(z - actor_feet[2]);
+            assert!(
+                distance >= combined_radius - tolerance,
+                "frame {frame} separation {distance}"
             );
+            if frame <= head_on {
+                assert!(
+                    z >= previous - tolerance,
+                    "frame {frame} moved back {previous} to {z}"
+                );
+            }
+            if frame == head_on {
+                assert!(
+                    distance <= combined_radius + 0.02,
+                    "stopped short: {distance}"
+                );
+            }
+            previous = z;
         }
+        assert!(mover.pose().position[0] > 0.1);
     }
 
     #[test]

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "npc-team-separation.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "radius": 0.375,
+  "blocker_x": 0.78,
+  "separation_x": 0.035,
+  "ticks": 24
+}

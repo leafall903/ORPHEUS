@@ -1,8 +1,17 @@
 {
   "schema_version": 1,
   "case_id": "owner-synchronous-script-halt-v1",
-  "source": {"basis": "Synthetic defender receivers that halt while following a cyclic output."},
+  "source": {"basis": "Synthetic defender receivers halt while following a cyclic output. A subsequent hit in the same room tick publishes the latest cumulative health for the retained body."},
   "evidence": "rust-synthetic",
-  "input": {"callbacks": ["message", "sighting"], "health": 180.0, "damage": 20.0, "actor_yaw": 4210},
+  "input": {
+    "scenarios": [
+      {"callback": "message"},
+      {"callback": "sighting"},
+      {"callback": "message", "post_halt_damage": 30.0, "health_after_damage": 130.0}
+    ],
+    "health": 180.0,
+    "damage": 20.0,
+    "actor_yaw": 4210
+  },
   "expected": {"health_after_fault": 160.0, "halt_events": 1}
 }

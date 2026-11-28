@@ -537,6 +537,16 @@ mod tests {
             self.0.add_pool(kind, maximum, current)
         }
 
+        fn add_temporary_shield(
+            &mut self,
+            _: Site,
+            identifier: u64,
+            amount: f64,
+            stacked: bool,
+        ) -> Option<u32> {
+            self.0.add_temporary_shield(identifier, amount, stacked)
+        }
+
         fn health_pool_current(&self, _: Site, pool: u32) -> Option<f64> {
             self.0.pool_current(pool)
         }
@@ -550,6 +560,111 @@ mod tests {
         fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
             None
         }
+    }
+
+    #[test]
+    fn nonstacked_shield_is_removed_only_after_its_last_state_exits() {
+        let contract: Json = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/script-shared-named-shield-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(contract["schema_version"], 1);
+        assert_eq!(contract["evidence"], "synthetic-rust");
+        let input = &contract["input"];
+        let pool = input["pool_identifier"].as_str().unwrap();
+        let identifier = crate::accounts::parse_guid(pool).unwrap();
+        let amount = input["amount"].as_f64().unwrap();
+        let base_health = input["base_health"].as_f64().unwrap();
+        let drain = input["drain"].as_f64().unwrap();
+        let instances: [u16; 2] = serde_json::from_value(input["instances"].clone()).unwrap();
+        let owner = json!({"$":"STU_B5A0CAF0"});
+        let graph_index = 0x7111;
+        let graphs = Arc::new(store(vec![graph(
+            graph_index,
+            vec![
+                node(
+                    0,
+                    "STUStatescriptEntry",
+                    None,
+                    json!({"m_outPlug":plug(&[(1, "m_beginPlug")], &[])}),
+                ),
+                node(
+                    1,
+                    "STUStatescriptStateHealthPool",
+                    Some(0),
+                    json!({
+                        "m_FA3ECC43":owner,
+                        "m_69A20070":{"$":"STU_FEDD683C", "m_entity":owner},
+                        "m_7E8B666C":2,
+                        "m_7BE02F89":{"$":"STUConfigVarIdentifier", "m_identifier":pool, "m_resourceKey":null},
+                        "m_64839023":{"$":"STUConfigVarBool","m_value":0},
+                        "m_0E8A5C8E":{"$":"STUConfigVarBool","m_value":1},
+                        "m_amount":amount
+                    }),
+                ),
+            ],
+            json!([1]),
+            json!([0]),
+        )]));
+        let remaining = amount - drain;
+        let start = || {
+            let mut world = PoolWorld(Vitals::new(base_health, 0.0, 0.0));
+            let component = Component::start(
+                Arc::clone(&graphs),
+                777,
+                Variables::new(),
+                instances.map(|id| Root::new(id, graph_index)).to_vec(),
+                0,
+                &mut world,
+                MAX_INIT_WORK,
+            )
+            .unwrap();
+            assert_eq!(world.0.total(), base_health + amount);
+            assert_eq!(world.0.maximum(), base_health + amount);
+            let snapshot = component.snapshot().unwrap();
+            assert!(snapshot.diagnostics.is_empty());
+            let handles = instances.map(|id| {
+                let state = &snapshot.instances[&id].states[&0];
+                assert!(state.active);
+                let StateKind::HealthPool { pool: Some(handle) } = state.kind else {
+                    panic!("expected registered health pool");
+                };
+                handle
+            });
+            assert_ne!(handles[0], handles[1]);
+            assert_eq!(world.0.drain_temporary_shield(identifier, drain), remaining);
+            assert_eq!(
+                handles.map(|id| world.0.pool_current(id)),
+                [Some(remaining); 2]
+            );
+            (component, world, handles)
+        };
+
+        for [first, last] in [[0, 1], [1, 0]] {
+            let (mut component, mut world, handles) = start();
+            component
+                .debug_end_state(instances[first], 0, &mut world)
+                .unwrap();
+            assert_eq!(world.0.temporary_shield_current(identifier), remaining);
+            assert_eq!(world.0.maximum(), base_health + amount);
+            assert_eq!(world.0.pool_current(handles[first]), None);
+            assert_eq!(world.0.pool_current(handles[last]), Some(remaining));
+
+            component
+                .debug_end_state(instances[last], 0, &mut world)
+                .unwrap();
+            assert_eq!(world.0.temporary_shield_current(identifier), 0.0);
+            assert_eq!(world.0.total(), base_health);
+            assert_eq!(world.0.maximum(), base_health);
+            assert_eq!(handles.map(|id| world.0.pool_current(id)), [None; 2]);
+        }
+
+        let (mut component, mut world, handles) = start();
+        component.teardown(&mut world).unwrap();
+        assert_eq!(world.0.temporary_shield_current(identifier), 0.0);
+        assert_eq!(world.0.total(), base_health);
+        assert_eq!(world.0.maximum(), base_health);
+        assert_eq!(handles.map(|id| world.0.pool_current(id)), [None; 2]);
     }
 
     #[test]

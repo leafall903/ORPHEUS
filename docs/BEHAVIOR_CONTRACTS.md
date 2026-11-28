@@ -12,11 +12,13 @@ The Rust-only fixtures for [parent-owned state](../fixtures/behavior/script-pare
 
 The [meter activity contract](../fixtures/behavior/script-meter-body-activity-v1.json) checks gain and deferred health awards across activity changes. The [owner activity contract](../fixtures/behavior/script-owner-room-activity-v1.json) exercises the native room and body factory at startup, death, and same-wire replacement.
 
-The [synchronous owner halt contract](../fixtures/behavior/owner-synchronous-script-halt-v1.json) triggers a native script fault from defender and sighting messages. It checks room-side effect cleanup, retained health, generation-specific publication, and replacement of older queued health. The owner can retire the script before the actor identity acknowledgement.
+The [synchronous owner halt contract](../fixtures/behavior/owner-synchronous-script-halt-v1.json) triggers a native script fault from defender and sighting messages. It checks room-side effect cleanup, retained health, generation-specific publication, and replacement of older queued health. Damage after the halt in the same room tick remains visible to the owner and observers. The owner can retire the script before the actor identity acknowledgement.
 
 The Rust-only [player health presentation fixture](../fixtures/behavior/player-health-presentation-v1.json) checks that settled damage, healing, and death update the owner StateScript projection from the same health pools as the health component. It checks current and maximum HUD values through the production owner projection.
 
 The [owner fault shield contract](../fixtures/behavior/owner-fault-temporary-shields-v1.json) covers stacked and depleted temporary grants during owner VM unload. The owner and observers receive explicit clears through the health component. A lost owner update retries the same record. Permanent pool IDs, maximums and current amounts survive the unload.
+
+The [cumulative NPC health fixture](../fixtures/behavior/npc-cumulative-health-v1.json) changes separate shield slots in successive room ticks. The newer record carries the earlier slot's explicit clear, so replacing an unacknowledged record leaves the observer with the current pools.
 
 The Rust-only [base action fixture](../fixtures/behavior/script-base-action-placement-v1.json) runs the same valid continuation at two original placements. It also checks malformed action markers and an invalid remote slot on an action.
 
@@ -97,6 +99,14 @@ The Rust-only [scripted training bot respawn fixture](../fixtures/behavior/train
 The [respawn visibility fixture](../fixtures/behavior/respawn-weapon-visibility-v1.json) checks that create acknowledgement alone leaves a scripted replacement out of player weapon queries and hostile owner movement contacts. Each observer independently admits the replacement after its first script snapshot is acknowledged, including after loss and retry. The original client's rendered animation still needs a playtest.
 
 The [owner actor contact fixture](../fixtures/behavior/owner-actor-contact-v1.json) checks full capsule separation against a delivered hostile body. A player runtime with a movement projection receives frame-aligned owner corrections on every eligible send. A body without that projection can still receive corrections for a resolved contact or server-directed move.
+
+The [blocked sweep correction fixture](../fixtures/behavior/owner-blocked-sweep-correction-v1.json) checks owner correction when a hostile capsule clips a scripted sweep and the resulting position rounds back to its starting coordinate. It exercises the outbound movement record with and without a body script.
+
+The [continuous movement stop fixture](../fixtures/behavior/owner-continuous-motion-stop-v1.json) faults the movement runtime after the first pose of a recovered batch. Subsequent poses release the continuous destination and speed override while retaining committed momentum and a queued external impulse.
+
+The [owner stun input fixture](../fixtures/behavior/owner-stun-input-gate-v1.json) covers suppressed movement and action buttons in a recovered batch, owner corrections for blocked steering, and external impulses queued on either side of the stun. Releasing the stun does not replay the suppressed controls into subsequent missing poses.
+
+The [late join observer fixture](../fixtures/behavior/late-join-observer-create-v1.json) boots a new observer after the existing body's spawn event has been consumed. The observer receives the current transform and health once, then receives subsequent poses and admits the body to contact queries after acknowledging its creation.
 
 The Rust-only [stock bot script isolation fixture](../fixtures/behavior/stock-bot-script-isolation-v1.json) checks that a zeroed owner selector is valid and that an unsupported public selector suspends only the affected bot's script projection. Both physical bots remain in the room. The [mode presentation variables fixture](../fixtures/behavior/mode-presentation-variables-v1.json) checks mode selection and preservation of typed values in the mode bootstrap.
 
@@ -192,6 +202,12 @@ exercises the owner query, lifecycle cleanup, exhaustion of a played
 grant and periodic decay with a changing authored rate. Native Vitals
 and charge tests compare pool-row aggregation and distinguish decay
 from damage that contributes a named-pool loss.
+
+The [shared shield fixture](../fixtures/behavior/script-shared-named-shield-v1.json)
+checks overlapping nonstacking registrations through the VM and native
+Vitals. Both holders see one balance. The first exit keeps the remaining
+amount, and the last exit clears the shield slot.
+
 The [immediate self-damage fixture](../fixtures/behavior/script-immediate-self-damage-v1.json)
 checks admission at invented positions, native integer rounding, one-shot
 execution, the different death rules, and rejection of unreviewed modifiers.

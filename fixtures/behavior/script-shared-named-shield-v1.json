@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "script-shared-named-shield.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "Two independent states register distinct release handles for one named nonstacked shield balance. The balance is drained before the states exit. Releasing either first preserves that balance and capacity until the last owner exits or the component tears down."
+  },
+  "input": {
+    "pool_identifier": "0x0D800000000071B9",
+    "amount": 56,
+    "base_health": 200,
+    "drain": 7,
+    "instances": [
+      4,
+      11
+    ]
+  }
+}

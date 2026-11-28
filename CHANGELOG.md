@@ -4,6 +4,61 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Give each temporary shield registration its own release handle. A shared
+  nonstacking balance is cleared only when its final holder exits.
+
+- Collect a halted player's remaining health changes at the room event drain
+  so later combat cannot be overwritten by the halt's older snapshot.
+- Publish cumulative NPC health records so a new shield update still clears
+  slots from earlier unacknowledged records.
+
+- Keep living stunned players' steering and action inputs blocked across
+  received and recovered commands. Apply the initial steering stop before
+  external impulses, then correct suppressed movement for the owner.
+
+- Clear continuous script-controlled movement and speed overrides when the
+  body runtime stops or the body dies. A runtime stop preserves committed
+  momentum and queued external impulses.
+
+- Introduce existing player bodies to peers that join after their spawn event.
+  Use the current transform and health, then admit movement and collision when
+  the peer acknowledges the body.
+
+- Send an owner movement correction when a scripted sweep is clipped by an
+  actor even if the resulting position quantizes back to its starting point.
+
+- Resolve soft player ally separation from the resulting capsule of each
+  simulated input pose before recording its correction. The push scales with
+  the pose duration and works without an attached owner script.
+
+- Sweep player movement against poses already committed in the same room
+  tick. This keeps opposing bodies separated when both move in one tick.
+- Sweep NPC ally-separation movement against the current hostile blockers.
+  Use the rounded capsule profile to calculate ally overlap across different
+  heights. Synthetic cases cover both movement orders, body retirement,
+  queued NPC separation against a hostile capsule, and rounded cap tangency.
+- Check occupied destinations for both NPC and player teleports. An invalid
+  landing preserves the original position. Verify repeated inward movement
+  stops at the hostile capsule boundary with lateral motion still available.
+- Publish acknowledged remote player poses on every scheduled world send,
+  including when the room clock skips across a send boundary.
+- Retry the latest owner movement correction after a confirmed datagram loss,
+  including when the owner has stopped sending movement commands. Hold the
+  input replay window until delivery is confirmed and scope retries to the
+  active body generation.
+- Refresh player collision snapshots after NPC movement in the same room
+  tick, including in single-player rooms. Keep the existing snapshot available
+  to the NPC and combat stages until a player next moves.
+- Return a finite contact normal when a sphere center lies on the axis of a
+  capsule with coincident endpoints or a reversed axis.
+- Use the shared capsule sweep and contact projection to resolve hostile player
+  contact. Cover vertical clearance beside a second opponent, standing on a
+  capsule, and separation from an exactly coincident body.
+- Compare squared distances consistently when testing a placement against
+  capsules with coincident endpoints.
+- Check hostile capsule clearance before growing a player's stance. Preserve
+  the current footprint until there is room for the requested dimensions.
+
 - Eliminate all seven external private inputs from `scripts/runtime.py build` so a fresh
   Windows machine with only a local 1.74.0.0.104319 Overwatch installation can build and
   verify a playable Practice Range runtime pack in one command:

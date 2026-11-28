@@ -836,8 +836,15 @@ impl Bot {
             let nz = z + sep[1];
             let ny = ground(nx, nz, y + STEP_UP, y - DROP).unwrap_or(y);
             let intended = [nx, ny, nz];
+            let blockers = self.movement_blocker_snapshot(tick);
             let after = self.collision.as_mut().map_or(intended, |collision| {
-                collision.advance(tick, self.position, intended, dt, &[])
+                collision.advance(
+                    tick,
+                    self.position,
+                    intended,
+                    dt,
+                    blockers.as_deref().unwrap_or(&[]),
+                )
             });
             if after != self.position {
                 self.position = after;
@@ -1674,7 +1681,7 @@ impl Bot {
                     .relocate_if_clear(origin, blockers)
                     .unwrap_or(false)
                 {
-                    collision.body.teleport(origin);
+                    return false;
                 }
                 if let Some(trace) = &mut collision.trace {
                     trace.last_clip = None;
@@ -2045,6 +2052,9 @@ mod tests {
         assert!(blocked.last_contact_clip().is_none());
         assert_eq!(blocked.velocity, before.velocity);
         assert_eq!(blocked.moved_tick, Some(12));
+        let teleport = |to| ScriptedMotion::Teleport(Relocation::new(to).unwrap());
+        assert!(blocked.apply_scripted_motion(13, teleport([0.0; 3])));
+        assert_eq!(blocked.position, [0.0; 3]);
 
         let mut actor_blocked = walker([0.0, 0.0, 10.0]);
         let fallback = actor_blocked.contact_capsule(&settings);
@@ -2074,6 +2084,30 @@ mod tests {
         let occupied = ScriptedMotion::Relocate(Relocation::new(actor_feet).unwrap());
         assert!(!actor_blocked.apply_scripted_motion(20, occupied));
         assert_eq!(actor_blocked.position, before_relocation);
+
+        actor_blocked.set_movement_blockers(21, vec![actor]);
+        let capsule = actor_blocked
+            .collision
+            .as_ref()
+            .unwrap()
+            .body
+            .capsule_pose();
+        assert!(!actor_blocked.apply_scripted_motion(21, teleport(actor_feet)));
+        assert_eq!(actor_blocked.position, before_relocation);
+        assert_eq!(
+            actor_blocked
+                .collision
+                .as_ref()
+                .unwrap()
+                .body
+                .capsule_pose(),
+            capsule
+        );
+        assert_eq!(actor_blocked.moved_tick, Some(20));
+        assert_eq!(actor_blocked.velocity, before.velocity);
+        assert!(actor_blocked.apply_scripted_motion(21, teleport(behind_wall)));
+        assert_eq!(actor_blocked.position, behind_wall);
+        assert_eq!(actor_blocked.moved_tick, Some(21));
     }
 
     #[test]
@@ -2129,6 +2163,63 @@ mod tests {
         blocked.died(103);
         assert!(!blocked.has_movement_blockers(103));
         assert!(blocked.movement_blockers(103).is_empty());
+    }
+
+    #[test]
+    fn passive_ally_separation_respects_current_hostile_blockers() {
+        #[derive(Deserialize)]
+        struct Case {
+            radius: f64,
+            blocker_x: f64,
+            separation_x: f64,
+            ticks: u32,
+        }
+        let case: Case = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/npc-team-separation-v1.json"
+        ))
+        .unwrap();
+        let settings = MoverSettings {
+            stand_radius: case.radius,
+            ..MoverSettings::default()
+        };
+        let blocker = standing_capsule(&settings, [case.blocker_x, 0.0, 0.0]);
+        let patrol = PatrolScript::load().unwrap();
+        let idle = || {
+            let mut bot = walker([0.0; 3]);
+            Arc::get_mut(&mut bot.spawn).unwrap().route.clear();
+            bot
+        };
+        let mut bound = idle();
+        let mut unbound = idle();
+        bound.attach_collision(
+            &settings,
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            0x18,
+            |_, _, _, _| Some(0.0),
+        );
+        let min_distance = case.radius + f64::from(blocker.radius);
+        for tick in 1..=case.ticks {
+            for bot in [&mut bound, &mut unbound] {
+                bot.set_movement_blockers(tick, vec![blocker]);
+                bot.set_ally_separation([case.separation_x, 0.0]);
+                bot.step(tick, &patrol, |_, _, _, _| Some(0.0)).unwrap();
+            }
+            let gap = case.blocker_x - bound.position[0];
+            assert!(
+                gap >= min_distance - f64::from(crate::contact_triangle::TOUCH),
+                "{gap}"
+            );
+        }
+        assert!(bound.position[0] > 0.0);
+        assert!(unbound.position[0] > case.blocker_x);
+
+        // Last tick's obstacle no longer participates.
+        let at_contact = bound.position[0];
+        bound.set_ally_separation([case.separation_x, 0.0]);
+        bound
+            .step(case.ticks + 1, &patrol, |_, _, _, _| Some(0.0))
+            .unwrap();
+        assert!((bound.position[0] - at_contact - case.separation_x).abs() < 1.0e-6);
     }
 
     fn route_vector(bots: &mut [Bot], ticks: impl IntoIterator<Item = u32>) -> String {

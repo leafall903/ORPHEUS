@@ -1303,8 +1303,8 @@ impl State {
                             peer.world.queue_health(record.clone());
                         }
                     }
-                    // A synchronous script stop is newer than the health
-                    // already collected during combat or owner projection.
+                    // A halt only carries health still pending at the room's
+                    // event drain, after earlier combat health records.
                     if let Some(events) = player_events.get(&id) {
                         for event in events {
                             if let crate::game_combat::PlayerBodyEvent::ScriptHalted {

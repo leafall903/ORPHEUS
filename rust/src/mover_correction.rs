@@ -31,6 +31,10 @@ impl Correction {
         self.frame
     }
 
+    pub(crate) fn limit_replay_ack(&self, newest: u32) -> u32 {
+        newest.min(self.frame.saturating_add(ACK_LEAD))
+    }
+
     pub fn update(&self) -> EntityUpdate {
         EntityUpdate {
             entity: self.body.entity,

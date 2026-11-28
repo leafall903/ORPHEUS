@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "movement.peer-contact-order.v1",
+  "evidence": "synthetic-rust",
+  "tick": 12,
+  "left_x": -1.5,
+  "right_x": 1.5,
+  "step": 1.65
+}

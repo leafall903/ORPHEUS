@@ -1594,7 +1594,7 @@ impl RoomSimulation {
             state.bot.clear_stun();
         } else if let Some(id) = self.player_handle_for_wire(wire) {
             if let Some(player) = self.player_body_mut(id) {
-                player.mover.block_player_input(false);
+                player.mover.clear_stun();
             }
         }
     }

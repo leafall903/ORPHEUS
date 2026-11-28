@@ -442,7 +442,8 @@ impl RoomSimulation {
         if let Some(name) = self.player_names.get(&owner) {
             state.name = name.clone();
         }
-        let observer_create = state.observer_create.take();
+        // Keep the template for peers that start observing after this event.
+        let observer_create = state.observer_create.clone();
         let spawn_frame = state.frame;
         let spawn_hero = state.hero;
         let spawn_team = state.team;
@@ -591,11 +592,12 @@ impl RoomSimulation {
 
     fn retire_faulted_player_script(&mut self, id: BodyId) {
         if self.clear_player_runtime(id) {
-            if let Some(state) = self.player_body_mut(id) {
-                let owner = state.owner;
-                let health = state.take_health_update();
-                self.player_events
-                    .push(PlayerBodyEvent::ScriptHalted { owner, id, health });
+            if let Some(state) = self.player_body(id) {
+                self.player_events.push(PlayerBodyEvent::ScriptHalted {
+                    owner: state.owner,
+                    id,
+                    health: None,
+                });
             }
         }
     }
@@ -644,7 +646,23 @@ impl RoomSimulation {
     }
 
     pub(crate) fn take_player_events(&mut self) -> Vec<PlayerBodyEvent> {
-        std::mem::take(&mut self.player_events)
+        let mut events = std::mem::take(&mut self.player_events);
+        events.retain_mut(|event| {
+            let PlayerBodyEvent::ScriptHalted { id, health, .. } = event else {
+                return true;
+            };
+            let Some(state) = self
+                .player_body_mut(*id)
+                .filter(|state| state.runtime.is_none())
+            else {
+                return false;
+            };
+            // Combat can consume and publish a newer cumulative health update
+            // after the halt. Collect only changes still pending at the drain.
+            *health = state.take_health_update();
+            true
+        });
+        events
     }
 
     pub(crate) fn take_player_deaths(&mut self) -> Vec<PlayerDeath> {
@@ -1111,7 +1129,25 @@ impl RoomSimulation {
             .values()
             .filter_map(|&entity| self.world.get::<PlayerBodyState>(entity))
             .filter(|state| state.owner != exclude_owner)
-            .filter_map(|state| Some((state.id, state.observer_create.as_ref()?.clone())))
+            .filter_map(|state| {
+                let mut update = state.observer_create.clone()?;
+                let Operation::Create(create) = update.operation.as_mut()? else {
+                    return None;
+                };
+                let pose = state.mover.pose();
+                create.position = pose.position.map(|axis| axis as f32);
+                create.rotation = crate::game_body::yaw_rotation(f64::from(pose.yaw));
+                if let Some(health) = state.vitals().map(Vitals::component) {
+                    if let Some(component) = create
+                        .components
+                        .iter_mut()
+                        .find(|c| c.index == health.index)
+                    {
+                        *component = health;
+                    }
+                }
+                Some((state.id, update))
+            })
             .collect()
     }
 

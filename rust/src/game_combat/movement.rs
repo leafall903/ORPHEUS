@@ -16,6 +16,8 @@ pub(super) struct MovementContacts {
     free_for_all: bool,
     movers: Arc<MoverCatalog>,
     frame: Option<(u32, Arc<MovementContactFrame>)>,
+    captured_player_count: usize,
+    refresh_for_peer: bool,
 }
 
 pub(crate) struct MovementContactFrame {
@@ -43,7 +45,13 @@ impl MovementContactFrame {
     }
 
     pub(crate) fn ally_separation(&self, source: u32, team: u8, pose: CapsulePose) -> [f64; 2] {
-        self.ally_separation_where(source, team, pose, |_| true)
+        self.ally_separation_where(
+            source,
+            team,
+            pose,
+            crate::game_clock::TICK_PERIOD.as_secs_f64(),
+            |_| true,
+        )
     }
 
     pub(crate) fn ally_separation_where(
@@ -51,6 +59,7 @@ impl MovementContactFrame {
         source: u32,
         team: u8,
         pose: CapsulePose,
+        dt: f64,
         mut visible: impl FnMut(u32) -> bool,
     ) -> [f64; 2] {
         let mut push = [0.0f64; 2];
@@ -58,19 +67,14 @@ impl MovementContactFrame {
             if entity == source || other_team != Some(team) || !visible(entity) {
                 continue;
             }
-            let self_top = pose.position[1] + pose.top + 2.0 * pose.radius;
-            let other_top = other_pose.position[1] + other_pose.top + 2.0 * other_pose.radius;
-            if pose.position[1] > other_top || other_pose.position[1] > self_top {
-                continue;
-            }
-            let dx = f64::from(pose.position[0] - other_pose.position[0]);
-            let dz = f64::from(pose.position[2] - other_pose.position[2]);
-            let min_dist = f64::from(pose.radius + other_pose.radius);
+            let reach = crate::contact_body::planar_contact_radius(pose, other_pose);
+            let dx = f64::from(pose.position[0]) - f64::from(other_pose.position[0]);
+            let dz = f64::from(pose.position[2]) - f64::from(other_pose.position[2]);
             let dist = dx.hypot(dz);
-            if dist >= min_dist || min_dist <= 0.0 {
+            if dist >= reach {
                 continue;
             }
-            let overlap = (min_dist - dist) / min_dist;
+            let overlap = (reach - dist) / (f64::from(pose.radius) + f64::from(other_pose.radius));
             let (nx, nz) = if dist > 1.0e-5 {
                 (dx / dist, dz / dist)
             } else if source < entity {
@@ -82,7 +86,7 @@ impl MovementContactFrame {
             push[1] += nz * overlap;
         }
         let mag = push[0].hypot(push[1]);
-        let max_step = 2.8 * crate::game_clock::TICK_PERIOD.as_secs_f64();
+        let max_step = 2.8 * dt;
         if mag > 1.0e-6 {
             let step = (mag * max_step).min(max_step);
             [push[0] / mag * step, push[1] / mag * step]
@@ -158,6 +162,8 @@ impl RoomSimulation {
             free_for_all,
             movers,
             frame: None,
+            captured_player_count: 0,
+            refresh_for_peer: false,
         });
     }
 
@@ -166,26 +172,44 @@ impl RoomSimulation {
         Some(Arc::clone(frame))
     }
 
-    /// NPC movement follows player input. Freeze the current player poses
-    /// before advancing any NPC so it cannot sweep into a player's new pose.
-    pub(crate) fn prepare_npc_movement_frame(&mut self, tick: u32) -> Result<(), CombatError> {
-        if !self.players_by_wire.is_empty() {
-            if let Some(contacts) = &mut self.movement_contacts {
-                contacts.frame = None;
-            }
-        }
-        self.prepare_movement_frame(tick)
+    /// Input batches are resolved in scheduler order. Each peer sees the poses
+    /// already committed by earlier peers, even within the same room tick.
+    pub(crate) fn prepare_peer_movement_frame(&mut self, tick: u32) -> Result<(), CombatError> {
+        let refresh = self.players_by_wire.len() > 1
+            || self
+                .movement_contacts
+                .as_ref()
+                .is_some_and(|contacts| contacts.refresh_for_peer);
+        self.capture_movement_frame(tick, refresh)
     }
 
-    /// Freeze contacts before the first movement in this room tick.
+    /// Freeze current player poses once before advancing any NPCs.
+    pub(crate) fn prepare_npc_movement_frame(&mut self, tick: u32) -> Result<(), CombatError> {
+        self.capture_movement_frame(tick, !self.players_by_wire.is_empty())?;
+        if let Some(contacts) = &mut self.movement_contacts {
+            // NPC and combat stages can still use this frozen frame. The next
+            // input stage must see the NPC movement those stages commit.
+            contacts.refresh_for_peer = true;
+        }
+        Ok(())
+    }
+
+    /// Reuse the frozen contact frame within the same update stage.
     pub(crate) fn prepare_movement_frame(&mut self, tick: u32) -> Result<(), CombatError> {
+        self.capture_movement_frame(tick, false)
+    }
+
+    fn capture_movement_frame(&mut self, tick: u32, refresh: bool) -> Result<(), CombatError> {
         let Some(contacts) = self.movement_contacts.as_ref() else {
             return Ok(());
         };
-        if contacts
-            .frame
-            .as_ref()
-            .is_some_and(|(frame, _)| *frame == tick)
+        let player_count = self.players_by_wire.len();
+        if !refresh
+            && contacts.captured_player_count == player_count
+            && contacts
+                .frame
+                .as_ref()
+                .is_some_and(|(frame, _)| *frame == tick)
         {
             return Ok(());
         }
@@ -234,6 +258,8 @@ impl RoomSimulation {
         }
         if let Some(contacts) = &mut self.movement_contacts {
             contacts.frame = Some((tick, Arc::new(MovementContactFrame { actors })));
+            contacts.captured_player_count = player_count;
+            contacts.refresh_for_peer = false;
         }
         Ok(())
     }

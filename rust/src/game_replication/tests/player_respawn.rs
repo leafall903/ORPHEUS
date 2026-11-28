@@ -318,6 +318,7 @@ fn player_respawn_converges_when_observer_drops_packets_across_swap() {
     observer.acknowledge(
         DeliveryReport {
             requeued_reliable: 0,
+            owner_correction: None,
             packets: vec![PacketDelivery {
                 sequence: 1,
                 arrived: true,
@@ -360,6 +361,7 @@ fn player_respawn_converges_when_observer_drops_packets_across_swap() {
     observer.acknowledge(
         DeliveryReport {
             requeued_reliable: 0,
+            owner_correction: None,
             packets: vec![PacketDelivery {
                 sequence: 2,
                 arrived: false,
@@ -382,6 +384,7 @@ fn player_respawn_converges_when_observer_drops_packets_across_swap() {
         observer.acknowledge(
             DeliveryReport {
                 requeued_reliable: 0,
+                owner_correction: None,
                 packets: vec![PacketDelivery {
                     sequence: seq,
                     arrived: true,

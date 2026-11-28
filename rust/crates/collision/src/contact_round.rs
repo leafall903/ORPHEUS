@@ -228,13 +228,19 @@ pub fn capsule_sphere(capsule: Capsule, sphere: Sphere) -> Manifold {
         return Manifold::default();
     }
     let (normal, position, separation) = if distance < f32::EPSILON {
-        let axis = normalize(segment);
-        let normal = if axis[2] > 0.5 {
-            [axis[2], 0.0, -axis[0]]
+        let length_squared = dot(segment, segment);
+        let normal = if length_squared <= TINY {
+            X_AXIS
         } else {
-            [axis[1], -axis[0], 0.0]
+            let axis = scale(segment, rsqrt(length_squared));
+            let perpendicular = if axis[2].abs() > 0.5 {
+                [axis[2], 0.0, -axis[0]]
+            } else {
+                [axis[1], -axis[0], 0.0]
+            };
+            normalize(perpendicular)
         };
-        (normalize(normal), nearest, -total)
+        (normal, nearest, -total)
     } else {
         let normal = gap.map(|lane| lane / distance);
         let position = scale(
@@ -505,6 +511,43 @@ mod tests {
         );
         assert_point(&axial.points()[0], [0, 0x3e80_0000, 0], 0xbf33_3333, [0; 4]);
         assert_eq!(contact([2.0, 0.0, 0.0]), Manifold::default());
+    }
+
+    #[test]
+    fn coincident_sphere_contact_returns_a_finite_unit_normal() {
+        use serde::Deserialize;
+
+        #[derive(Deserialize)]
+        struct Case {
+            start: Vec3,
+            end: Vec3,
+            center: Vec3,
+        }
+        let cases: Vec<Case> = serde_json::from_str(include_str!(
+            "../../../../fixtures/behavior/coincident-capsule-sphere-v1.json"
+        ))
+        .unwrap();
+        for case in cases {
+            let axis = sub(case.end, case.start);
+            let contact = capsule_sphere(
+                Capsule {
+                    a: case.start,
+                    b: case.end,
+                    radius: 0.5,
+                },
+                Sphere {
+                    center: case.center,
+                    radius: 0.25,
+                },
+            );
+            let normal = contact.normal;
+            assert!(normal.iter().all(|component| component.is_finite()));
+            assert!((dot(normal, normal) - 1.0).abs() <= f32::EPSILON);
+            assert!(dot(axis, normal).abs() <= f32::EPSILON);
+            assert_eq!(contact.points().len(), 1);
+            assert_eq!(contact.points()[0].position, case.center);
+            assert_eq!(contact.points()[0].separation, -0.75);
+        }
     }
 
     #[test]

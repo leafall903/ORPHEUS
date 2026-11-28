@@ -13,7 +13,7 @@ use crate::{
     contact_hull::HullContactError,
     contact_math::{TINY, Vec3, add, dot, maxps, minps, scale, sub},
     contact_mesh::ContactBounds,
-    contact_round::{Capsule, ContactPoint, RoundShape, capsule_capsule, splat_tiny},
+    contact_round::{Capsule, ContactPoint, RoundShape, capsule_capsule},
     contact_solver::{Constraint, ContactPlane, project_target},
     contact_triangle::{SKIN, TOUCH, closest_parameters},
     contact_world::{ContactWorld, PROXY_MARGIN, StaticGeometry, StaticShape, WorldHit, overlaps},
@@ -22,6 +22,7 @@ use crate::{
 
 const MAX_ROUNDS: u32 = 20;
 const FIT_SHRINK: f32 = 0.02;
+const AXIS_CONTACT_NORMAL: Vec3 = [-1.0, 0.0, 0.0];
 
 pub struct BodyMove<'a> {
     pub position: Vec3,
@@ -128,7 +129,7 @@ impl CharacterBody {
             position,
             ..self.pose
         };
-        if !valid_placement(candidate) || actors.iter().any(|&actor| !valid_placement(actor)) {
+        if !valid_placement(candidate) {
             return Ok(false);
         }
         let capsule = candidate.world_capsule();
@@ -144,17 +145,8 @@ impl CharacterBody {
                 return Ok(false);
             }
         }
-        let low = bounds.low.map(f64::from);
-        let high = bounds.high.map(f64::from);
-        for actor in actors {
-            if overlaps(low, high, actor.bounds())
-                && capsule_capsule(capsule, actor.world_capsule())
-                    .points()
-                    .iter()
-                    .any(|point| point.separation < 0.0)
-            {
-                return Ok(false);
-            }
+        if !clear_of_actors(candidate, actors) {
+            return Ok(false);
         }
         *self = self.fresh_at(position);
         Ok(true)
@@ -182,33 +174,48 @@ impl CharacterBody {
     }
 
     pub fn try_resize(&mut self, radius: f32, top: f32) -> Result<bool, HullContactError> {
-        if !self.fits(radius, top)? {
-            return Ok(false);
-        }
-        self.pose = CapsulePose {
+        self.try_resize_against(radius, top, &[])
+    }
+
+    /// Change the capsule at its current origin after checking world and actor
+    /// clearance. A smaller capsule entirely inside the old one can shrink
+    /// even when a neighboring body is already in contact.
+    pub fn try_resize_against(
+        &mut self,
+        radius: f32,
+        top: f32,
+        actors: &[CapsulePose],
+    ) -> Result<bool, HullContactError> {
+        let candidate = CapsulePose {
             radius,
             top,
             ..self.pose
         };
+        if !self.fits(radius, top)? {
+            return Ok(false);
+        }
+        let contained =
+            radius <= self.pose.radius && top + radius <= self.pose.top + self.pose.radius;
+        if !contained && !clear_of_actors(candidate, actors) {
+            return Ok(false);
+        }
+        self.pose = candidate;
         self.move_proxy(self.pose.bounds());
         self.update_pairs();
         Ok(true)
     }
 
     pub fn fits(&self, radius: f32, top: f32) -> Result<bool, HullContactError> {
-        if radius
-            .partial_cmp(&SKIN)
-            .is_none_or(std::cmp::Ordering::is_lt)
-        {
-            return Ok(false);
-        }
-        let reach = maxps(TOUCH, radius - FIT_SHRINK);
-        let capsule = CapsulePose {
+        let candidate = CapsulePose {
             radius,
             top,
             ..self.pose
+        };
+        if radius < SKIN || !valid_placement(candidate) {
+            return Ok(false);
         }
-        .world_capsule();
+        let reach = maxps(TOUCH, radius - FIT_SHRINK);
+        let capsule = candidate.world_capsule();
         let bounds = segment_bounds(capsule.a, capsule.b, reach);
         for id in self
             .world
@@ -308,7 +315,7 @@ impl CharacterBody {
                     let distance = norm(separation);
                     if distance <= radius + f64::from(TOUCH) {
                         let normal = if distance == 0.0 {
-                            [-1.0, 0.0, 0.0]
+                            AXIS_CONTACT_NORMAL
                         } else {
                             separation.map(|axis| (axis / distance) as f32)
                         };
@@ -447,8 +454,16 @@ impl CharacterBody {
                     let (a, b, radius) = actor_exclusion(self.pose, *actor);
                     if let Some(hit) = capsule_entry_hit(origin, direction, length, a, b, radius)
                         .filter(|hit| {
-                            hit.distance != 0.0
-                                || dot(hit.normal.map(|axis| axis as f32), translation) < 0.0
+                            if hit.distance != 0.0 {
+                                return true;
+                            }
+                            let outward = if norm(segment_separation(origin, a, b)) == 0.0 {
+                                // Use the same separating plane as the contact projection.
+                                AXIS_CONTACT_NORMAL
+                            } else {
+                                hit.normal.map(|axis| axis as f32)
+                            };
+                            dot(outward, translation) < 0.0
                         })
                     {
                         let candidate = (hit.distance / length) as f32;
@@ -490,6 +505,33 @@ fn actor_exclusion(moving: CapsulePose, actor: CapsulePose) -> ([f64; 3], [f64; 
         [x, high, z],
         f64::from(moving.radius) + f64::from(actor.radius),
     )
+}
+
+/// Horizontal center-to-center distance at contact, keeping both capsules at
+/// their current heights. Between the rounded ends this shrinks to zero.
+pub fn planar_contact_radius(moving: CapsulePose, actor: CapsulePose) -> f64 {
+    let (low, high, radius) = actor_exclusion(moving, actor);
+    let y = f64::from(moving.position[1]);
+    let gap = (low[1] - y).max(y - high[1]).max(0.0);
+    if gap >= radius {
+        return 0.0;
+    }
+    ((radius - gap) * (radius + gap)).sqrt()
+}
+
+fn clear_of_actors(candidate: CapsulePose, actors: &[CapsulePose]) -> bool {
+    let bounds = candidate.bounds();
+    let low = bounds.low.map(f64::from);
+    let high = bounds.high.map(f64::from);
+    let capsule = candidate.world_capsule();
+    actors.iter().all(|actor| {
+        valid_placement(*actor)
+            && (!overlaps(low, high, actor.bounds())
+                || capsule_capsule(capsule, actor.world_capsule())
+                    .points()
+                    .iter()
+                    .all(|point| point.separation >= 0.0))
+    })
 }
 
 fn contact_constraint(current: Vec3, normal: Vec3, points: &[ContactPoint]) -> Constraint {
@@ -595,16 +637,9 @@ fn overlaps_segment(
             ..
         } => {
             let total = capsule.radius + reach;
-            let u = sub(capsule.b, capsule.a);
-            let v = sub(b, a);
-            if !splat_tiny(dot(u, u)) && !splat_tiny(dot(v, v)) {
-                let d = sub(capsule.a, a);
-                dot(d, d) < total
-            } else {
-                let (first, second) = closest_parameters(capsule.a, capsule.b, a, b);
-                let d = sub(second, first);
-                dot(d, d) < total * total
-            }
+            let (first, second) = closest_parameters(capsule.a, capsule.b, a, b);
+            let d = sub(second, first);
+            dot(d, d) < total * total
         }
         StaticGeometry::Round {
             shape: RoundShape::Sphere(sphere),
@@ -999,6 +1034,86 @@ mod tests {
             .unwrap();
         assert_eq!(movement.position, [-1.0, 0.0, 0.0]);
         assert!(!movement.touching);
+    }
+
+    #[test]
+    fn coincident_actor_capsules_escape_through_the_same_projection_and_sweep() {
+        let world = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let pose = standing([0.0; 3]);
+        let mut body = CharacterBody::new(world, pose, 0x18);
+        let result = body.move_capsule_against([0.0; 3], 0.016, &[pose]).unwrap();
+        assert!(result.actor_contact);
+        assert!(result.position[0] <= -2.0 * pose.radius + TOUCH);
+        assert_eq!([result.position[1], result.position[2]], [0.0, 0.0]);
+    }
+
+    #[test]
+    fn relocation_compares_squared_distance_for_capsules_with_coincident_endpoints() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            radius: f32,
+            target: Vec3,
+            clear: bool,
+        }
+        let cases: Vec<Case> = serde_json::from_str(include_str!(
+            "../../../../fixtures/behavior/capsule-point-placement-v1.json"
+        ))
+        .unwrap();
+        for case in cases {
+            let center = [0.0, case.radius, 0.0];
+            let obstacle = StaticShape::new(
+                StaticGeometry::Round {
+                    shape: RoundShape::Capsule(Capsule {
+                        a: center,
+                        b: center,
+                        radius: case.radius,
+                    }),
+                    mask: 0x18,
+                },
+                None,
+            )
+            .unwrap();
+            let world = Arc::new(ContactWorld::new(vec![obstacle]).unwrap());
+            let start = [-5.0, 0.0, 0.0];
+            let pose = CapsulePose {
+                position: start,
+                radius: case.radius,
+                top: case.radius,
+            };
+            let mut body = CharacterBody::new(world, pose, 0x18);
+            assert_eq!(
+                body.relocate_if_clear(case.target, &[]).unwrap(),
+                case.clear,
+                "{:?}",
+                case.target
+            );
+            assert_eq!(
+                body.position(),
+                if case.clear { case.target } else { start }
+            );
+        }
+    }
+
+    #[test]
+    fn capsule_resize_can_shrink_an_overlap_without_growing_back_into_it() {
+        let world = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let original = standing([0.0; 3]);
+        let neighbor = standing([0.6, 0.0, 0.0]);
+        let mut body = CharacterBody::new(world, original, 0x18);
+        assert!(body.try_resize_against(0.25, 0.8, &[neighbor]).unwrap());
+        let smaller = body.capsule_pose();
+        assert_eq!(smaller.position, original.position);
+        assert!(
+            !body
+                .try_resize_against(original.radius, original.top, &[neighbor])
+                .unwrap()
+        );
+        assert_eq!(body.capsule_pose(), smaller);
+        assert!(
+            body.try_resize_against(original.radius, original.top, &[])
+                .unwrap()
+        );
+        assert_eq!(body.capsule_pose(), original);
     }
 
     #[test]

@@ -88,6 +88,7 @@ fn bot_health_replaces_stale_packets_and_respawn_keeps_creation_order() {
         world.acknowledge(
             DeliveryReport {
                 requeued_reliable: 0,
+                owner_correction: None,
                 packets: vec![PacketDelivery {
                     sequence: 0,
                     arrived,
@@ -1235,6 +1236,7 @@ fn record(entity: u32, delivery: Delivery) -> Record {
 fn outcome(record: Arc<Record>, arrived: bool) -> DeliveryReport<Arc<Record>> {
     DeliveryReport {
         requeued_reliable: 0,
+        owner_correction: None,
         packets: vec![PacketDelivery {
             sequence: 0,
             arrived,
@@ -1261,6 +1263,8 @@ struct SyntheticOwner {
     received_room_messages: Arc<Mutex<Vec<(u32, crate::script_init::RoomMessage)>>>,
     script_requests: crate::game_combat::RoomScriptRequests,
     authored_facing: Arc<Mutex<Option<[i32; 2]>>>,
+    move_request: Option<([f64; 3], f64)>,
+    ball_roll_speed: Option<f64>,
     queued_hitscan: Option<PosedHitscan>,
     hitscan_fault: Option<(u32, PosedHitscan)>,
 }
@@ -1306,6 +1310,14 @@ impl OwnerBodyRuntime for SyntheticOwner {
 
     fn authored_facing(&self) -> Option<[i32; 2]> {
         *self.authored_facing.lock().unwrap()
+    }
+
+    fn move_request(&self) -> Option<([f64; 3], f64)> {
+        self.move_request
+    }
+
+    fn ball_roll_speed(&self) -> Option<f64> {
+        self.ball_roll_speed
     }
 
     fn set_spatial_frame(&mut self, frame: Arc<crate::game_combat::RoomSpatialFrame>) {
@@ -1479,6 +1491,8 @@ fn synthetic_owner_with_vitals(
         received_room_messages: Arc::default(),
         script_requests: Default::default(),
         authored_facing: Arc::default(),
+        move_request: None,
+        ball_roll_speed: None,
         queued_hitscan: None,
         hitscan_fault: None,
     }
@@ -3364,6 +3378,153 @@ fn fixture_player_state(
         100,
         observer_create,
     )
+}
+
+#[test]
+fn late_join_delivers_existing_player_at_the_current_authoritative_pose() {
+    use crate::{
+        game_body::yaw_rotation, game_combat::PlayerBodyEvent, game_heroes::HeroCatalog,
+        vitals::Death,
+    };
+
+    #[derive(serde::Deserialize)]
+    struct Input {
+        spawn_frame: u32,
+        join_frame: u32,
+        update_frame: u32,
+        spawn_position: [f64; 3],
+        join_position: [f64; 3],
+        join_yaw: i32,
+        update_position: [f64; 3],
+        health: f64,
+        damage: f64,
+    }
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/behavior/late-join-observer-create-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+    let existing_owner = OWNER + 0x100;
+    let existing = BodyId {
+        entity: existing_owner | 1,
+        generation: 1,
+    };
+    let card = PlayerCard::default();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &card,
+    };
+
+    let mut scene = PreparedScene::fixture_for_owner_admission(HeroCatalog::default());
+    let mut state = fixture_player_state(
+        existing,
+        existing_owner,
+        1,
+        1,
+        case.spawn_position,
+        case.health,
+        true,
+    );
+    let initial_health = state.vitals().unwrap().component();
+    let Some(Operation::Create(create)) = state
+        .observer_create
+        .as_mut()
+        .and_then(|update| update.operation.as_mut())
+    else {
+        panic!("missing synthetic body create");
+    };
+    create.position = case.spawn_position.map(|axis| axis as f32);
+    create.components.push(initial_health.clone());
+    state.frame = case.spawn_frame;
+
+    scene.simulation_mut().spawn_player_body(state).unwrap();
+    let events = scene.simulation_mut().take_player_events();
+    let [PlayerBodyEvent::Created { id, update, .. }] = events.as_slice() else {
+        panic!("expected one existing body create");
+    };
+    assert_eq!(*id, existing);
+
+    let state = scene.simulation_mut().player_body_mut(existing).unwrap();
+    state.mover = Mover::new(
+        MoverSettings::default(),
+        Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+        case.join_position,
+        case.join_yaw,
+        0x18,
+    )
+    .unwrap();
+    let runtime = state.runtime.as_mut().unwrap();
+    let damage = runtime.receive_damage(
+        case.damage,
+        Death {
+            time: 0.0,
+            frame: case.join_frame - 1,
+            killer: 0,
+        },
+    );
+    assert_eq!(damage.dealt, case.damage);
+    let join_health = runtime.vitals().unwrap().component();
+    assert_ne!(join_health, initial_health);
+
+    let mut observer = WorldDelivery::new(OWNER);
+    observer.start(&scene, &viewer, case.join_frame).unwrap();
+    assert!(!observer.actor_contact_ready(existing.entity));
+    assert!(
+        observer
+            .movement(&scene, case.update_frame)
+            .unwrap()
+            .is_empty()
+    );
+
+    // An existing peer's spawn event can also be delivered on the join tick.
+    observer.create_remote_player(existing, update.as_ref().clone());
+    let ready = observer.ready();
+    let mut creates = ready.iter().filter_map(|entry| {
+        matches!(entry.record.delivery, Delivery::RemotePlayerCreate(id) if id == existing)
+            .then_some(&entry.record.update)
+    });
+    let create_update = creates
+        .next()
+        .expect("current body create for late observer");
+    assert!(creates.next().is_none());
+    let Some(Operation::Create(create)) = &create_update.operation else {
+        panic!("expected observer create definition");
+    };
+    assert_eq!(create.position, case.join_position.map(|axis| axis as f32));
+    assert_eq!(create.rotation, yaw_rotation(f64::from(case.join_yaw)));
+    assert_eq!(create.components, [join_health]);
+    assert!(create.movement.is_none());
+    assert!(create_update.movement.is_none());
+
+    let mut egress = GameEgress::default();
+    for sequence in 0..8 {
+        transmit(
+            &mut observer,
+            Some(scene.simulation_mut()),
+            &mut egress,
+            case.join_frame,
+            sequence,
+        );
+        transport_outcome(&mut observer, &mut egress, sequence, true);
+        if observer.actor_contact_ready(existing.entity) {
+            break;
+        }
+    }
+    assert!(observer.actor_contact_ready(existing.entity));
+
+    scene
+        .simulation_mut()
+        .player_body_mut(existing)
+        .unwrap()
+        .mover = mover_at(case.update_position);
+    let movement = observer.movement(&scene, case.update_frame).unwrap();
+    assert_eq!(movement.len(), 1);
+    assert_eq!(movement[0].entity, existing.entity);
+    assert_eq!(movement[0].movement.unwrap().position, case.update_position);
 }
 
 fn fixture_projectile_flight(

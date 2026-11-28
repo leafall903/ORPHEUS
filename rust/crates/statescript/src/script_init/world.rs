@@ -1314,6 +1314,9 @@ pub trait World {
         None
     }
 
+    /// Acquire a temporary shield and return its release handle. Concurrent
+    /// nonstacking registrations for one identifier share a balance but
+    /// release independently.
     fn add_temporary_shield(
         &mut self,
         _site: Site,

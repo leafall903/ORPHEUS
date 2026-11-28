@@ -9,6 +9,11 @@ pub(super) struct StepBuffers<'a> {
 }
 
 pub(super) fn stage_scripted_motion(runtime: &mut dyn OwnerBodyRuntime, mover: &mut Mover) {
+    if mover.is_stunned() {
+        // Consume VM motion produced while controls are blocked.
+        runtime.take_scripted_motion();
+        return;
+    }
     mover.set_owner_move(runtime.owner_move());
     if mover.has_pending_script_motion() {
         return;
@@ -199,15 +204,15 @@ impl BodyScript {
         }
         mover.set_cinematic_aim(runtime.cinematic_aim());
         mover.set_authored_facing(runtime.authored_facing());
-        mover.set_move_request(runtime.move_request());
-        mover.set_ball_roll_speed(runtime.ball_roll_speed());
         let velocity_changes = runtime.take_velocity_changes();
         if runtime
             .vitals()
             .is_some_and(|vitals| vitals.death().is_some())
         {
             mover.clear_pending_motion();
-        } else {
+        } else if !mover.is_stunned() {
+            mover.set_move_request(runtime.move_request());
+            mover.set_ball_roll_speed(runtime.ball_roll_speed());
             for (frame, change) in velocity_changes {
                 mover.queue_velocity_change(frame, change);
             }
