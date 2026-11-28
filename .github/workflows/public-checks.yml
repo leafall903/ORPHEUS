@@ -220,9 +220,11 @@ jobs:
           scripts.tests.test_runtime_state_metadata
           scripts.tests.test_model_hardpoints
           scripts.tests.test_runtime_entrypoint
+          scripts.tests.test_runtime_projectiles
           scripts.tests.test_runtime_rulesets
           scripts.tests.test_runtime_validation
           scripts.tests.test_runtime_tools
+          scripts.tests.test_zero_private_inputs
           scripts.tests.test_statescript_coverage
           scripts.tests.test_statescript_evidence
           scripts.tests.test_statescript_scaffold

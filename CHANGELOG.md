@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Eliminate all seven external private inputs from `scripts/runtime.py build` so a fresh
+  Windows machine with only a local 1.74.0.0.104319 Overwatch installation can build and
+  verify a playable Practice Range runtime pack in one command:
+  - Auto-generate a local 64-byte `data/lobby_state_blob.key` when absent.
+  - Extract `data/resource_keys_174.json` from local CASC `090` (`STUResourceKey`) assets.
+  - Extract `data/schemas_174.json` (87 lobby protocols) and `data/game_schemas_174.json`
+    (11 game-link protocols) offline directly from `_retail_/Overwatch.exe`.
+  - Generate clean-room Battle.net RPC descriptors (`bnet/descriptors.pb`), 104319
+    StateScript wire codecs (`data/statescript_codecs_174.json`), and schema-conformant
+    lobby message templates (`data/retail_templates.json`) from local catalogs and schemas.
+  - Verified with an empty `--inputs` directory: `runtime.py build`, `runtime.py check`,
+    97 Python unit tests, 11/11 Rust `bnet_` tests, and full loopback `orpheus_server` boot.
+
 - Build locale-matched player voice and equipped voice metadata from the local
   104319 installation. Preserve line conditions and read durations from local
   audio headers without packaging the recordings. Export the status effects

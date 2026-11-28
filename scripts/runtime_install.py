@@ -78,12 +78,20 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
     data = view / "data"
     core = set(gameplay.XML_TYPES) - {GRAPH, "game_queues_174.json"}
     missing_core = {name for name in core if not (data / name).is_file()}
-    need_queues = not (data / "game_queues_174.json").is_file() and (data / "retail_templates.json").is_file()
+    need_queues = not (data / "game_queues_174.json").is_file()
+    need_resource_keys = not (data / "resource_keys_174.json").is_file()
+    need_schemas = not (data / "schemas_174.json").is_file() or not (data / "game_schemas_174.json").is_file()
 
     def use(file):
         dest = data / file.name
         if not dest.is_file():
             link_input(file, dest)
+
+    if need_schemas:
+        from runtime_pe_schemas import write_pe_schemas
+        pe_schemas = checkpoint(raw / "pe-schemas-v1", lambda out: write_pe_schemas(game, out))
+        for name in ("schemas_174.json", "game_schemas_174.json"):
+            use(pe_schemas / name)
 
     if not all((data / name).is_file() for name in CLIENT_CATALOGS):
         catalogs = checkpoint(raw / "catalogs", lambda out: prepare_catalogs(game, tool, out))
@@ -162,6 +170,22 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         output.write_text(json.dumps(status_scripts(xml / "053"), allow_nan=False), encoding="utf-8")
         use(output)
 
+    if need_resource_keys:
+        def export_090(out):
+            run_data_tool(tool, game, "extract-stu-type", str(out.parent), "090", "--xml")
+            folder = out.parent / "090"
+            if not any(folder.glob("*.xml")):
+                raise ValueError("DataTool returned no 090 XML records")
+            folder.rename(out)
+
+        checkpoint(xml / "090", export_090)
+        from runtime_resource_keys import write_resource_keys
+        rk_dir = checkpoint(
+            raw / "resource-keys-v1",
+            lambda out: write_resource_keys(xml / "090", out / "resource_keys_174.json"),
+        )
+        use(rk_dir / "resource_keys_174.json")
+
     def strings(out):
         out.mkdir()
         run_data_tool(tool, game, "dump-strings", "--json", f"--out={out / 'strings_enUS.json'}", "--language=enUS")
@@ -170,21 +194,34 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
 
     if need_queues:
         checkpoint(xml / "07C", strings)
-    names = missing_core | ({"game_queues_174.json"} if need_queues else set())
-    if names:
+    if missing_core:
         paths = {p.name: p for p in data.iterdir()}
-        for name in (*core, "game_queues_174.json"):
+        for name in core:
             paths.setdefault(name, data / name)
         dependency_names = {"collision_props_174.json", "extracted_heroes.json",
                             "ai_spawners_174.json", "game_heroes_174.json"}
-        if need_queues:
-            dependency_names.add("retail_templates.json")
-        inputs = [data / name for name in dependency_names - names if (data / name).is_file()]
-        stage = hashlib.sha256(",".join(sorted(names)).encode()).hexdigest()[:8]
+        inputs = [data / name for name in dependency_names - missing_core if (data / name).is_file()]
+        stage = hashlib.sha256(",".join(sorted(missing_core)).encode()).hexdigest()[:8]
         output = checkpoint(raw / f"tables-{stage}-{variant(inputs)}", lambda out:
-                            gameplay.prepare_gameplay(xml, owlib, out, paths, names, game=game, maps=selected))
-        for name in names:
+                            gameplay.prepare_gameplay(xml, owlib, out, paths, missing_core, game=game, maps=selected))
+        for name in missing_core:
             use(output / name)
+    if not (data / "retail_templates.json").is_file():
+        from runtime_lobby_templates import write_lobby_templates
+        count = write_lobby_templates(data / "schemas_174.json", data, data / "retail_templates.json")
+        print(f"Synthesized {count} clean-room lobby template messages.", flush=True)
+    if need_queues:
+        paths = {p.name: p for p in data.iterdir()}
+        paths.setdefault("game_queues_174.json", data / "game_queues_174.json")
+        queue_deps = [
+            data / name
+            for name in ("collision_props_174.json", "extracted_heroes.json", "retail_templates.json")
+            if (data / name).is_file()
+        ]
+        q_stage = hashlib.sha256(b"game_queues_174.json").hexdigest()[:8]
+        q_out = checkpoint(raw / f"tables-{q_stage}-{variant(queue_deps)}", lambda out:
+                           gameplay.prepare_gameplay(xml, owlib, out, paths, {"game_queues_174.json"}, game=game, maps=selected))
+        use(q_out / "game_queues_174.json")
 
     args = []
     if need_rules:
@@ -247,4 +284,13 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         output = scratch / GRAPH
         write_bundle(output, graph)
         args.extend(["--game-graphs", output])
+    if not (data / "statescript_codecs_174.json").is_file():
+        from runtime_statescript_codecs import write_statescript_codecs
+        active_graph = (scratch / GRAPH) if (scratch / GRAPH).is_file() else stored
+        count = write_statescript_codecs(
+            data / "statescript_codecs_174.json",
+            graph_bundle=active_graph,
+            owlib_types=owlib / "TankLib/STU/Types",
+        )
+        print(f"Generated StateScript codec table ({count} state classes).", flush=True)
     return args

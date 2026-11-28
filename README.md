@@ -69,18 +69,21 @@ Type `reload` + Enter in the server console at any time to hot-reload your Lua m
 
 ## Prepare a runtime and run the native server
 
-Use your local **1.74.0.0.104319** installation to prepare a private Practice Range pack on Windows. Separately supply the required research tables, protocol descriptors and private signing inputs. The build command lists anything missing and caches completed extraction stages for the next run. The runtime guide lists the prerequisites and inputs. [Runtime data guide](data/README.md)
+Use your own local **1.74.0.0.104319** installation on Windows to generate a complete, verified Practice Range runtime pack in **one command** — no separately prepared external tables, descriptors, or signing keys are required. All client-derived catalogs, PE message schemas, CASC resource keys, StateScript graphs, model attachments/bones, collision caches, rulesets, Battle.net descriptors, StateScript codecs, lobby templates, and a local 64-byte signing key are generated automatically and cached locally (never commit game files or generated packs). See the [Runtime data guide](data/README.md) for prerequisites and optional overrides.
 
 ```powershell
+# 1. Build and verify the runtime pack from your local Overwatch 1.74.0.0.104319 folder
 python scripts/runtime.py build "C:\Games\Overwatch"
+
+# 2. (Optional) Re-check an existing runtime pack at any time
 python scripts/runtime.py check --complete
 ```
 
-To reuse authorized prepared inputs or choose a new output directory, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation. The check reports stock-model coverage and how to rebuild an older pack.
+To reuse existing local overrides/extra maps or choose a custom destination, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation.
 
-For a quick data check without compiling Rust, use `python scripts/runtime.py check --complete --files-only`. The full check uses `ORPHEUS_SERVER_BIN` if set, or builds the server with Cargo on first use. The Windows launcher works with the built-in Windows PowerShell. Extracting the collision index from the game requires PowerShell 7.
+For a quick data check without compiling Rust, use `python scripts/runtime.py check --complete --files-only`. The full check uses `ORPHEUS_SERVER_BIN` if set, or builds the server with Cargo on first use. The Windows launcher works with built-in Windows PowerShell 5.1 and PowerShell 7 (extracting the collision index from the game requires PowerShell 7).
 
-Once the pack passes, the Windows launcher builds the server with the inspector and Lua mod support, opens the 3D viewer at `http://127.0.0.1:3726/` and stores player state under `%LOCALAPPDATA%\ORPHEUS\state`.
+Once the pack passes, the Windows launcher builds the server with the inspector and Lua mod support, opens the 3D viewer at `http://127.0.0.1:3726/`, and stores player state under `%LOCALAPPDATA%\ORPHEUS\state`:
 
 ```powershell
 # Double-click scripts\PLAY_ORPHEUS.cmd, or run:

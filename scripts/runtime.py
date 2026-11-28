@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -155,14 +156,29 @@ def build(game, dest, source, cache):
         data = view / "data"
         mode, tags, anchors, rules, projectiles = graph_status(data / GRAPH)
         raw = raw_cache(cache, game)
-        missing = [name for name in PRIVATE_INPUTS if not (view / name).is_file()]
-        if missing:
-            print("Local inputs still needed for a playable pack:\n  " + "\n  ".join(missing), flush=True)
+        if not (view / "data/lobby_state_blob.key").is_file():
+            (view / "data/lobby_state_blob.key").write_bytes(secrets.token_bytes(64))
+            print("Generated local 64-byte lobby signing key.", flush=True)
+        if not (view / "bnet/descriptors.pb").is_file():
+            from runtime_bnet_descriptors import write_bnet_descriptors
+            write_bnet_descriptors(view / "bnet/descriptors.pb")
+            print("Generated clean-room Battle.net RPC descriptors.", flush=True)
+        need_protocol = any(
+            not (view / name).is_file()
+            for name in (
+                "data/schemas_174.json",
+                "data/game_schemas_174.json",
+                "data/resource_keys_174.json",
+                "data/retail_templates.json",
+                "data/statescript_codecs_174.json",
+            )
+        )
         pack_args = []
         profiles = source / "mode-rulesets.json"
         supplied_rules = profiles.is_file() and (verified is None or "mode-rulesets.json" in verified)
         generate_rules = not rules and not supplied_rules
-        if (generate_rules or not (mode and tags and anchors and projectiles) or not all((data / n).is_file() for n in GENERATED)
+        if (generate_rules or need_protocol or not (mode and tags and anchors and projectiles)
+                or not all((data / n).is_file() for n in GENERATED)
                 or any(not (view / name).is_file() for name in PRACTICE_COLLISION)
                 or not (data / "game_queues_174.json").is_file()):
             from runtime_install import generate
@@ -173,9 +189,6 @@ def build(game, dest, source, cache):
             if not profiles.is_file():
                 raise ValueError("Expected a generated mode-rulesets.json for Practice Range")
             pack_args.extend(["--mode-rulesets", profiles])
-        if missing:
-            raise ValueError(f"Client-derived data is cached at {raw}. Supply the following local inputs "
-                             f"in {source} and rerun:\n  " + "\n  ".join(missing))
         pack = staging / "runtime"
         native("prepare_server_runtime", "--source", view, "--destination", pack, *pack_args)
         check(pack, require_gameplay_data=True)

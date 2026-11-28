@@ -1,27 +1,36 @@
 # Runtime Data Guide (`rust`)
 
-Public Rust tests use synthetic fixtures. The native server and its prepared-runtime tests use a private build **1.74.0.0.104319** pack with data derived from your own game installation and additional authorized local inputs.
+Public Rust tests use synthetic fixtures. The native server and its prepared-runtime tests use a private build **1.74.0.0.104319** pack generated locally from your own Overwatch 1.74 installation — **no separately downloaded protocol tables, descriptors, templates, or signing keys are required**.
 
-## Build a Practice Range pack
+## Build a Practice Range pack (Zero External Inputs)
 
-Run the preparation command from the repository root on Windows. Supply the directory containing the retail `.build.info` and game data.
+Run a single command from the repository root on Windows. Supply the directory containing the retail `.build.info` and `data/casc/data`:
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
 python scripts/runtime.py check --complete
 ```
 
-For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK and the x64 .NET 6 runtime. The first build fetches pinned open-source tools and their build dependencies. The Python extractor uses the tested `cedec602` revision of the `python` branch for repeatable output. A full native check builds the server with Cargo on first use, or uses the binary named by `ORPHEUS_SERVER_BIN`. For a file and manifest check alone, pass `--files-only`. It reads game data locally. [Extraction tool setup](../scripts/runtime_tools.py)
+For extraction, install **Git**, **Python 3.12+**, **Rust (`>= 1.85.0`)**, **PowerShell 7** (used when extracting the collision index; launching works with built-in PowerShell 5.1 too), the **x64 .NET 8 SDK**, and the **x64 .NET 6 runtime** (used by DataTool). The first build fetches pinned open-source tools and their build dependencies (using the tested `cedec602` revision of the `python` branch for repeatable output) and caches every extraction stage locally. A full native check builds the server with Cargo on first use, or uses the binary named by `ORPHEUS_SERVER_BIN`. For a file and manifest check alone, pass `--files-only`. [Extraction tool setup](../scripts/runtime_tools.py)
 
 | Default Windows directory | Purpose |
 | --- | --- |
-| `%LOCALAPPDATA%\ORPHEUS\inputs-104319` | Separately prepared inputs with their normal subdirectories, including protocol schemas, descriptors and private signing inputs |
-| `%LOCALAPPDATA%\ORPHEUS\build-cache` | Public extraction tools and reusable private exports |
-| `%LOCALAPPDATA%\ORPHEUS\runtime-104319` | Finished pack, published after verification |
+| `%LOCALAPPDATA%\ORPHEUS\inputs-104319` | Optional local overrides or additional maps/voice catalogs (not required for a fresh Practice Range build) |
+| `%LOCALAPPDATA%\ORPHEUS\build-cache` | Public extraction tools and reusable per-stage build cache |
+| `%LOCALAPPDATA%\ORPHEUS\runtime-104319` | Finished pack, published atomically after verification |
 
-Pass `--inputs <directory>` to reuse authorized inputs, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. A complete input set skips the DataTool extraction stage. An existing destination is checked in place. The check reports missing stock attachment positions or bone transforms by body ID. A legacy pack can still pass server preflight. To fill its model data, pass that pack as `--inputs` and choose a new `--output`. The build command requires all 32 default models and the entity definitions referenced by persistent projectile volleys. It reads the component maps and ordered StateScript roots from the local installation. The private pack stores those definitions separately from player bodies. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
+Pass `--inputs <directory>` to reuse existing overrides or additional maps, `--output <new-directory>` to choose a destination, or `--cache <directory>` to relocate the cache. An existing destination is checked in place. The check reports missing stock attachment positions or bone transforms by body ID. A legacy pack can still pass server preflight. To fill its model data, pass that pack as `--inputs` and choose a new `--output`. The build command requires all 32 default models and the entity definitions referenced by persistent projectile volleys. Keep the installation, inputs, cache and destination in separate directories outside the checkout.
 
-The extraction path targets Practice Range and the 32 default hero models. For each stock skin the builder requires both hardpoint positions and reference-pose bone transforms. It reports the specific body if either inventory is missing. Supply existing authorized inputs for additional maps. Keep exports, game files and the finished pack private. [Model anchor exporter](../scripts/tools/model_anchors/README.md)
+### Automatic generation on a fresh machine
+
+When `--inputs` is empty or absent, `scripts/runtime.py build` automatically produces every required runtime file locally:
+
+1. **PE Message Schemas (`data/schemas_174.json`, `data/game_schemas_174.json`)**: extracted offline from `_retail_/Overwatch.exe` (`scripts/runtime_pe_schemas.py`).
+2. **CASC Resource Keys (`data/resource_keys_174.json`)**: extracted from local `090` (`STUResourceKey`) assets (`scripts/runtime_resource_keys.py`).
+3. **Catalogs, Collision, Graphs, Rulesets & Stock Models**: hero/item/map catalogs, Practice Range movement & ray collision caches (`collision/0688.col`, `collision/0688.rays.col`), StateScript graphs with persistent projectile definitions and `0C5`/`003`/`01B` metadata, Practice Range `0C6` rulesets, and 32 stock hero reference skeletons & hardpoints (`scripts/tools/model_anchors/README.md`).
+4. **Clean-Room Protocol Tables & Signing Key**: Battle.net RPC descriptors (`bnet/descriptors.pb`), 104319 StateScript wire codecs (`data/statescript_codecs_174.json`), schema-conformant lobby message templates (`data/retail_templates.json`), and a fresh local 64-byte `data/lobby_state_blob.key`.
+
+Any matching file you place in `--inputs` overrides the corresponding auto-generated output. Keep exports, game files and the finished pack private.
 
 An older pack with only hardpoint positions still works with `python scripts/runtime.py check <pack>`. A bone lookup in that pack returns unknown. To add the skeletons, build into a new directory using the older pack as input.
 
@@ -29,20 +38,9 @@ An older pack with only hardpoint positions still works with `python scripts/run
 python scripts/runtime.py build "C:\Games\Overwatch" --inputs "D:\private\old-pack" --output "D:\private\pack-with-bones"
 ```
 
-A local build from the zhCN 104319 installation and the seven supplemental inputs produced 613 graphs. Seven landed projectile definitions reference 11 graphs, including six roots and one additional child omitted by the earlier 606-graph build. The server loaded the resulting pack.
+Verification checks the stock graph loader and reports unresolved graph references. The tested 104319 installation and previous prepared packs both lack `0F9C` (it is absent from retail 104319 CASC). A shared script (`0x01C7`) references it from a message handler; the runtime starts cleanly without this graph.
 
-Verification checks the stock graph loader and reports unresolved graph references. The tested 104319 installation and the previous prepared pack both lack `0F9C`. A shared script references it from a message handler. The runtime can start without this graph; the handler's behavior remains unverified.
-
-If preparation reports missing inputs, supply the listed files in the inputs directory and rerun the same command. Protocol schemas, templates, StateScript codecs, Battle.net descriptors and the private content and signing inputs require separate local preparation. The installer derives Practice Range rules from the local mode, hero and schema records. A prepared graph or a supplied `mode-rulesets.json` can provide existing profiles. The provenance tables below list the input filenames.
-
-On a supported server platform, use `python scripts/runtime.py check` for the default pack or `python scripts/runtime.py check <pack>` for a custom output with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. Add `--complete` to require the same stock models, projectile definitions and collision caches as a fresh build. A missing item returns a nonzero exit code with its name. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
-
-On a build using only the seven supplemental files and the retail installation, the
-server loaded 613 graphs, 32 tagged bodies, 1,309 stock attachments, 9,140 bone
-transforms and 985 Practice Range rules. The build and verification commands check
-both the movement cache (`collision/0688.col`) and the ray cache (`collision/0688.rays.col`). This pack started
-the native server on loopback. An enriched source pack can include other maps and
-optional voice, emote and research data.
+On a supported server platform, use `python scripts/runtime.py check` for the default pack or `python scripts/runtime.py check <pack>` for a custom output with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight (`--check-runtime-graphs`). Add `--complete` to require the same stock models, projectile definitions, localized voice catalogs, status scripts, and collision caches as a fresh build, or `--files-only` to skip the native build and preflight. A missing item returns a nonzero exit code with its name. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
 
 ---
 

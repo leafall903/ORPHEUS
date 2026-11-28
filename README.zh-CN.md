@@ -69,18 +69,21 @@ return {
 
 ## 准备运行包并启动原生服务端
 
-在 Windows 上，用自己合法持有的 **1.74.0.0.104319** 安装目录生成本地靶场运行包。研究数据表、协议描述文件和私有签名输入需要另行在本地准备。构建命令会列出缺项，已完成的提取步骤会保留在缓存中，补齐后可以重跑。依赖和输入清单见[运行包指南](data/README.md)。
+在 Windows 上，只需指向你自己合法持有的 **1.74.0.0.104319** 游戏安装目录，**一条命令即可从零生成并校验完整的靶场运行包**——无需任何额外下载的外部协议表、抓包模板或私钥。脚本会自动从本地客户端离线提取协议 Schema、CASC 资源密钥（`090`）、英雄/地图目录、碰撞缓存、StateScript 图与模型骨骼挂点、规则集，并自动生成 Battle.net RPC 描述集、StateScript 编码表、净室大厅模板和本地 64 字节签名密钥，且每一步都有断点缓存（严禁提交游戏文件或生成的运行包）。环境依赖和进阶选项见[运行包指南](data/README.md)。
 
 ```powershell
+# 1. 从本地守望先锋 1.74.0.0.104319 目录一键构建并校验运行包
 python scripts/runtime.py build "C:\Games\Overwatch"
+
+# 2. （可选）随时复查已有运行包的完整性
 python scripts/runtime.py check --complete
 ```
 
-在构建命令后追加 `--inputs <目录>` 可复用已有的授权输入，追加 `--output <目录>` 可指定新的输出位置。已有运行包可以在受支持的服务端平台上校验，无需安装游戏。校验会列出缺少骨骼或挂点数据的模型，并给出补生成命令。
+如需复用已有运行包里的额外地图/自定义数据或指定输出目录，可在构建命令后追加 `--inputs <目录>` 或 `--output <目录>`。已有运行包可以在受支持的服务端平台上直接校验，无需安装游戏。
 
-快速核对文件可以运行 `python scripts/runtime.py check --complete --files-only`。完整校验使用 `ORPHEUS_SERVER_BIN` 指定的服务端，未指定时由 Cargo 在首次运行时编译。启动脚本支持 Windows 自带的 PowerShell，从游戏中提取碰撞索引时需要 PowerShell 7。
+快速核对文件可以运行 `python scripts/runtime.py check --complete --files-only`。完整校验使用 `ORPHEUS_SERVER_BIN` 指定的服务端，未指定时由 Cargo 在首次运行时编译。启动脚本支持 Windows 自带的 PowerShell 5.1 与 PowerShell 7，从游戏中提取碰撞索引时需要 PowerShell 7。
 
-运行包校验通过后，Windows 启动脚本会编译带调试器和 Lua Mod 支持的服务端，启动 `http://127.0.0.1:3726/` 上的 3D 查看器，并将玩家存档保存在 `%LOCALAPPDATA%\ORPHEUS\state`。
+运行包校验通过后，Windows 启动脚本会自动编译带调试器和 Lua Mod 支持的服务端，开启 `http://127.0.0.1:3726/` 上的 3D 查看器，并将玩家存档保存在 `%LOCALAPPDATA%\ORPHEUS\state`：
 
 ```powershell
 # 双击 scripts\PLAY_ORPHEUS.cmd，或在终端运行：
