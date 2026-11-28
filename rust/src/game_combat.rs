@@ -4730,13 +4730,12 @@ impl RoomSimulation {
                     bot.died(tick);
                     enemy.scripts.clear_pending_script_motion();
                 }
-                if let Some(health) = vitals.changed_component() {
+                if let Some(health) = vitals.take_cumulative_update() {
                     self.scripted_health.push(EntityUpdate {
                         entity: bot.entity,
                         operation: Some(Operation::Update(vec![health])),
                         ..Default::default()
                     });
-                    vitals.clear_changed();
                 }
                 if enemy.fault.is_none() {
                     if let Err(error) =
@@ -5272,7 +5271,7 @@ impl RoomSimulation {
 }
 
 fn bot_health_update(state: &mut BotState, killed: bool) -> EntityUpdate {
-    let mut components = vec![state.vitals.component()];
+    let mut components = vec![state.vitals.cumulative_component()];
     state.vitals.clear_changed();
     if killed {
         if let Ok(filter) = crate::match_scene::bot_filter_component(state.bot.spawn.team, true) {

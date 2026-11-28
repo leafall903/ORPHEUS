@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "npc-cumulative-health.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "The NPC sends a snapshot clearing two retired pools. If that record is replaced while absent or unacknowledged, the next authored or damage-driven update still contains the same clears."
+  },
+  "input": {
+    "spawn_tick": 1000,
+    "shield_identifiers": [
+      "0x0D80000000000121",
+      "0x0D80000000000122"
+    ],
+    "shield_amounts": [
+      30,
+      40
+    ],
+    "ordinary_bonus_health": 20,
+    "drain": 5,
+    "follow_up_damage": 2
+  }
+}

@@ -1517,6 +1517,170 @@ fn scene_enemy_creation_is_atomic_and_retains_late_join_health_and_skin() {
 }
 
 #[test]
+fn npc_health_updates_keep_cleared_pool_slots_in_later_snapshots() {
+    use crate::{
+        game_clock::TICK_PERIOD,
+        mover_settings::MoverCatalog,
+        script_enemy::{EnemySpawn, fixture as enemy_fixture},
+        script_runtime::{HEALTH_POOL, SHIELDS_POOL},
+        script_wire::Variables,
+        vitals::PoolKind,
+        world::{ComponentValue, POOLS, pool},
+    };
+
+    #[derive(serde::Deserialize)]
+    struct Input {
+        spawn_tick: u32,
+        shield_identifiers: [String; 2],
+        shield_amounts: [f64; 2],
+        ordinary_bonus_health: f64,
+        drain: f64,
+        follow_up_damage: f64,
+    }
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/behavior/npc-cumulative-health-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+    let [first, second] = case
+        .shield_identifiers
+        .map(|identifier| crate::accounts::parse_guid(&identifier).unwrap());
+    let [first_amount, second_amount] = case.shield_amounts;
+    let first_slot = SHIELDS_POOL * POOLS + 1;
+    let second_slot = first_slot + 1;
+    let ordinary_slot = HEALTH_POOL * POOLS + 1;
+    let clear = Some(ComponentValue::Blob20(pool(
+        0,
+        SHIELDS_POOL as u32,
+        0.0,
+        0.0,
+    )));
+
+    let mut room = RoomSimulation::new(Vec::new()).unwrap();
+    let (graphs, codecs, definition, request) = enemy_fixture(false);
+    let npc = room
+        .create_enemy(EnemySpawn {
+            graphs,
+            codecs,
+            definition: &definition,
+            request: &request,
+            mode: 0x0230_0000_0000_019f,
+            mode_variables: Arc::new(Variables::new()),
+            tick: case.spawn_tick,
+            walk: crate::game_bots::BotWalk::default(),
+            gate: None,
+        })
+        .unwrap();
+    room.activate_combat();
+    let ground = fixture_ground();
+    let movers = MoverCatalog::default();
+    let queries = BotQueries::new(false, &movers, &ground, None);
+    let finish = |room: &mut RoomSimulation, offset| {
+        room.finish_tick(
+            &queries,
+            case.spawn_tick + offset,
+            FIXTURE_CONTEXT.now + TICK_PERIOD * offset,
+        )
+        .unwrap();
+    };
+    let health_update = |room: &mut RoomSimulation| {
+        let [update]: [EntityUpdate; 1] = room
+            .take_scripted_health()
+            .try_into()
+            .expect("one NPC health update");
+        assert_eq!(update.entity, npc);
+        let Some(Operation::Update(components)) = update.operation else {
+            panic!("expected NPC health update");
+        };
+        components.into_iter().next().expect("NPC health component")
+    };
+
+    let vitals = &mut room.state_mut(npc).unwrap().unwrap().vitals;
+    let first_grant = vitals
+        .add_temporary_shield(first, first_amount, false)
+        .unwrap();
+    vitals
+        .add_temporary_shield(second, second_amount, false)
+        .unwrap();
+    let bonus = vitals
+        .add_pool(
+            PoolKind::Health,
+            case.ordinary_bonus_health,
+            case.ordinary_bonus_health,
+        )
+        .unwrap();
+    finish(&mut room, 1);
+    let initial = health_update(&mut room);
+    assert_eq!(
+        initial.fields[first_slot],
+        Some(ComponentValue::Blob20(pool(
+            first as u32,
+            SHIELDS_POOL as u32,
+            first_amount as f32,
+            first_amount as f32,
+        )))
+    );
+    assert!(initial.fields[ordinary_slot].is_some());
+
+    let vitals = &mut room.state_mut(npc).unwrap().unwrap().vitals;
+    assert_eq!(vitals.remove_pool(first_grant), Some(first_amount));
+    assert_eq!(vitals.remove_pool(bonus), Some(case.ordinary_bonus_health));
+    finish(&mut room, 2);
+    let lost = health_update(&mut room);
+    assert_eq!(lost.fields[first_slot], clear);
+    assert_eq!(
+        lost.fields[ordinary_slot],
+        Some(ComponentValue::Blob20([0; 20]))
+    );
+
+    // The receiver can miss the first clear. Only the second shield changes
+    // now, but this snapshot must independently clear both retired slots.
+    let vitals = &mut room.state_mut(npc).unwrap().unwrap().vitals;
+    assert_eq!(
+        vitals.drain_temporary_shield(second, case.drain),
+        second_amount - case.drain
+    );
+    finish(&mut room, 3);
+    let replacement = health_update(&mut room);
+    assert_eq!(replacement.fields[first_slot], clear);
+    assert_eq!(
+        replacement.fields[ordinary_slot],
+        lost.fields[ordinary_slot]
+    );
+    assert_eq!(
+        replacement.fields[second_slot],
+        Some(ComponentValue::Blob20(pool(
+            second as u32,
+            SHIELDS_POOL as u32,
+            second_amount as f32,
+            (second_amount - case.drain) as f32,
+        )))
+    );
+
+    let context = ShotContext {
+        tick: case.spawn_tick + 4,
+        now: FIXTURE_CONTEXT.now + TICK_PERIOD * 4,
+        ..FIXTURE_CONTEXT
+    };
+    room.apply_bot_impact(
+        1,
+        context.tick,
+        context,
+        &fixture_impact(npc, case.follow_up_damage),
+    )
+    .unwrap()
+    .unwrap();
+    let from_damage = health_update(&mut room);
+    assert_eq!(from_damage.fields[first_slot], clear);
+    assert_eq!(
+        from_damage.fields[ordinary_slot],
+        lost.fields[ordinary_slot]
+    );
+}
+
+#[test]
 #[ignore = "requires the external 104319 Junkenstein NPC catalog and graph bundle"]
 fn authored_zomnic_starts_both_components_before_room_publication() {
     use crate::{

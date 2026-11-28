@@ -592,11 +592,12 @@ impl RoomSimulation {
 
     fn retire_faulted_player_script(&mut self, id: BodyId) {
         if self.clear_player_runtime(id) {
-            if let Some(state) = self.player_body_mut(id) {
-                let owner = state.owner;
-                let health = state.take_health_update();
-                self.player_events
-                    .push(PlayerBodyEvent::ScriptHalted { owner, id, health });
+            if let Some(state) = self.player_body(id) {
+                self.player_events.push(PlayerBodyEvent::ScriptHalted {
+                    owner: state.owner,
+                    id,
+                    health: None,
+                });
             }
         }
     }
@@ -645,7 +646,23 @@ impl RoomSimulation {
     }
 
     pub(crate) fn take_player_events(&mut self) -> Vec<PlayerBodyEvent> {
-        std::mem::take(&mut self.player_events)
+        let mut events = std::mem::take(&mut self.player_events);
+        events.retain_mut(|event| {
+            let PlayerBodyEvent::ScriptHalted { id, health, .. } = event else {
+                return true;
+            };
+            let Some(state) = self
+                .player_body_mut(*id)
+                .filter(|state| state.runtime.is_none())
+            else {
+                return false;
+            };
+            // Combat can consume and publish a newer cumulative health update
+            // after the halt. Collect only changes still pending at the drain.
+            *health = state.take_health_update();
+            true
+        });
+        events
     }
 
     pub(crate) fn take_player_deaths(&mut self) -> Vec<PlayerDeath> {

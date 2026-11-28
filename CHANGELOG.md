@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Collect a halted player's remaining health changes at the room event drain
+  so later combat cannot be overwritten by the halt's older snapshot.
+- Publish cumulative NPC health records so a new shield update still clears
+  slots from earlier unacknowledged records.
+
 - Keep living stunned players' steering and action inputs blocked across
   received and recovered commands. Apply the initial steering stop before
   external impulses, then correct suppressed movement for the owner.

@@ -109,7 +109,7 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
         ..Default::default()
     };
 
-    for callback in input["callbacks"].as_array().unwrap() {
+    for scenario in input["scenarios"].as_array().unwrap() {
         let mut runtime = factory.start(spawn).unwrap();
         let older = update(runtime.vitals().unwrap().cumulative_component());
         runtime.receive_damage(
@@ -153,7 +153,7 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
             tags: [None; 3],
             filter_flags: None,
         };
-        match callback.as_str().unwrap() {
+        match scenario["callback"].as_str().unwrap() {
             "message" => assert!(!room.deliver_player_defender_message(
                 id,
                 None,
@@ -171,6 +171,23 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
             })),
             name => panic!("unexpected fixture callback {name}"),
         }
+        let room_health = scenario["post_halt_damage"].as_f64().map(|amount| {
+            let (_, damage, health) = room
+                .damage_player_body_by_wire(
+                    id,
+                    amount,
+                    crate::vitals::Death {
+                        time: 0.0,
+                        frame: FIRST_TICK,
+                        killer: source.entity,
+                    },
+                    None,
+                )
+                .unwrap();
+            assert_eq!(damage.dealt, amount);
+            assert!(!damage.killed);
+            health.expect("settled damage after the runtime stop needs a health update")
+        });
         let events = room.take_player_events();
         assert_eq!(
             events.len() as u64,
@@ -180,11 +197,11 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
             PlayerBodyEvent::ScriptHalted {
                 owner: affected_owner,
                 id: affected_id,
-                health: Some(health),
+                health,
             },
         ] = events.as_slice()
         else {
-            panic!("expected one generation-bound script stop with health");
+            panic!("expected one generation-bound script stop");
         };
         assert_eq!((*affected_owner, *affected_id), (OWNER, id));
         let state = room.player_body_mut(id).unwrap();
@@ -192,9 +209,15 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
         let vitals = state.vitals().unwrap();
         assert_eq!(
             vitals.total(),
-            expected["health_after_fault"].as_f64().unwrap()
+            scenario["health_after_damage"]
+                .as_f64()
+                .unwrap_or_else(|| expected["health_after_fault"].as_f64().unwrap())
         );
-        assert_eq!(&vitals.cumulative_component(), health);
+        let current_health = vitals.cumulative_component();
+        assert_eq!(
+            health.as_ref(),
+            room_health.is_none().then_some(&current_health)
+        );
         state
             .mover
             .step(
@@ -231,22 +254,26 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
             generation: id.generation - 1,
             ..id
         };
-        owner.player_script_halted(OWNER, stale, Some(health.clone()));
-        observer.player_script_halted(OWNER, stale, Some(health.clone()));
+        owner.player_script_halted(OWNER, stale, Some(current_health.clone()));
+        observer.player_script_halted(OWNER, stale, Some(current_health.clone()));
         assert!(owner.body_script.is_some());
         assert!(!observer.health_pending(id.entity));
         assert!(observer.scene_views.contains_key(&id.entity));
 
         for delivery in [&mut owner, &mut observer] {
+            // The room queues settled updates before the halt notification.
             delivery.queue_health(older.clone());
-            delivery.player_script_halted(OWNER, id, Some(health.clone()));
+            if let Some(room_health) = &room_health {
+                delivery.queue_health(room_health.clone());
+            }
+            delivery.player_script_halted(OWNER, id, health.clone());
         }
         assert!(owner.body_script.is_none());
         assert!(!observer.scene_views.contains_key(&id.entity));
         assert!(owner.health_pending(id.entity));
         assert!(owner.ready().is_empty()); // create ACK is still pending
         owner.created.insert(id.entity);
-        let final_update = update(health.clone());
+        let final_update = update(current_health);
         assert_ne!(older, final_update);
         for delivery in [&owner, &observer] {
             let ready = delivery.ready();
