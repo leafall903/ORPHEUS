@@ -716,6 +716,7 @@ impl Mover {
         self.scripted_motion_frame = None;
         self.owner_move_result = None;
         let mut scripted_motion_changed = false;
+        let mut swept_actor_contact = false;
         if self
             .scripted_motion
             .is_some_and(|(frame, _)| frame <= command.frame)
@@ -726,7 +727,8 @@ impl Mover {
                 let before = self.pose.position;
                 match motion {
                     ScriptedMotion::Sweep(displacement) => {
-                        self.apply_swept_displacement(displacement, dt, blockers)?;
+                        swept_actor_contact =
+                            self.apply_swept_displacement(displacement, dt, blockers)?;
                     }
                     ScriptedMotion::Relocate(relocation) => {
                         self.apply_relocation(relocation, blockers)?;
@@ -939,7 +941,9 @@ impl Mover {
         self.pose.spring_speed = f64::from(self.posture.spring_speed());
         self.pose.fall = self.posture.fall;
         self.scripted_motion_frame = scripted_motion_changed.then_some(command.frame);
-        self.actor_contact = actor_contact || standing_on_actor;
+        // A clipped sweep can leave the snapped pose unchanged while still
+        // needing to correct the owner's prediction of that displacement.
+        self.actor_contact = swept_actor_contact || actor_contact || standing_on_actor;
         Ok(())
     }
 
@@ -948,12 +952,13 @@ impl Mover {
         displacement: SweptDisplacement,
         dt: f64,
         actor_capsules: &[CapsulePose],
-    ) -> Result<(), HullContactError> {
+    ) -> Result<bool, HullContactError> {
         let start = self.body.position();
         let mut staged = self.body.fresh_at(start);
-        let end = staged
-            .move_capsule_against(displacement.delta(), dt as f32, actor_capsules)?
-            .position;
+        let movement =
+            staged.move_capsule_against(displacement.delta(), dt as f32, actor_capsules)?;
+        let actor_contact = movement.actor_contact;
+        let end = movement.position;
         let feet = std::array::from_fn(|axis| {
             self.pose.position[axis] + f64::from(end[axis]) - f64::from(start[axis])
         })
@@ -961,7 +966,7 @@ impl Mover {
         staged.teleport(self.capsule_origin(feet));
         self.body = staged;
         self.pose.position = feet;
-        Ok(())
+        Ok(actor_contact)
     }
 
     fn apply_relocation(

@@ -98,6 +98,8 @@ The [respawn visibility fixture](../fixtures/behavior/respawn-weapon-visibility-
 
 The [owner actor contact fixture](../fixtures/behavior/owner-actor-contact-v1.json) checks full capsule separation against a delivered hostile body. A player runtime with a movement projection receives frame-aligned owner corrections on every eligible send. A body without that projection can still receive corrections for a resolved contact or server-directed move.
 
+The [blocked sweep correction fixture](../fixtures/behavior/owner-blocked-sweep-correction-v1.json) checks owner correction when a hostile capsule clips a scripted sweep and the resulting position rounds back to its starting coordinate. It exercises the outbound movement record with and without a body script.
+
 The Rust-only [stock bot script isolation fixture](../fixtures/behavior/stock-bot-script-isolation-v1.json) checks that a zeroed owner selector is valid and that an unsupported public selector suspends only the affected bot's script projection. Both physical bots remain in the room. The [mode presentation variables fixture](../fixtures/behavior/mode-presentation-variables-v1.json) checks mode selection and preservation of typed values in the mode bootstrap.
 
 The prepared Practice Range return probe applies a room impulse and steps the real map collision and stock body VM. It verifies that the bot actually moves away, requests a return, and settles near its starting position before ending that request.

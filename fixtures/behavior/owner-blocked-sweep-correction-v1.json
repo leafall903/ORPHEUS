@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "owner-blocked-sweep-correction.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "An acknowledged hostile capsule starts just beyond contact. The owner's authored sweep reaches contact within half of the outgoing position quantum. The owner receives a correction for that pose even though its published position does not move."
+  },
+  "input": {
+    "start_frame": 100,
+    "capsule_radius": 0.49985,
+    "blocker_x": 1,
+    "displacement_x": 2
+  }
+}

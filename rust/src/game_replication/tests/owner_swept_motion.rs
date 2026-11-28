@@ -823,6 +823,148 @@ fn player_displacement_uses_room_actor_contacts_for_the_authoritative_pose() {
 }
 
 #[test]
+fn a_fully_clipped_owner_sweep_sends_a_correction_without_moving() {
+    use crate::{contact_body::CharacterBody, script_init::SweptDisplacement};
+
+    #[derive(serde::Deserialize)]
+    struct Input {
+        start_frame: u32,
+        capsule_radius: f64,
+        blocker_x: f64,
+        displacement_x: f64,
+    }
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/owner-blocked-sweep-correction-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+    let due = case.start_frame + 1;
+    let displacement = SweptDisplacement::new([case.displacement_x, 0.0, 0.0]).unwrap();
+    let card = PlayerCard::default();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &card,
+    };
+    let geometry = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+    let settings = MoverSettings {
+        gravity_scale: 0.0,
+        stand_radius: case.capsule_radius,
+        ..MoverSettings::default()
+    };
+    let mover = |position| Mover::new(settings, Arc::clone(&geometry), position, 0, 0x18).unwrap();
+
+    // Start just clear of the blocker, with no neutral contact. The sweep
+    // reaches contact within the same position quantum.
+    let start = mover([0.0; 3]).contact_capsule();
+    let blocker = mover([case.blocker_x, 0.0, 0.0]).contact_capsule();
+    let mut body = CharacterBody::new(geometry.clone(), start, 0x18);
+    let neutral = body
+        .move_capsule_against([0.0; 3], 0.016, &[blocker])
+        .unwrap();
+    assert!(!neutral.actor_contact);
+    assert_eq!(neutral.position, start.position);
+    let clipped = body
+        .move_capsule_against(displacement.delta(), 0.016, &[blocker])
+        .unwrap();
+    assert!(clipped.actor_contact);
+    assert!(clipped.position[0] > start.position[0]);
+    assert_eq!(
+        crate::mover_posture::snap(f64::from(clipped.position[0])),
+        0.0
+    );
+
+    for scripted in [true, false] {
+        for (requested, delivered, moved, corrected) in [
+            (false, true, false, false),
+            (true, true, false, true),
+            (true, false, true, true),
+        ] {
+            let mut scene = PreparedScene::fixture_for_bots(Vec::new());
+            let mut world = WorldDelivery::new(OWNER);
+            let owner = avatar(1, 1);
+            let hostile = avatar(2, 1);
+            world.started = Some(case.start_frame);
+            world.input.processed = world.started;
+            let room = scene.simulation_mut();
+            activate_script_without_movement_projection(&mut world, room, owner, 7, Arc::default());
+            if !scripted {
+                world.cancel_body_script(Some(room));
+            }
+            room.player_body_mut(owner).unwrap().mover = mover([0.0; 3]);
+            room.spawn_player_body(PlayerBodyState::new(
+                hostile,
+                OWNER + 0x100,
+                1,
+                1,
+                7,
+                mover([case.blocker_x, 0.0, 0.0]),
+                None,
+                case.start_frame,
+                None,
+            ))
+            .unwrap();
+            room.enable_movement_contacts(false, Arc::default());
+            room.prepare_peer_movement_frame(due).unwrap();
+            world.acknowledge(
+                outcome(
+                    Arc::new(record(owner.entity, Delivery::CreateBody(owner))),
+                    true,
+                ),
+                Duration::ZERO,
+            );
+            remote_contact_delivery(hostile, &mut world, delivered);
+            assert_eq!(world.actor_contact_ready(hostile.entity), delivered);
+
+            if requested {
+                assert!(
+                    room.player_body_mut(owner)
+                        .unwrap()
+                        .mover
+                        .queue_swept_displacement(due, displacement)
+                );
+            }
+            world.queue_commands(
+                due,
+                &[Command {
+                    frame: due,
+                    ..Command::default()
+                }],
+            );
+            assert_eq!(
+                world
+                    .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+                    .unwrap(),
+                (1, false)
+            );
+            let authoritative = &scene.simulation().player_body(owner).unwrap().mover;
+            assert_eq!(authoritative.pose().frame, Some(due));
+            assert_eq!(
+                authoritative.pose().position[0],
+                if moved { case.displacement_x } else { 0.0 }
+            );
+            assert_eq!(authoritative.scripted_motion_at(due), moved);
+            let (packet, sent) = transmit(
+                &mut world,
+                Some(scene.simulation_mut()),
+                &mut GameEgress::default(),
+                due,
+                0,
+            );
+            assert_eq!(read_ack(&packet), due);
+            assert_eq!(
+                sent.records.contains(&RecordSource::Movement(0)),
+                corrected,
+                "scripted={scripted} requested={requested} delivered={delivered}"
+            );
+        }
+    }
+}
+
+#[test]
 fn swept_owner_correction_uses_the_applied_pose_and_outlives_a_script_fault() {
     use crate::script_init::{Relocation, ScriptedMotion, SweptDisplacement};
 

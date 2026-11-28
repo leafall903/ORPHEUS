@@ -4,6 +4,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Send an owner movement correction when a scripted sweep is clipped by an
+  actor even if the resulting position quantizes back to its starting point.
+
 - Resolve soft player ally separation from the resulting capsule of each
   simulated input pose before recording its correction. The push scales with
   the pose duration and works without an attached owner script.
