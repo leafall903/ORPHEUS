@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "cross-entity-script-scope",
+  "receiver": 81,
+  "remote_caller": 82,
+  "local_instance": 1,
+  "graph": 73,
+  "replacement_policy": 3,
+  "initial_value": 80,
+  "next_value": 96
+}

@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Resolve script instance scope against the calling component. Cross-entity
+  calls now create or replace projected instances in the receiving component,
+  even when a server-only instance shares the caller's ID.
+- Queue room script broadcasts as a single batch in recipient ID order. When
+  the batch exceeds available capacity, the outbox keeps its existing work
+  intact. Synthetic fixtures cover both cases.
+
 - Give each temporary shield registration its own release handle. A shared
   nonstacking balance is cleared only when its final holder exits.
 

@@ -1276,6 +1276,80 @@ fn authored_spawner_filters_dead_and_removed_bodies_in_order() {
 }
 
 #[test]
+fn remote_play_script_cannot_replace_an_unrelated_local_scope() {
+    let fixture: Json = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../fixtures/behavior/cross-entity-script-scope-v1.json"
+    )))
+    .unwrap();
+    let number = |field: &str| fixture[field].as_u64().unwrap();
+    let receiver = u32::try_from(number("receiver")).unwrap();
+    let remote = u32::try_from(number("remote_caller")).unwrap();
+    let graph_id = u32::try_from(number("graph")).unwrap();
+    let local_id = u16::try_from(number("local_instance")).unwrap();
+    let initial = Value::Integer(fixture["initial_value"].as_i64().unwrap());
+    let next = Value::Integer(fixture["next_value"].as_i64().unwrap());
+
+    let mut component = Component::start(
+        Arc::new(store(vec![graph(graph_id, vec![], json!([]), json!([]))])),
+        receiver,
+        Variables::new(),
+        vec![],
+        0,
+        &mut EmptyWorld,
+        MAX_INIT_WORK,
+    )
+    .unwrap();
+    component
+        .run(&mut EmptyWorld, |vm| {
+            assert!(vm.create(
+                local_id,
+                graph_id,
+                None,
+                Variables::from([(7, initial.clone())]),
+                Startup::Ordinary,
+                types::InstanceScope::ServerOnly,
+            )?);
+            vm.run()
+        })
+        .unwrap();
+
+    let request = PlayScript {
+        policy: u8::try_from(number("replacement_policy")).unwrap(),
+        graph: graph_id,
+        source: remote,
+        auto_retire: false,
+        parameters: vec![],
+        overrides: vec![(0x0d80_0000_0000_0007, next.clone())],
+    };
+    component
+        .receive_play_script(
+            Site {
+                entity: remote,
+                instance: local_id,
+                graph: 31,
+                node: None,
+            },
+            &request,
+            &mut EmptyWorld,
+        )
+        .unwrap();
+
+    let snapshot = component.snapshot().unwrap();
+    assert!(snapshot.initialization_complete());
+    let local = &snapshot.instances[&local_id];
+    assert!(local.is_server_only());
+    assert_eq!(local.variables[&7], initial);
+    assert_eq!(snapshot.instances.len(), 2);
+    let projected = snapshot
+        .instances
+        .values()
+        .find(|instance| !instance.is_server_only())
+        .unwrap();
+    assert_eq!(projected.variables[&7], next);
+}
+
+#[test]
 fn played_schema_queues_defaults_before_overrides_and_respects_instance_policy() {
     let mut callee = graph(
         43,

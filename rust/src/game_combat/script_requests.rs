@@ -395,15 +395,24 @@ impl RoomScriptRequests {
         frame: &RoomSpatialFrame,
         exclude_wire: u32,
         message: RoomMessage,
-    ) {
+    ) -> bool {
         if message.id == 0 {
-            return;
+            return false;
         }
-        for &wire in frame.script_targets.keys() {
-            if wire != exclude_wire {
-                let _ = self.queue_message(frame, wire, message.clone());
-            }
-        }
+        // One extra recipient is sufficient for queue_batch to reject an oversized broadcast.
+        let mut recipients: Vec<_> = frame
+            .script_targets
+            .iter()
+            .filter_map(|(&wire, target)| (wire != exclude_wire && target.messages).then_some(wire))
+            .take(MAX_BODY_SCRIPT_REQUESTS + 1)
+            .collect();
+        recipients.sort_unstable();
+        self.queue_batch(
+            frame,
+            recipients
+                .into_iter()
+                .map(|wire| Some((wire, ScriptEffect::Message(message.clone())))),
+        )
     }
 
     pub(crate) fn queue_cue(
@@ -1509,8 +1518,7 @@ mod tests {
         assert!(room.take_player_cues().is_empty());
     }
 
-    #[test]
-    fn invalid_batches_leave_mixed_outbox_work_and_capacity_intact() {
+    fn request_frame(bodies: &[(u32, bool, bool)]) -> RoomSpatialFrame {
         let mut world = bevy_ecs::world::World::new();
         let mut target = |candidate_index, health, messages| RoomScriptTarget {
             entity: world.spawn_empty().id(),
@@ -1527,10 +1535,10 @@ mod tests {
             cue_listener: health,
             voice: None,
         };
-        let frame = RoomSpatialFrame {
-            candidates: [1, 2, 3]
-                .into_iter()
-                .map(|entity| crate::script_expr::SpatialCandidate {
+        RoomSpatialFrame {
+            candidates: bodies
+                .iter()
+                .map(|&(entity, _, _)| crate::script_expr::SpatialCandidate {
                     entity,
                     position: [0.0; 3],
                     team: None,
@@ -1538,11 +1546,11 @@ mod tests {
                 .collect(),
             actor_capsules: None,
             entity_facts: None,
-            script_targets: HashMap::from([
-                (1, target(0, true, false)),
-                (2, target(1, true, false)),
-                (3, target(2, false, true)),
-            ]),
+            script_targets: bodies
+                .iter()
+                .enumerate()
+                .map(|(index, &(wire, health, messages))| (wire, target(index, health, messages)))
+                .collect(),
             player_wires: HashMap::new(),
             ground: Arc::new(fixture_ground()),
             breakables: None,
@@ -1551,7 +1559,12 @@ mod tests {
             retired: Arc::default(),
             captured_tick: 0,
             debug_rays: Arc::default(),
-        };
+        }
+    }
+
+    #[test]
+    fn invalid_batches_leave_mixed_outbox_work_and_capacity_intact() {
+        let frame = request_frame(&[(1, true, false), (2, true, false), (3, false, true)]);
         let mut outbox = RoomScriptRequests::default();
         let message = RoomMessage {
             id: 71,
@@ -1585,5 +1598,81 @@ mod tests {
         assert_eq!(queued.len(), MAX_BODY_SCRIPT_REQUESTS);
         assert!(matches!(queued[0].effect, ScriptEffect::Message(_)));
         assert_eq!(queued.last().unwrap().wire, 2);
+    }
+
+    #[test]
+    fn room_script_broadcast_is_ordered_and_atomic_at_capacity() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            sender: u32,
+            message_id: u64,
+            message_receivers: Vec<u32>,
+            cue_only_listener: u32,
+            expected_recipients: Vec<u32>,
+        }
+        let case: Case = serde_json::from_str(include_str!(
+            "../../../fixtures/behavior/script-room-broadcast-v1.json"
+        ))
+        .unwrap();
+        let mut bodies: Vec<_> = case
+            .message_receivers
+            .iter()
+            .map(|&wire| (wire, false, true))
+            .collect();
+        bodies.push((case.cue_only_listener, true, false));
+        let message = RoomMessage {
+            id: case.message_id,
+            parameters: Default::default(),
+        };
+        let needed = case.expected_recipients.len();
+        let first = request_frame(&bodies);
+        bodies.reverse();
+        for frame in [first, request_frame(&bodies)] {
+            for available in [needed - 1, needed] {
+                let mut outbox = RoomScriptRequests::default();
+                let queued = MAX_BODY_SCRIPT_REQUESTS - available;
+                for _ in 0..queued {
+                    assert!(outbox.queue_health(&frame, case.cue_only_listener, -1.0));
+                }
+                let accepted = outbox.queue_broadcast_others(&frame, case.sender, message.clone());
+                assert_eq!(accepted, available == needed);
+                let requests = outbox.take();
+                assert!(requests[..queued].iter().all(|request| {
+                    request.wire == case.cue_only_listener
+                        && matches!(request.effect, ScriptEffect::Health(_))
+                }));
+                let delivered: Vec<_> = requests[queued..]
+                    .iter()
+                    .map(|request| {
+                        assert!(
+                            matches!(&request.effect, ScriptEffect::Message(m) if m == &message)
+                        );
+                        assert_eq!(request.entity, frame.script_targets[&request.wire].entity);
+                        request.wire
+                    })
+                    .collect();
+                if accepted {
+                    assert_eq!(delivered, case.expected_recipients);
+                } else {
+                    assert!(delivered.is_empty());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn room_script_broadcast_without_receivers_uses_no_capacity() {
+        let frame = request_frame(&[(1, false, true), (2, true, false)]);
+        let mut outbox = RoomScriptRequests::default();
+        for _ in 0..MAX_BODY_SCRIPT_REQUESTS {
+            assert!(outbox.queue_health(&frame, 2, -1.0));
+        }
+        let message = RoomMessage {
+            id: 0,
+            parameters: Default::default(),
+        };
+        assert!(!outbox.queue_broadcast_others(&frame, 1, message.clone()));
+        assert!(outbox.queue_broadcast_others(&frame, 1, RoomMessage { id: 5, ..message }));
+        assert_eq!(outbox.take().len(), MAX_BODY_SCRIPT_REQUESTS);
     }
 }
