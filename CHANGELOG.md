@@ -4,6 +4,9 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Give each temporary shield registration its own release handle. A shared
+  nonstacking balance is cleared only when its final holder exits.
+
 - Collect a halted player's remaining health changes at the room event drain
   so later combat cannot be overwritten by the halt's older snapshot.
 - Publish cumulative NPC health records so a new shield update still clears

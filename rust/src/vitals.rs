@@ -52,7 +52,7 @@ impl Pool {
 
 #[derive(Debug, PartialEq)]
 struct ShieldGrant {
-    id: u32,
+    handles: Vec<u32>,
     maximum: f64,
     current: f64,
     stacked: bool,
@@ -215,18 +215,22 @@ impl Vitals {
             .temporary_shields
             .iter()
             .position(|shield| shield.identifier == identifier);
+        let id = self.last_id.checked_add(1)?;
         if let Some(index) = existing {
-            let shield = &self.temporary_shields[index];
+            let shield = &mut self.temporary_shields[index];
             if !stacked {
-                if let Some(grant) = shield.grants.iter().find(|grant| !grant.stacked) {
-                    return Some(grant.id);
+                if let Some(grant) = shield.grants.iter_mut().find(|grant| !grant.stacked) {
+                    // Each scope gets its own lifetime handle for the shared
+                    // balance without changing its capacity or current value.
+                    grant.handles.push(id);
+                    self.last_id = id;
+                    return Some(id);
                 }
             }
             if shield.amount(true) + amount > f64::from(f32::MAX) {
                 return None;
             }
         }
-        let id = self.last_id.checked_add(1)?;
         let index = if let Some(index) = existing {
             index
         } else {
@@ -256,7 +260,7 @@ impl Vitals {
         };
         let shield = &mut self.temporary_shields[index];
         shield.grants.push(ShieldGrant {
-            id,
+            handles: vec![id],
             maximum: amount,
             current: amount,
             stacked,
@@ -304,7 +308,7 @@ impl Vitals {
                 self.temporary_shields
                     .iter()
                     .flat_map(|shield| &shield.grants)
-                    .find(|grant| grant.id == id)
+                    .find(|grant| grant.handles.contains(&id))
                     .map(|grant| grant.current)
             })
     }
@@ -327,24 +331,36 @@ impl Vitals {
             self.changed |= 1 << pool.field;
             return Some(pool.current);
         }
-        let (index, grant) =
-            self.temporary_shields
+        let (shield_index, grant_index, handle_index) = self
+            .temporary_shields
+            .iter()
+            .enumerate()
+            .find_map(|(shield_index, shield)| {
+            shield
+                .grants
                 .iter()
                 .enumerate()
-                .find_map(|(index, shield)| {
-                    shield
-                        .grants
+                .find_map(|(grant_index, grant)| {
+                    grant
+                        .handles
                         .iter()
-                        .position(|grant| grant.id == id)
-                        .map(|grant| (index, grant))
-                })?;
-        let shield = &mut self.temporary_shields[index];
-        let grant = shield.grants.remove(grant);
+                        .position(|&handle| handle == id)
+                        .map(|handle_index| (shield_index, grant_index, handle_index))
+                })
+        })?;
+        let shield = &mut self.temporary_shields[shield_index];
+        let grant = &mut shield.grants[grant_index];
+        grant.handles.swap_remove(handle_index);
+        let current = grant.current;
+        if !grant.handles.is_empty() {
+            return Some(current);
+        }
+        shield.grants.remove(grant_index);
         self.changed |= 1 << shield.field;
         if shield.grants.is_empty() {
-            self.temporary_shields.remove(index);
+            self.temporary_shields.remove(shield_index);
         }
-        Some(grant.current)
+        Some(current)
     }
 
     pub fn total(&self) -> f64 {
@@ -628,10 +644,11 @@ mod tests {
         const SLOT: usize = SHIELDS_POOL * POOLS + 1;
         let mut vitals = Vitals::new(100.0, 10.0, 20.0);
         let shared = vitals.add_temporary_shield(FIRST, 20.0, false).unwrap();
-        assert_eq!(
-            vitals.add_temporary_shield(FIRST, 50.0, false),
-            Some(shared)
-        );
+        vitals.clear_changed();
+        let other_holder = vitals.add_temporary_shield(FIRST, 50.0, false).unwrap();
+        assert_ne!(shared, other_holder);
+        assert_eq!(vitals.pool_current(other_holder), Some(20.0));
+        assert!(vitals.changed_component().is_none());
         let stacked = vitals.add_temporary_shield(FIRST, 15.0, true).unwrap();
         let other = vitals.add_temporary_shield(SECOND, 25.0, true).unwrap();
         assert_eq!(
@@ -688,7 +705,12 @@ mod tests {
         assert_eq!(vitals.total(), 130.0);
         assert_eq!(vitals.temporary_shield_current(FIRST), 0.0);
 
+        vitals.clear_changed();
         assert_eq!(vitals.remove_pool(shared), Some(0.0));
+        assert_eq!(vitals.remove_pool(shared), None);
+        assert_eq!(vitals.pool_current(other_holder), Some(0.0));
+        assert!(vitals.changed_component().is_none());
+        assert_eq!(vitals.remove_pool(other_holder), Some(0.0));
         assert_eq!(vitals.remove_pool(stacked), Some(0.0));
         assert_eq!(vitals.remove_pool(other), Some(0.0));
         assert_eq!(vitals.changed_component().unwrap().fields[SLOT], clear);

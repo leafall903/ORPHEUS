@@ -202,6 +202,12 @@ exercises the owner query, lifecycle cleanup, exhaustion of a played
 grant and periodic decay with a changing authored rate. Native Vitals
 and charge tests compare pool-row aggregation and distinguish decay
 from damage that contributes a named-pool loss.
+
+The [shared shield fixture](../fixtures/behavior/script-shared-named-shield-v1.json)
+checks overlapping nonstacking registrations through the VM and native
+Vitals. Both holders see one balance. The first exit keeps the remaining
+amount, and the last exit clears the shield slot.
+
 The [immediate self-damage fixture](../fixtures/behavior/script-immediate-self-damage-v1.json)
 checks admission at invented positions, native integer rounding, one-shot
 execution, the different death rules, and rejection of unreviewed modifiers.
