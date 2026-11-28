@@ -265,8 +265,9 @@ impl SceneAssets {
             junkenstein_validation: None,
             mode_props: read_mode_props(&data.join("collision_props_174.json"))?,
             environment: EnvironmentCatalog::load(runtime.join(MAP_ENVIRONMENT))?,
-            ability_rules: crate::hero_ability_rules::HeroAbilityRules::load(
+            ability_rules: crate::hero_ability_rules::HeroAbilityRules::load_with_status_scripts(
                 data.join("hero_ability_rules_174.json"),
+                runtime.join(crate::runtime::STATUS_SCRIPTS),
             )?,
             graphs,
             codecs,
@@ -579,6 +580,9 @@ impl SceneAssets {
             simulation.enable_movement_contacts(map.free_for_all, Arc::clone(&self.movers));
         }
         simulation.set_script_graphs(Arc::clone(&self.graphs), map.mode_guid);
+        if let Some(codecs) = self.codecs.as_ref() {
+            simulation.set_script_codecs(Arc::clone(codecs));
+        }
         if let Some(codecs) = self
             .codecs
             .as_ref()

@@ -33,7 +33,7 @@ use std::{
     sync::Arc,
 };
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct AiControlRecords {
     overrides: IndexMap<(u32, u16, u16), script_init::AiControlOverride>,
     facing: IndexMap<Site, script_init::AiFacing>,
@@ -76,6 +76,7 @@ pub(crate) struct LocalHealthChange {
     pub(crate) named_pool_losses: Option<Vec<NamedPoolLoss>>,
 }
 
+#[derive(Clone)]
 pub(crate) struct WitchStaffSource {
     pub controller: u32,
     pub name: String,
@@ -83,6 +84,7 @@ pub(crate) struct WitchStaffSource {
     pub capacity: [f64; 2],
 }
 
+#[derive(Clone)]
 struct OutgoingDamageFilter {
     adjustment: f64,
     excluded_tags: Vec<u64>,
@@ -144,11 +146,13 @@ pub(crate) struct EnemyHitscanVolley {
     pub damage_tags: Vec<u64>,
 }
 
+#[derive(Clone)]
 struct PairDelivery {
     target: u32,
     input: PairInput,
 }
 
+#[derive(Clone)]
 enum PairInput {
     Message {
         sender: u32,
@@ -189,6 +193,7 @@ pub(crate) struct EnemyTarget {
     pub alive: bool,
 }
 
+#[derive(Clone)]
 pub(crate) struct EnemyDamage {
     pub source: u32,
     pub target: u32,
@@ -196,6 +201,7 @@ pub(crate) struct EnemyDamage {
     pub impact: Option<crate::game_hitscan::Impact>,
 }
 
+#[derive(Clone)]
 pub(crate) struct EnemyScripts {
     pub body: Component,
     pub controller: Component,

@@ -9,7 +9,8 @@ fn world_move_to_refreshes_the_authored_request_without_restarting() {
             "STUStatescriptStateMoveTo",
             Some(0),
             json!({
-                "m_B060F688": 0, "m_speed": var(817, true), "m_865F3D01": var(819, true)
+                "m_B060F688": 0, "m_speed": var(817, true), "m_865F3D01": var(819, true),
+                "m_destinationBone": var(820, true)
             }),
         )],
         json!([0]),
@@ -36,6 +37,9 @@ fn world_move_to_refreshes_the_authored_request_without_restarting() {
         .unwrap();
     component
         .set_entity_variable(819, Value::Vector([4.0, 0.0, 1.0]), &mut world)
+        .unwrap();
+    component
+        .set_entity_variable(820, Value::Asset(0), &mut world)
         .unwrap();
     component.begin_state(9, 0, &mut world).unwrap();
     let (activation, start, initial) = request(&component);

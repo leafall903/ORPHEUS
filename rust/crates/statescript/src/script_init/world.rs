@@ -37,6 +37,22 @@ pub struct ContactTarget {
     pub feet: [f64; 3],
 }
 
+/// A tracked entity and the surface range measured during the same spatial query.
+#[derive(Clone, Copy, Debug)]
+pub struct TrackedTarget {
+    pub entity: u32,
+    pub surface_distance: Option<f64>,
+}
+
+impl From<u32> for TrackedTarget {
+    fn from(entity: u32) -> Self {
+        Self {
+            entity,
+            surface_distance: None,
+        }
+    }
+}
+
 /// The body, aperture, collision profile and ranking requested by a view tracker.
 #[derive(Debug)]
 pub struct ViewTargetQuery<'a> {
@@ -371,7 +387,7 @@ pub struct EntityCreation {
 }
 
 /// Evaluated PlayScript inputs for a loaded target component.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlayScript {
     pub policy: u8,
     pub overrides: Vec<(u64, Value)>,
@@ -449,10 +465,10 @@ impl TargetTagSnapshot {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct TargetTagEffects(BTreeMap<u64, TargetTagCounts>);
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct TargetTagCounts {
     grants: u32,
     suppressions: u32,
@@ -803,6 +819,33 @@ pub trait World {
         self.cone_targets(site, origin, offset, radius, angle, visible, filter)
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn cone_targets_directed(
+        &self,
+        site: Site,
+        origin: u32,
+        offset: [f64; 3],
+        radius: f64,
+        angle: f64,
+        cylinder_radius: f64,
+        _yaw_deg: Option<f64>,
+        _pitch_deg: Option<f64>,
+        visible: bool,
+        filter: &Json,
+    ) -> Option<Vec<TrackedTarget>> {
+        self.cone_targets_with_cylinder(
+            site,
+            origin,
+            offset,
+            radius,
+            angle,
+            cylinder_radius,
+            visible,
+            filter,
+        )
+        .map(|ids| ids.into_iter().map(Into::into).collect())
+    }
+
     fn entity_alive(&self, _site: Site, _entity: u32) -> bool {
         false
     }
@@ -827,9 +870,15 @@ pub trait World {
         _end_offset: Option<[f64; 3]>,
         _local_space: bool,
         radius: f64,
+        _visible: bool,
         filter: &Json,
-    ) -> Option<Vec<u32>> {
-        self.tracked_targets(site, origin, start_offset, radius, filter)
+    ) -> Option<Vec<TrackedTarget>> {
+        Some(
+            self.tracked_targets(site, origin, start_offset, radius, filter)?
+                .into_iter()
+                .map(TrackedTarget::from)
+                .collect(),
+        )
     }
 
     /// None leaves the view query unavailable. An empty list is a completed query.
@@ -1158,6 +1207,22 @@ pub trait World {
     /// The current world sample's eye anchor for a known body.
     fn body_eye_position(&self, _entity: u32) -> Option<[f64; 3]> {
         None
+    }
+
+    /// World-space position of an authored attachment on this body's selected model.
+    fn body_hardpoint_position(&self, _entity: u32, _hardpoint: u64) -> Option<[f64; 3]> {
+        None
+    }
+
+    /// A zero bone selects the body frame. A named bone requires its selected model's transform.
+    fn body_bone_point(&mut self, entity: u32, bone: u64, local: [f64; 3]) -> Option<[f64; 3]> {
+        if bone != 0 || !crate::script_expr::valid_entity(entity) {
+            return None;
+        }
+        let origin = self
+            .authored_position(entity)
+            .or_else(|| self.known_position(entity))?;
+        crate::script_expr::body_space_point(origin, self.authored_forward(entity), local)
     }
 
     /// Opaque identity of a live actor in the current room sample. Compare
@@ -1527,15 +1592,40 @@ pub trait World {
     ) {
     }
 
-    /// Resolve a criterion to a cue for the actor and an optional explicit audience.
+    /// Resolve the speaker specified by the graph independently of the script owner.
     fn queue_actor_voice_with_audience(
         &mut self,
         site: Site,
         criterion: u64,
+        speaker: u32,
+        _subject: Option<u32>,
         _audience: Option<&[u32]>,
         choose: &mut dyn FnMut(usize) -> usize,
     ) {
-        self.queue_actor_voice(site, criterion, choose);
+        if speaker == site.entity {
+            self.queue_actor_voice(site, criterion, choose);
+        }
+    }
+
+    /// An owner death continuation may speak on its own still-current body generation.
+    fn queue_owner_death_voice(
+        &mut self,
+        site: Site,
+        criterion: u64,
+        subject: Option<u32>,
+        audience: Option<&[u32]>,
+        choose: &mut dyn FnMut(usize) -> usize,
+    ) {
+        if self.actor_voice_available(site) {
+            self.queue_actor_voice_with_audience(
+                site,
+                criterion,
+                site.entity,
+                subject,
+                audience,
+                choose,
+            );
+        }
     }
 
     /// The world owns delivery outside the current body.

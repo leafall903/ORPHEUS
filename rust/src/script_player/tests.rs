@@ -23,6 +23,7 @@ use crate::{
 };
 
 mod charge_receiver;
+mod shield_presentation;
 
 #[test]
 #[ignore = "requires separately prepared 104319 Junkenstein runtime"]
@@ -410,6 +411,7 @@ fn declared_compatibility_charge_uses_its_mode_root_and_room_activity() {
                     frame: spawn.frame,
                     killer: damage.target_facts.target,
                 },
+                &crate::script_init::HitTags::EMPTY
             )
             .killed
     );
@@ -615,6 +617,7 @@ fn charge_admission_preserves_profile_scope_and_requires_a_live_instance_for_cre
                 frame: spawn.frame,
                 killer: damage.target_facts.target,
             },
+            &crate::script_init::HitTags::EMPTY,
         );
         assert!(outcome.killed);
         assert_eq!(admission(&runtime), Some(projected("after_death")));
@@ -1031,7 +1034,8 @@ fn swept_displacement_requests_belong_to_the_live_player_body() {
                 time: 0.5,
                 frame: 31,
                 killer: spawn.controller,
-            }
+            },
+            &crate::script_init::HitTags::EMPTY
         )
         .killed
     );
@@ -1088,6 +1092,28 @@ fn player_natives_follow_the_verified_owner_and_override_shapes() {
             supported.then_some(Value::Float(1.0))
         );
     }
+
+    let mut scoped = json!({
+        "$":"STU_F4C77F4A", "m_4BA4C058":1, "m_EE729DCB":0,
+        "m_value":{"$":"STU_37F20D24","m_resourceKey":null,"m_EE729DCB":0}
+    });
+    let original_mode = runtime.world.mode;
+    for mode in [PRACTICE_RANGE_MODE, TUTORIAL_MODE] {
+        runtime.world.mode = mode;
+        assert_eq!(evaluate(&mut runtime, &scoped), Ok(Value::Asset(mode)));
+    }
+    runtime.world.mode = original_mode;
+    scoped["m_4BA4C058"] = json!(2);
+    assert_eq!(
+        evaluate(&mut runtime, &scoped),
+        Err(EvalError::UnsupportedConfig("STU_F4C77F4A".into()))
+    );
+    scoped["m_4BA4C058"] = json!(1);
+    scoped["m_value"] = owner.clone();
+    assert_eq!(
+        evaluate(&mut runtime, &scoped),
+        Err(EvalError::UnsupportedConfig("STU_F4C77F4A".into()))
+    );
 
     let ai = json!({"$":"STU_DB742151","m_entity":owner,"m_EE729DCB":0});
     assert_eq!(evaluate(&mut runtime, &ai), Ok(Value::Entity(0)));
@@ -1391,6 +1417,7 @@ fn health_queries_read_the_authoritative_vitals() {
                 frame: spawn.frame,
                 killer: spawn.entity + 1,
             },
+            &crate::script_init::HitTags::EMPTY
         ),
         crate::vitals::Damage {
             dealt: 75.0,
@@ -1458,7 +1485,8 @@ fn settled_player_pools_update_the_owner_health_projection() {
 
     assert_health(&body, "initial");
     assert_eq!(
-        body.receive_damage(input("damage"), source).dealt,
+        body.receive_damage(input("damage"), source, &crate::script_init::HitTags::EMPTY)
+            .dealt,
         input("damage")
     );
     assert!(body.take_health_update().is_some());
@@ -1468,7 +1496,14 @@ fn settled_player_pools_update_the_owner_health_projection() {
     assert!(body.take_health_update().is_some());
     assert_health(&body, "after_heal");
 
-    assert!(body.receive_damage(input("lethal_damage"), source).killed);
+    assert!(
+        body.receive_damage(
+            input("lethal_damage"),
+            source,
+            &crate::script_init::HitTags::EMPTY
+        )
+        .killed
+    );
     assert!(body.take_health_update().is_some());
     assert_health(&body, "after_death");
     assert!(body.take_health_update().is_none());
@@ -2459,6 +2494,61 @@ fn verified_body_starts_fresh_instances_and_advances_only_its_own_retail_clock()
 }
 
 #[test]
+fn model_hardpoint_query_uses_selected_skin_and_current_owner_pose() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/behavior/owner-model-hardpoints-v1.json"
+    ))
+    .unwrap();
+    let input = &fixture["input"];
+    let body: crate::script_graph::Body = serde_json::from_value(serde_json::json!({
+        "name": "Synthetic model", "graphs": [], "weapons": [],
+        "model_hardpoints": input["model_hardpoints"],
+    }))
+    .unwrap();
+    let (factory, spawn) = fixture_body_factory();
+    let mut runtime = factory.start(spawn).unwrap();
+    let world = &mut runtime.world;
+    let key = crate::accounts::parse_guid(input["hardpoint"].as_str().unwrap()).unwrap();
+    let bone = crate::accounts::parse_guid(input["bone"].as_str().unwrap()).unwrap();
+    let local = serde_json::from_value(input["bone_local_point"].clone()).unwrap();
+    world.position = [3.0, 4.0, 5.0];
+    world.model_hardpoints = body.model_geometry(0);
+    for (yaw, expected) in [(0, [3.25, 4.75, 4.5]), (16384, [2.5, 4.75, 4.75])] {
+        world.movement.yaw = yaw;
+        let point = world.body_hardpoint_position(spawn.entity, key).unwrap();
+        assert!(
+            point
+                .iter()
+                .zip(expected)
+                .all(|(value, target)| (value - target).abs() < 1e-6)
+        );
+    }
+    assert_eq!(world.body_hardpoint_position(spawn.entity, key + 1), None);
+    assert_eq!(world.body_hardpoint_position(spawn.entity + 1, key), None);
+    for (yaw, expected) in [(0, [7.0, 12.0, 19.0]), (16384, [17.0, 12.0, 1.0])] {
+        world.movement.yaw = yaw;
+        let point = world.body_bone_point(spawn.entity, bone, local).unwrap();
+        assert!(
+            point
+                .iter()
+                .zip(expected)
+                .all(|(a, b)| (a - b).abs() < 1e-6)
+        );
+    }
+    assert_eq!(world.body_bone_point(spawn.entity, bone + 1, local), None);
+    assert_eq!(world.body_bone_point(spawn.entity + 1, bone, local), None);
+    let skin = crate::accounts::parse_guid(input["selections"][1].as_str().unwrap()).unwrap();
+    world.model_hardpoints = body.model_geometry(skin);
+    assert_eq!(world.body_hardpoint_position(spawn.entity, key), None);
+    assert_eq!(world.body_bone_point(spawn.entity, bone, local), None);
+    world.movement.yaw = 0;
+    assert_eq!(
+        world.body_bone_point(spawn.entity, 0, local),
+        Some([4.0, 6.0, 8.0])
+    );
+}
+
+#[test]
 fn owner_eye_query_reads_spawn_anchor_then_updates_with_live_crouch_and_spring() {
     use crate::{
         collision_index::SceneTriangle, commands::CROUCH, game_combat::script_eye_position,
@@ -2526,6 +2616,7 @@ fn owner_eye_query_reads_spawn_anchor_then_updates_with_live_crouch_and_spring()
                     frame: command.frame,
                     killer: 0,
                 },
+                &crate::script_init::HitTags::EMPTY
             )
             .killed
     );
@@ -2795,6 +2886,7 @@ fn authored_player_facing_claims_seed_the_mover_and_release_with_runtime() {
             time: 0.0,
             killer: 0,
         },
+        &crate::script_init::HitTags::EMPTY,
     );
     assert_eq!(dead.authored_facing(), None);
     assert_eq!(dead.world.set_facing_claim(second, east, true), Some(false));
@@ -3220,6 +3312,61 @@ fn authored_flashbang_duration_follows_both_mode_branches() {
             Stun::from_seconds(to_float(&duration)).unwrap().ticks,
             ticks
         );
+    }
+}
+
+#[test]
+fn authoritative_projectiles_survive_an_unavailable_observer_projection() {
+    use serde_json::json;
+
+    let (_, spawn) = fixture_body_factory();
+    let mover = Mover::new(
+        MoverSettings::default(),
+        Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+        spawn.pose.position,
+        0,
+        0x18,
+    )
+    .unwrap();
+    let fire = Command {
+        frame: spawn.frame + 1,
+        buttons: crate::commands::SECONDARY,
+        ..Default::default()
+    };
+    for count in [1usize, 3] {
+        let mut fields = fixture_projectile_fields(40.0);
+        fields["m_45271E8C"] = json!(false);
+        fields["m_numProjectilesPerShot"] = json!(count);
+        if count > 1 {
+            fields["m_5EC1EB38"] = json!({
+                "$":"STU_613BDDB0", "m_spread":12,
+                "m_0D30E40C":[{"m_6425FFB9":1,"m_B19BD35D":count}]
+            });
+        }
+        let mut runtime = fixture_volley_factory(29, true, fields)
+            .start(spawn)
+            .unwrap();
+        runtime.advance(fire, &mover, BodyStep::Posed).unwrap();
+        runtime.codecs = Arc::new(CodecTable::from_json(r#"{"classes":{}}"#).unwrap());
+        assert!(
+            runtime
+                .encoder()
+                .project(runtime.snapshot().unwrap(), View::Observer)
+                .ok()
+                .and_then(|snapshot| snapshot.volley_identity(1, 1))
+                .is_none()
+        );
+        let shots = runtime.take_shots(Some(fire), &mover);
+        assert_eq!(shots.len(), count);
+        for shot in shots {
+            let PosedShot::Projectile(projectile) = shot else {
+                panic!("expected an authoritative projectile");
+            };
+            assert_eq!(projectile.shot.frame, fire.frame);
+            assert_eq!(projectile.ballistics.direct.unwrap().amount, 40.0);
+            assert!(projectile.presentation.is_none());
+        }
+        assert!(runtime.take_shots(Some(fire), &mover).is_empty());
     }
 }
 
@@ -5068,13 +5215,20 @@ fn voice_stimulus_state_and_array_criteria_emit_room_cues() {
                 "0x0D80000000000720": ["0x0EE0000000000040"]
             },
             "heroes": {
-                "0x02E000000000006E": "0x05F0000000000001"
+                "0x02E000000000006E": "0x05F0000000000001",
+                "0x02E0000000000042": "0x05F0000000000002"
             },
             "skins": {},
             "sets": {
                 "0x05F0000000000001": {
                     "0x0EE0000000000040": ["0x0760000000001001"],
                     "0x0EE0000000000042": ["0x0760000000001002"]
+                },
+                "0x05F0000000000002": {
+                    "0x0EE0000000000040": [{
+                        "guid":"0x0760000000002001",
+                        "conditions":{"target_hero":0x02E000000000006E_u64}
+                    }]
                 }
             },
             "equipped": {}
@@ -5120,6 +5274,23 @@ fn voice_stimulus_state_and_array_criteria_emit_room_cues() {
         owner, 1, 0, 0, SOLDIER, mover, None, 1, None,
     ))
     .unwrap();
+    let other = BodyId {
+        entity: 0xa000_0201,
+        generation: 1,
+    };
+    let other_hero = 0x02e0_0000_0000_0042;
+    let make_other = |id| {
+        let mover = crate::mover::Mover::new(
+            crate::mover_settings::MoverSettings::default(),
+            Arc::new(crate::contact_world::ContactWorld::new(Vec::new()).unwrap()),
+            [5.0, 0.0, 0.0],
+            0,
+            0x18,
+        )
+        .unwrap();
+        crate::game_combat::PlayerBodyState::new(id, 2, 1, 1, other_hero, mover, None, 1, None)
+    };
+    room.spawn_player_body(make_other(other)).unwrap();
     room.enable_spatial_queries(false, ground, RoomSpatialNeeds::Queries);
     room.enable_actor_voice(catalog);
     room.prepare_spatial_frame(1).unwrap();
@@ -5191,6 +5362,7 @@ fn voice_stimulus_state_and_array_criteria_emit_room_cues() {
     let cues: Vec<_> = room
         .take_player_cues()
         .into_iter()
+        .filter(|cue| cue.listener == owner)
         .filter_map(|cue| match cue.notice {
             CombatNotice::Voice { stimulus, line, .. } => Some((stimulus, line)),
             _ => None,
@@ -5205,6 +5377,70 @@ fn voice_stimulus_state_and_array_criteria_emit_room_cues() {
         ],
         "diagnostics: {diag:?}"
     );
+    // The control graph can name a different speaker and a separate subject.
+    // A target-specific line is only eligible for that speaker's own VoiceSet.
+    use crate::script_init::World as _;
+    let site = crate::script_init::Site {
+        entity: owner.entity,
+        instance: 1,
+        graph: 0x999,
+        node: Some(1),
+    };
+    let criterion = 0x0d80_0000_0000_0720;
+    world.queue_actor_voice_with_audience(
+        site,
+        criterion,
+        other.entity,
+        None,
+        Some(&[owner.entity]),
+        &mut |_| 0,
+    );
+    assert!(world.script_requests.take().is_empty());
+    world.queue_actor_voice_with_audience(
+        site,
+        criterion,
+        other.entity,
+        Some(owner.entity),
+        Some(&[]),
+        &mut |_| 0,
+    );
+    assert!(world.script_requests.take().is_empty());
+    world.queue_actor_voice_with_audience(
+        site,
+        criterion,
+        other.entity,
+        Some(owner.entity),
+        Some(&[owner.entity]),
+        &mut |_| 0,
+    );
+    room.settle_test_script_requests(owner.entity, world.script_requests.take(), FIRST_TICK + 2)
+        .unwrap();
+    let cues = room.take_player_cues();
+    assert_eq!(cues.len(), 1);
+    assert_eq!(cues[0].source.wire, other.entity);
+    assert_eq!(cues[0].listener, owner);
+    assert!(
+        matches!(cues[0].notice,CombatNotice::Voice{speaker, listener, line:0x0760_0000_0000_2001,..} if speaker==other.entity && listener==owner.entity)
+    );
+    // Same wire id, different speaker generation before settlement.
+    world.queue_actor_voice_with_audience(
+        site,
+        criterion,
+        other.entity,
+        Some(owner.entity),
+        Some(&[owner.entity]),
+        &mut |_| 0,
+    );
+    let delayed = world.script_requests.take();
+    assert_eq!(delayed.len(), 1);
+    room.spawn_player_body(make_other(BodyId {
+        generation: 2,
+        ..other
+    }))
+    .unwrap();
+    room.settle_test_script_requests(owner.entity, delayed, FIRST_TICK + 3)
+        .unwrap();
+    assert!(room.take_player_cues().is_empty());
 }
 
 #[test]

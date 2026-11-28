@@ -26,6 +26,8 @@ pub(super) fn stage_scripted_motion(runtime: &mut dyn OwnerBodyRuntime, mover: &
 pub(super) struct BodyScript {
     pub(super) id: BodyId,
     pub(super) stream: BodyStream<ProjectedSnapshot>,
+    /// Latest owner pool revision represented when the script record was built.
+    pub(super) projected_health_revision: Option<u64>,
     pub(super) frame: u32,
     pub(super) unsent_delta: Option<(u32, DeltaKind)>,
     sent_sprays: VecDeque<SentSpray>,
@@ -108,6 +110,7 @@ impl BodyScript {
         Ok(Self {
             id: body.id,
             stream: BodyStream::new(body.id.entity),
+            projected_health_revision: None,
             frame,
             unsent_delta: None,
             sent_sprays: VecDeque::new(),
@@ -204,6 +207,9 @@ impl BodyScript {
         }
         mover.set_cinematic_aim(runtime.cinematic_aim());
         mover.set_authored_facing(runtime.authored_facing());
+        mover.set_tether(runtime.active_tether());
+        mover.set_ball_roll_speed(runtime.ball_roll_speed());
+        mover.set_mover_override(runtime.mover_override());
         let velocity_changes = runtime.take_velocity_changes();
         if runtime
             .vitals()

@@ -995,7 +995,7 @@ fn volley_reports_exact_times_and_bakes_linked_ammo_on_finish() {
             assert!(snapshot.bindings.is_empty());
             assert_eq!(snapshot.instances[&1].variables[&53], Value::Integer(30));
             assert_eq!(snapshot.resolved_bindings[&(1, 53)], Value::Integer(29));
-            assert_eq!(snapshot.resolved_bindings[&(1, 231)], Value::Float(0.25));
+            assert_eq!(snapshot.resolved_bindings[&(1, 231)], Value::Float(0.5));
         }
     }
     assert_eq!(

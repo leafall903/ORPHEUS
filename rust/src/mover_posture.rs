@@ -28,6 +28,7 @@ pub fn snap(value: f64) -> f64 {
     (value * POSITION_UNITS + 0.5).floor() / POSITION_UNITS
 }
 
+#[derive(Clone)]
 pub struct Posture {
     pub flags: u32,
     pub air_ticks: u32,
@@ -37,6 +38,7 @@ pub struct Posture {
     spring: Spring,
 }
 
+#[derive(Clone)]
 struct Spring {
     low: f32,
     high: f32,
@@ -99,6 +101,16 @@ impl Posture {
 
     pub fn spring_steps(&self) -> [u16; 2] {
         self.spring.encoded
+    }
+
+    pub fn set_spring_limits(&mut self, base: &MoverSettings) {
+        self.spring.set_limits(base);
+        self.spring.primary = self.spring.primary.clamp(self.spring.low, self.spring.high);
+        self.spring.secondary = self
+            .spring
+            .secondary
+            .clamp(self.spring.low, self.spring.high);
+        self.spring.encode();
     }
 
     /// Run after the ground probe and before resolving the requested motion.

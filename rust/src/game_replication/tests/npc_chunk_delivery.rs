@@ -2,6 +2,90 @@ use super::*;
 use crate::{script_enemy::fixture, script_snapshot_wire::SceneProjection, world::frame};
 
 #[test]
+fn placed_actor_script_survives_health_updates_and_retires_with_its_actor() {
+    use crate::script_snapshot_wire::{StaticSceneBaseline, View};
+    use crate::world::{Create, health};
+
+    let (graphs, codecs, _, _) = fixture(false);
+    let actor = 0xc010_0011;
+    let script = Component::start(
+        Arc::clone(&graphs),
+        actor,
+        crate::script_wire::Variables::new(),
+        vec![Root::new(1, 42)],
+        FIRST_TICK,
+        &mut EmptyWorld,
+        MAX_INIT_WORK,
+    )
+    .unwrap();
+    let encoder = SnapshotEncoder::new(&graphs, &codecs);
+    let snapshot = encoder
+        .project(script.snapshot().unwrap(), View::Observer)
+        .unwrap();
+    let baseline = StaticSceneBaseline {
+        payload: encoder.full(&snapshot).unwrap(),
+        snapshot,
+    };
+    let mut world = WorldDelivery::new(OWNER);
+    world.started = Some(FIRST_TICK);
+    let create = EntityUpdate {
+        entity: actor,
+        operation: Some(Operation::Create(Box::new(Create::new(1, vec![])))),
+        ..Default::default()
+    };
+    world.create_bot(create.clone());
+    world.present_static_scene_baseline(&baseline).unwrap();
+    assert!(!world.scene_views.contains_key(&actor));
+    let mut egress = GameEgress::default();
+    transmit(&mut world, None, &mut egress, FIRST_TICK, 0);
+    transport_outcome(&mut world, &mut egress, 0, true);
+
+    world.present_static_scene_baseline(&baseline).unwrap();
+    let queued = world.ready()[0].tracked();
+    assert!(matches!(queued.delivery, Delivery::SceneScript { last: 1 }));
+    transmit(&mut world, None, &mut egress, FIRST_TICK + 1, 1);
+    world.queue_health(EntityUpdate {
+        entity: actor,
+        operation: Some(Operation::Update(vec![health(40.0, 50.0, 0.0, 0.0)])),
+        ..Default::default()
+    });
+    transport_outcome(&mut world, &mut egress, 1, false);
+    world.present_static_scene_baseline(&baseline).unwrap();
+    let pending = world.ready();
+    assert_eq!(pending.len(), 2);
+    assert!(
+        pending
+            .iter()
+            .any(|item| Arc::ptr_eq(&item.tracked(), &queued))
+    );
+    transmit(&mut world, None, &mut egress, FIRST_TICK + 2, 2);
+    transport_outcome(&mut world, &mut egress, 2, true);
+    world.present_static_scene_baseline(&baseline).unwrap();
+    assert!(world.scene_views[&actor].base().is_some());
+    assert!(world.ready().is_empty());
+
+    world.retire_enemy(actor);
+    world.present_static_scene_baseline(&baseline).unwrap();
+    assert!(!world.scene_views.contains_key(&actor));
+    transmit(&mut world, None, &mut egress, FIRST_TICK + 3, 3);
+    transport_outcome(&mut world, &mut egress, 3, true);
+    world.create_bot(create);
+    transmit(&mut world, None, &mut egress, FIRST_TICK + 4, 4);
+    transport_outcome(&mut world, &mut egress, 4, true);
+    world.present_static_scene_baseline(&baseline).unwrap();
+    assert_eq!(world.ready().len(), 1);
+    assert!(!Arc::ptr_eq(&world.ready()[0].tracked(), &queued));
+    world.retire_enemy(actor);
+    assert!(!world.scene_views.contains_key(&actor));
+    assert!(
+        world
+            .ready()
+            .iter()
+            .all(|item| item.record.update.chunk.is_none())
+    );
+}
+
+#[test]
 fn crowded_observer_frames_rotate_walking_npc_records() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../fixtures/behavior/npc-script-packet-isolation-v1.json"

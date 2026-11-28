@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "case_id": "actor-relative-movement.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {"basis": "Original two-actor fixture with independent contact position and normal and a rotated movement destination."},
+  "input": {
+    "actor": 87, "recipient": 91,
+    "feet": [10, 2, -8], "forward": [1, 0, 0], "local": [0, 1, 3], "speed": 5,
+    "point": [27, 8, -3], "normal": [0, 1, 0]
+  },
+  "expected": {"world_destination": [13, 3, -8]}
+}

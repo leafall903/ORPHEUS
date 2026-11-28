@@ -683,18 +683,17 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 self.write(source_key(key.instance, output), value)?;
             }
         }
-        if let Some(point) = point {
-            if let Some(output) = script_expr::lvalue(field(outputs, "m_5ED803CF"))
-                .map_err(|_| InitFault::InvalidRoot(key.instance))?
-            {
-                self.write(source_key(key.instance, output), Value::Vector(point))?;
-            }
-        }
-        if let Some(normal) = normal {
-            if let Some(output) = script_expr::lvalue(field(outputs, "m_F2F8606D"))
-                .map_err(|_| InitFault::InvalidRoot(key.instance))?
-            {
-                self.write(source_key(key.instance, output), Value::Vector(normal))?;
+        for (name, vector) in [
+            ("m_5ED803CF", point),
+            ("m_F2F8606D", point),
+            ("m_A7C2505B", normal),
+        ] {
+            if let Some(vector) = vector {
+                if let Some(output) = script_expr::lvalue(field(outputs, name))
+                    .map_err(|_| InitFault::InvalidRoot(key.instance))?
+                {
+                    self.write(source_key(key.instance, output), Value::Vector(vector))?;
+                }
             }
         }
         if let Some(distance) = distance {
@@ -789,26 +788,6 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         } else {
             None
         };
-        let kb_mode = if knockback.is_some() {
-            self.evaluate(id, node, field(effect, "m_583C208B"), None)
-                .and_then(|v| match v {
-                    Value::Integer(n) => Some(n),
-                    Value::Float(f) => Some(f as i64),
-                    _ => None,
-                })
-        } else {
-            None
-        };
-        let caster_forward = if knockback.is_some() || site.graph == 0x0B27 || site.graph == 0x0DD8
-        {
-            self.world.forward(site.entity)
-        } else {
-            None
-        };
-        let pull_in = field(effect, "m_9B350209")
-            .get("m_value")
-            .and_then(|v| v.as_u64().or_else(|| v.as_bool().map(u64::from)))
-            == Some(1);
         let loadout = {
             let l = field(effect, "m_loadout");
             asset_guid(field(l, "m_loadout")).or_else(|| match self.evaluate(id, node, l, None) {
@@ -836,51 +815,20 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         for item in targets {
             if let Value::Entity(target) = item {
                 if script_expr::valid_entity(target) {
-                    let is_uppercut = kb_mode == Some(14)
-                        || (site.graph == 0x0DD8
-                            && (kb_mode.is_some() || direct_knockback.is_some_and(|v| v[1] > 0.0)));
-                    let impulse = if is_uppercut {
-                        let fwd = caster_forward
-                            .or_else(|| self.world.forward(site.entity))
-                            .unwrap_or([0.0, 0.0, 1.0]);
-                        let hlen = fwd[0].hypot(fwd[2]).max(1e-4);
-                        Some([fwd[0] / hlen * 2.2, 9.2, fwd[2] / hlen * 2.2])
-                    } else if damage && (site.graph == 0x0B27 || pull_in) {
-                        // Seismic Slam (`0x0B27:154` `m_9B350209 = 1`): pull target inward
-                        // toward a point ~1.8 m in front of Doomfist with a 4.2 m/s pop-up.
-                        let caster_pos = self.world.position(site.entity);
-                        let target_pos = self.world.position(target);
-                        let fwd = caster_forward
-                            .or_else(|| self.world.forward(site.entity))
-                            .unwrap_or([0.0, 0.0, 1.0]);
-                        let hlen = fwd[0].hypot(fwd[2]).max(1e-4);
-                        if let (Some(cpos), Some(tpos)) = (caster_pos, target_pos) {
-                            let dest_x = cpos[0] + fwd[0] / hlen * 1.8;
-                            let dest_z = cpos[2] + fwd[2] / hlen * 1.8;
-                            let vx = ((dest_x - tpos[0]) * 1.8).clamp(-7.5, 7.5);
-                            let vz = ((dest_z - tpos[2]) * 1.8).clamp(-7.5, 7.5);
-                            Some([vx, 4.2, vz])
+                    let impulse = direct_knockback.or_else(|| {
+                        let kb = knockback.as_ref()?;
+                        let origin = kb_origin?;
+                        let target_pos = self.world.position(target)?;
+                        let [dx, dy, dz] =
+                            std::array::from_fn(|axis| target_pos[axis] - origin[axis]);
+                        let distance = dx.hypot(dy).hypot(dz);
+                        if dx == 0.0 && dz == 0.0 {
+                            let forward = self.world.forward(site.entity).unwrap_or([0.0; 3]);
+                            kb.radial_delta([forward[0], forward[2]], distance, true, 1.0)
                         } else {
-                            Some([0.0, 4.2, 0.0])
+                            kb.radial_delta([dx, dz], distance, true, 1.0)
                         }
-                    } else {
-                        direct_knockback.or_else(|| {
-                            knockback.as_ref().and_then(|kb| {
-                                let target_pos = self.world.position(target)?;
-                                let origin = kb_origin.unwrap_or(target_pos);
-                                let dx = target_pos[0] - origin[0];
-                                let dy = target_pos[1] - origin[1];
-                                let dz = target_pos[2] - origin[2];
-                                let dist = dx.hypot(dy).hypot(dz);
-                                if kb_mode == Some(6) || dx.hypot(dz) < 1e-4 {
-                                    let fwd = caster_forward.unwrap_or([dx, 0.0, dz]);
-                                    kb.radial_delta([fwd[0], fwd[2]], dist, true, 1.0)
-                                } else {
-                                    kb.delta(origin, target_pos, dist, true, 1.0)
-                                }
-                            })
-                        })
-                    };
+                    });
                     if delta != 0.0 || impulse.is_some() {
                         let _ = self.world.queue_modify_health_with_meta(
                             site, target, delta, impulse, loadout, hit_tags,
@@ -897,41 +845,21 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         key: StateKey,
         node: &Node,
     ) -> Result<(), InitFault> {
-        fn expr_has_world_position(cfg: &Json) -> bool {
-            match cfg {
-                Json::Object(map) => {
-                    if let Some(cls) = map.get("$").and_then(Json::as_str) {
-                        if matches!(
-                            cls,
-                            "STU_21A13145"
-                                | "STU_8CBDD81C"
-                                | "STU_5BC84465"
-                                | "STU_71A87E92"
-                                | "STU_588FF314"
-                                | "STU_C1F83245"
-                        ) {
-                            return true;
-                        }
-                    }
-                    map.values().any(expr_has_world_position)
-                }
-                Json::Array(items) => items.iter().any(expr_has_world_position),
-                _ => false,
-            }
-        }
         let id = key.instance;
         let site = self.site(id, node);
+        if self.machine.owner_dead {
+            return self.publish_tracked_targets(key, node, Vec::new());
+        }
         let origin_field = field(&node.fields, "m_8DCA77B6");
         let offset_field = field(&node.fields, "m_05BE62DD");
-        // When `m_8DCA77B6` (origin entity) is null and `m_05BE62DD` is a world-space
-        // position expression or dynamic vector (e.g. Rocket Punch `0x0D06:14`, Brigitte Flail,
-        // Mercy Staff, Moira Grasp, D.Va Call Mech), pass `origin = 0` so `offset` is centre.
-        // Pure constant/scale offsets (e.g. `[0, 0.1, 0]`) remain relative to `site.entity`.
+        // Without a reference entity, the supplied center is already in world
+        // coordinates. An expression may itself add a displacement to a body.
         let origin = if origin_field.is_null() {
-            let world_space_offset = !offset_field.is_null()
-                && (offset_field.get("$").and_then(Json::as_str) == Some("STUConfigVarDynamic")
-                    || expr_has_world_position(offset_field));
-            if world_space_offset { 0 } else { site.entity }
+            if offset_field.is_null() {
+                site.entity
+            } else {
+                0
+            }
         } else {
             match self.evaluate(id, node, origin_field, None) {
                 Some(Value::Entity(entity)) if script_expr::valid_entity(entity) => entity,
@@ -943,7 +871,13 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         } else {
             match self.evaluate(id, node, offset_field, None) {
                 Some(Value::Vector(v)) if v.iter().all(|a| a.is_finite()) => v,
-                _ => [0.0; 3],
+                Some(Value::Entity(body)) if origin == 0 && script_expr::valid_entity(body) => {
+                    let Some(pos) = self.world.position(body) else {
+                        return self.publish_tracked_targets(key, node, Vec::new());
+                    };
+                    pos
+                }
+                _ => return self.publish_tracked_targets(key, node, Vec::new()),
             }
         };
         let radius = self
@@ -977,6 +911,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 field(&node.fields, "m_3D667CE3")
             }
         };
+        let visible = field(&node.fields, "m_32AFE9AA").as_u64() == Some(1);
         let angle_field = field(&node.fields, "m_A30B383E");
         let candidates = if !angle_field.is_null() || cylinder_radius > 0.0 {
             let angle = if angle_field.is_null() {
@@ -987,14 +922,23 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     .filter(|a| (0.0..=360.0).contains(a))
                     .unwrap_or(360.0)
             };
-            let visible = field(&node.fields, "m_32AFE9AA").as_u64() == Some(1);
-            let Some(candidates) = self.world.cone_targets_with_cylinder(
+            let yaw_deg = self
+                .evaluate(id, node, field(&node.fields, "m_D45E22FA"), None)
+                .and_then(pool_number)
+                .filter(|v| v.is_finite());
+            let pitch_deg = self
+                .evaluate(id, node, field(&node.fields, "m_E46A19A3"), None)
+                .and_then(pool_number)
+                .filter(|v| v.is_finite());
+            let Some(candidates) = self.world.cone_targets_directed(
                 site,
                 origin,
                 offset,
                 radius,
                 angle,
                 cylinder_radius,
+                yaw_deg,
+                pitch_deg,
                 visible,
                 filter,
             ) else {
@@ -1009,6 +953,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 end_offset,
                 local_space,
                 radius,
+                visible,
                 filter,
             ) else {
                 return self.publish_tracked_targets(key, node, Vec::new());
@@ -1017,9 +962,22 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         };
         let mut targets = Vec::with_capacity(candidates.len());
         let condition = field(filter, "m_condition");
-        for candidate in candidates {
+        let masks = script_expr::entity_masks(filter);
+        for sample in candidates {
+            let candidate = sample.entity;
             self.spend("generic tracked target condition")?;
             if !script_expr::valid_entity(candidate) {
+                continue;
+            }
+            // The host has already filtered its spatial candidates; when it supplies
+            // native flags too, enforce the same mask contract as an entity filter operand.
+            if self
+                .world
+                .entity_filter_flags(site, candidate)
+                .is_some_and(|flags| {
+                    !masks.is_some_and(|masks| script_expr::matches_entity_masks(masks, flags))
+                })
+            {
                 continue;
             }
             let accepted = if condition.is_null() {
@@ -1033,10 +991,10 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 value.is_some_and(|v| truthy(&v))
             };
             if accepted {
-                targets.push(candidate);
+                targets.push(sample);
             }
         }
-        self.publish_tracked_targets(key, node, targets)
+        self.publish_tracked_samples(key, node, targets)
     }
 
     pub(in crate::script_init) fn tick_summoner_beam_damage(
@@ -1296,6 +1254,37 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         node: &Node,
         targets: Vec<u32>,
     ) -> Result<(), InitFault> {
+        self.publish_tracked_samples(key, node, targets.into_iter().map(Into::into).collect())
+    }
+
+    fn publish_tracked_samples(
+        &mut self,
+        key: StateKey,
+        node: &Node,
+        samples: Vec<crate::script_init::TrackedTarget>,
+    ) -> Result<(), InitFault> {
+        if let Some(output) = script_expr::lvalue(field(&node.fields, "m_CEE20F6F"))
+            .map_err(|_| InitFault::InvalidRoot(key.instance))?
+        {
+            let Some(distances) = samples
+                .iter()
+                .map(|target| {
+                    target
+                        .surface_distance
+                        .filter(|d| d.is_finite() && *d >= 0.0)
+                        .map(|distance| Value::Float(f64::from(distance as f32)))
+                })
+                .collect::<Option<Vec<_>>>()
+            else {
+                self.report(
+                    self.site(key.instance, node),
+                    Issue::UnsupportedField("tracked capsule surface distance"),
+                );
+                return Ok(());
+            };
+            self.write(source_key(key.instance, output), Value::Array(distances))?;
+        }
+        let targets: Vec<_> = samples.into_iter().map(|sample| sample.entity).collect();
         if let Some(output) = script_expr::lvalue(field(&node.fields, "m_8A2905A0"))
             .map_err(|_| InitFault::InvalidRoot(key.instance))?
         {
@@ -1307,6 +1296,14 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                         .map(|target| Value::Entity(*target))
                         .collect(),
                 ),
+            )?;
+        }
+        if let Some(output) = script_expr::lvalue(field(&node.fields, "m_1B89EA79"))
+            .map_err(|_| InitFault::InvalidRoot(key.instance))?
+        {
+            self.write(
+                source_key(key.instance, output),
+                Value::Integer(targets.len() as i64),
             )?;
         }
         self.state_mut(key)
@@ -2241,19 +2238,15 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             .graph(id)
             .state(usize::from(key.raw))
             .expect("chase state");
-        // An explicit object/bone destination cannot be coerced to zero.
-        // Abort through the authored plugs rather than strand the chase.
-        if field(&node.fields, "m_destination").is_null()
-            && (configured(node, "m_destinationBone") || configured(node, "m_destinationObject"))
-        {
-            return self.post(id, Event::Abort(key.raw));
-        }
-        let Some(destination) =
-            self.evaluate(id, node, field(&node.fields, "m_destination"), Some(key))
-        else {
+        let Some(destination) = self.chase_destination(key, node) else {
+            if field(&node.fields, "m_destination").is_null()
+                && (configured(node, "m_destinationBone")
+                    || configured(node, "m_destinationObject"))
+            {
+                return self.post(id, Event::Abort(key.raw));
+            }
             return Ok(());
         };
-        let destination = chase_value(&destination);
         if let Some(remaining) = next.remaining_ms {
             if remaining <= elapsed {
                 next.current = destination;
@@ -2292,6 +2285,42 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             }
         }
         Ok(())
+    }
+
+    fn chase_destination(&mut self, key: StateKey, node: &Node) -> Option<Value> {
+        let object = field(&node.fields, "m_destinationObject");
+        let bone = field(&node.fields, "m_destinationBone");
+        let offset = field(&node.fields, "m_destination");
+        if object.is_null() && bone.is_null() {
+            return self
+                .evaluate(key.instance, node, offset, Some(key))
+                .map(|v| chase_value(&v));
+        }
+        let Value::Entity(entity) = self.evaluate(key.instance, node, object, Some(key))? else {
+            return None;
+        };
+        if !script_expr::valid_entity(entity) {
+            return None;
+        }
+        let bone = if bone.is_null() {
+            0
+        } else if let Value::Asset(id) = self.evaluate(key.instance, node, bone, Some(key))? {
+            id
+        } else {
+            return None;
+        };
+        let local = if offset.is_null() {
+            [0.0; 3]
+        } else if let Value::Vector(v) = self.evaluate(key.instance, node, offset, Some(key))? {
+            v
+        } else {
+            return None;
+        };
+        // Both endpoints of the interpolation must use the same world frame.
+        // An unobserved bone leaves the last sample in place until the next tick.
+        self.world
+            .body_bone_point(entity, bone, local)
+            .map(Value::Vector)
     }
 
     pub(in crate::script_init) fn chase_write(
@@ -2491,6 +2520,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 per_shot,
                 rate,
                 spread,
+                last_spread: spread,
                 spread_ramp,
                 spread_delay_ms,
                 planned,
@@ -2628,11 +2658,21 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             });
             ordinal += 1;
         }
-        self.machine
-            .volleys
-            .get_mut(&key)
-            .expect("reported volley")
-            .reported = ordinal;
+        let (spread_change, spread_var) = {
+            let volley = self.machine.volleys.get_mut(&key).expect("reported volley");
+            volley.reported = ordinal;
+            let current = volley.spread_at(self.machine.now_ms);
+            if volley.spread_ramp.is_some() && (current - volley.last_spread).abs() > 1e-7 {
+                let before = volley.last_spread;
+                volley.last_spread = current;
+                (Some(before), volley.outputs[2])
+            } else {
+                (None, None)
+            }
+        };
+        if let (Some(before), Some(var_key)) = (spread_change, spread_var) {
+            self.notify_value(var_key, &Value::Float(before), None)?;
+        }
         Ok(())
     }
 
@@ -3140,6 +3180,15 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     if let Some(component) = config.get("m_9B7A63EA").filter(|c| {
                         c.get("$").and_then(Json::as_str) == Some("STUCharacterMoverComponent")
                     }) {
+                        // Retail full-form override (e.g. Wrecking Ball Roll `1203:STU_316CFEF2_1`):
+                        // swap the entire MoverSettings profile while this state is active instead
+                        // of approximating with partial ratios.
+                        if let Some(profile) =
+                            crate::script_modifiers::MoverProfile::from_stu_component(component)
+                        {
+                            self.machine.mover_overrides.insert(key, profile);
+                            continue;
+                        }
                         let priority = self
                             .movement_number(key, node, field(config, "m_priority"), 0.0)
                             .unwrap_or(0.0);
@@ -3206,11 +3255,14 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     continue;
                 }
             };
-            let Some(index) = config
-                .get("m_A9561CA0")
-                .and_then(Json::as_u64)
-                .and_then(|value| u8::try_from(value).ok())
-            else {
+            let index_field = config.get("m_A9561CA0");
+            let Some(index) = (if index_field.is_none_or(Json::is_null) {
+                Some(SPEED_SLOT)
+            } else {
+                index_field
+                    .and_then(Json::as_u64)
+                    .and_then(|value| u8::try_from(value).ok())
+            }) else {
                 self.report(
                     self.site(id, node),
                     Issue::UnsupportedField("movement modifier index"),
@@ -3650,21 +3702,29 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             state.kind = StateKind::MoveTo { movement: None };
         }
         let speed_config = field(&node.fields, "m_speed");
-        // The optional destination slots may carry expressions whose authored
-        // none branch selects them; reject a resolved bone, not its presence.
-        for optional in ["m_destinationBone", "m_5BEFF040"] {
-            let config = field(&node.fields, optional);
-            if !config.is_null()
-                && !matches!(
-                    self.evaluate(key.instance, node, config, None),
-                    None | Some(Value::Null) | Some(Value::Integer(0)) | Some(Value::Float(0.0))
-                )
-            {
-                return Ok(());
-            }
+        let constraint = field(&node.fields, "m_5BEFF040");
+        if !constraint.is_null()
+            && !matches!(
+                self.evaluate(key.instance, node, constraint, None),
+                None | Some(Value::Null | Value::Integer(0) | Value::Float(0.0))
+            )
+        {
+            return Ok(());
         }
+        let bone_config = field(&node.fields, "m_destinationBone");
+        let bone = if bone_config.is_null() {
+            0
+        } else {
+            match self.evaluate(key.instance, node, bone_config, None) {
+                // A static map hit clears its attachment output with a null asset.
+                None
+                | Some(Value::Null | Value::Integer(0) | Value::Float(0.0) | Value::Asset(0)) => 0,
+                Some(Value::Asset(bone)) => bone,
+                _ => return Ok(()),
+            }
+        };
         let entity_config = field(&node.fields, "m_destinationEntity");
-        let entity_dest = if entity_config.is_null() {
+        let entity = if entity_config.is_null() {
             None
         } else {
             match self.evaluate(key.instance, node, entity_config, None) {
@@ -3675,19 +3735,31 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                             .world
                             .admits_generic_player_runtime(self.site(key.instance, node)) =>
                 {
-                    self.world.authored_position(entity)
+                    Some(entity)
                 }
                 _ => return Ok(()),
             }
         };
-        let destination =
-            match self.evaluate(key.instance, node, field(&node.fields, "m_865F3D01"), None) {
-                Some(Value::Vector(destination)) => destination,
-                _ => match entity_dest {
-                    Some(destination) => destination,
-                    None => return Ok(()),
-                },
-            };
+        let vector_config = field(&node.fields, "m_865F3D01");
+        let point = if vector_config.is_null() && entity.is_some() {
+            [0.0; 3]
+        } else if let Some(Value::Vector(point)) =
+            self.evaluate(key.instance, node, vector_config, None)
+        {
+            point
+        } else {
+            return Ok(());
+        };
+        let destination = match entity {
+            Some(actor) => {
+                let Some(point) = self.world.body_bone_point(actor, bone, point) else {
+                    return Ok(());
+                };
+                point
+            }
+            None if bone == 0 => point,
+            None => return Ok(()),
+        };
         let speed = match self.evaluate(key.instance, node, speed_config, None) {
             Some(Value::Integer(n)) => n as f64,
             Some(Value::Float(f)) => f,
@@ -4236,66 +4308,41 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
     ) -> Result<(), InitFault> {
         let id = key.instance;
         let site = self.site(id, node);
-        let max_range = self
-            .evaluate(id, node, field(&node.fields, "m_2AFC083F"), None)
-            .and_then(pool_number)
-            .filter(|r| r.is_finite() && *r > 1.0 && *r <= 60.0)
-            .unwrap_or(20.0);
-        let speed = self
-            .evaluate(id, node, field(&node.fields, "m_2C40C158"), None)
-            .and_then(pool_number)
-            .filter(|s| s.is_finite() && *s > 1.0 && *s <= 60.0)
-            .unwrap_or(22.0);
-        let pendulum = node.class == "STU_8B4B379C"
-            || self
-                .evaluate(id, node, field(&node.fields, "m_2E7D290A"), None)
-                .is_some_and(|v| truthy(&v));
-        let origin = self
-            .world
-            .body_eye_position(site.entity)
-            .or_else(|| self.world.position(site.entity));
-        let dir = self
-            .world
-            .authored_forward(site.entity)
-            .or_else(|| self.world.forward(site.entity));
-        let anchor = if let (Some(origin), Some(dir)) = (origin, dir) {
-            if let Some(Some(hit)) =
-                self.world
-                    .spatial_ray_cast(site, self.machine.frame, origin, dir, max_range)
-            {
-                Some((hit.point, hit.distance.max(2.0)))
-            } else {
-                None
+        // The graph supplies the attachment offset and minimum cable length.
+        // Its nested movement modifiers also feed the owner's ordinary mover.
+        let anchor = match self.evaluate(id, node, field(&node.fields, "m_865F3D01"), None) {
+            Some(Value::Vector(v)) if v.iter().all(|c| c.is_finite()) => v,
+            _ => {
+                self.post(id, Event::Finish(key.raw))?;
+                return Ok(());
             }
-        } else {
-            None
         };
-        if let Some((point, dist)) = anchor {
-            if let Ok(Some(anchor_var)) = script_expr::lvalue(field(&node.fields, "m_58B4C4D7")) {
-                self.write(source_key(id, anchor_var), Value::Vector(point))?;
-            }
-            if let Ok(Some(latch_var)) = script_expr::lvalue(field(&node.fields, "m_5ED803CF")) {
-                self.write(source_key(id, latch_var), Value::Bool(true))?;
-            }
-            let started_ms = self.machine.now_ms;
-            if let Some(state) = self.state_mut(key) {
-                state.grapple = Some(Box::new(crate::script_init::types::GrappleState {
-                    anchor: point,
-                    speed,
-                    pendulum,
-                    rope_len: dist,
-                    started_ms,
-                    last_dist: dist,
-                    stall_ticks: 0,
-                }));
-            }
-            self.register_tick(key, self.machine.now_ms);
-        } else {
-            if let Ok(Some(latch_var)) = script_expr::lvalue(field(&node.fields, "m_5ED803CF")) {
-                self.write(source_key(id, latch_var), Value::Bool(false))?;
-            }
-            self.post(id, Event::Finish(key.raw))?;
+        let attach_offset = match self.evaluate(id, node, field(&node.fields, "m_3BC31C57"), None) {
+            Some(Value::Vector(v)) if v.iter().all(|c| c.is_finite()) => v,
+            _ => return self.post(id, Event::Finish(key.raw)),
+        };
+        let min_rope_len = self
+            .evaluate(id, node, field(&node.fields, "m_189141AE"), None)
+            .and_then(pool_number)
+            .filter(|r| r.is_finite() && *r >= 0.0);
+        let (Some(pos), Some(min_rope_len)) = (self.world.position(site.entity), min_rope_len)
+        else {
+            return self.post(id, Event::Finish(key.raw));
+        };
+        let dx = anchor[0] - (pos[0] + attach_offset[0]);
+        let dy = anchor[1] - (pos[1] + attach_offset[1]);
+        let dz = anchor[2] - (pos[2] + attach_offset[2]);
+        let initial_dist = dx.hypot(dy).hypot(dz);
+        let rope_len = initial_dist.max(min_rope_len);
+        if let Some(state) = self.state_mut(key) {
+            state.grapple = Some(Box::new(crate::script_init::TetherConstraint {
+                anchor,
+                attach_offset,
+                rope_len,
+                min_rope_len,
+            }));
         }
+        self.register_tick(key, self.machine.now_ms);
         Ok(())
     }
 
@@ -4306,73 +4353,16 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         node: &Node,
         elapsed_ms: u64,
     ) -> Result<(), InitFault> {
-        let Some(mut grapple) = self.state(key).and_then(|s| s.grapple.as_deref().copied()) else {
-            return Ok(());
-        };
-        let anchor = grapple.anchor;
-        let speed = grapple.speed;
-        let pendulum = grapple.pendulum;
-        let rope_len = grapple.rope_len;
-        let id = key.instance;
-        let site = self.site(id, node);
-        let Some(pos) = self.world.position(site.entity) else {
-            return Ok(());
-        };
-        let dx = anchor[0] - pos[0];
-        let dy = anchor[1] - (pos[1] + 1.0);
-        let dz = anchor[2] - pos[2];
-        let dist = dx.hypot(dy).hypot(dz);
-        if !pendulum {
-            if dist + 0.05 < grapple.last_dist {
-                grapple.last_dist = dist;
-                grapple.stall_ticks = 0;
-            } else if elapsed_ms > 0 {
-                grapple.stall_ticks = grapple.stall_ticks.saturating_add(1);
-            }
-            if let Some(state) = self.state_mut(key) {
-                if let Some(slot) = state.grapple.as_deref_mut() {
-                    *slot = grapple;
+        if elapsed_ms != 0 {
+            let site = self.site(key.instance, node);
+            if let Some(pos) = self.world.position(site.entity) {
+                if let Some(cable) = self
+                    .state_mut(key)
+                    .and_then(|state| state.grapple.as_deref_mut())
+                {
+                    cable.shorten_at(pos);
                 }
             }
-            let timed_out = self.machine.now_ms.saturating_sub(grapple.started_ms) >= 2_500;
-            let frame = self.machine.frame;
-            if dist <= 1.8 || timed_out || grapple.stall_ticks >= 14 {
-                if dist <= 2.4 {
-                    let _ = self.world.apply_velocity_ops(
-                        site,
-                        frame,
-                        &[crate::script_init::VelocityOp::SetSpeed {
-                            axis: crate::script_init::VelocityAxis::Vertical,
-                            value: 7.5,
-                        }],
-                    );
-                }
-                self.post(id, Event::Finish(key.raw))?;
-            } else if dist > 1e-4 {
-                let pull_speed = speed.clamp(16.0, 32.0);
-                let _ = self.world.apply_velocity_ops(
-                    site,
-                    frame,
-                    &[crate::script_init::VelocityOp::SetVector([
-                        dx / dist * pull_speed,
-                        dy / dist * pull_speed,
-                        dz / dist * pull_speed,
-                    ])],
-                );
-            }
-        } else if elapsed_ms > 0 && dist > rope_len.max(2.5) && dist > 1e-4 {
-            let dt = (elapsed_ms as f64 / 1000.0).min(0.05);
-            let pull = ((dist - rope_len) * 24.0 * dt).min(speed * dt * 2.5);
-            let frame = self.machine.frame;
-            let _ = self.world.apply_velocity_ops(
-                site,
-                frame,
-                &[crate::script_init::VelocityOp::AddVector([
-                    dx / dist * pull,
-                    dy / dist * pull,
-                    dz / dist * pull,
-                ])],
-            );
         }
         Ok(())
     }
@@ -4408,69 +4398,6 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         }
         // Retail Tracer Recall completes rewind in ~0.9s (56 ticks) instead of stalling indefinitely.
         self.post_after(id, 900, Event::Timer(key.raw, 1))?;
-        Ok(())
-    }
-
-    #[inline(never)]
-    pub(in crate::script_init) fn begin_ball_roll(
-        &mut self,
-        key: StateKey,
-        node: &Node,
-    ) -> Result<(), InitFault> {
-        let id = key.instance;
-        let site = self.site(id, node);
-        let max_speed = self
-            .evaluate(id, node, field(&node.fields, "m_A289F9A2"), None)
-            .and_then(pool_number)
-            .filter(|s| s.is_finite() && *s > 5.0 && *s <= 40.0)
-            .unwrap_or(10.0);
-        let _ = self.world.set_ball_roll_state(site, true, max_speed);
-        self.machine.movement_modifiers.insert(
-            ModifierKey {
-                instance: id,
-                state: key.raw,
-                slot: 0,
-            },
-            Modifier {
-                index: SPEED_SLOT,
-                operation: Operation::Multiply,
-                value: narrow(1.8),
-                priority: 0.0,
-            },
-        );
-        self.register_tick(key, self.machine.now_ms);
-        Ok(())
-    }
-
-    #[inline(never)]
-    pub(in crate::script_init) fn tick_ball_roll(
-        &mut self,
-        key: StateKey,
-        node: &Node,
-    ) -> Result<(), InitFault> {
-        let id = key.instance;
-        let site = self.site(id, node);
-        let speed = match self.world.entity_velocity(site.entity) {
-            script_expr::VelocityQuery::Present(v) => v[0].hypot(v[2]),
-            _ => 0.0,
-        };
-        let was_fireball = matches!(
-            self.state(key).map(|s| s.kind),
-            Some(StateKind::BallRoll { fireball: true })
-        );
-        let now_fireball = speed >= 13.5;
-        if now_fireball != was_fireball {
-            if let Some(state) = self.state_mut(key) {
-                state.kind = StateKind::BallRoll {
-                    fireball: now_fireball,
-                };
-            }
-            if now_fireball {
-                self.follow(id, node, "m_3AF0D54C", Some(key), 0)?;
-            } else {
-                self.follow(id, node, "m_3DD55449", Some(key), 0)?;
-            }
-        }
         Ok(())
     }
 
@@ -4520,6 +4447,11 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
     ) -> Result<(), InitFault> {
         let id = key.instance;
         let site = self.site(id, node);
+        // Static room geometry has no dynamic rigid bodies. Actor knockback is
+        // authored separately through ModifyHealth on the same landing.
+        if self.world.has_dynamic_map_rigid_bodies(site) == Some(false) {
+            return Ok(());
+        }
         let center = match self.evaluate(id, node, field(&node.fields, "m_position"), None) {
             Some(Value::Vector(v)) if v.iter().all(|c| c.is_finite()) => v,
             Some(Value::Entity(e)) if script_expr::valid_entity(e) => {
@@ -4593,6 +4525,15 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         node: &Node,
     ) -> Result<(), InitFault> {
         let id = key.instance;
+        // Retail `STUStatescriptStateRayCast` uses `m_startPosWS`, `m_dirWS`, `m_castLength`,
+        // `m_out_HitSomething`, `m_out_HitPointWS`, `m_out_HitNormal`, `m_out_HitEntity`
+        // (e.g. Wrecking Ball Piledriver `160A:RayCast_90`).
+        if !field(&node.fields, "m_startPosWS").is_null()
+            || !field(&node.fields, "m_dirWS").is_null()
+            || !field(&node.fields, "m_castLength").is_null()
+        {
+            return self.run_authored_raycast(id, node, Some(key));
+        }
         let site = self.site(id, node);
         let origin = match self.evaluate(id, node, field(&node.fields, "m_position"), None) {
             Some(Value::Vector(v)) if v.iter().all(|c| c.is_finite()) => v,
@@ -4833,32 +4774,9 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 self.register_tick(key, self.machine.now_ms);
             }
             2 => {
-                // `STU_582E0D5F`: Phase / Speed-cap / Invuln movement envelope
-                let speed = self
-                    .evaluate(id, node, field(&node.fields, "m_B53E150A"), None)
-                    .or_else(|| self.evaluate(id, node, field(&node.fields, "m_F5C94645"), None))
-                    .and_then(pool_number)
-                    .filter(|s| s.is_finite() && *s > 0.1);
-                if let Some(s) = speed {
-                    let mult = if s > 3.0 {
-                        (s / 5.5).clamp(0.25, 3.0)
-                    } else {
-                        s.clamp(0.25, 3.0)
-                    };
-                    self.machine.movement_modifiers.insert(
-                        ModifierKey {
-                            instance: id,
-                            state: key.raw,
-                            slot: 0,
-                        },
-                        Modifier {
-                            index: SPEED_SLOT,
-                            operation: Operation::Multiply,
-                            value: narrow(mult),
-                            priority: 0.0,
-                        },
-                    );
-                }
+                // `STU_582E0D5F`: 3rd-person camera offset/orbit state (e.g. Wrecking Ball Roll
+                // `1203:STU_582E0D5F`, Reinhardt Shield, Brigitte Shield) — client-side camera
+                // framing only; must NOT alter movement speed.
             }
             3 => {
                 // `STU_FBFF5DE7`: Charge / Rocket Punch forward directional drive

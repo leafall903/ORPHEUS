@@ -21,6 +21,28 @@ The [pinned Python → Rust parity matrix](https://github.com/leafall903/ORPHEUS
 
 ## Practice Range playtest follow-up
 
+The shared static grapple trace reads the firing body's model attachment and
+uses the mover's collision category. In a prepared 104319 Practice Range
+replay, Wrecking Ball's anchor stayed fixed as the owner turned 90 degrees.
+On release the tip returned to the rotated model reference point within
+1 mm per axis, with less than 2 cm of horizontal drift from rest. The
+same trace passed Widowmaker's prepared hit, miss, ledge and second-cast
+VM checks. On a zhCN pack with 613 graphs, the full kit also received
+the hook input and completed its graph under the normal server policy.
+The local original-client cable animation is still unverified.
+
+The same 613-graph room replay set checked Adaptive Shield during startup
+packet loss, enemy contact with 32 stock movers, crossing an allied body,
+and delivery of 15 armed Minefield entities to the owner connection. Doomfist
+damaged and displaced a training bot with both Rocket Punch and Seismic Slam.
+These results cover the simulated room and its outputs. First-person HUD and
+deployable visibility still require original-client observation.
+
+The separate full-kit diagnostic-count test expects seven initialization
+entries. The enriched 104319 pack produced the same six entries on the
+unchanged upstream server and in the integration checkout. This assertion
+still fails for that pack; keep it separate from the hook-input checks.
+
 The prepared 104319 regression reproduced a public StateScript diagnostic
 several frames after a training bot died. The room now keeps projecting the
 corpse through those frames and admits the replacement on schedule. A

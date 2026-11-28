@@ -233,6 +233,10 @@ pub(super) fn filter_masks(filter: &Json, scene_hostile: bool) -> Option<[u64; 3
     if !supported {
         return None;
     }
+    entity_masks(filter)
+}
+
+pub(crate) fn entity_masks(filter: &Json) -> Option<[u64; 3]> {
     let mask = |field| {
         let value = child(filter, field);
         if value.is_null() {
@@ -246,6 +250,13 @@ pub(super) fn filter_masks(filter: &Json, scene_hostile: bool) -> Option<[u64; 3
         mask("m_1E14CCA8")?,
         mask("m_4EA686DB")?,
     ])
+}
+
+pub(crate) fn matches_entity_masks([any, all, exclude]: [u64; 3], flags: u64) -> bool {
+    (any | all | exclude) == 0
+        || ((any == ANY_ENTITY_MASK || flags & any != 0)
+            && flags & all == all
+            && flags & exclude == 0)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

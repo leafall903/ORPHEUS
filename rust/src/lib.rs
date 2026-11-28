@@ -9,7 +9,7 @@ pub use orpheus_collision::{
 };
 pub use orpheus_statescript::{
     script_codecs, script_destination, script_entity_state, script_expr, script_graph, script_init,
-    script_runtime, script_voice, script_wire,
+    script_modifiers, script_runtime, script_voice, script_wire,
 };
 pub use orpheus_wire::{bits, commands, game_link, jam_cipher, jam_codec, jam_framing};
 

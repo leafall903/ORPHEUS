@@ -28,6 +28,7 @@ pub(crate) mod owner_effects;
 mod owner_fault_shields;
 mod owner_model;
 mod owner_reselection;
+mod owner_startup_health;
 mod owner_swept_motion;
 mod owner_synchronous_fault;
 mod owner_walk;
@@ -1409,6 +1410,7 @@ impl OwnerBodyRuntime for SyntheticOwner {
         &mut self,
         amount: f64,
         source: crate::vitals::Death,
+        _tags: &crate::script_init::HitTags,
     ) -> crate::vitals::Damage {
         self.vitals
             .as_mut()
@@ -3465,6 +3467,7 @@ fn late_join_delivers_existing_player_at_the_current_authoritative_pose() {
             frame: case.join_frame - 1,
             killer: 0,
         },
+        &crate::script_init::HitTags::EMPTY,
     );
     assert_eq!(damage.dealt, case.damage);
     let join_health = runtime.vitals().unwrap().component();

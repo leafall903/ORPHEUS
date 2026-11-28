@@ -334,6 +334,17 @@ pub trait Context {
         self.forward(entity)
     }
 
+    /// Map a body-local point (or bone-local point for a nonzero .088 GUID) to world space.
+    fn body_bone_point(&mut self, entity: u32, bone: u64, local: [f64; 3]) -> Option<[f64; 3]> {
+        if bone != 0 || !valid_entity(entity) {
+            return None;
+        }
+        let origin = self
+            .authored_position(entity)
+            .or_else(|| self.known_position(entity))?;
+        body_space_point(origin, self.authored_forward(entity), local)
+    }
+
     /// The host's eye anchor for this body, when available.
     fn body_eye_position(&mut self, _entity: u32) -> Option<[f64; 3]> {
         None
@@ -509,6 +520,12 @@ pub trait Context {
         Value::Null
     }
 
+    /// A rule explicitly qualified by an entity. Only a host with its mode and
+    /// body identity can resolve this reference.
+    fn entity_ruleset(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+        None
+    }
+
     fn would_stack_to_top(
         &mut self,
         _variable: Variable,
@@ -568,6 +585,7 @@ pub enum EvalError {
     UnavailableEntityPosition(u32),
     UnavailableEntityDirection(u32),
     UnavailableBodyEyePosition(u32),
+    UnavailableBodyBone { entity: u32, bone: u64 },
     UnavailableBodyHardpoint { entity: u32, hardpoint: u64 },
     UnavailableBodyActivity,
     UnavailableSpatialCandidates,
@@ -612,6 +630,12 @@ impl fmt::Display for EvalError {
             }
             Self::UnavailableBodyEyePosition(entity) => {
                 write!(f, "unavailable body eye position {entity:08X}")
+            }
+            Self::UnavailableBodyBone { entity, bone } => {
+                write!(
+                    f,
+                    "unavailable bone transform {bone:016X} for body {entity:08X}"
+                )
             }
             Self::UnavailableBodyHardpoint { entity, hardpoint } => {
                 write!(
@@ -786,6 +810,28 @@ pub fn valid_entity(id: u32) -> bool {
     id != 0 && (id & 0x1fff_ffff) != 0x1fff_ffff
 }
 
+/// Apply the horizontal orientation of a body at its feet to a model-space point.
+pub fn body_space_point(
+    origin: [f64; 3],
+    forward: Option<[f64; 3]>,
+    local: [f64; 3],
+) -> Option<[f64; 3]> {
+    let [x, y, z] = local;
+    let [mut wx, wy, mut wz] = origin;
+    if x != 0.0 || z != 0.0 {
+        let [dx, _, dz] = forward?;
+        let length = dx.hypot(dz);
+        if !length.is_finite() || length <= 1e-6 {
+            return None;
+        }
+        let (sin, cos) = (dx / length, dz / length);
+        wx += x * cos + z * sin;
+        wz += z * cos - x * sin;
+    }
+    let world = [wx, wy + y, wz];
+    world.iter().all(|v| v.is_finite()).then_some(world)
+}
+
 fn first_scalar(mut value: &Value) -> Option<&Value> {
     while let Value::Array(items) = value {
         value = items.first()?;
@@ -952,6 +998,7 @@ fn index(object: Value, index: &Value) -> Value {
 
 mod evaluator;
 mod helpers;
+pub(crate) use helpers::{entity_masks, matches_entity_masks};
 
 use evaluator::Evaluator;
 pub(crate) use helpers::named_shield_identifier;

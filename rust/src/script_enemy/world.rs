@@ -1191,6 +1191,43 @@ impl World for EnemyWorld<'_> {
         self.forward(entity)
     }
 
+    fn body_bone_point(&mut self, entity: u32, bone: u64, local: [f64; 3]) -> Option<[f64; 3]> {
+        if entity == self.binding.body {
+            if self.vitals.death().is_some() {
+                return None;
+            }
+            let point = if bone == 0 {
+                local
+            } else {
+                self.graphs.bone_reference_point(
+                    self.binding.pair.body,
+                    self.binding.skin.unwrap_or(0),
+                    bone,
+                    local,
+                )?
+            };
+            let pose = &self.binding.pose;
+            return crate::script_expr::body_space_point(
+                pose.position,
+                Some(direction_for_angles(pose.yaw, 0)),
+                point,
+            );
+        }
+        if let Some(frame) = self.binding.spatial_frame.as_ref() {
+            if frame.is_retired(entity) {
+                return None;
+            }
+            if frame.actor_alive(entity) {
+                return frame.actor_bone_point(self.graphs, entity, bone, local);
+            }
+        }
+        if bone != 0 || self.binding.retired_entities.contains(&entity) {
+            return None;
+        }
+        let origin = self.authored_position(entity)?;
+        crate::script_expr::body_space_point(origin, self.authored_forward(entity), local)
+    }
+
     fn body_eye_position(&self, entity: u32) -> Option<[f64; 3]> {
         self.binding
             .spatial_frame

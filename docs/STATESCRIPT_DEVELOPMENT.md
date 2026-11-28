@@ -845,6 +845,12 @@ The server allows up to 64 volumes per map. Each axis requires two
 finite, strictly ordered endpoints. The room checks the final sampled
 feet position, including the box faces, and settles lethal damage with
 no killer credit. Training bots use their existing replacement timer.
+
+The common body-death message (`003E`) supplies the terminal hit's ordered
+identifier tags in parameter `003D`. Original death scripts bind this list
+before choosing a reaction. A map volume defined only by its bounds provides
+no damage tags. A falling-death reaction needs an independently identified tag
+source for the particular hazard.
 Player death notices use the ordinary health path.
 Missing files and unlisted maps have no configured lethal volumes.
 

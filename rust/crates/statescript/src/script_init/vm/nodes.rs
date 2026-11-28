@@ -543,22 +543,48 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 };
                 let target = source_key(id, output);
                 if let Value::Array(mut values) = self.machine.value(target, None) {
-                    let index = self
-                        .evaluate_at_with_initial(
-                            self.site(id, node),
-                            field(&node.fields, "m_index"),
-                            None,
-                            Value::Integer(-1),
-                        )
-                        .map(|value| script_expr::to_int(&value, -1))
-                        .unwrap_or(-1);
-                    if let Ok(index) = usize::try_from(index) {
-                        if index < values.len() {
-                            for _ in index..values.len() {
-                                self.spend("ordered array removal")?;
+                    let value_field = field(&node.fields, "m_value");
+                    if !value_field.is_null() {
+                        if let Some(remove_val) = self.evaluate(id, node, value_field, None) {
+                            let before_len = values.len();
+                            match remove_val {
+                                Value::Array(items) => {
+                                    for _ in 0..values.len() {
+                                        self.spend("value array removal")?;
+                                    }
+                                    values.retain(|existing| {
+                                        !items.iter().any(|item| equal(existing, item))
+                                    });
+                                }
+                                single => {
+                                    for _ in 0..values.len() {
+                                        self.spend("value array removal")?;
+                                    }
+                                    values.retain(|existing| !equal(existing, &single));
+                                }
                             }
-                            values.remove(index);
-                            self.write(target, Value::Array(values))?;
+                            if values.len() != before_len {
+                                self.write(target, Value::Array(values))?;
+                            }
+                        }
+                    } else {
+                        let index = self
+                            .evaluate_at_with_initial(
+                                self.site(id, node),
+                                field(&node.fields, "m_index"),
+                                None,
+                                Value::Integer(-1),
+                            )
+                            .map(|value| script_expr::to_int(&value, -1))
+                            .unwrap_or(-1);
+                        if let Ok(index) = usize::try_from(index) {
+                            if index < values.len() {
+                                for _ in index..values.len() {
+                                    self.spend("ordered array removal")?;
+                                }
+                                values.remove(index);
+                                self.write(target, Value::Array(values))?;
+                            }
                         }
                     }
                 }
@@ -1297,18 +1323,29 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 else {
                     return Ok(false);
                 };
+                let cases = array_field(&node.fields, "m_FDD34C25");
                 let mut path = "m_CD38D5DB".to_owned();
-                for (number, case) in array_field(&node.fields, "m_FDD34C25").iter().enumerate() {
-                    if !case.is_object() {
-                        continue;
+                if field(&node.fields, "m_F0F0720B").as_u64() == Some(1) {
+                    // Indexed switch mode (e.g. Wrecking Ball Adaptive Shield `1566` 0..6 enemy chimes).
+                    let index = script_expr::to_int(&value, -1);
+                    if let Ok(idx) = usize::try_from(index) {
+                        if cases.get(idx).is_some_and(Json::is_object) {
+                            path = format!("m_FDD34C25[{idx}]");
+                        }
                     }
-                    let Some(candidate) = self.evaluate(id, node, field(case, "m_value"), None)
-                    else {
-                        return Ok(false);
-                    };
-                    if equal(&value, &candidate) {
-                        path = format!("m_FDD34C25[{number}]");
-                        break;
+                } else {
+                    for (number, case) in cases.iter().enumerate() {
+                        if !case.is_object() {
+                            continue;
+                        }
+                        let Some(candidate) = self.evaluate(id, node, field(case, "m_value"), None)
+                        else {
+                            return Ok(false);
+                        };
+                        if equal(&value, &candidate) {
+                            path = format!("m_FDD34C25[{number}]");
+                            break;
+                        }
                     }
                 }
                 self.follow(id, node, &path, None, depth)?;
@@ -2361,10 +2398,12 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             }
             "STUStatescriptStateModifyHealth"
                 if registration.shape(immediate_self_damage(node, key.raw).is_some())
-                    || registration.permits(matches!(
+                    || (registration.permits(matches!(
                         (self.graph(id).index, node.pos),
                         (0x0c89, 38 | 48) | (0x0b27, 93)
-                    )) =>
+                    )) && !self
+                        .world
+                        .admits_generic_player_runtime(self.site(id, node))) =>
             {
                 StateKind::ModifyHealth
             }
@@ -2927,6 +2966,13 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     self.register_tick(key, self.machine.now_ms);
                 } else {
                     self.apply_generic_modify_health(key, node, None)?;
+                    // Discrete one-shot ModifyHealth states (e.g. Piledriver `160A:15` victim loop)
+                    // finish once their hit is committed so `m_onFinishedPlug` advances the loop.
+                    if field(&node.fields, "m_8B707686").as_u64() == Some(1)
+                        || node.links("m_onFinishedPlug").next().is_some()
+                    {
+                        self.post(id, Event::Finish(key.raw))?;
+                    }
                 }
             }
             StateKind::Pet { .. } => self.begin_pet(key, node)?,
@@ -2959,7 +3005,8 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 self.register_tick(key, self.machine.now_ms);
             }
             StateKind::RecallRewind => self.begin_recall_rewind(key, node)?,
-            StateKind::BallRoll { .. } => self.begin_ball_roll(key, node)?,
+            // The authored movement profile owns roll acceleration and friction.
+            StateKind::BallRoll { .. } => {}
             StateKind::SpatialQuery => self.begin_spatial_query(key, node)?,
             StateKind::PhysicsExplosion => self.begin_physics_explosion(key, node)?,
             StateKind::HitTracker { .. } => {
@@ -3002,7 +3049,12 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 }
             }
             StateKind::TrackedTargets => self.refresh_tracked_targets(key, node)?,
-            StateKind::GenericTrackedTargets => self.refresh_generic_tracked_targets(key, node)?,
+            StateKind::GenericTrackedTargets => {
+                self.refresh_generic_tracked_targets(key, node)?;
+                if !array_field(&node.fields, "m_transitionPlug").is_empty() {
+                    self.try_complete(key, node, depth)?;
+                }
+            }
             StateKind::ViewTargets { .. } => {
                 self.register_tick(key, self.machine.now_ms);
                 if !self.sample_view_targets(key, node)? {
@@ -4317,7 +4369,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
 
     /// Execute a generic retail `STUStatescriptStateRayCast` or `STU_08D6BA6E`
     /// action raycast and write its authored output variables.
-    fn run_authored_raycast(
+    pub(super) fn run_authored_raycast(
         &mut self,
         id: u16,
         node: &Node,

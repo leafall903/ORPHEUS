@@ -5,6 +5,7 @@ use serde_json::json;
 
 use crate::script_graph::GraphStore;
 
+mod body_points;
 mod degree_trigonometry;
 mod direction_limits;
 mod entity_ray_cast;
@@ -1019,6 +1020,44 @@ impl Context for Natives {
     fn reference_native(&mut self, class: &str) {
         self.reported.push(class.to_owned());
     }
+}
+
+#[test]
+fn qualified_ruleset_reads_the_rule_for_the_entity_without_reinterpreting_its_value_as_a_key() {
+    struct Rules(Option<Value>);
+    impl Context for Rules {
+        fn owner(&mut self) -> Value {
+            Value::Entity(46)
+        }
+        fn entity_ruleset(&mut self, entity: u32, id: u32) -> Option<Value> {
+            assert_eq!((entity, id), (46, 902));
+            self.0.clone()
+        }
+        fn entity_member(&mut self, entity: u32, id: u32) -> Option<Value> {
+            assert_eq!((entity, id), (46, 902));
+            Some(Value::Integer(613))
+        }
+        fn ruleset(&mut self, id: u32) -> Value {
+            assert_eq!(id, 613);
+            Value::Bool(false)
+        }
+    }
+    let member = expression(
+        json!([14, 0, 7, 0, 15, 0]),
+        &[variable(902, Scope::Instance)],
+        &[],
+        &[json!({"$":"STU_B5A0CAF0"})],
+    );
+    let rule = json!({"$":"STU_3832D36C","m_value":member});
+    assert_eq!(
+        evaluate(&rule, &mut Rules(Some(Value::Float(0.25)))),
+        Ok(Value::Float(0.25))
+    );
+    assert_eq!(evaluate(&rule, &mut Rules(None)), Ok(Value::Bool(false)));
+    assert_eq!(
+        evaluate(&member, &mut Rules(Some(Value::Float(0.25)))),
+        Ok(Value::Integer(613))
+    );
 }
 
 #[test]

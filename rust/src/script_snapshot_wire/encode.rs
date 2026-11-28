@@ -261,6 +261,18 @@ impl<'a> SnapshotEncoder<'a> {
         Ok(script_wire::remote_full(&[wire], &Variables::new())?)
     }
 
+    /// Encode the armed observer baseline from this projectile's own .003 script roots.
+    pub fn armed_projectile_frame(
+        &self,
+        definition: u64,
+    ) -> Result<Option<BitWriter>, SnapshotError> {
+        self.graphs
+            .persistent_projectile(definition)
+            .and_then(|body| super::ArmingEffects::from_definition(self.graphs, body))
+            .map(|effects| self.full(&effects.snapshot(0)))
+            .transpose()
+    }
+
     /// The owner's first tree and the observer's first frame share the H0
     /// descriptor, variable, and remote slot writer.
     pub fn full(&self, snapshot: &ProjectedSnapshot) -> Result<BitWriter, SnapshotError> {

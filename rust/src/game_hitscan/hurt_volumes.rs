@@ -230,7 +230,16 @@ impl HurtPose {
                 // preventing chest shots from piercing into lower neck/head hemispheres.
                 let impact_y = origin[1] + direction[1] * head.hit.distance;
                 let head_low_y = head.capsule.ends[0][1].min(head.capsule.ends[1][1]);
-                let neck_plane = head_low_y - head.capsule.radius * 0.25;
+                let head_high_y = head.capsule.ends[0][1].max(head.capsule.ends[1][1]);
+                // Point-sphere heads (e.g. Training Bot `lower == upper`) place
+                // the face/visor below sphere center; allow upper ~75% of the head
+                // sphere to beat a wider torso cylinder while keeping chest shots body.
+                let neck_drop = if (head_high_y - head_low_y).abs() <= 1e-4 {
+                    0.55
+                } else {
+                    0.25
+                };
+                let neck_plane = head_low_y - head.capsule.radius * neck_drop;
                 let front_margin = if impact_y >= neck_plane {
                     (body.capsule.radius - head.capsule.radius).max(0.0) + 0.12
                 } else {
@@ -925,5 +934,45 @@ mod tests {
             .contact([0.0, 1.68, 4.0], [0.0, 0.0, -1.0], 10.0, 0.0)
             .unwrap();
         assert!(cockpit.head);
+    }
+
+    #[test]
+    fn training_bot_point_sphere_head_beats_wide_torso_at_visor_height() {
+        let data = serde_json::json!({
+            "version": 1,
+            "bodies": {
+                "0x0400000000001403": {
+                    "body": {"lower": 0.62, "upper": 1.16, "radius": 0.64},
+                    "head": {"lower": 1.91, "upper": 1.91, "radius": 0.365}
+                }
+            }
+        });
+        let catalog = HurtVolumeCatalog::from_json(&data.to_string()).unwrap();
+        let bot = catalog.pose(
+            0x0400_0000_0000_1403,
+            TargetPose {
+                feet: [0.0, 0.0, 10.0],
+                height: 2.0,
+                radius: 0.64,
+                eye: 1.91,
+            },
+            false,
+        );
+        let aim_at = |target_y: f64| {
+            let origin = [0.0, 1.55, 0.0];
+            let raw = [0.0, target_y - origin[1], 10.0];
+            let len = norm(raw);
+            bot.contact(origin, raw.map(|v| v / len), 30.0, 0.0)
+                .unwrap()
+        };
+        assert!(!aim_at(1.35).head, "chest shot must stay body");
+        assert!(
+            aim_at(1.75).head,
+            "visor shot must register as critical headshot"
+        );
+        assert!(
+            aim_at(1.91).head,
+            "head center shot must register as critical headshot"
+        );
     }
 }

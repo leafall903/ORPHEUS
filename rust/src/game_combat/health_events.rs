@@ -755,7 +755,7 @@ mod tests {
             .runtime
             .as_mut()
             .unwrap()
-            .receive_damage(wounds[1], dealer);
+            .receive_damage(wounds[1], dealer, &crate::script_init::HitTags::EMPTY);
         room.heal_allies(&queries, 1, Some(owner.entity), Some(owner), &pulses)
             .unwrap();
         let updates = room.take_scripted_health();
@@ -816,7 +816,11 @@ mod tests {
         let ally_runtime = ally_state.runtime.as_mut().unwrap();
         assert_eq!(
             ally_runtime
-                .receive_damage(dirty_full_ally_wound, dealer)
+                .receive_damage(
+                    dirty_full_ally_wound,
+                    dealer,
+                    &crate::script_init::HitTags::EMPTY
+                )
                 .dealt,
             dirty_full_ally_wound
         );
@@ -838,7 +842,11 @@ mod tests {
             .runtime
             .as_mut()
             .unwrap()
-            .receive_damage(dirty_full_ally_wound, dealer);
+            .receive_damage(
+                dirty_full_ally_wound,
+                dealer,
+                &crate::script_init::HitTags::EMPTY,
+            );
         room.heal_allies(&queries, 1, Some(owner.entity), Some(owner), &pulses)
             .unwrap();
         let before_replacement = room.scripted_health.last().unwrap().clone();

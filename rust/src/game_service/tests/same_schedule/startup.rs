@@ -15,7 +15,7 @@ pub(super) struct Startup {
     pub scripts: [u32; 2],
 }
 
-fn receive_request(state: &mut State, server: &UdpSocket, now: Duration) {
+pub(super) fn receive_request(state: &mut State, server: &UdpSocket, now: Duration) {
     let deadline = Instant::now() + Duration::from_secs(2);
     let mut buffer = [0; MAX_DATAGRAM];
     loop {
@@ -57,7 +57,15 @@ pub(super) fn join(
     bot: u32,
     names: &mut BTreeMap<u32, String>,
 ) -> Startup {
-    join_observed(state, server, client, schemas, bot, names, |_, _, _| {})
+    join_observed(
+        state,
+        server,
+        client,
+        schemas,
+        (bot, crate::game_heroes::SOLDIER),
+        names,
+        |_, _, _| {},
+    )
 }
 
 pub(super) fn join_observed(
@@ -65,7 +73,7 @@ pub(super) fn join_observed(
     server: &UdpSocket,
     client: &mut Client,
     schemas: &Schemas,
-    bot: u32,
+    (bot, hero): (u32, u64),
     names: &mut BTreeMap<u32, String>,
     mut observe: impl FnMut(&Packet, crate::game_replication::BodyId, &DeliveryReport<Arc<Record>>),
 ) -> Startup {
@@ -157,7 +165,7 @@ pub(super) fn join_observed(
                 schemas,
                 1,
                 crate::game_parameters::PICK_HERO,
-                crate::game_heroes::SOLDIER.to_le_bytes().to_vec(),
+                hero.to_le_bytes().to_vec(),
             );
             picked = true;
         } else {

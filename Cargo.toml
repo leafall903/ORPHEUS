@@ -97,6 +97,10 @@ name = "body_short_action_retry"
 path = "rust/tests/body_short_action_retry.rs"
 
 [[test]]
+name = "wrecking_ball"
+path = "rust/tests/wrecking_ball.rs"
+
+[[test]]
 name = "seismic_slam"
 path = "rust/tests/seismic_slam.rs"
 

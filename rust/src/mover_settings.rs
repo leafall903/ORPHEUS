@@ -98,6 +98,47 @@ impl Default for MoverSettings {
     }
 }
 
+impl From<orpheus_statescript::script_modifiers::MoverProfile> for MoverSettings {
+    fn from(profile: orpheus_statescript::script_modifiers::MoverProfile) -> Self {
+        Self {
+            stand_height: profile.stand_height,
+            stand_radius: profile.stand_radius,
+            stand_pogo: profile.stand_pogo,
+            crouch_height: profile.crouch_height,
+            crouch_radius: profile.crouch_radius,
+            crouch_pogo: profile.crouch_pogo,
+            ground_circle_radius: profile.ground_circle_radius,
+            ground_circle_rays: profile.ground_circle_rays,
+            pogo_frequency: profile.pogo_frequency,
+            pogo_damping: profile.pogo_damping,
+            max_slope: profile.max_slope,
+            step_down: profile.step_down,
+            run_forward: profile.run_forward,
+            run_backward: profile.run_backward,
+            run_strafe: profile.run_strafe,
+            crouch_forward: profile.crouch_forward,
+            crouch_backward: profile.crouch_backward,
+            crouch_strafe: profile.crouch_strafe,
+            accel_ground: profile.accel_ground,
+            accel_air: profile.accel_air,
+            accel_air_touching: profile.accel_air_touching,
+            decel_ground_base: profile.decel_ground_base,
+            decel_ground_base_speed: profile.decel_ground_base_speed,
+            decel_ground_per_speed: profile.decel_ground_per_speed,
+            decel_air_base: profile.decel_air_base,
+            decel_air_base_speed: profile.decel_air_base_speed,
+            decel_air_per_speed: profile.decel_air_per_speed,
+            jump_speed: profile.jump_speed,
+            gravity_scale: profile.gravity_scale,
+            terminal_velocity: profile.terminal_velocity,
+            terminal_velocity_up: profile.terminal_velocity_up,
+            ground_gravity_accel: profile.ground_gravity_accel,
+            ground_gravity_decel: profile.ground_gravity_decel,
+            character_collision: profile.character_collision,
+        }
+    }
+}
+
 impl MoverSettings {
     /// Data-driven standing/crouching eye height derived from the hero body's
     /// authored `STUCharacterMoverComponent` stand/crouch heights. Matches

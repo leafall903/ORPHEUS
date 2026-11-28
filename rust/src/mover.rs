@@ -275,6 +275,7 @@ pub(crate) fn sample_movement_flags(pose: &Movement) -> Option<u16> {
 
 pub struct Mover {
     base: MoverSettings,
+    mover_override: Option<MoverSettings>,
     category: u16,
     probe: GroundProbe,
     body: CharacterBody,
@@ -282,6 +283,7 @@ pub struct Mover {
     modifiers: ModifierTimeline,
     cinematic_aim: Option<[i32; 2]>,
     authored_facing: Option<[i32; 2]>,
+    tether: Option<crate::script_init::TetherConstraint>,
     move_request: Option<([f64; 3], f64)>,
     player_dead: bool,
     player_stunned: bool,
@@ -323,6 +325,7 @@ impl Mover {
         let position = position.map(snap);
         Ok(Self {
             base,
+            mover_override: None,
             category,
             probe: GroundProbe::new(&base)?,
             body: standing_body(&base, world, position, category),
@@ -330,6 +333,7 @@ impl Mover {
             modifiers: ModifierTimeline::default(),
             cinematic_aim: None,
             authored_facing: None,
+            tether: None,
             move_request: None,
             player_dead: false,
             player_stunned: false,
@@ -371,8 +375,36 @@ impl Mover {
         self.category
     }
 
+    fn effective_base(&self) -> &MoverSettings {
+        self.mover_override.as_ref().unwrap_or(&self.base)
+    }
+
+    pub(crate) fn set_mover_override(&mut self, override_settings: Option<MoverSettings>) {
+        if self.mover_override == override_settings {
+            return;
+        }
+        let active = override_settings.as_ref().unwrap_or(&self.base);
+        let Ok(probe) = GroundProbe::new(active) else {
+            return;
+        };
+        let mut posture = self.posture.clone();
+        posture.set_spring_limits(active);
+        let crouched = posture.crouched();
+        let (radius, segment) = crate::mover_ground::capsule(active, crouched);
+        let lift = pogo(active, crouched) as f32 + posture.spring_offset();
+        let origin = crate::mover_ground::standing_origin(self.pose.position, lift);
+        let mut body = self.body.fresh_at(origin);
+        if !matches!(body.try_resize(radius, segment + radius), Ok(true)) {
+            return;
+        }
+        self.body = body;
+        self.posture = posture;
+        self.probe = probe;
+        self.mover_override = override_settings;
+    }
+
     pub(crate) fn eye_height(&self) -> f64 {
-        self.base.eye_height(self.crouched())
+        self.effective_base().eye_height(self.crouched())
     }
 
     pub(crate) fn contact_capsule(&self) -> CapsulePose {
@@ -390,7 +422,7 @@ impl Mover {
     pub(crate) fn set_mod_scales(&mut self, gravity_scale: f64, speed_scale: f64) {
         if gravity_scale.is_finite() && gravity_scale > 0.0 {
             self.mod_gravity_scale = gravity_scale.clamp(0.05, 10.0);
-            self.pose.gravity = self.base.gravity_scale * self.mod_gravity_scale;
+            self.pose.gravity = self.effective_base().gravity_scale * self.mod_gravity_scale;
         }
         if speed_scale.is_finite() && speed_scale > 0.0 {
             self.mod_speed_scale = speed_scale.clamp(0.1, 10.0);
@@ -428,10 +460,11 @@ impl Mover {
     }
 
     pub(crate) fn capsule(&self) -> (f64, f64) {
+        let base = self.effective_base();
         if self.crouched() {
-            (self.base.crouch_height, self.base.crouch_radius)
+            (base.crouch_height, base.crouch_radius)
         } else {
-            (self.base.stand_height, self.base.stand_radius)
+            (base.stand_height, base.stand_radius)
         }
     }
 
@@ -455,7 +488,9 @@ impl Mover {
     }
 
     fn character_collision_at(&self, frame: u32) -> bool {
-        self.modifiers.at(frame).character_collision(&self.base)
+        self.modifiers
+            .at(frame)
+            .character_collision(self.effective_base())
     }
 
     pub(crate) fn set_cinematic_aim(&mut self, aim: Option<[i32; 2]>) {
@@ -464,6 +499,10 @@ impl Mover {
 
     pub(crate) fn set_authored_facing(&mut self, facing: Option<[i32; 2]>) {
         self.authored_facing = facing;
+    }
+
+    pub(crate) fn set_tether(&mut self, tether: Option<crate::script_init::TetherConstraint>) {
+        self.tether = tether;
     }
 
     pub(crate) fn set_move_request(&mut self, request: Option<([f64; 3], f64)>) {
@@ -530,6 +569,7 @@ impl Mover {
     /// Drop queued and continuous script controls while keeping the resolved
     /// pose, current momentum and queued external impulses.
     pub(crate) fn clear_pending_script_motion(&mut self) {
+        self.tether = None;
         self.velocity_changes
             .retain(|(_, change)| matches!(change, VelocityChange::Impulse(_)));
         self.scripted_motion = None;
@@ -539,6 +579,7 @@ impl Mover {
     }
 
     pub(crate) fn clear_pending_motion(&mut self) {
+        self.tether = None;
         self.velocity_changes.clear();
         self.stop_for_stun = None;
         self.clear_pending_script_motion();
@@ -714,9 +755,10 @@ impl Mover {
         blockers: &[CapsulePose],
     ) -> Result<(), HullContactError> {
         let active = self.modifiers.at(command.frame);
+        let base_settings = *self.effective_base();
         #[cfg(feature = "lua-mods")]
         let settings = {
-            let mut settings = active.settings(&self.base);
+            let mut settings = active.settings(&base_settings);
             if (self.mod_gravity_scale - 1.0).abs() > 1e-6 {
                 settings.gravity_scale *= self.mod_gravity_scale;
             }
@@ -731,7 +773,7 @@ impl Mover {
             settings
         };
         #[cfg(not(feature = "lua-mods"))]
-        let mut settings = active.settings(&self.base);
+        let mut settings = active.settings(&base_settings);
         #[cfg(feature = "lua-mods")]
         let mut settings = settings;
         if let Some(roll_speed) = self.ball_roll_speed {
@@ -907,7 +949,7 @@ impl Mover {
         self.posture.advance(
             PostureStep {
                 command: &command,
-                base: &self.base,
+                base: &base_settings,
                 values: &settings,
                 mods: &active,
                 probe,
@@ -922,15 +964,17 @@ impl Mover {
         let velocity = if let Some(mv) = move_to_velocity {
             mv
         } else {
-            VelocityStep {
-                base: &self.base,
+            let mut velocity = VelocityStep {
+                base: &base_settings,
                 settings: &settings,
                 input,
                 ground,
                 crouched: self.posture.crouched(),
                 dt,
             }
-            .advance(self.pose.velocity)
+            .advance(self.pose.velocity);
+            active.apply_velocity(&mut velocity, settings.jump_speed);
+            velocity
         };
         if ground != Ground::Standing && move_to_velocity.is_none() {
             self.posture.apply_fall(settings.gravity_scale, dt);
@@ -944,7 +988,7 @@ impl Mover {
             ) <= 0.5
             && !velocity_edited
             && !scripted_motion_changed;
-        let (vertical, actor_contact) = self.move_body(
+        let (vertical, actor_contact, tether_limited) = self.move_body(
             rays,
             velocity,
             normal,
@@ -959,7 +1003,7 @@ impl Mover {
         // whose dt-valid drive actually moved the feet, not on every frame
         // with a pending request (a dt-discarded or fully-seated drive runs
         // ordinary motion, not scripted motion).
-        scripted_motion_changed |= self.drive_pose_moved;
+        scripted_motion_changed |= self.drive_pose_moved || tether_limited;
         self.posture.finish_fall(settings.gravity_scale, vertical);
 
         if input.throttles != [0; 2] {
@@ -1054,7 +1098,8 @@ impl Mover {
     }
 
     fn capsule_origin(&self, [x, y, z]: [f64; 3]) -> [f32; 3] {
-        let lift = pogo(&self.base, self.posture.crouched()) as f32 + self.posture.spring_offset();
+        let lift = pogo(self.effective_base(), self.posture.crouched()) as f32
+            + self.posture.spring_offset();
         [x as f32, (y + f64::from(lift)) as f32, z as f32]
     }
 
@@ -1070,7 +1115,7 @@ impl Mover {
         settings: &MoverSettings,
         allow_arrival_settle: bool,
         standing_on_actor: bool,
-    ) -> Result<(f64, bool), HullContactError> {
+    ) -> Result<(f64, bool, bool), HullContactError> {
         let grounded = self.posture.ground() == Ground::Standing;
         self.drive_pose_moved = false;
         let [x, y, z] = velocity;
@@ -1114,9 +1159,20 @@ impl Mover {
                 }
             })
         });
+        // Constrain the same proposed step that reaches map and actor collision,
+        // after the current input, script impulses, ground slope and spring.
+        let limited = self
+            .tether
+            .and_then(|tether| tether.constrain_step(previous_feet, displacement.map(f64::from)));
+        let (displacement, velocity) = if let Some(step) = limited {
+            let step = step.map(|axis| axis as f32);
+            (step, [step[0] / dt, step[1] / dt - rise, step[2] / dt])
+        } else {
+            (displacement, [x, y, z])
+        };
         let movement = self.body.move_capsule_against(displacement, dt, blockers)?;
         let actor_contact = movement.actor_contact;
-        let [mut x, mut y, mut z] = clip_velocity([x, y, z], movement.planes).map(f64::from);
+        let [mut x, mut y, mut z] = clip_velocity(velocity, movement.planes).map(f64::from);
         if grounded {
             let squared = (x * x + y * y) + z * z;
             let flat = x * x + z * z;
@@ -1132,7 +1188,9 @@ impl Mover {
         if !grounded && movement.touching && settings.gravity_scale <= 0.25 && y < 0.0 {
             y = 0.0;
         }
-        let lift = pogo(&self.base, self.posture.crouched()) as f32 + self.posture.spring_offset();
+        let active_base = *self.mover_override.as_ref().unwrap_or(&self.base);
+        let lift =
+            pogo(&active_base, self.posture.crouched()) as f32 + self.posture.spring_offset();
         #[cfg(any(test, feature = "inspector"))]
         let contact_planes: Vec<[f64; 3]> = movement
             .planes
@@ -1260,7 +1318,7 @@ impl Mover {
             }
         }
         self.pose.velocity = [x, y, z].map(snap);
-        Ok((y, actor_contact))
+        Ok((y, actor_contact, limited.is_some()))
     }
 }
 
@@ -2244,6 +2302,51 @@ mod tests {
     }
 
     #[test]
+    fn elevated_actor_with_clearance_does_not_push_the_owner_sideways() {
+        let rays = TriangleIndex::new([]).unwrap();
+        let settings = MoverSettings {
+            gravity_scale: 0.0,
+            ..MoverSettings::default()
+        };
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/movement-contact-participation-v1.json"
+        ))
+        .unwrap();
+        let case = &fixture["input"]["elevated_enemy_capsules"];
+        let feet: [f64; 3] = serde_json::from_value(case["owner_feet"].clone()).unwrap();
+        let origins: Vec<[f32; 3]> =
+            serde_json::from_value(case["blocker_origins"].clone()).unwrap();
+        let world = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        for position in origins {
+            let mut owner = Mover::new(settings, Arc::clone(&world), feet, 0, 0x18).unwrap();
+            let pose = owner.contact_capsule();
+            let blocker = CapsulePose { position, ..pose };
+            assert!(
+                crate::contact_round::capsule_capsule(
+                    pose.world_capsule(),
+                    blocker.world_capsule()
+                )
+                .points()
+                .is_empty()
+            );
+            owner
+                .step_against(
+                    &rays,
+                    Command {
+                        frame: 1,
+                        ..Default::default()
+                    },
+                    0.016,
+                    &[blocker],
+                    |_, _| {},
+                )
+                .unwrap();
+            assert_eq!(owner.pose().position[0], feet[0], "blocker {position:?}");
+            assert!(!owner.needs_owner_correction_at(1));
+        }
+    }
+
+    #[test]
     fn effective_character_collision_controls_sweeps_and_regular_motion() {
         let fixture = swept_fixture();
         let input = &fixture["input"];
@@ -2882,5 +2985,162 @@ mod tests {
             combined.update(digest.finalize());
         }
         assert_eq!(format!("{:x}", combined.finalize()), expected);
+    }
+
+    #[test]
+    fn blocked_profile_change_keeps_the_active_capsule_and_can_retry() {
+        use crate::{
+            contact_round::{RoundShape, Sphere},
+            contact_world::{StaticGeometry, StaticShape},
+        };
+
+        let obstacle = StaticShape::new(
+            StaticGeometry::Round {
+                shape: RoundShape::Sphere(Sphere {
+                    center: [0.9, 1.4, 0.0],
+                    radius: 0.2,
+                }),
+                mask: 0x18,
+            },
+            None,
+        )
+        .unwrap();
+        let world = Arc::new(ContactWorld::new(vec![obstacle]).unwrap());
+        let base = MoverSettings::default();
+        let wider = MoverSettings {
+            stand_radius: 1.0,
+            ..base
+        };
+        let mut mover = Mover::new(base, world, [0.0; 3], 0, 0x18).unwrap();
+        let initial = mover.contact_capsule();
+        mover.set_mover_override(Some(wider));
+        assert_eq!(mover.contact_capsule(), initial);
+        assert_eq!(mover.mover_override, None);
+        mover.pose.position[0] = -3.0;
+        mover
+            .body
+            .teleport(mover.capsule_origin(mover.pose.position));
+        mover.set_mover_override(Some(wider));
+        assert_eq!(mover.contact_capsule().radius, 1.0);
+        assert_eq!(mover.mover_override, Some(wider));
+    }
+
+    #[test]
+    fn mover_override_resizes_capsule_and_lands_cleanly_under_piledriver_slam() {
+        use crate::{
+            collision_cache::{Mesh, Triangle},
+            collision_index::SceneTriangle,
+            contact_mesh::ContactMesh,
+            contact_world::{StaticGeometry, StaticShape},
+        };
+
+        let floor = TriangleIndex::new([
+            SceneTriangle {
+                vertices: [[-20.0, 0.0, -20.0], [-20.0, 0.0, 20.0], [20.0, 0.0, 20.0]],
+                mask: 0x18,
+                surface: 0,
+            },
+            SceneTriangle {
+                vertices: [[20.0, 0.0, 20.0], [20.0, 0.0, -20.0], [-20.0, 0.0, -20.0]],
+                mask: 0x18,
+                surface: 0,
+            },
+        ])
+        .unwrap();
+        let floor_mesh = Mesh {
+            vertices: vec![
+                [-20.0, 0.0, -20.0],
+                [-20.0, 0.0, 20.0],
+                [20.0, 0.0, -20.0],
+                [20.0, 0.0, 20.0],
+            ],
+            triangles: vec![
+                Triangle {
+                    corners: [0, 1, 2],
+                    wings: [-1, 3, -1],
+                    mask: 0x18,
+                    surface: 0,
+                },
+                Triangle {
+                    corners: [3, 2, 1],
+                    wings: [-1, 0, -1],
+                    mask: 0x18,
+                    surface: 0,
+                },
+            ],
+        };
+        let mesh = ContactMesh::new(floor_mesh, [1.0; 3], u16::MAX).unwrap();
+        let shape = StaticShape::new(StaticGeometry::Mesh(Arc::new(mesh)), None).unwrap();
+        let world = Arc::new(ContactWorld::new(vec![shape]).unwrap());
+        let crab = MoverSettings {
+            stand_height: 2.0,
+            stand_radius: 0.7,
+            stand_pogo: 0.5,
+            ..MoverSettings::default()
+        };
+        let ball = MoverSettings {
+            stand_height: 2.0,
+            stand_radius: 0.5,
+            stand_pogo: 1.0,
+            run_forward: 10.0,
+            run_backward: 10.0,
+            run_strafe: 10.0,
+            ..MoverSettings::default()
+        };
+        let mut mover = Mover::new(crab, world, [0.0, 6.0, 0.0], 0, 0x18).unwrap();
+        // Switch into Ball MoverProfile override while airborne (like Ctrl Piledriver).
+        mover.set_mover_override(Some(ball));
+        assert!(
+            (mover.contact_capsule().radius - 0.5).abs() < 1e-4,
+            "mover override must resize collision capsule to ball radius"
+        );
+        let slam = BTreeMap::from([
+            (
+                ModifierKey {
+                    instance: 1,
+                    state: 3,
+                    slot: 0,
+                },
+                Modifier {
+                    index: 34,
+                    operation: Operation::Set,
+                    value: -98.0,
+                    priority: 99.0,
+                },
+            ),
+            (
+                ModifierKey {
+                    instance: 1,
+                    state: 3,
+                    slot: 1,
+                },
+                Modifier {
+                    index: 33,
+                    operation: Operation::Set,
+                    value: 0.0,
+                    priority: 99.0,
+                },
+            ),
+        ]);
+        for frame in 2..=60u32 {
+            mover.track_modifiers(frame, &slam);
+            let cmd = Command {
+                frame,
+                ..Command::default()
+            };
+            mover
+                .step(&floor, cmd, 0.016, |_, _| {})
+                .expect("piledriver slam step");
+        }
+        assert_eq!(
+            mover.pose().flags & crate::mover_posture::IN_AIR,
+            0,
+            "ball override slam must clear IN_AIR cleanly on floor impact"
+        );
+        assert!(
+            mover.pose().position[1].abs() < 0.05,
+            "ball override feet must rest on floor y=0, got {}",
+            mover.pose().position[1]
+        );
     }
 }

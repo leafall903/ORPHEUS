@@ -27,6 +27,7 @@ pub(crate) const SIGHTING_TAGS: [u64; 3] = [
     0x0d60_0000_0000_0038,
 ];
 
+#[derive(Clone)]
 pub(crate) struct DefenderSighting {
     pub target: u32,
     pub source: SightingSource,

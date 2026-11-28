@@ -155,6 +155,7 @@ pub(crate) struct HeroAbilityRules {
     pub sombra_hack: SombraHackRule,
     heal_aura_effects: Vec<u64>,
     projectile_status_effects: HashMap<u64, ProjectileStatusEffectBehavior>,
+    status_scripts: HashMap<u64, u32>,
 }
 
 impl Default for HeroAbilityRules {
@@ -435,11 +436,55 @@ impl HeroAbilityRules {
             sombra_hack,
             heal_aura_effects,
             projectile_status_effects,
+            status_scripts: HashMap::new(),
         })
     }
 
     pub(crate) fn is_heal_aura_effect(&self, effect: u64) -> bool {
         effect == 0 || self.heal_aura_effects.contains(&effect)
+    }
+
+    pub(crate) fn status_script(&self, effect: u64) -> Option<u32> {
+        self.status_scripts.get(&effect).copied()
+    }
+
+    pub(crate) fn load_with_status_scripts(
+        rules_path: impl AsRef<Path>,
+        scripts_path: impl AsRef<Path>,
+    ) -> io::Result<Arc<Self>> {
+        #[derive(Deserialize)]
+        struct StatusScripts {
+            version: u32,
+            on_apply: HashMap<String, u32>,
+        }
+
+        let mut rules = Self::load(rules_path)?;
+        let bytes = match fs::read(scripts_path) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(rules),
+            Err(error) => return Err(error),
+        };
+        if bytes.len() > MAX_RULES_BYTES {
+            return Err(invalid_data("status script catalog exceeds size limit"));
+        }
+        let catalog: StatusScripts = serde_json::from_slice(&bytes)
+            .map_err(|e| invalid_data(format!("invalid status script catalog: {e}")))?;
+        if catalog.version != 1 {
+            return Err(invalid_data(format!(
+                "unsupported status script catalog version {}",
+                catalog.version
+            )));
+        }
+        let bindings = &mut Arc::make_mut(&mut rules).status_scripts;
+        for (effect, graph) in catalog.on_apply {
+            let key = parse_rule_guid(&effect, "on_apply")?;
+            if key >> 48 != 0x04a0 || graph == 0 || bindings.insert(key, graph).is_some() {
+                return Err(invalid_data(format!(
+                    "invalid status effect binding {effect} / {graph}"
+                )));
+            }
+        }
+        Ok(rules)
     }
 
     pub(crate) fn projectile_status_effect(

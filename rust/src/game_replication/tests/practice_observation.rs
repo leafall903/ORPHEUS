@@ -8,7 +8,13 @@ use crate::{
 };
 use serde_json::{Value as Json, json};
 
+mod actor_contact;
+mod chain_hook;
+mod doomfist;
 mod fault_shapes;
+mod grapple;
+mod lifecycle_voice;
+mod piledriver;
 
 fn declared_reload_flag(graph: &Graph) -> bool {
     let reload = Variable {
@@ -170,6 +176,144 @@ fn prepare_owner(
     assert_eq!(world.input.processed, None);
 
     tick
+}
+
+fn select_practice_hero(
+    scene: &mut PreparedScene,
+    viewer: &PlayerAppearance<'_>,
+    hero_guid: u64,
+    egress: &mut GameEgress<Arc<Record>>,
+) -> (WorldDelivery, BodyId, u32) {
+    use crate::game_instance::TeamMemberCounts;
+    let roster = TeamMemberCounts::from_teams(scene.map().free_for_all, [viewer.team]);
+    scene.simulation_mut().set_team_member_counts(roster);
+    let mut world = WorldDelivery::new(viewer.entity);
+    let mut tick = FIRST_TICK;
+    world.start(scene, viewer, tick).unwrap();
+    assert!(deliver_until(
+        &mut world,
+        scene,
+        egress,
+        &mut tick,
+        controller_acked
+    ));
+    scene.simulation_mut().prepare_spatial_frame(tick).unwrap();
+    world.queue_game_message(tick, Duration::ZERO, pick_hero(viewer.entity, hero_guid));
+    world
+        .advance_input(scene, viewer, RETAIL_QUANTA, 16)
+        .unwrap();
+    let id = world
+        .active_body_id()
+        .expect("the selected hero was admitted");
+    assert!(deliver_until(
+        &mut world,
+        scene,
+        egress,
+        &mut tick,
+        possession_acked
+    ));
+    (world, id, tick)
+}
+
+#[test]
+#[ignore = "requires the 104319 Practice Range with Wrecking Ball and training bots"]
+fn prepared_piledriver_landing_lifts_a_room_bot() {
+    use crate::{game_clock::TICK_PERIOD, patrol_script::PatrolScript};
+
+    let assets = SceneAssets::load(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap()).unwrap();
+    let mut scene = assets.prepare(GameMap::practice_range()).unwrap();
+    let hero = scene
+        .heroes()
+        .get(crate::game_heroes::WRECKING_BALL)
+        .unwrap()
+        .clone();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &PlayerCard::default(),
+    };
+    let (mut world, id, mut tick) =
+        select_practice_hero(&mut scene, &viewer, hero.guid, &mut GameEgress::default());
+    // This stock stationary target has clear overhead space. Face it from
+    // three metres behind: the graph moves the owner forward during wind-up.
+    let target = crate::game_bots::BOT_ENTITY + 7;
+    let [x, y, z] = scene.simulation_mut().body_mut(target).unwrap().position;
+    let release = [x, y + 5.0, z + 3.0];
+    let yaw = 0x8000;
+    let health = scene.simulation().body_healths().unwrap()[&target];
+    let mover = scene
+        .player_spawn_mover_at(hero.body, 0, release, yaw)
+        .unwrap();
+    let mut release_mover = Some(mover);
+    let crouch = crate::script_runtime::held_button_mask(12).unwrap();
+    let patrol = PatrolScript::load().unwrap();
+    let mut selected = false;
+    let mut hit = None;
+    let mut rise = None;
+    for step in 0..230 {
+        if step == 90 {
+            scene.simulation_mut().player_body_mut(id).unwrap().mover =
+                release_mover.take().unwrap();
+        }
+        tick += 1;
+        scene.simulation_mut().prepare_spatial_frame(tick).unwrap();
+        let command = Command {
+            frame: tick,
+            yaw,
+            buttons: if (95..=98).contains(&step) { crouch } else { 0 },
+            ..Command::default()
+        };
+        world.queue_commands(tick, &[command]);
+        world
+            .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+            .unwrap();
+        let player = scene.simulation().player_body(id).unwrap();
+        let snap = player
+            .runtime
+            .as_ref()
+            .expect("owner VM remains active")
+            .snapshot()
+            .unwrap();
+        let landing = snap.instances.values().find(|s| s.graph == 0x160a).unwrap();
+        selected |= matches!(landing.variables.get(&375), Some(ScriptValue::Array(targets)) if targets.contains(&ScriptValue::Entity(target)));
+        scene.step_bots(tick, &patrol).unwrap();
+        let (room, queries) = scene.bot_simulation();
+        room.finish_tick(&queries, tick, TICK_PERIOD * tick)
+            .unwrap();
+        let y = room.body_mut(target).unwrap().position[1];
+        if let Some((hit_tick, hit_y)) = hit {
+            if tick == hit_tick + 1 {
+                rise = Some(y - hit_y);
+            }
+        }
+        for cue in room.take_player_cues() {
+            if cue.owner == OWNER
+                && matches!(cue.notice,
+                crate::game_combat_messages::CombatNotice::Hit { target: body, dealt, .. }
+                    if body == target && dealt > 0.0)
+            {
+                assert!(
+                    hit.is_none(),
+                    "one landing applied damage twice to {target:#x}"
+                );
+                assert!(room.body_healths().unwrap()[&target] < health);
+                hit = Some((tick, y));
+            }
+        }
+    }
+    assert!(
+        selected,
+        "the original landing tracker did not select the bot"
+    );
+    assert!(
+        hit.is_some(),
+        "no damage was credited to the landing player"
+    );
+    assert!(
+        rise.is_some_and(|dy| dy > 0.0),
+        "no upward motion on the next tick: {rise:?}"
+    );
 }
 
 #[test]

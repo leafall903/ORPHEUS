@@ -351,6 +351,7 @@ mod observed_projectiles;
 mod player;
 mod script_requests;
 pub(crate) use script_requests::ActorVoiceQuery;
+pub(crate) mod status_scripts;
 mod stock_bot;
 mod view_targeting;
 pub(crate) use encounter::{
@@ -378,6 +379,7 @@ pub(crate) struct AdmittedFlight {
     pub presentation: Option<Arc<ObservedShot>>,
 }
 
+#[derive(Clone)]
 pub(crate) struct DeathSourceFacts {
     pub(crate) target: HealthTargetFacts,
     pub(crate) velocity: Vec3,
@@ -404,6 +406,7 @@ pub(crate) struct RoomSpatialFrame {
     actor_capsules: Option<BTreeMap<u32, TargetPose>>,
     entity_facts: Option<BTreeMap<u32, RoomEntityFacts>>,
     script_targets: HashMap<u32, RoomScriptTarget>,
+    dead_voice: HashMap<u32, script_requests::DeathVoiceBody>,
     player_wires: HashMap<u32, u32>,
     ground: Arc<CollisionScene>,
     breakables: Option<Arc<crate::collision_scene::BreakableState>>,
@@ -415,6 +418,9 @@ pub(crate) struct RoomSpatialFrame {
     #[cfg(any(test, feature = "inspector"))]
     debug_rays: Arc<crate::game_debug::DebugRayHistory>,
 }
+
+// The stock impact-sphere and ground-wave target filters select living damageable bodies.
+pub(crate) const DAMAGEABLE_BODY_MASK: u64 = 1 << 6;
 
 impl RoomSpatialFrame {
     pub(crate) fn is_retired(&self, wire: u32) -> bool {
@@ -447,6 +453,24 @@ impl RoomSpatialFrame {
         Some((target.position, target.angles))
     }
 
+    pub(crate) fn actor_bone_point(
+        &self,
+        graphs: &crate::script_graph::GraphStore,
+        entity: u32,
+        bone: u64,
+        local: Vec3,
+    ) -> Option<Vec3> {
+        let target = self.script_targets.get(&entity)?;
+        let model_point = if bone == 0 {
+            local
+        } else {
+            let (body, skin) = target.model?;
+            graphs.bone_reference_point(body, skin, bone, local)?
+        };
+        let forward = crate::game_hitscan::direction_for_angles(target.angles[0], 0);
+        crate::script_expr::body_space_point(target.position, Some(forward), model_point)
+    }
+
     pub(crate) fn actor_velocity(&self, entity: u32) -> Option<Vec3> {
         Some(self.script_targets.get(&entity)?.velocity)
     }
@@ -463,19 +487,20 @@ impl RoomSpatialFrame {
         self.script_targets.contains_key(&entity)
     }
 
-    fn actor_target_pose(&self, entity: u32, position: Vec3) -> TargetPose {
-        self.actor_capsules
-            .as_ref()
-            .and_then(|capsules| capsules.get(&entity).copied())
-            .unwrap_or(TargetPose {
-                feet: position,
-                height: 1.8,
-                radius: 0.4,
-                eye: 1.5,
-            })
+    pub(crate) fn measured_actor_pose(&self, entity: u32) -> Option<TargetPose> {
+        self.actor_capsules.as_ref()?.get(&entity).copied()
     }
 
-    fn aim_point_visible(&self, origin: Vec3, target: TargetPose) -> bool {
+    pub(crate) fn actor_target_pose(&self, entity: u32, position: Vec3) -> TargetPose {
+        self.measured_actor_pose(entity).unwrap_or(TargetPose {
+            feet: position,
+            height: 1.8,
+            radius: 0.4,
+            eye: 1.5,
+        })
+    }
+
+    pub(crate) fn aim_point_visible(&self, origin: Vec3, target: TargetPose) -> bool {
         let [bottom, top] = target.segment();
         let delta = [
             target.feet[0] - origin[0],
@@ -596,8 +621,20 @@ impl RoomSpatialFrame {
         self.actor_sample(entity)?.1.eye_position
     }
 
+    pub(crate) fn actor_controller(&self, body: u32) -> Option<u32> {
+        Some(self.actor_sample(body)?.1.controller.unwrap_or(0))
+    }
+
     pub(crate) fn actor_filter_flags(&self, entity: u32) -> Option<u64> {
-        self.actor_sample(entity)?.1.filter_flags
+        let target = self.actor_sample(entity)?.1;
+        Some(
+            target.filter_flags?
+                | if target.health {
+                    DAMAGEABLE_BODY_MASK
+                } else {
+                    0
+                },
+        )
     }
 
     pub(crate) fn actor_health(
@@ -1062,6 +1099,7 @@ pub(crate) struct RoomSimulation {
     mode_boss_pause: bool,
     spawn_anchors: Option<Arc<crate::scene_assets::SpawnAnchors>>,
     script_graphs: Option<(Arc<crate::script_graph::GraphStore>, u64)>,
+    script_codecs: Option<Arc<crate::script_codecs::CodecTable>>,
     stock_bots: Option<stock_bot::StockBotCatalog>,
     gate_handle: Option<GateHandle>,
     encounter_entity: Option<Entity>,
@@ -1074,6 +1112,7 @@ pub(crate) struct RoomSimulation {
     room_pets: IndexMap<u32, deployables::RoomPet>,
     room_deployables: IndexMap<u32, deployables::RoomDeployable>,
     actor_statuses: HashMap<u32, ActorStatus>,
+    status_scripts: IndexMap<(u32, u32), status_scripts::ActiveStatusScript>,
     soul_anchors: Vec<SoulAnchor>,
     active_duplicates: HashMap<u32, DuplicateState>,
     pending_duplicate_reverts: HashMap<u32, u64>,
@@ -1346,6 +1385,10 @@ impl RoomSimulation {
         self.script_graphs = Some((graphs, mode));
     }
 
+    pub(crate) fn set_script_codecs(&mut self, codecs: Arc<crate::script_codecs::CodecTable>) {
+        self.script_codecs = Some(codecs);
+    }
+
     pub(crate) fn enable_stock_bot_scripts(
         &mut self,
         graphs: Arc<crate::script_graph::GraphStore>,
@@ -1353,6 +1396,7 @@ impl RoomSimulation {
         mode: u64,
     ) {
         self.script_graphs = Some((Arc::clone(&graphs), mode));
+        self.script_codecs = Some(Arc::clone(&codecs));
         let catalog = stock_bot::StockBotCatalog {
             graphs,
             codecs,
@@ -1592,6 +1636,7 @@ impl RoomSimulation {
             mode_boss_pause: false,
             spawn_anchors: None,
             script_graphs: None,
+            script_codecs: None,
             stock_bots: None,
             gate_handle: None,
             encounter_entity: None,
@@ -1603,6 +1648,7 @@ impl RoomSimulation {
             room_pets: IndexMap::new(),
             room_deployables: IndexMap::new(),
             actor_statuses: HashMap::new(),
+            status_scripts: IndexMap::new(),
             soul_anchors: Vec::new(),
             active_duplicates: HashMap::new(),
             pending_duplicate_reverts: HashMap::new(),
@@ -2032,62 +2078,6 @@ impl RoomSimulation {
         }
     }
 
-    pub(super) fn queue_hero_spawn_voice(
-        &mut self,
-        owner: u32,
-        listener: BodyId,
-        hero: u64,
-        skin: u64,
-        tick: u32,
-    ) {
-        let Some(catalog) = self
-            .spatial_queries
-            .as_ref()
-            .and_then(|q| q.actor_voice.as_deref())
-        else {
-            return;
-        };
-        let ally_heroes: Vec<u64> = self
-            .players_by_wire
-            .values()
-            .filter_map(|&e| self.world.get::<PlayerBodyState>(e))
-            .filter(|p| p.id != listener)
-            .map(|p| p.hero)
-            .collect();
-        let ctx = crate::actor_voice::VoiceContext {
-            map: self.map_guid,
-            target_hero: None,
-            ally_heroes: &ally_heroes,
-        };
-        let mut pick = (tick as usize).wrapping_add(listener.entity as usize);
-        let Some((stimulus, line)) = catalog
-            .stimulus_options(hero, skin, crate::actor_voice::STIMULUS_HERO_SPAWN)
-            .and_then(|opts| {
-                opts.choose_with_context(&ctx, &mut |count| {
-                    pick = pick.wrapping_mul(1_103_515_245).wrapping_add(12_345);
-                    pick % count
-                })
-            })
-        else {
-            return;
-        };
-        let Some(source) = self.sample_health_body(listener.entity) else {
-            return;
-        };
-        self.player_cues.push(PlayerRoomCue {
-            owner,
-            listener,
-            source: source.identity(),
-            notice: CombatNotice::Voice {
-                anchor: listener.entity,
-                speaker: listener.entity,
-                listener: listener.entity,
-                stimulus,
-                line,
-            },
-        });
-    }
-
     pub(super) fn schedule_bot_voice_reply(
         &mut self,
         bot_wire: u32,
@@ -2179,7 +2169,7 @@ impl RoomSimulation {
                     .map(|p| (p.id.entity, p.hero))
                     .collect();
                 let heroes: Vec<u64> = active.iter().map(|&(_, h)| h).collect();
-                if let Some(conv) = catalog.matching_conversation(None, &heroes) {
+                if let Some(conv) = catalog.matching_conversation(self.map_guid, &heroes) {
                     let mut cursor = tick.saturating_add(62);
                     for turn in &conv.turns {
                         if let Some(&(wire, _)) = active.iter().find(|&&(_, h)| h == turn.hero) {
@@ -2298,6 +2288,7 @@ impl RoomSimulation {
         let mut entity_facts = (queries.needs >= RoomSpatialNeeds::EntityFacts).then(BTreeMap::new);
         let include_tags = queries.needs == RoomSpatialNeeds::EntityTags;
         let mut script_targets = HashMap::with_capacity(capacity);
+        let mut dead_voice = HashMap::new();
         let mut player_wires = HashMap::with_capacity(self.players_by_wire.len());
         let actor_voice = queries.actor_voice.as_ref().map(Arc::clone);
         for (state, &entity) in self.states().zip(self.by_wire.values()) {
@@ -2305,6 +2296,17 @@ impl RoomSimulation {
             let bot = &state.bot;
             let alive = !bot.dead && state.vitals.death().is_none();
             let team = (!queries.free_for_all).then_some(bot.spawn.team);
+            if !alive && actor_voice.is_some() && state.stock_script.is_some() {
+                dead_voice.insert(
+                    bot.entity,
+                    script_requests::DeathVoiceBody {
+                        entity,
+                        team,
+                        voice: (bot.spawn.hero, 0),
+                        listener: false,
+                    },
+                );
+            }
             if let Some(facts) = &mut entity_facts {
                 let tags = if include_tags {
                     state.target_tags()
@@ -2332,6 +2334,15 @@ impl RoomSimulation {
                         position: pose.position,
                         angles: [pose.yaw, pose.pitch],
                         velocity: bot.velocity,
+                        controller: bot.controller(),
+                        model: Some((
+                            bot.spawn.body,
+                            state
+                                .enemy
+                                .as_ref()
+                                .and_then(|enemy| enemy.binding.skin)
+                                .unwrap_or(0),
+                        )),
                         eye_position: None,
                         filter_flags: state.native_filter_flags(),
                         script_state: state.script_state(),
@@ -2370,6 +2381,17 @@ impl RoomSimulation {
             player_wires.insert(state.owner, wire);
             let alive = state.alive();
             let team = (!queries.free_for_all).then_some(state.team);
+            if !alive && actor_voice.is_some() {
+                dead_voice.insert(
+                    wire,
+                    script_requests::DeathVoiceBody {
+                        entity,
+                        team,
+                        voice: (state.hero, state.selected_model.map_or(0, |(_, skin)| skin)),
+                        listener: true,
+                    },
+                );
+            }
             if let Some(facts) = &mut entity_facts {
                 let tags = if include_tags {
                     state
@@ -2394,6 +2416,8 @@ impl RoomSimulation {
                         position: pose.position,
                         angles: [pose.yaw, pose.pitch],
                         velocity: pose.velocity,
+                        controller: Some(state.owner),
+                        model: state.selected_model,
                         eye_position: state.script_eye_position(),
                         filter_flags: state.native_filter_flags(),
                         script_state: state
@@ -2413,14 +2437,7 @@ impl RoomSimulation {
                         messages: state.runtime.is_some(),
                         cue_listener: true,
                         voice: actor_voice.as_ref().map(|_| {
-                            let skin = state.observer_create.as_ref().and_then(|update| {
-                                let Operation::Create(definition) = update.operation.as_ref()?
-                                else {
-                                    return None;
-                                };
-                                Some(definition.skin.guid)
-                            });
-                            (state.hero, skin.unwrap_or(0))
+                            (state.hero, state.selected_model.map_or(0, |(_, skin)| skin))
                         }),
                     },
                 );
@@ -2437,6 +2454,8 @@ impl RoomSimulation {
                     wire,
                     RoomScriptTarget {
                         entity: pet.ecs_entity,
+                        controller: None,
+                        model: Some((pet.definition, 0)),
                         candidate_index: None,
                         position: pet.position,
                         angles: [pet.yaw, 0],
@@ -2459,6 +2478,8 @@ impl RoomSimulation {
                     wire,
                     RoomScriptTarget {
                         entity: dep.ecs_entity,
+                        controller: None,
+                        model: Some((dep.definition, 0)),
                         candidate_index: None,
                         position: dep.position,
                         angles: [dep.yaw, 0],
@@ -2481,6 +2502,7 @@ impl RoomSimulation {
             actor_capsules,
             entity_facts,
             script_targets,
+            dead_voice,
             player_wires,
             ground: Arc::clone(&queries.ground),
             breakables: queries.breakables.as_ref().map(Arc::clone),
@@ -3938,6 +3960,15 @@ impl RoomSimulation {
                             }
                             _ => direct_effect.or(blast_effect),
                         };
+                        // A declared recipient graph owns the status lifecycle. Legacy
+                        // flights may carry only the old physical control descriptor.
+                        let stun = stun.filter(|_| {
+                            !effect_guid.is_some_and(|effect| {
+                                crate::script_control::LEGACY_PROJECTILE_CONTROL
+                                    .has_effect_marker(&crate::script_wire::Value::Asset(effect))
+                                    && self.ability_rules.status_script(effect).is_some()
+                            })
+                        });
                         if impact.damage == 0.0 {
                             if let Some(effect_guid) = effect_guid {
                                 self.apply_projectile_status_effect(
@@ -4242,8 +4273,7 @@ impl RoomSimulation {
                 killer: source,
             },
             context.now,
-            impact.critical,
-            impact.loadout,
+            Some(impact),
         ) else {
             return Ok(None);
         };
@@ -4322,7 +4352,7 @@ impl RoomSimulation {
         source: Death,
         now: Duration,
     ) -> Option<crate::vitals::Damage> {
-        Self::damage_bot_with_hit(state, amount, source, now, false, None)
+        Self::damage_bot_with_hit(state, amount, source, now, None)
     }
 
     #[cfg(test)]
@@ -4349,23 +4379,23 @@ impl RoomSimulation {
         amount: f64,
         source: Death,
         now: Duration,
-        critical: bool,
-        loadout: Option<u64>,
+        impact: Option<&Impact>,
     ) -> Option<crate::vitals::Damage> {
         if state.bot.dead {
             return None;
         }
         let result = state.vitals.damage(amount, source);
         if let Some(script) = &mut state.stock_script {
-            script.on_damage(state.vitals.total(), source);
+            let tags = impact.map_or(&crate::script_init::HitTags::EMPTY, |hit| &hit.tags);
+            script.on_damage(state.vitals.total(), source, tags);
         }
         if result.killed {
             state.bot.died(source.frame);
             if let Some(script) = &mut state.stock_script {
-                script.on_death(source, critical, loadout);
+                script.on_death(source, impact);
             }
             if let Some(enemy) = &mut state.enemy {
-                if let Err(error) = enemy.scripts.queue_death(source, critical, loadout) {
+                if let Err(error) = enemy.scripts.queue_death(source, impact) {
                     enemy.halt(&mut state.bot, format!("enemy death input: {error}"));
                 }
             }
@@ -5174,6 +5204,8 @@ impl RoomSimulation {
                     entity: previous,
                 });
             }
+            self.actor_statuses.remove(&retired);
+            self.status_scripts.retain(|&(wire, _), _| wire != retired);
             let mut next_state = BotState::new(fresh, Some(tick));
             next_state.base_target_tags = base_target_tags;
             if let Some(catalog) = &self.stock_bots {

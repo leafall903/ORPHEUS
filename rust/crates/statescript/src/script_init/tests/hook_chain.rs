@@ -113,6 +113,9 @@ impl World for ChainWorld {
     fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
         None
     }
+    fn body_hardpoint_position(&self, entity: u32, hardpoint: u64) -> Option<[f64; 3]> {
+        (entity == 123 && hardpoint == 0x0dc0_0000_0000_0055).then_some([0.0, 1.55, 0.0])
+    }
     fn body_eye_position(&self, _entity: u32) -> Option<[f64; 3]> {
         Some([0.0, 1.55, 0.0])
     }

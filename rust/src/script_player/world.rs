@@ -136,12 +136,14 @@ pub(super) fn target_delta(origin: Vec3, target: TargetPose) -> Vec3 {
     ]
 }
 
+#[derive(Clone)]
 pub(super) struct CommandView {
     frame: u32,
     eye: Vec3,
     direction: Vec3,
 }
 
+#[derive(Clone)]
 pub(super) struct BodyWorld {
     pub(super) graphs: Arc<GraphStore>,
     pub(super) spatial_frame: Option<Arc<crate::game_combat::RoomSpatialFrame>>,
@@ -164,7 +166,7 @@ pub(super) struct BodyWorld {
     pub(super) target_tags: Option<BTreeSet<u64>>,
     pub(super) command_views: VecDeque<CommandView>,
     pub(super) wheel_cosmetics: crate::match_scene::WheelCosmetics,
-    pub(super) model_hardpoints: Option<Arc<BTreeSet<u64>>>,
+    pub(super) model_hardpoints: Option<Arc<crate::script_graph::ModelHardpoints>>,
     pub(super) target_tag_effects: TargetTagEffects,
     pub(super) controller_on_fire: bool,
     pub(super) defenders: Arc<[u32]>,
@@ -179,7 +181,7 @@ pub(super) struct BodyWorld {
     pub(super) collision_category: u16,
     pub(super) mover_settings: crate::mover_settings::MoverSettings,
     pub(super) voice_variant_counter: usize,
-    pub(super) voice_cooldowns: BTreeMap<u64, u32>,
+    pub(super) voice_cooldowns: BTreeMap<(u64, u64), u32>,
     pub(super) pet_positions: BTreeMap<u32, ([f64; 3], f64)>,
     pub(super) spawned_possessables: BTreeMap<u32, u64>,
     pub(super) pending_body_swap: Option<u64>,
@@ -519,6 +521,34 @@ impl World for BodyWorld {
         visible: bool,
         filter: &Json,
     ) -> Option<Vec<u32>> {
+        self.cone_targets_directed(
+            site,
+            origin,
+            offset,
+            radius,
+            angle,
+            cylinder_radius,
+            None,
+            None,
+            visible,
+            filter,
+        )
+        .map(|samples| samples.into_iter().map(|sample| sample.entity).collect())
+    }
+
+    fn cone_targets_directed(
+        &self,
+        site: Site,
+        origin: u32,
+        offset: [f64; 3],
+        radius: f64,
+        angle: f64,
+        cylinder_radius: f64,
+        yaw_deg: Option<f64>,
+        pitch_deg: Option<f64>,
+        visible: bool,
+        filter: &Json,
+    ) -> Option<Vec<crate::script_init::TrackedTarget>> {
         if !self.is_player_site(site) || !radius.is_finite() || radius < 0.0 {
             return None;
         }
@@ -546,32 +576,47 @@ impl World for BodyWorld {
                 base[2] + offset[2],
             ]
         };
+        let angle_units = |degrees: f64| (degrees * (65_536.0 / 360.0)).round() as i32;
         let forward = aim_direction(&Command {
-            yaw: self.movement.yaw,
-            pitch: self.movement.pitch,
+            yaw: yaw_deg.map_or(self.movement.yaw, angle_units),
+            pitch: pitch_deg
+                .map_or(self.movement.pitch, angle_units)
+                .clamp(-16_384, 16_384),
             ..Command::default()
         });
-        if self.deadeye_scene.collision.is_some() || !self.deadeye_scene.targets.is_empty() {
-            return Some(
-                self.deadeye_scene
-                    .select(origin_pos, forward, radius, angle, visible),
-            );
-        }
         let relation = match filter.get("m_66747E7D").and_then(Json::as_u64).unwrap_or(0) {
             1 => 1,
             2 => 2,
             _ if filter.get("m_89831602").and_then(Json::as_u64) == Some(1) => 2,
             _ => 0,
         };
-        self.spatial_frame.as_deref()?.cone_targets(
-            site.entity,
-            origin_pos,
-            forward,
-            radius,
-            angle,
-            cylinder_radius,
-            visible,
-            relation,
+        let ids =
+            if self.deadeye_scene.collision.is_some() || !self.deadeye_scene.targets.is_empty() {
+                self.deadeye_scene
+                    .select(origin_pos, forward, radius, angle, visible)
+            } else {
+                self.spatial_frame.as_deref()?.cone_targets(
+                    site.entity,
+                    origin_pos,
+                    forward,
+                    radius,
+                    angle,
+                    cylinder_radius,
+                    visible,
+                    relation,
+                )?
+            };
+        Some(
+            ids.into_iter()
+                .map(|entity| crate::script_init::TrackedTarget {
+                    entity,
+                    surface_distance: self
+                        .spatial_frame
+                        .as_deref()
+                        .and_then(|f| f.measured_actor_pose(entity))
+                        .map(|pose| pose.surface_distance(origin_pos, None)),
+                })
+                .collect(),
         )
     }
 
@@ -711,6 +756,58 @@ impl World for BodyWorld {
         self.model_hardpoints
             .as_ref()
             .map(|hardpoints| hardpoints.contains(&hardpoint))
+    }
+
+    fn body_bone_point(&mut self, entity: u32, bone: u64, local: Vec3) -> Option<Vec3> {
+        if entity == self.entity {
+            if self.vitals.death().is_some() {
+                return None;
+            }
+            let model_point = if bone == 0 {
+                local
+            } else {
+                self.model_hardpoints
+                    .as_ref()?
+                    .bone_reference_point(bone, local)?
+            };
+            return crate::script_expr::body_space_point(
+                self.position,
+                Some(direction_for_angles(self.movement.yaw, 0)),
+                model_point,
+            );
+        }
+        if let Some(frame) = self.spatial_frame.as_ref() {
+            if frame.is_retired(entity) {
+                return None;
+            }
+            if frame.actor_alive(entity) {
+                return frame.actor_bone_point(&self.graphs, entity, bone, local);
+            }
+        }
+        if bone != 0 || !valid_entity(entity) {
+            return None;
+        }
+        let origin = self.authored_position(entity)?;
+        crate::script_expr::body_space_point(origin, self.authored_forward(entity), local)
+    }
+
+    fn body_hardpoint_position(&self, entity: u32, hardpoint: u64) -> Option<[f64; 3]> {
+        if entity != self.entity || self.vitals.death().is_some() {
+            return None;
+        }
+        // Older prepared packs only inventory attachment IDs. Use their live eye
+        // sample until a measured model table is installed for the selected skin.
+        let Some(model) = self
+            .model_hardpoints
+            .as_ref()
+            .filter(|model| model.has_reference_positions())
+        else {
+            return self.body_eye_position(entity);
+        };
+        let [x, y, z] = model.reference_position(hardpoint)?;
+        let [sin, _, cos] = direction_for_angles(self.movement.yaw, 0);
+        let [px, py, pz] = self.position;
+        Some([px + x * cos + z * sin, py + y, pz - x * sin + z * cos])
     }
 
     fn body_angle(
@@ -1013,37 +1110,53 @@ impl World for BodyWorld {
         criterion: u64,
         choose: &mut dyn FnMut(usize) -> usize,
     ) {
-        self.queue_actor_voice_with_audience(site, criterion, None, choose);
+        self.queue_actor_voice_with_audience(site, criterion, site.entity, None, None, choose);
     }
 
     fn queue_actor_voice_with_audience(
         &mut self,
         site: Site,
         criterion: u64,
+        speaker: u32,
+        subject: Option<u32>,
         audience: Option<&[u32]>,
         choose: &mut dyn FnMut(usize) -> usize,
     ) {
-        let frame = self.movement.frame.unwrap_or(0);
-        if frame > 0
+        let Some(spatial) = self.spatial_frame.as_deref() else {
+            return;
+        };
+        let Some(generation) = spatial.actor_identity(speaker) else {
+            return;
+        };
+        let tick = self.movement.frame.unwrap_or(0);
+        let cooldown_key = (criterion, generation);
+        if tick > 0
             && self
                 .voice_cooldowns
-                .get(&criterion)
-                .is_some_and(|&last| frame.saturating_sub(last) < 90)
+                .get(&cooldown_key)
+                .is_some_and(|&last| tick.saturating_sub(last) < 90)
         {
             return;
         }
-        if let Some((cue, listeners)) = self.spatial_frame.as_deref().and_then(|frame| {
-            frame.actor_voice_request_with_audience(
+        if let Some((cue, listeners)) = spatial.actor_voice_request_with_audience(
+            speaker,
+            crate::game_combat::ActorVoiceQuery::Criterion(criterion),
+            subject,
+            audience,
+            choose,
+        ) {
+            if self.script_requests.queue_speaker_cue(
+                spatial,
                 site.entity,
-                crate::game_combat::ActorVoiceQuery::Criterion(criterion),
-                audience,
-                choose,
-            )
-        }) {
-            if frame > 0 {
-                self.voice_cooldowns.insert(criterion, frame);
+                speaker,
+                &listeners,
+                cue,
+            ) && tick > 0
+            {
+                self.voice_cooldowns
+                    .retain(|_, last| tick.saturating_sub(*last) < 90);
+                self.voice_cooldowns.insert(cooldown_key, tick);
             }
-            self.queue_room_cue(site, &listeners, cue);
         }
     }
 
@@ -1247,7 +1360,16 @@ impl World for BodyWorld {
 
     fn body_eye_position(&self, entity: u32) -> Option<[f64; 3]> {
         if entity == self.entity {
-            return self.eye_position.filter(|_| self.vitals.death().is_none());
+            if self.vitals.death().is_some() {
+                return None;
+            }
+            return self.eye_position.or_else(|| {
+                Some([
+                    self.position[0],
+                    self.position[1] + eye_height(self.hero, false),
+                    self.position[2],
+                ])
+            });
         }
         self.spatial_frame.as_deref()?.actor_eye_position(entity)
     }
@@ -1681,7 +1803,12 @@ impl World for BodyWorld {
         radius: f64,
         filter: &Json,
     ) -> Option<Vec<u32>> {
-        self.swept_tracked_targets(site, origin, offset, None, false, radius, filter)
+        Some(
+            self.swept_tracked_targets(site, origin, offset, None, false, radius, false, filter)?
+                .into_iter()
+                .map(|sample| sample.entity)
+                .collect(),
+        )
     }
 
     fn swept_tracked_targets(
@@ -1692,8 +1819,9 @@ impl World for BodyWorld {
         end_offset: Option<[f64; 3]>,
         local_space: bool,
         radius: f64,
+        visible: bool,
         filter: &Json,
-    ) -> Option<Vec<u32>> {
+    ) -> Option<Vec<crate::script_init::TrackedTarget>> {
         if !self.is_player_site(site) || !radius.is_finite() || radius <= 0.0 {
             return None;
         }
@@ -1741,44 +1869,35 @@ impl World for BodyWorld {
             (2, _) | (_, 1) => 2u64,
             _ => 0u64,
         };
-        let mut matches: Vec<(f64, u32)> = frame
+        let mut matches = Vec::new();
+        for candidate in frame
             .candidates()
             .iter()
-            .filter(|c| match relation {
-                1 => own_team.is_some() && c.team == own_team,
-                2 => c.entity != self.entity && (own_team.is_none() || c.team != own_team),
-                _ => c.entity != self.entity,
+            .filter(|candidate| match relation {
+                1 => own_team.is_some() && candidate.team == own_team,
+                2 => {
+                    candidate.entity != self.entity
+                        && (own_team.is_none() || candidate.team != own_team)
+                }
+                _ => candidate.entity != self.entity,
             })
-            .filter_map(|c| {
-                // Test against the target's body capsule [feet+r .. feet+h-r] + radius
-                // (not just the ground feet point) so chest-height melee sweeps hit reliably.
-                let cap_r = 0.45;
-                let cap_a = [c.position[0], c.position[1] + cap_r, c.position[2]];
-                let cap_b = [c.position[0], c.position[1] + 1.45, c.position[2]];
-                let hit_radius = radius + cap_r;
-                let best_dist = if let Some(seg_end) = end {
-                    let mut best = f64::INFINITY;
-                    for step in 0..=4 {
-                        let t = f64::from(step) * 0.25;
-                        let p = [
-                            start[0] + (seg_end[0] - start[0]) * t,
-                            start[1] + (seg_end[1] - start[1]) * t,
-                            start[2] + (seg_end[2] - start[2]) * t,
-                        ];
-                        let d = crate::static_ray::segment_distance(p, cap_a, cap_b);
-                        if d < best {
-                            best = d;
-                        }
-                    }
-                    best
-                } else {
-                    crate::static_ray::segment_distance(start, cap_a, cap_b)
-                };
-                (best_dist <= hit_radius).then_some((best_dist, c.entity))
-            })
-            .collect();
+        {
+            let target = frame.measured_actor_pose(candidate.entity)?;
+            let distance = target.surface_distance(start, end);
+            if distance <= radius && (!visible || frame.aim_point_visible(start, target)) {
+                matches.push((distance, candidate.entity));
+            }
+        }
         matches.sort_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
-        Some(matches.into_iter().map(|(_, e)| e).collect())
+        Some(
+            matches
+                .into_iter()
+                .map(|(distance, entity)| crate::script_init::TrackedTarget {
+                    entity,
+                    surface_distance: Some(distance),
+                })
+                .collect(),
+        )
     }
 
     fn generic_beam_contact(
@@ -2198,70 +2317,6 @@ impl World for BodyWorld {
         true
     }
 
-    fn apply_physics_explosion(
-        &mut self,
-        site: Site,
-        center: [f64; 3],
-        radius: f64,
-        impulse: f64,
-        direction: Option<[f64; 3]>,
-    ) -> bool {
-        if !self.is_player_site(site) || !radius.is_finite() || radius <= 0.0 {
-            return false;
-        }
-        if !impulse.is_finite() || impulse.abs() <= 1e-4 {
-            return true;
-        }
-        let Some(frame) = self.spatial_frame.as_deref() else {
-            return true;
-        };
-        let own_team = {
-            let bits = (self.body_filter >> 23) & 31;
-            (bits != 0).then(|| bits.trailing_zeros() as u8)
-        };
-        let mut pushes = Vec::new();
-        for c in frame.candidates() {
-            if c.entity == self.entity {
-                continue;
-            }
-            if own_team.is_some() && c.team == own_team {
-                continue;
-            }
-            let dx = c.position[0] - center[0];
-            let dy = (c.position[1] + 0.9) - center[1];
-            let dz = c.position[2] - center[2];
-            let dist = dx.hypot(dy).hypot(dz);
-            if dist > radius {
-                continue;
-            }
-            let falloff = (1.0 - dist / radius).clamp(0.25, 1.0);
-            let mag = (impulse * falloff).clamp(-22.0, 22.0);
-            let dir = if let Some(d) = direction {
-                let len = d[0].hypot(d[1]).hypot(d[2]).max(1e-5);
-                [d[0] / len, d[1] / len, d[2] / len]
-            } else if dist > 1e-4 {
-                let uy = if impulse > 0.0 {
-                    (dy / dist).max(0.25)
-                } else {
-                    dy / dist
-                };
-                [dx / dist, uy, dz / dist]
-            } else {
-                [0.0, 1.0, 0.0]
-            };
-            pushes.push((c.entity, Some([dir[0] * mag, dir[1] * mag, dir[2] * mag])));
-        }
-        if !pushes.is_empty() {
-            let _ = self.script_requests.queue_contact_damage(
-                frame,
-                self.movement.frame.unwrap_or(0),
-                0.0,
-                &pushes,
-            );
-        }
-        true
-    }
-
     fn play_script(
         &mut self,
         site: Site,
@@ -2344,6 +2399,15 @@ impl World for BodyWorld {
                     let _ = self.script_requests.queue_stun(frame, target, ticks);
                 }
             }
+            if self.graphs.graph(request.graph).is_some()
+                && !self.graphs.is_client_only_graph(request.graph)
+            {
+                if let Some(frame) = self.spatial_frame.as_deref() {
+                    return self
+                        .script_requests
+                        .queue_play_script(frame, site, target, request);
+                }
+            }
         }
         self.graphs.is_client_only_graph(request.graph)
             || self.graphs.graph(request.graph).is_some()
@@ -2397,7 +2461,7 @@ impl World for BodyWorld {
             return None;
         }
         if entity == self.entity {
-            Some(self.own_filter_flags())
+            Some(self.own_filter_flags() | crate::game_combat::DAMAGEABLE_BODY_MASK)
         } else {
             self.sighting_source
                 .filter(|source| source.entity == entity)
@@ -2541,6 +2605,9 @@ impl World for BodyWorld {
             {
                 Some(self.controller)
             }
+            EntityRelation::OwningController => {
+                self.spatial_frame.as_deref()?.actor_controller(entity)
+            }
             EntityRelation::PossessedBody if entity == self.controller => Some(self.entity),
             EntityRelation::ControllerBodyField if entity == self.controller => Some(self.entity),
             EntityRelation::ControllerBodyField
@@ -2614,6 +2681,25 @@ impl World for BodyWorld {
                     .throttles
                     .map(|byte| f64::from(f32::from(byte) * THROTTLE_UNIT));
                 Some(Value::Vector([right, forward, 0.0]))
+            }
+            "STU_F4C77F4A"
+                if self.is_player_site(site)
+                    && self.mode != 0
+                    && self
+                        .related_entity(site, EntityRelation::OwningController, self.entity)
+                        .is_some()
+                    && crate::script_expr::native_fields(config, &["m_4BA4C058", "m_value"])
+                    && config["m_4BA4C058"].as_u64() == Some(1) =>
+            {
+                // The scoped current-mode query compares a room-wide fact against
+                // game-mode GUIDs. Other nested expressions may depend on the owner.
+                let inner = config.get("m_value")?;
+                if !native_shape(inner, "STU_37F20D24", Some("m_resourceKey"))
+                    || inner.get("m_resourceKey") != Some(&Json::Null)
+                {
+                    return None;
+                }
+                self.native(site, inner)
             }
             "STU_37F20D24" => Some(Value::Asset(self.mode)),
             "STU_A3DEF368"

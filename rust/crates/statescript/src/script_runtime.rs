@@ -136,7 +136,15 @@ pub(crate) struct QueueFull {
 #[derive(Clone)]
 struct Scheduled<E> {
     event: E,
-    command_frame: Option<u32>,
+    origin: DispatchOrigin,
+}
+
+#[derive(Clone, Copy, Default)]
+pub(crate) enum DispatchOrigin {
+    #[default]
+    Ordinary,
+    Command(u32),
+    BodyDeath(u64),
 }
 
 #[derive(Clone)]
@@ -164,15 +172,15 @@ impl<E> Timeline<E> {
     }
 
     pub fn push(&mut self, instance: u16, due_ms: u64, event: E) -> Result<(), QueueFull> {
-        self.push_with_command_frame(instance, due_ms, event, None)
+        self.push_with_origin(instance, due_ms, event, DispatchOrigin::Ordinary)
     }
 
-    pub fn push_with_command_frame(
+    pub fn push_with_origin(
         &mut self,
         instance: u16,
         due_ms: u64,
         event: E,
-        command_frame: Option<u32>,
+        origin: DispatchOrigin,
     ) -> Result<(), QueueFull> {
         self.reserve(1)?;
         self.instances
@@ -180,10 +188,7 @@ impl<E> Timeline<E> {
             .or_default()
             .entry(due_ms)
             .or_default()
-            .push_back(Scheduled {
-                event,
-                command_frame,
-            });
+            .push_back(Scheduled { event, origin });
         self.pending += 1;
         Ok(())
     }
@@ -202,16 +207,16 @@ impl<E> Timeline<E> {
         now_ms: u64,
         preferred: impl FnMut(&E) -> bool,
     ) -> Option<E> {
-        self.pop_due_with_command_frame(instance, now_ms, preferred)
+        self.pop_due_with_origin(instance, now_ms, preferred)
             .map(|(event, _)| event)
     }
 
-    pub fn pop_due_with_command_frame(
+    pub fn pop_due_with_origin(
         &mut self,
         instance: u16,
         now_ms: u64,
         mut preferred: impl FnMut(&E) -> bool,
-    ) -> Option<(E, Option<u32>)> {
+    ) -> Option<(E, DispatchOrigin)> {
         let events = self.instances.get_mut(&instance)?;
         let mut next = events.first_entry()?;
         if *next.key() > now_ms {
@@ -230,7 +235,7 @@ impl<E> Timeline<E> {
             self.instances.remove(&instance);
         }
         self.pending -= 1;
-        Some((event.event, event.command_frame))
+        Some((event.event, event.origin))
     }
 
     pub fn retain(&mut self, instance: u16, mut keep: impl FnMut(u64, &E) -> bool) {

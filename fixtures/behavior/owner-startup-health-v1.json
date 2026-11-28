@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "case_id": "owner-startup-health-v1",
+  "evidence": "rust-synthetic",
+  "source": {"basis": "Synthetic peer with a lost first owner script delta and two subsequent damage events."},
+  "input": {"damage": [11, 7], "other_body_health": 63},
+  "expected": {"damage_after_startup": 18, "other_body_blocked": false}
+}

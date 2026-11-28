@@ -21,7 +21,21 @@ impl Knockback {
     ) -> Option<Self> {
         let horizontal =
             authored_number(modify_health.get("m_E33EFEE1"), 0.0, evaluate).ok()? as f32;
-        let upward = authored_number(modify_health.get("m_10399AE7"), 0.0, evaluate).ok()? as f32;
+        let base_upward =
+            authored_number(modify_health.get("m_10399AE7"), 0.0, evaluate).ok()? as f32;
+        let vertical_override = modify_health
+            .get("m_583C208B")
+            .filter(|v| !v.is_null())
+            .and_then(|v| authored_number(Some(v), 0.0, evaluate).ok())
+            .map(|v| v as f32)
+            .filter(|v| v.is_finite() && *v > 0.0);
+        // Retail `STUStatescriptModifyHealth` uses `m_583C208B` for vertical pop-up velocity
+        // (e.g. Wrecking Ball Fireball `5.0`, Piledriver `11.0`, Minefield `5.0`) while
+        // `m_10399AE7` holds either an upward scale (`1`) or projectile upward impulse.
+        let upward = match vertical_override {
+            Some(v) if base_upward == 0.0 || (base_upward - 1.0).abs() < 1e-4 => v,
+            _ => base_upward,
+        };
         if [horizontal, upward] == [0.0; 2] || ![horizontal, upward].into_iter().all(f32::is_finite)
         {
             return None;

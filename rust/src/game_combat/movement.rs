@@ -63,6 +63,9 @@ impl MovementContactFrame {
         mut visible: impl FnMut(u32) -> bool,
     ) -> [f64; 2] {
         let mut push = [0.0f64; 2];
+        if !self.actors.contains_key(&source) {
+            return push;
+        }
         for (&entity, &(other_team, other_pose)) in &self.actors {
             if entity == source || other_team != Some(team) || !visible(entity) {
                 continue;

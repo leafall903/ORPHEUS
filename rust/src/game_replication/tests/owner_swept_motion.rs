@@ -81,11 +81,14 @@ fn hostile_actor_contact_corrects_ordinary_movement_with_or_without_an_owner_scr
         team: 0,
         card: &card,
     };
+    let mut ally_path = Vec::new();
+    let mut unobserved_path = Vec::new();
     for (team, scripted, delivered) in [
         (1, true, true),
         (1, false, true),
         (0, true, true),
         (0, false, true),
+        (0, false, false),
         (1, true, false),
         (1, false, false),
     ] {
@@ -151,6 +154,20 @@ fn hostile_actor_contact_corrects_ordinary_movement_with_or_without_an_owner_scr
             world
                 .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
                 .unwrap();
+            if team == viewer.team && !scripted {
+                let x = scene
+                    .simulation()
+                    .player_body(id)
+                    .unwrap()
+                    .mover
+                    .pose()
+                    .position[0];
+                if delivered {
+                    ally_path.push(x);
+                } else {
+                    unobserved_path.push(x);
+                }
+            }
         }
         let pose = scene.simulation().player_body(id).unwrap().mover.pose();
         let (_, sent) = transmit(
@@ -170,10 +187,22 @@ fn hostile_actor_contact_corrects_ordinary_movement_with_or_without_an_owner_scr
         } else {
             assert!(pose.position[0] > position[0], "{pose:?}");
         }
-        // Visible allies can still be crossed, but their soft separation is
-        // authoritative movement and needs the same owner correction.
-        assert_eq!(corrected, scripted || delivered);
+        // The visible ally is crossed in this trajectory. Its soft contact
+        // also produces an authoritative displacement for an unscripted owner.
+        assert_eq!(
+            corrected,
+            scripted || delivered,
+            "team {team}, scripted {scripted}, delivered {delivered}"
+        );
     }
+    assert_eq!(ally_path.len(), unobserved_path.len());
+    assert!(
+        ally_path
+            .iter()
+            .zip(&unobserved_path)
+            .any(|(a, b)| (a - b).abs() > 0.001),
+        "crossing the visible ally never displaced the owner"
+    );
 }
 
 #[test]

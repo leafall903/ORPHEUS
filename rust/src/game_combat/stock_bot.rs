@@ -50,6 +50,7 @@ pub(crate) struct StockBotCatalog {
     pub(crate) mode: u64,
 }
 
+#[derive(Clone)]
 pub(super) struct StockBotWorld {
     graphs: Arc<GraphStore>,
     mode: u64,
@@ -112,25 +113,30 @@ impl World for StockBotWorld {
         criterion: u64,
         choose: &mut dyn FnMut(usize) -> usize,
     ) {
-        self.queue_actor_voice_with_audience(site, criterion, None, choose);
+        self.queue_actor_voice_with_audience(site, criterion, site.entity, None, None, choose);
     }
 
     fn queue_actor_voice_with_audience(
         &mut self,
         site: Site,
         criterion: u64,
+        speaker: u32,
+        subject: Option<u32>,
         audience: Option<&[u32]>,
         choose: &mut dyn FnMut(usize) -> usize,
     ) {
-        if let Some((cue, listeners)) = self.spatial_frame.as_deref().and_then(|frame| {
-            frame.actor_voice_request_with_audience(
-                site.entity,
-                crate::game_combat::ActorVoiceQuery::Criterion(criterion),
-                audience,
-                choose,
-            )
-        }) {
-            self.queue_room_cue(site, &listeners, cue);
+        let Some(frame) = self.spatial_frame.as_deref() else {
+            return;
+        };
+        if let Some((cue, listeners)) = frame.actor_voice_request_with_audience(
+            speaker,
+            crate::game_combat::ActorVoiceQuery::Criterion(criterion),
+            subject,
+            audience,
+            choose,
+        ) {
+            self.script_requests
+                .queue_speaker_cue(frame, site.entity, speaker, &listeners, cue);
         }
     }
 
@@ -152,15 +158,25 @@ impl World for StockBotWorld {
     }
 
     fn known_position(&self, entity: u32) -> Option<[f64; 3]> {
-        (entity == self.entity).then_some(self.position)
+        if entity == self.entity {
+            return Some(self.position);
+        }
+        self.spatial_frame
+            .as_deref()?
+            .actor_pose(entity)
+            .map(|(position, _)| position)
     }
 
     fn position(&mut self, entity: u32) -> Option<[f64; 3]> {
-        (entity == self.entity).then_some(self.position)
+        self.known_position(entity)
     }
 
     fn forward(&self, entity: u32) -> Option<[f64; 3]> {
-        (entity == self.entity).then_some(self.forward)
+        if entity == self.entity {
+            return Some(self.forward);
+        }
+        let (_, [yaw, pitch]) = self.spatial_frame.as_deref()?.actor_pose(entity)?;
+        Some(crate::game_hitscan::direction_for_angles(yaw, pitch))
     }
 
     fn authored_position(&mut self, entity: u32) -> Option<[f64; 3]> {
@@ -169,6 +185,27 @@ impl World for StockBotWorld {
 
     fn authored_forward(&self, entity: u32) -> Option<[f64; 3]> {
         self.forward(entity)
+    }
+
+    fn body_bone_point(&mut self, entity: u32, bone: u64, local: [f64; 3]) -> Option<[f64; 3]> {
+        if entity != self.entity {
+            return self.spatial_frame.as_ref()?.actor_bone_point(
+                &self.graphs,
+                entity,
+                bone,
+                local,
+            );
+        }
+        if self.dead {
+            return None;
+        }
+        let point = if bone == 0 {
+            local
+        } else {
+            self.graphs
+                .bone_reference_point(self.body, 0, bone, local)?
+        };
+        crate::script_expr::body_space_point(self.position, Some(self.forward), point)
     }
 
     fn body_eye_position(&self, entity: u32) -> Option<[f64; 3]> {
@@ -532,6 +569,20 @@ pub(super) enum BodyEntry {
 }
 
 impl StockBotScript {
+    pub(super) fn status_script(
+        &mut self,
+        op: super::status_scripts::StatusScriptOp<'_>,
+    ) -> Result<Option<u16>, String> {
+        if self.faulted {
+            return Ok(None);
+        }
+        let mut world = self.world.clone();
+        let outcome = op
+            .run(&mut self.component, &mut world)
+            .map_err(|error| error.to_string())?;
+        self.world = world;
+        Ok(outcome)
+    }
     pub(super) fn start(
         catalog: &StockBotCatalog,
         bot: &Bot,
@@ -672,7 +723,12 @@ impl StockBotScript {
         self.check_projection(result);
     }
 
-    pub(super) fn on_damage(&mut self, remaining_health: f64, source: Death) {
+    pub(super) fn on_damage(
+        &mut self,
+        remaining_health: f64,
+        source: Death,
+        tags: &crate::script_init::HitTags,
+    ) {
         if self.faulted {
             return;
         }
@@ -687,9 +743,7 @@ impl StockBotScript {
                 // 0x3D=hurt-flinch tags, 0x65=hit direction vector): drives `0x0E8C:14`
                 // 3rd-person hurt-flinch (`Anim 0x0174`) and `0x08B6:6` wobble without
                 // faulting `0x0E8C:49` (`0x03FA` vector sync var).
-                const DAMAGE_TAKEN_MESSAGE: u64 = 0x0240_0000_0000_0011;
-                const TAG_HURT_FLINCH_ANIM: u64 = 0x0d80_0000_0000_078d;
-                const TAG_HURT_FLINCH_WEIGHT: u64 = 0x0d80_0000_0000_09a5;
+                use crate::game_combat_messages::{DAMAGE_TAKEN_MESSAGE, damage_taken_parameters};
                 let default_dir = [-self.world.forward[0], 0.0, -self.world.forward[2]];
                 let hit_dir = self
                     .world
@@ -707,17 +761,7 @@ impl StockBotScript {
                         }
                     })
                     .unwrap_or(default_dir);
-                let params = Variables::from([
-                    (0x13, Value::Float(f64::from(dealt as f32))),
-                    (
-                        0x3d,
-                        Value::Array(vec![
-                            Value::Asset(TAG_HURT_FLINCH_ANIM),
-                            Value::Asset(TAG_HURT_FLINCH_WEIGHT),
-                        ]),
-                    ),
-                    (0x65, Value::Vector(hit_dir)),
-                ]);
+                let params = damage_taken_parameters(dealt, hit_dir, source.killer, tags);
                 if self.component.queue_entity_message_from(
                     source.killer,
                     DAMAGE_TAKEN_MESSAGE,
@@ -753,7 +797,7 @@ impl StockBotScript {
             })
     }
 
-    pub(super) fn on_death(&mut self, source: Death, critical: bool, loadout: Option<u64>) {
+    pub(super) fn on_death(&mut self, source: Death, impact: Option<&crate::game_hitscan::Impact>) {
         if self.faulted || self.world.dead {
             return;
         }
@@ -769,10 +813,13 @@ impl StockBotScript {
             self.stop_script(error);
             return;
         }
-        let result = self
-            .component
-            .queue_body_death(source.killer, critical, loadout, Some(source.frame))
-            .and_then(|_| self.component.run_now(&mut self.world));
+        let result = crate::game_hitscan::queue_script_death(
+            &mut self.component,
+            source.killer,
+            impact,
+            Some(source.frame),
+        )
+        .and_then(|_| self.component.run_now(&mut self.world));
         self.check_projection(result);
     }
 

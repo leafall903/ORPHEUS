@@ -62,6 +62,8 @@ impl ActorHealthSnapshot {
 #[derive(Clone)]
 pub(super) struct RoomScriptTarget {
     pub(super) entity: Entity,
+    pub(super) controller: Option<u32>,
+    pub(super) model: Option<(u64, u64)>,
     pub(super) candidate_index: Option<usize>,
     pub(super) position: Vec3,
     pub(super) angles: [i32; 2],
@@ -78,8 +80,18 @@ pub(super) struct RoomScriptTarget {
 
 pub(crate) enum ActorVoiceQuery {
     Criterion(u64),
+    #[allow(dead_code)]
+    OwnerDeath(u64),
     EquippedEffect(u64),
     Stimulus(u64),
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct DeathVoiceBody {
+    pub(super) entity: Entity,
+    pub(super) team: Option<u8>,
+    pub(super) voice: (u64, u64),
+    pub(super) listener: bool,
 }
 
 impl RoomSpatialFrame {
@@ -110,25 +122,35 @@ impl RoomSpatialFrame {
         query: ActorVoiceQuery,
         choose: &mut dyn FnMut(usize) -> usize,
     ) -> Option<(RoomCue, Vec<u32>)> {
-        self.actor_voice_request_with_audience(source, query, None, choose)
+        self.actor_voice_request_with_audience(source, query, None, None, choose)
     }
 
     pub(crate) fn actor_voice_request_with_audience(
         &self,
         source: u32,
         query: ActorVoiceQuery,
+        subject: Option<u32>,
         explicit_audience: Option<&[u32]>,
         choose: &mut dyn FnMut(usize) -> usize,
     ) -> Option<(RoomCue, Vec<u32>)> {
         let catalog = self.actor_voice.as_ref()?;
-        let (actor, source_body) = self.actor_sample(source)?;
-        let (hero, skin) = source_body.voice?;
+        let corpse = matches!(query, ActorVoiceQuery::OwnerDeath(_))
+            .then(|| self.dead_voice.get(&source))
+            .flatten();
+        let (team, (hero, skin)) = if let Some(body) = corpse {
+            (body.team, body.voice)
+        } else {
+            let (actor, body) = self.actor_sample(source)?;
+            (actor.team, body.voice?)
+        };
         let options = match query {
-            ActorVoiceQuery::Criterion(criterion) => catalog.options(hero, skin, criterion),
+            ActorVoiceQuery::Criterion(criterion) | ActorVoiceQuery::OwnerDeath(criterion) => {
+                catalog.options(hero, skin, criterion)
+            }
             ActorVoiceQuery::EquippedEffect(effect) => catalog.equipped_options(hero, skin, effect),
             ActorVoiceQuery::Stimulus(stimulus) => catalog.stimulus_options(hero, skin, stimulus),
         }?;
-        let listeners: Vec<_> = match explicit_audience.filter(|items| !items.is_empty()) {
+        let mut listeners: Vec<_> = match explicit_audience {
             Some(audience) => {
                 let mut seen = HashSet::with_capacity(audience.len());
                 audience
@@ -144,13 +166,16 @@ impl RoomSpatialFrame {
                     .collect()
             }
             None => {
-                let team_only = matches!(query, ActorVoiceQuery::Criterion(_));
+                let team_only = matches!(
+                    query,
+                    ActorVoiceQuery::Criterion(_) | ActorVoiceQuery::OwnerDeath(_)
+                );
                 self.candidates
                     .iter()
                     .filter(|listener| {
                         (!team_only
                             || listener.entity == source
-                            || actor.team.is_some() && actor.team == listener.team)
+                            || team.is_some() && team == listener.team)
                             && self
                                 .script_targets
                                 .get(&listener.entity)
@@ -160,18 +185,24 @@ impl RoomSpatialFrame {
                     .collect()
             }
         };
+        if corpse.is_some_and(|body| body.listener)
+            && explicit_audience.is_none_or(|ids| ids.contains(&source))
+        {
+            listeners.push(source);
+        }
         if listeners.is_empty() || listeners.len() > RoomCue::MAX_TARGETS {
             return None;
         }
         let ally_heroes: Vec<u64> = self
             .candidates
             .iter()
-            .filter(|cand| cand.entity != source && actor.team.is_some() && actor.team == cand.team)
+            .filter(|cand| cand.entity != source && team.is_some() && team == cand.team)
             .filter_map(|cand| self.script_targets.get(&cand.entity)?.voice.map(|(h, _)| h))
             .collect();
         let ctx = crate::actor_voice::VoiceContext {
             map: self.map_guid,
-            target_hero: None,
+            target_hero: subject
+                .and_then(|wire| self.script_targets.get(&wire)?.voice.map(|(hero, _)| hero)),
             ally_heroes: &ally_heroes,
         };
         let (stimulus, line) = options.choose_with_context(&ctx, choose)?;
@@ -186,6 +217,7 @@ impl RoomSpatialFrame {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct RoomScriptRequest {
     wire: u32,
     entity: Entity,
@@ -200,7 +232,8 @@ impl RoomScriptRequest {
                 target.health
             }
             ScriptEffect::Message(_) => target.messages,
-            ScriptEffect::Cue(_, _) => target.cue_listener,
+            ScriptEffect::Play { .. } => target.messages && target.candidate_index.is_some(),
+            ScriptEffect::Cue(..) => target.cue_listener,
             ScriptEffect::SpawnPet { .. }
             | ScriptEffect::DespawnPet { .. }
             | ScriptEffect::StartDuplicate { .. }
@@ -214,6 +247,7 @@ impl RoomScriptRequest {
     }
 }
 
+#[derive(Clone)]
 enum ScriptEffect {
     Health(HealthEffect),
     Contact {
@@ -224,7 +258,12 @@ enum ScriptEffect {
         impulse: Option<Vec3>,
     },
     Message(RoomMessage),
-    Cue(RoomCue, Entity),
+    Play {
+        caller: crate::script_init::Site,
+        request: crate::script_init::PlayScript,
+        instigator: Entity,
+    },
+    Cue(RoomCue, Entity, u32, Entity, bool),
     SpawnPet {
         pet_id: u32,
         definition: u64,
@@ -257,7 +296,7 @@ pub(crate) struct PlayerRoomCue {
     pub(crate) notice: CombatNotice,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct RoomScriptRequests(Vec<RoomScriptRequest>);
 
 impl RoomScriptRequests {
@@ -378,6 +417,27 @@ impl RoomScriptRequests {
         true
     }
 
+    pub(crate) fn queue_play_script(
+        &mut self,
+        frame: &RoomSpatialFrame,
+        caller: crate::script_init::Site,
+        target: u32,
+        request: crate::script_init::PlayScript,
+    ) -> bool {
+        let Some(source) = frame.script_targets.get(&request.source) else {
+            return false;
+        };
+        self.queue(
+            frame,
+            target,
+            ScriptEffect::Play {
+                caller,
+                request,
+                instigator: source.entity,
+            },
+        )
+    }
+
     pub(crate) fn queue_message(
         &mut self,
         frame: &RoomSpatialFrame,
@@ -422,6 +482,59 @@ impl RoomScriptRequests {
         targets: &[u32],
         cue: RoomCue,
     ) -> bool {
+        self.queue_speaker_cue(frame, source, source, targets, cue)
+    }
+
+    pub(crate) fn queue_speaker_cue(
+        &mut self,
+        frame: &RoomSpatialFrame,
+        source: u32,
+        speaker: u32,
+        targets: &[u32],
+        cue: RoomCue,
+    ) -> bool {
+        self.queue_voice_delivery(frame, source, speaker, targets, cue, false)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn queue_death_voice(
+        &mut self,
+        frame: &RoomSpatialFrame,
+        source: u32,
+        criterion: u64,
+        subject: Option<u32>,
+        audience: Option<&[u32]>,
+        choose: &mut dyn FnMut(usize) -> usize,
+    ) {
+        if let Some((cue, listeners)) = frame.actor_voice_request_with_audience(
+            source,
+            ActorVoiceQuery::OwnerDeath(criterion),
+            subject,
+            audience,
+            choose,
+        ) {
+            self.queue_voice_delivery(frame, source, source, &listeners, cue, true);
+        }
+    }
+
+    fn queue_voice_delivery(
+        &mut self,
+        frame: &RoomSpatialFrame,
+        source: u32,
+        speaker: u32,
+        targets: &[u32],
+        cue: RoomCue,
+        death: bool,
+    ) -> bool {
+        let corpse = death.then(|| frame.dead_voice.get(&source)).flatten();
+        let Some(speaker_entity) = frame
+            .script_targets
+            .get(&speaker)
+            .map(|body| body.entity)
+            .or_else(|| corpse.map(|body| body.entity))
+        else {
+            return false;
+        };
         if cue.stimulus == 0 || cue.line == 0 || targets.len() > RoomCue::MAX_TARGETS {
             return false;
         }
@@ -429,6 +542,7 @@ impl RoomScriptRequests {
             .script_targets
             .get(&source)
             .map(|target| target.entity)
+            .or_else(|| corpse.map(|body| body.entity))
         else {
             return false;
         };
@@ -438,7 +552,22 @@ impl RoomScriptRequests {
             .copied()
             .filter(|wire| seen.insert(*wire))
             .filter_map(|wire| {
-                RoomScriptRequest::for_target(frame, wire, ScriptEffect::Cue(cue, source))
+                let effect = ScriptEffect::Cue(
+                    cue,
+                    source,
+                    speaker,
+                    speaker_entity,
+                    death && wire == speaker,
+                );
+                if let Some(body) = corpse.filter(|b| b.listener && wire == speaker) {
+                    Some(RoomScriptRequest {
+                        wire,
+                        entity: body.entity,
+                        effect,
+                    })
+                } else {
+                    RoomScriptRequest::for_target(frame, wire, effect)
+                }
             })
             .collect();
         if staged.len() > MAX_BODY_SCRIPT_REQUESTS.saturating_sub(self.0.len()) {
@@ -724,6 +853,23 @@ impl RoomSimulation {
                     self.queue_combat_impulse(request.wire, tick, delta)?;
                 }
             }
+            ScriptEffect::Play {
+                caller,
+                request: played,
+                instigator,
+            } => {
+                if caller.entity == source.wire
+                    && self.room_body_generation_current(played.source, instigator)
+                {
+                    self.run_status_script(
+                        request.wire,
+                        super::status_scripts::StatusScriptOp::Play {
+                            caller,
+                            request: &played,
+                        },
+                    );
+                }
+            }
             ScriptEffect::Message(message) => {
                 // Authored hero ability messages with room-level gameplay semantics:
                 // - Mercy Resurrect (`0x0785` / `0x1BBE` / `0x0959`) -> revive fallen ally SoulAnchor
@@ -823,23 +969,31 @@ impl RoomSimulation {
                     let _ = self.hack_health_pack(position, team, tick);
                 }
             }
-            ScriptEffect::Cue(cue, source_entity) => {
-                if source_entity != source.entity {
+            ScriptEffect::Cue(cue, source_entity, voice_wire, voice_entity, death_self) => {
+                if source_entity != source.entity
+                    || !self.room_body_generation_current(voice_wire, voice_entity)
+                {
                     return Ok(());
                 }
-                if let Some(player) = self
-                    .world
-                    .get::<PlayerBodyState>(request.entity)
-                    .filter(|player| player.alive())
+                if let Some(player) =
+                    self.world
+                        .get::<PlayerBodyState>(request.entity)
+                        .filter(|player| {
+                            player.alive()
+                                || death_self && request.wire == voice_wire && !player.alive()
+                        })
                 {
                     let speaker = match cue.speaker {
-                        RoomCueSpeaker::Actor => source.wire,
+                        RoomCueSpeaker::Actor => voice_wire,
                         RoomCueSpeaker::Mode => GAME_MODE_ENTITY,
                     };
                     self.player_cues.push(PlayerRoomCue {
                         owner: player.owner,
                         listener: player.id,
-                        source: source.identity(),
+                        source: RoomBodyIdentity {
+                            wire: voice_wire,
+                            generation: voice_entity.to_bits(),
+                        },
                         notice: CombatNotice::Voice {
                             anchor: speaker,
                             speaker,
@@ -849,9 +1003,9 @@ impl RoomSimulation {
                         },
                     });
                     if cue.stimulus == crate::actor_voice::STIMULUS_HELLO
-                        && request.wire == source.wire
+                        && request.wire == voice_wire
                     {
-                        self.trigger_nearby_bot_hello_reply(source.wire, tick);
+                        self.trigger_nearby_bot_hello_reply(voice_wire, tick);
                     }
                 }
             }
@@ -1126,70 +1280,6 @@ impl RoomSimulation {
         }
         let owner = player.owner;
         let listener = player.id;
-        let killer_hero = player.hero;
-        let killer_skin = 0;
-        let killer_team = player.team;
-        let victim_hero = self
-            .by_wire
-            .get(&victim_wire)
-            .and_then(|&e| self.world.get::<BotState>(e))
-            .map(|s| s.bot.spawn.hero)
-            .or_else(|| {
-                self.players_by_wire
-                    .get(&victim_wire)
-                    .and_then(|&e| self.world.get::<PlayerBodyState>(e))
-                    .map(|p| p.hero)
-            });
-        if let (Some(victim_hero), Some(catalog)) = (
-            victim_hero,
-            self.spatial_queries
-                .as_ref()
-                .and_then(|q| q.actor_voice.as_deref()),
-        ) {
-            let ally_heroes: Vec<u64> = self
-                .players_by_wire
-                .values()
-                .filter_map(|&e| self.world.get::<PlayerBodyState>(e))
-                .filter(|p| p.id != listener && p.team == killer_team)
-                .map(|p| p.hero)
-                .collect();
-            let ctx = crate::actor_voice::VoiceContext {
-                map: self.map_guid,
-                target_hero: Some(victim_hero),
-                ally_heroes: &ally_heroes,
-            };
-            let mut pick = (frame as usize).wrapping_add(victim_wire as usize);
-            let rival_line = [
-                0x0EE0_0000_0000_000B,
-                0x0EE0_0000_0000_000C,
-                0x0EE0_0000_0000_0019,
-            ]
-            .into_iter()
-            .find_map(|stim| {
-                catalog
-                    .stimulus_options(killer_hero, killer_skin, stim)?
-                    .choose_rival_line(victim_hero, &ctx, &mut |count| {
-                        pick = pick.wrapping_mul(1_103_515_245).wrapping_add(12_345);
-                        pick % count
-                    })
-            });
-            if let (Some((stimulus, line)), Some(source_body)) =
-                (rival_line, self.sample_health_body(killer_wire))
-            {
-                self.player_cues.push(PlayerRoomCue {
-                    owner,
-                    listener,
-                    source: source_body.identity(),
-                    notice: CombatNotice::Voice {
-                        anchor: killer_wire,
-                        speaker: killer_wire,
-                        listener: killer_wire,
-                        stimulus,
-                        line,
-                    },
-                });
-            }
-        }
         let now_secs = f64::from(frame) * crate::game_clock::TICK_PERIOD.as_secs_f64();
         let on_objective = self
             .pvp_objective
@@ -1199,57 +1289,14 @@ impl RoomSimulation {
                     .and_then(|sample| sample.position(&self.world)),
             )
             .is_some_and(|(pvp, pos)| pvp.is_on_objective(pos));
-        let awarded =
-            self.scoreboard
-                .record_elimination(owner, victim_wire, on_objective, now_secs);
+        self.scoreboard
+            .record_elimination(owner, victim_wire, on_objective, now_secs);
         let owner_on_fire = self
             .scoreboard
             .player(owner)
             .is_some_and(|board| board.on_fire.on_fire);
-        let owner_ignited = awarded
-            .iter()
-            .any(|&(award_owner, _, ignited)| award_owner == owner && ignited);
-        if owner_ignited {
-            if let Some(catalog) = self
-                .spatial_queries
-                .as_ref()
-                .and_then(|q| q.actor_voice.as_deref())
-            {
-                let ctx = crate::actor_voice::VoiceContext {
-                    map: self.map_guid,
-                    target_hero: None,
-                    ally_heroes: &[],
-                };
-                let mut pick = frame as usize;
-                // Retail On-Fire voice criterion (0x0EE0...0023 / 0x0EE0...0024 fallback).
-                let on_fire_line = [0x0EE0_0000_0000_0023, 0x0EE0_0000_0000_0024]
-                    .into_iter()
-                    .find_map(|stim| {
-                        catalog
-                            .stimulus_options(killer_hero, killer_skin, stim)?
-                            .choose_with_context(&ctx, &mut |count| {
-                                pick = pick.wrapping_mul(1_103_515_245).wrapping_add(12_345);
-                                pick % count
-                            })
-                    });
-                if let (Some((stimulus, line)), Some(source_body)) =
-                    (on_fire_line, self.sample_health_body(killer_wire))
-                {
-                    self.player_cues.push(PlayerRoomCue {
-                        owner,
-                        listener,
-                        source: source_body.identity(),
-                        notice: CombatNotice::Voice {
-                            anchor: killer_wire,
-                            speaker: killer_wire,
-                            listener: killer_wire,
-                            stimulus,
-                            line,
-                        },
-                    });
-                }
-            }
-        }
+        // Both the elimination event and the OnFire transition are forwarded to
+        // the body VM below. Its graph owns waits, speakers and voice criteria.
         self.replay.record_event(crate::game_replay::ReplayEvent {
             tick: frame,
             kind: crate::game_replay::ReplayEventKind::Elimination {
@@ -1522,6 +1569,8 @@ mod tests {
         let mut world = bevy_ecs::world::World::new();
         let mut target = |candidate_index, health, messages| RoomScriptTarget {
             entity: world.spawn_empty().id(),
+            model: None,
+            controller: None,
             candidate_index: Some(candidate_index),
             position: [0.0; 3],
             angles: [0; 2],
@@ -1546,6 +1595,7 @@ mod tests {
                 .collect(),
             actor_capsules: None,
             entity_facts: None,
+            dead_voice: HashMap::new(),
             script_targets: bodies
                 .iter()
                 .enumerate()

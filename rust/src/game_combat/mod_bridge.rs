@@ -1771,7 +1771,7 @@ impl RoomSimulation {
             let result = self.world.get_mut::<BotState>(entity).and_then(|state| {
                 let state = state.into_inner();
                 let team = state.bot.spawn.team;
-                let dmg = Self::damage_bot_with_hit(state, amount, death, now, false, None)?;
+                let dmg = Self::damage_bot_with_hit(state, amount, death, now, None)?;
                 if dmg.killed && state.respawn_at.is_none() {
                     state.respawn_at = Some(now.saturating_add(BOT_RESPAWN_TIME));
                 }

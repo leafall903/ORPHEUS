@@ -16,7 +16,7 @@ use crate::{
         Graph, GraphStore, Node, asset_guid, decode_link, directed_numeric_payload,
         message_parameter_id,
     },
-    script_runtime::{ButtonEdge, FRAME_MS, button_edges, frame_start},
+    script_runtime::{ButtonEdge, DispatchOrigin, FRAME_MS, button_edges, frame_start},
     script_wire::{Value, Variables},
 };
 
@@ -55,6 +55,7 @@ pub(super) struct Vm<'graph, 'world, 'machine, W> {
     health_context: HostHealthContext,
     observed_input: Option<ObservationInput>,
     pub(super) command_frame: Option<u32>,
+    origin: DispatchOrigin,
     settled_damage_receiver: Option<u16>,
     pub(super) output_write_depth: usize,
 }
@@ -73,6 +74,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             health_context: HostHealthContext::default(),
             observed_input: None,
             command_frame: None,
+            origin: DispatchOrigin::Ordinary,
             settled_damage_receiver: None,
             output_write_depth: 0,
         }
@@ -1237,19 +1239,23 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 }
                 // Settle script work before the next input edge at this instant.
                 // A press and release can share a timestamp.
-                while let Some((event, command_frame)) = self
-                    .machine
-                    .queues
-                    .pop_due_with_command_frame(id, self.machine.now_ms, |event| {
-                        !matches!(event, Event::Button(_))
-                    })
+                while let Some((event, origin)) =
+                    self.machine
+                        .queues
+                        .pop_due_with_origin(id, self.machine.now_ms, |event| {
+                            !matches!(event, Event::Button(_))
+                        })
                 {
                     if events == MAX_EVENTS_PER_UPDATE {
                         return Err(InitFault::EventBudget { instance: id });
                     }
                     events += 1;
                     self.spend("event dispatch")?;
-                    self.command_frame = command_frame;
+                    self.origin = origin;
+                    self.command_frame = match origin {
+                        DispatchOrigin::Command(frame) => Some(frame),
+                        _ => None,
+                    };
                     let key = |raw| StateKey { instance: id, raw };
                     match event {
                         Event::Entry(position) => {
@@ -1327,6 +1333,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                         }
                     }
                     self.command_frame = None;
+                    self.origin = DispatchOrigin::Ordinary;
                 }
                 if !self.machine.snapshot.instances.contains_key(&id) {
                     break;
@@ -1448,16 +1455,23 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
     ) -> Result<(), InitFault> {
         // Carry the input view through immediate graph work, including child
         // startup. Later timers sample their own current frame.
-        let command_frame = if delay_ms == 0 {
+        let origin = if matches!(self.origin, DispatchOrigin::BodyDeath(_))
+            && matches!(
+                &event,
+                Event::Begin(_) | Event::Finish(_) | Event::Timer(..)
+            ) {
+            self.origin
+        } else if delay_ms == 0 {
             self.command_frame
+                .map_or(DispatchOrigin::Ordinary, DispatchOrigin::Command)
         } else {
-            None
+            DispatchOrigin::Ordinary
         };
-        self.machine.queues.push_with_command_frame(
+        self.machine.queues.push_with_origin(
             id,
             self.machine.now_ms.saturating_add(delay_ms),
             event,
-            command_frame,
+            origin,
         )?;
         Ok(())
     }
@@ -2401,7 +2415,15 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
 
     fn play_actor_criterion(&mut self, id: u16, node: &Node) {
         let site = self.site(id, node);
-        if self.machine.owner_dead || !self.world.actor_voice_available(site) {
+        let from_death = match self.origin {
+            DispatchOrigin::BodyDeath(generation) if generation == self.machine.life_generation => {
+                true
+            }
+            DispatchOrigin::BodyDeath(_) => return,
+            _ if self.machine.owner_dead => return,
+            _ => false,
+        };
+        if !from_death && !self.world.actor_voice_available(site) {
             return;
         }
         // Criteria may belong to other services. An unavailable voice operand
@@ -2424,14 +2446,33 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             self.evaluate_with_context(site, targets_field, None, Value::Null, false)
                 .ok()
         };
-        let self_targeted = match speaker {
-            Some(Value::Entity(entity)) => entity == site.entity,
-            Some(Value::Array(items)) => items.contains(&Value::Entity(site.entity)),
-            _ => false,
+        let speakers = match speaker {
+            Some(Value::Entity(entity)) if script_expr::valid_entity(entity) => vec![entity],
+            Some(Value::Array(items)) if items.len() <= RoomCue::MAX_TARGETS => {
+                let mut seen = std::collections::BTreeSet::new();
+                items
+                    .into_iter()
+                    .filter_map(|item| match item {
+                        Value::Entity(entity)
+                            if script_expr::valid_entity(entity) && seen.insert(entity) =>
+                        {
+                            Some(entity)
+                        }
+                        _ => None,
+                    })
+                    .collect()
+            }
+            _ => return,
         };
-        if !self_targeted {
-            return;
-        }
+        let subject_field = field(&node.fields, "m_8C8C5285");
+        let subject = if subject_field.is_null() {
+            None
+        } else {
+            match self.evaluate_with_context(site, subject_field, None, Value::Null, false) {
+                Ok(Value::Entity(wire)) if script_expr::valid_entity(wire) => Some(wire),
+                _ => None,
+            }
+        };
         let audience_field = field(&node.fields, "m_297E0B63");
         let explicit_audience = if audience_field.is_null() {
             None
@@ -2458,17 +2499,35 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                             _ => None,
                         })
                         .collect();
-                    (!list.is_empty()).then_some(list)
+                    Some(list)
                 }
                 _ => None,
             }
         };
-        self.world.queue_actor_voice_with_audience(
-            site,
-            criterion,
-            explicit_audience.as_deref(),
-            &mut |count| ((u128::from(self.machine.random_u64()) * count as u128) >> 64) as usize,
-        );
+        for speaker in speakers {
+            let mut choose =
+                |count| ((u128::from(self.machine.random_u64()) * count as u128) >> 64) as usize;
+            if from_death && self.machine.owner_dead {
+                if speaker == site.entity {
+                    self.world.queue_owner_death_voice(
+                        site,
+                        criterion,
+                        subject,
+                        explicit_audience.as_deref(),
+                        &mut choose,
+                    );
+                }
+            } else {
+                self.world.queue_actor_voice_with_audience(
+                    site,
+                    criterion,
+                    speaker,
+                    subject,
+                    explicit_audience.as_deref(),
+                    &mut choose,
+                );
+            }
+        }
     }
 
     fn send_room_cue(

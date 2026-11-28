@@ -2,6 +2,30 @@ use std::sync::OnceLock;
 
 use super::{helpers::*, *};
 
+/// Read the reference in GetGameRulesetValue(entity.member(identifier)).
+/// The same bytecode outside a rule lookup still reads an ordinary entity variable.
+fn ruleset_member(operand: &Json) -> Option<(&Json, u32)> {
+    if !is_expression(class(operand)) {
+        return None;
+    }
+    let expression = Expression::read(operand).ok()?;
+    let [load, source, identifier_op, key, member, end] = expression.code else {
+        return None;
+    };
+    if (
+        load.as_u64(),
+        identifier_op.as_u64(),
+        member.as_u64(),
+        end.as_u64(),
+    ) != (Some(14), Some(7), Some(15), Some(0))
+    {
+        return None;
+    }
+    let entity = expression.configs.get(usize::from(byte(source, 1).ok()?))?;
+    let id = identifier(expression.dynamics.get(usize::from(byte(key, 3).ok()?))?).ok()?;
+    Some((entity, id))
+}
+
 #[derive(serde::Deserialize)]
 struct WheelSlots {
     emote: [String; 4],
@@ -1277,6 +1301,7 @@ impl Evaluator {
                     Some(Value::Entity(entity)) => Value::Vector(
                         context
                             .known_position(*entity)
+                            .or_else(|| context.authored_position(*entity))
                             .filter(|point| point.iter().all(|axis| axis.is_finite()))
                             .ok_or_else(|| EvalError::UnsupportedConfig(class.into()))?,
                     ),
@@ -1531,6 +1556,67 @@ impl Evaluator {
                 let y = to_float(&self.config(child(config, "m_447C0E2E"), context, nested)?);
                 let z = to_float(&self.config(child(config, "m_25252423"), context, nested)?);
                 Value::Vector([rounded(x), rounded(y), rounded(z)])
+            }
+            "STU_C5148EFE" if native_fields(config, &["m_entity", "m_bone", "m_BD631144"]) => {
+                let point = child(config, "m_BD631144");
+                let local = if point.is_null() {
+                    [0.0; 3]
+                } else {
+                    let value =
+                        self.config_with_initial(point, context, nested, Value::Vector([0.0; 3]))?;
+                    match first_scalar(&value) {
+                        Some(Value::Vector(v)) if v.iter().all(|v| v.is_finite()) => *v,
+                        _ => {
+                            return Err(EvalError::MalformedConfig(
+                                "expected a finite local point",
+                            ));
+                        }
+                    }
+                };
+                let target = self.config(child(config, "m_entity"), context, nested)?;
+                let entity = match first_scalar(&target) {
+                    Some(Value::Entity(id)) => *id,
+                    Some(Value::Null) | None => {
+                        return Err(EvalError::UnavailableEntityPosition(0));
+                    }
+                    _ => {
+                        return Err(EvalError::MalformedConfig(
+                            "expected an entity for point transform",
+                        ));
+                    }
+                };
+                if entity == 0 {
+                    return Ok(Value::Vector(local.map(rounded)));
+                }
+                if !valid_entity(entity) {
+                    return Err(EvalError::UnavailableEntityPosition(entity));
+                }
+                let operand = child(config, "m_bone");
+                let bone = if operand.is_null() {
+                    0
+                } else {
+                    let value = self.config(operand, context, nested)?;
+                    match first_scalar(&value) {
+                        Some(Value::Asset(bone)) if *bone == 0 || *bone >> 48 == 0x0880 => *bone,
+                        Some(Value::Null) | None => {
+                            return Err(EvalError::UnavailableBodyBone { entity, bone: 0 });
+                        }
+                        _ => {
+                            return Err(EvalError::MalformedConfig(
+                                "expected a bone asset for point transform",
+                            ));
+                        }
+                    }
+                };
+                let result = context
+                    .body_bone_point(entity, bone, local)
+                    .filter(|v| v.iter().all(|v| v.is_finite()))
+                    .ok_or(if bone == 0 {
+                        EvalError::UnavailableEntityPosition(entity)
+                    } else {
+                        EvalError::UnavailableBodyBone { entity, bone }
+                    })?;
+                Value::Vector(result.map(rounded))
             }
             // Hardpoint world position / basis vectors for any entity (self, hooked targets, pets).
             "STU_FC99C77E" => {
@@ -2284,6 +2370,20 @@ impl Evaluator {
                 }
             }
             "STU_3832D36C" => {
+                if let Some((source, id)) = ruleset_member(value) {
+                    let subject = self.config(source, context, nested)?;
+                    if let Value::Entity(entity) = &subject {
+                        if let Some(rule) = context.entity_ruleset(*entity, id) {
+                            return Ok(rule);
+                        }
+                    }
+                    // Hosts without scoped rule data retain their member-value
+                    // interpretation, without evaluating the entity source twice.
+                    let key = entity_member(&subject, &Value::Integer(i64::from(id)), context)?;
+                    return Ok(u32::try_from(to_int(&key, 0))
+                        .ok()
+                        .map_or(Value::Null, |key| context.ruleset(key)));
+                }
                 let key = match dynamic(value)? {
                     Some(variable) => Some(variable.id),
                     None => u32::try_from(to_int(&self.config(value, context, nested)?, 0)).ok(),
@@ -2411,11 +2511,7 @@ impl Evaluator {
         let flags = needs_flags
             .then(|| context.entity_filter_flags(entity))
             .flatten();
-        if flags.is_some_and(|flags| {
-            (any != ANY_ENTITY_MASK && flags & any == 0)
-                || flags & all != all
-                || flags & exclude != 0
-        }) {
+        if flags.is_some_and(|flags| !matches_entity_masks([any, all, exclude], flags)) {
             return Ok(Value::Bool(false));
         }
         if let Some(policy) = policy.filter(|policy| policy.relation != FilterRelation::Any) {

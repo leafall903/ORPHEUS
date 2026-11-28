@@ -1460,6 +1460,13 @@ pub struct GraphBinding {
     pub flags: i64,
 }
 
+/// A persistent volley's landed entity definition from its .003 component map.
+#[derive(Debug, Deserialize)]
+pub struct ProjectileDefinition {
+    pub graphs: Vec<GraphBinding>,
+    pub components: BTreeSet<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Body {
     pub hero: Option<String>,
@@ -1924,6 +1931,8 @@ struct Bundle {
     graphs: Vec<Graph>,
     bodies: BTreeMap<String, Body>,
     #[serde(default)]
+    persistent_projectiles: BTreeMap<String, ProjectileDefinition>,
+    #[serde(default)]
     entities: BTreeMap<String, Body>,
     #[serde(default)]
     mode_variables: BTreeMap<String, BTreeMap<u32, Value>>,
@@ -2046,6 +2055,7 @@ pub struct GraphStore {
     uses_spatial_actor_rays: bool,
     uses_host_health_events: bool,
     bodies: BTreeMap<u64, Body>,
+    persistent_projectiles: BTreeMap<u64, ProjectileDefinition>,
     entities: BTreeMap<u64, Body>,
     mode_variables: BTreeMap<u64, BTreeMap<u32, ModeValue>>,
     mode_scripts: BTreeMap<u64, ModeScripts>,
@@ -2357,6 +2367,7 @@ impl GraphStore {
             uses_host_health_events,
             bodies: keyed_by_guid(bundle.bodies)?,
             entities: keyed_by_guid(bundle.entities)?,
+            persistent_projectiles: keyed_by_guid(bundle.persistent_projectiles)?,
             mode_variables: keyed_by_guid(bundle.mode_variables)?
                 .into_iter()
                 .map(|(guid, values)| {
@@ -2495,6 +2506,10 @@ impl GraphStore {
 
     pub fn entity_body(&self, guid: u64) -> Option<&Body> {
         self.entities.get(&guid)
+    }
+
+    pub fn persistent_projectile(&self, guid: u64) -> Option<&ProjectileDefinition> {
+        self.persistent_projectiles.get(&guid)
     }
 
     /// Extract the authored `0x0120...` contact-set index from a body or entity's graph schema entries (`0x0D800000000002A3`).

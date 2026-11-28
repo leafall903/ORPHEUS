@@ -965,14 +965,21 @@ pub(crate) fn direct_projectile_direction(
     direction: Vec3,
     mut evaluate: impl FnMut(&Json) -> Result<Value, EvalError>,
 ) -> Option<Vec3> {
+    let base = if let Some(axis_cfg) = launch.get("m_E2FD6F04").filter(|v| !v.is_null()) {
+        match evaluate(axis_cfg).ok()? {
+            Value::Vector(axis) if axis.iter().all(|c| c.is_finite()) => {
+                lifted_direction(axis, 0.0)?
+            }
+            _ => direction,
+        }
+    } else {
+        direction
+    };
     let lift = &launch["m_22CE7F30"];
     if lift.is_null() {
-        return Some(direction);
+        return Some(base);
     }
-    lifted_direction(
-        direction,
-        crate::script_expr::to_float(&evaluate(lift).ok()?),
-    )
+    lifted_direction(base, crate::script_expr::to_float(&evaluate(lift).ok()?))
 }
 
 /// Native launch bias: float32 add to Y followed by normalization.
@@ -1530,6 +1537,62 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(end.point[0], 1.0);
+    }
+
+    #[test]
+    fn projectile_definition_does_not_override_its_authored_floor_response() {
+        let floor = TriangleIndex::new([SceneTriangle {
+            vertices: [[-3.0, 0.0, -3.0], [0.0, 0.0, 3.0], [3.0, 0.0, -3.0]],
+            mask: 0x18,
+            surface: 0,
+        }])
+        .unwrap();
+        let sweep = |origin, direction, reach, _| {
+            floor.cast_ray(origin, direction, reach, 0x18).map(|hit| {
+                hit.map(|hit| SurfaceHit {
+                    distance: hit.distance,
+                    normal: hit.normal,
+                })
+            })
+        };
+        let targets: &[(u32, TargetPose)] = &[];
+        let mut positions = Vec::new();
+        for definition in [0x0400_0000_0000_2578_u64, 0x0400_0000_0000_00a3] {
+            for enabled in [true, false] {
+                let fields = serde_json::json!({
+                    "m_projectileSpeed": 20.0,
+                    "m_projectileEntity": {
+                        "m_entityDef": {"$": "STU_8556841E", "m_entityDef": format!("0x{definition:016X}")}
+                    },
+                    "m_E365DB20": {
+                        "$": "STU_3FE1A93B",
+                        "m_D9EFD182": {"$":"STUConfigVarBool", "m_value": i32::from(enabled)},
+                        "m_360294F0": {"$":"STUConfigVarInt", "m_value": 2},
+                        "m_0D20DAFD": 0.5
+                    }
+                });
+                let profile = ProjectileBallistics::from_fields(&fields, |value| {
+                    crate::script_expr::evaluate(value, &mut crate::script_expr::EmptyContext)
+                })
+                .unwrap()
+                .unwrap();
+                assert_eq!(profile.definition, Some(definition));
+                let mut flight =
+                    ProjectileFlight::new(profile, [0.0, 0.1, 0.0], [0.0, -1.0, 0.0], Some(0))
+                        .unwrap();
+                let impact = flight.advance_combat(1, targets, None, sweep).unwrap();
+                if enabled {
+                    assert!(impact.is_none());
+                    assert_eq!(flight.terrain_rebounds, 1);
+                    assert!(flight.position[1] > 0.0 && flight.velocity[1] > 0.0);
+                    positions.push(flight.position);
+                } else {
+                    assert!(impact.unwrap().impact);
+                    assert_eq!(flight.terrain_rebounds, 0);
+                }
+            }
+        }
+        assert_eq!(positions[0], positions[1]);
     }
 
     #[test]

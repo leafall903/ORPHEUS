@@ -32,7 +32,7 @@ use crate::{
         ScriptedMotion, Snapshot,
     },
     script_runtime::FRAME_MS,
-    script_snapshot_wire::SnapshotEncoder,
+    script_snapshot_wire::{ProjectedSnapshot, SnapshotEncoder, View},
     script_wire::Value,
     vitals::{Damage, Death, Vitals},
     weapon_spread::for_each_authored_hitscan_direction,
@@ -52,6 +52,42 @@ pub(crate) struct PlayerBodyRuntime {
 }
 
 impl PlayerBodyRuntime {
+    /// Freeze the observer effect independently of the room's projectile flight.
+    fn observer_projectile(
+        &self,
+        cached: &mut Option<Option<ProjectedSnapshot>>,
+        report: ReportedShot,
+        ballistics: &ProjectileBallistics,
+        origin: [f64; 3],
+        direction: [f64; 3],
+        skip_owner: bool,
+    ) -> Option<Arc<crate::game_combat::ObservedShot>> {
+        let snapshot = cached
+            .get_or_insert_with(|| {
+                self.encoder()
+                    .project(self.component.snapshot()?, View::Observer)
+                    .ok()
+            })
+            .as_ref()?;
+        let shot = report.event;
+        let volley = snapshot.freeze_volley_with_states(
+            shot,
+            report.presentation,
+            &report.presentation_states,
+        )?;
+        Some(Arc::new(
+            crate::game_combat::ObservedShot::new(
+                volley,
+                ballistics.definition?,
+                origin,
+                direction,
+                shot.frame,
+                ballistics.lifetime,
+            )
+            .with_skip_owner(skip_owner),
+        ))
+    }
+
     fn sync_body_health_logged(&mut self) {
         if self.component.snapshot().is_some() {
             if let Err(error) = self.component.sync_body_health(&mut self.world) {
@@ -120,6 +156,15 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
 
     fn take_script_requests(&mut self) -> Vec<crate::game_combat::RoomScriptRequest> {
         self.world.script_requests.take()
+    }
+
+    fn receive_respawn(&mut self) -> Result<usize, InitFault> {
+        // The body reset message carries the respawn flag in native parameter C6.
+        // Subscribed graphs own the mode gates, delay, stimulus and audience.
+        self.component.queue_entity_message(
+            0x0240_0000_0000_0013,
+            [(0xc6, Value::Bool(true))].into_iter().collect(),
+        )
     }
 
     fn receive_room_message(
@@ -258,18 +303,8 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
         crate::facing::angles(record.direction)
     }
 
-    fn move_request(&self) -> Option<([f64; 3], f64)> {
-        if self.world.vitals.death().is_some() {
-            return None;
-        }
-        self.component
-            .snapshot()?
-            .instances
-            .values()
-            .flat_map(|instance| instance.states.values())
-            .filter(|state| state.active && state.kind == crate::script_init::StateKind::Grapple)
-            .filter_map(|state| state.move_request())
-            .next()
+    fn active_tether(&self) -> Option<crate::script_init::TetherConstraint> {
+        self.component.active_tether()
     }
 
     fn ball_roll_speed(&self) -> Option<f64> {
@@ -277,6 +312,15 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
             return None;
         }
         self.world.ball_roll_speed
+    }
+
+    fn mover_override(&self) -> Option<crate::mover_settings::MoverSettings> {
+        if self.world.vitals.death().is_some() {
+            return None;
+        }
+        self.component
+            .active_mover_override()
+            .map(crate::mover_settings::MoverSettings::from)
     }
 
     fn take_body_swap(&mut self) -> Option<u64> {
@@ -442,7 +486,12 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
         healed
     }
 
-    fn receive_damage(&mut self, amount: f64, source: Death) -> Damage {
+    fn receive_damage(
+        &mut self,
+        amount: f64,
+        source: Death,
+        tags: &crate::script_init::HitTags,
+    ) -> Damage {
         let result = self.world.vitals.damage(amount, source);
         if result.killed {
             self.world.scripted_motion = None;
@@ -455,9 +504,7 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
             && self.world.spatial_frame.is_some()
             && crate::script_expr::valid_entity(source.killer)
         {
-            const DAMAGE_TAKEN_MESSAGE: u64 = 0x0240_0000_0000_0011;
-            const TAG_HURT_FLINCH_ANIM: u64 = 0x0d80_0000_0000_078d;
-            const TAG_HURT_FLINCH_WEIGHT: u64 = 0x0d80_0000_0000_09a5;
+            use crate::game_combat_messages::{DAMAGE_TAKEN_MESSAGE, damage_taken_parameters};
             let hit_dir = self
                 .world
                 .spatial_frame
@@ -474,17 +521,7 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
                     }
                 })
                 .unwrap_or([0.0, 0.0, -1.0]);
-            let params = crate::script_wire::Variables::from([
-                (0x13, Value::Float(f64::from(result.dealt as f32))),
-                (
-                    0x3d,
-                    Value::Array(vec![
-                        Value::Asset(TAG_HURT_FLINCH_ANIM),
-                        Value::Asset(TAG_HURT_FLINCH_WEIGHT),
-                    ]),
-                ),
-                (0x65, Value::Vector(hit_dir)),
-            ]);
+            let params = damage_taken_parameters(result.dealt, hit_dir, source.killer, tags);
             let _ = self.component.queue_entity_message_from(
                 source.killer,
                 DAMAGE_TAKEN_MESSAGE,
@@ -498,16 +535,12 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
     fn publish_death(
         &mut self,
         killer: u32,
-        critical: bool,
-        loadout: Option<u64>,
+        impact: Option<&crate::game_hitscan::Impact>,
         source: Option<crate::game_combat::DeathSourceFacts>,
     ) -> Result<(), InitFault> {
         // A dead owner may stop sending commands. Execute the event at the
         // current VM clock so the observer projection can publish it immediately.
-        if self
-            .component
-            .queue_body_death(killer, critical, loadout, None)?
-            == 0
+        if crate::game_hitscan::queue_script_death(&mut self.component, killer, impact, None)? == 0
         {
             return Ok(());
         }
@@ -515,6 +548,18 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
         let result = self.component.run_now(&mut self.world);
         self.world.death_source = None;
         result
+    }
+
+    fn status_script(
+        &mut self,
+        op: crate::game_combat::status_scripts::StatusScriptOp<'_>,
+    ) -> Result<Option<u16>, String> {
+        let mut world = self.world.clone();
+        let outcome = op
+            .run(&mut self.component, &mut world)
+            .map_err(|error| error.to_string())?;
+        self.world = world;
+        Ok(outcome)
     }
 
     fn take_health_update(&mut self) -> Option<EntityComponent> {
@@ -926,31 +971,14 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
                     let base_aim = locked_aim_dir.unwrap_or_else(|| aim_direction(&command));
                     let direction = posed_projectile_direction(node, base_aim, &mut evaluate)?;
                     let presentation = if can_present_volley {
-                        let def = ballistics.definition?;
-                        let snapshot = projected_observer
-                            .get_or_insert_with(|| {
-                                let snap = self.component.snapshot()?;
-                                SnapshotEncoder::new(&self.world.graphs, &self.codecs)
-                                    .project(snap, crate::script_snapshot_wire::View::Observer)
-                                    .ok()
-                            })
-                            .as_ref()?;
-                        let volley = snapshot.freeze_volley_with_states(
-                            shot,
-                            report.presentation,
-                            &report.presentation_states,
-                        )?;
-                        Some(Arc::new(
-                            crate::game_combat::ObservedShot::new(
-                                volley,
-                                def,
-                                origin,
-                                direction,
-                                shot.frame,
-                                ballistics.lifetime,
-                            )
-                            .with_skip_owner(skip_owner),
-                        ))
+                        self.observer_projectile(
+                            &mut projected_observer,
+                            report,
+                            &ballistics,
+                            origin,
+                            direction,
+                            skip_owner,
+                        )
                     } else {
                         None
                     };
@@ -975,40 +1003,26 @@ impl OwnerBodyRuntime for PlayerBodyRuntime {
                     if !node.field("m_5EC1EB38").is_some_and(Json::is_object) {
                         return None;
                     }
+                    let base_dir =
+                        posed_projectile_direction(node, aim_direction(&command), &mut evaluate)
+                            .unwrap_or_else(|| aim_direction(&command));
                     let mut directions = Vec::new();
                     for_each_authored_hitscan_direction(
                         node,
                         &report,
-                        aim_direction(&command),
+                        base_dir,
                         &mut evaluate,
                         |direction| directions.push(direction),
                     );
                     let presentation = if can_present_volley {
-                        let def = ballistics.definition?;
-                        let snapshot = projected_observer
-                            .get_or_insert_with(|| {
-                                let snap = self.component.snapshot()?;
-                                SnapshotEncoder::new(&self.world.graphs, &self.codecs)
-                                    .project(snap, crate::script_snapshot_wire::View::Observer)
-                                    .ok()
-                            })
-                            .as_ref()?;
-                        let volley = snapshot.freeze_volley_with_states(
-                            shot,
-                            report.presentation,
-                            &report.presentation_states,
-                        )?;
-                        Some(Arc::new(
-                            crate::game_combat::ObservedShot::new(
-                                volley,
-                                def,
-                                origin,
-                                aim_direction(&command),
-                                shot.frame,
-                                ballistics.lifetime,
-                            )
-                            .with_skip_owner(skip_owner),
-                        ))
+                        self.observer_projectile(
+                            &mut projected_observer,
+                            report,
+                            &ballistics,
+                            origin,
+                            aim_direction(&command),
+                            skip_owner,
+                        )
                     } else {
                         None
                     };

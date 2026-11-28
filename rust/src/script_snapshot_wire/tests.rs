@@ -1,4 +1,5 @@
 use super::encode::write_mask;
+mod arming;
 mod callouts;
 mod owner_instance_visibility;
 use super::*;

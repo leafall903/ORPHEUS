@@ -369,6 +369,11 @@ impl<S> BodyStream<S> {
             .map(|snapshot| (self.base_last, snapshot))
     }
 
+    /// The first full and first owner delta must retry their original bytes.
+    pub(crate) fn awaiting_owner_startup(&self) -> bool {
+        self.last != 0 && (self.base.is_none() || self.initial_owner.is_some())
+    }
+
     pub fn pending(&self) -> impl Iterator<Item = (u32, &S, &BTreeSet<ChangeKey>)> {
         self.pending
             .iter()

@@ -1211,7 +1211,8 @@ fn normal_street_wave_keeps_the_zomnic_body_running_after_setup() {
                                     time: f64::from(tick) * 0.016,
                                     frame: tick,
                                     killer: hit.source,
-                                }
+                                },
+                                &crate::script_init::HitTags::EMPTY
                             )
                             .killed
                     );

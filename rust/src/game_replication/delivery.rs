@@ -1,5 +1,12 @@
 use super::{body::*, *};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BodyTransition {
+    Create,
+    Respawn,
+    Transfer,
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(super) enum Lifetime {
     Live,
@@ -799,10 +806,15 @@ impl WorldDelivery {
                     {
                         return None;
                     }
-                    Delivery::Health { .. }
+                    Delivery::Health { revision }
                         if record.update.entity != self.owner
                             && record.update.entity != GAME_MODE_ENTITY
-                            && !self.identity_ready(record.update.entity) =>
+                            && (!self.identity_ready(record.update.entity)
+                                || self.body_script.as_ref().is_some_and(|script| {
+                                    script.id.entity == record.update.entity
+                                        && script.stream.awaiting_owner_startup()
+                                        && script.projected_health_revision != Some(revision)
+                                })) =>
                     {
                         return None;
                     }
@@ -1105,6 +1117,11 @@ impl WorldDelivery {
                     if queued_id == id && last == replaced)
             });
         }
+        // A late copy of an immutable startup record must not put the old
+        // HUD on top of newer health pools for this body.
+        if let Some(script) = self.body_script.as_mut() {
+            script.projected_health_revision = self.health_updates.get(&id.entity).copied();
+        }
         self.push(record);
     }
 
@@ -1285,7 +1302,40 @@ impl WorldDelivery {
         for projection in scene.simulation().player_projections(self.owner) {
             self.present_scene_script(projection)?;
         }
+        for baseline in scene.simulation().deployable_baselines() {
+            self.present_static_scene_baseline(baseline)?;
+        }
         self.advance_observed_projectiles(tick)
+    }
+
+    pub(super) fn present_static_scene_baseline(
+        &mut self,
+        baseline: &crate::script_snapshot_wire::StaticSceneBaseline,
+    ) -> io::Result<()> {
+        let entity = baseline.snapshot.entity();
+        if !self.tracks_current_bot(entity) || !self.identity_ready(entity) {
+            return Ok(());
+        }
+        let stream = self
+            .scene_views
+            .entry(entity)
+            .or_insert_with(|| BodyStream::new(entity));
+        if stream.base().is_some() || stream.pending().next().is_some() {
+            return Ok(());
+        }
+        stream.create_arrived();
+        let chunk = stream
+            .full(&baseline.payload, baseline.snapshot.clone())
+            .map_err(invalid)?;
+        ensure_script_chunk_fits(
+            &chunk.update,
+            "static scene frame exceeds the datagram budget",
+        )?;
+        self.push(Record {
+            update: chunk.update,
+            delivery: Delivery::SceneScript { last: chunk.last },
+        });
+        Ok(())
     }
 
     pub(crate) fn present_bot_controllers(&mut self, scene: &PreparedScene) -> io::Result<()> {
@@ -2256,7 +2306,16 @@ impl WorldDelivery {
             .get(body.hero)
             .cloned()
             .ok_or_else(|| invalid("active player hero is absent from the scene catalog"))?;
-        self.switch(scene, viewer, tick, quanta, entity, (&hero, body.skin))
+        self.switch_at(
+            scene,
+            viewer,
+            tick,
+            quanta,
+            entity,
+            (&hero, body.skin),
+            None,
+            BodyTransition::Respawn,
+        )
     }
 
     pub(super) fn next_body(&self, now: Duration) -> Option<u32> {
@@ -2355,7 +2414,7 @@ impl WorldDelivery {
             entity,
             (&hero, body.skin),
             Some((swap.2, swap.4)),
-            true,
+            BodyTransition::Transfer,
         )
     }
 
@@ -2404,7 +2463,7 @@ impl WorldDelivery {
             entity,
             (&hero, skin),
             current_pose,
-            false,
+            BodyTransition::Create,
         )
     }
 
@@ -2417,7 +2476,16 @@ impl WorldDelivery {
         entity: u32,
         selection: (&Hero, SkinTheme),
     ) -> io::Result<()> {
-        self.switch_at(scene, viewer, tick, quanta, entity, selection, None, false)
+        self.switch_at(
+            scene,
+            viewer,
+            tick,
+            quanta,
+            entity,
+            selection,
+            None,
+            BodyTransition::Create,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2430,7 +2498,7 @@ impl WorldDelivery {
         entity: u32,
         selection: (&Hero, SkinTheme),
         override_pose: Option<([f64; 3], i32)>,
-        same_hero_swap: bool,
+        transition: BodyTransition,
     ) -> io::Result<()> {
         let (initial_hero, skin) = selection;
         let mut effective_hero = initial_hero.clone();
@@ -2508,8 +2576,8 @@ impl WorldDelivery {
         };
         // If startup statescript immediately requested possession of an authored alternate
         // hero body (e.g. STU_B6E3C77D + STU_CA861E44), swap directly before creating on wire.
-        // Only apply on fresh spawn/hero-switch (`!same_hero_swap`), never mid-life ejects.
-        if !same_hero_swap {
+        // A mid-life possession transfer already selected its alternate body.
+        if transition != BodyTransition::Transfer {
             if let Some(swap_body) = runtime
                 .as_mut()
                 .and_then(|rt| rt.take_body_swap())
@@ -2549,6 +2617,20 @@ impl WorldDelivery {
                         );
                     }
                 }
+            }
+        }
+        // Queue on the final startup candidate, before the corpse is replaced.
+        // Skin refreshes, hero changes and possession/transport retries carry no respawn.
+        if let Some(runtime) = runtime
+            .as_mut()
+            .filter(|_| transition == BodyTransition::Respawn)
+        {
+            if let Err(error) = runtime.receive_respawn() {
+                eprintln!(
+                    "body respawn rejected for controller {:08X}: {error}",
+                    self.owner
+                );
+                return Ok(());
             }
         }
         let pose = owner_pose(movement);
@@ -2608,7 +2690,7 @@ impl WorldDelivery {
             Some(observer_create),
         )
         .with_body_template(hero.body);
-        if same_hero_swap {
+        if transition == BodyTransition::Transfer {
             scene.simulation_mut().swap_player_body(state)?;
         } else {
             scene.simulation_mut().spawn_player_body(state)?;

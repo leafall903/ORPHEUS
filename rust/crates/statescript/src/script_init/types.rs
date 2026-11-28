@@ -281,22 +281,59 @@ pub(super) struct BufferedPress {
     pub(super) button: u8,
 }
 
+/// A fixed world anchor and the cable length owned by the active graph state.
+/// The mover applies it to the displacement it will pass to its collision sweep.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct GrappleState {
+pub struct TetherConstraint {
     pub(super) anchor: [f64; 3],
-    pub(super) speed: f64,
-    pub(super) pendulum: bool,
+    pub(super) attach_offset: [f64; 3],
     pub(super) rope_len: f64,
-    pub(super) started_ms: u64,
-    pub(super) last_dist: f64,
-    pub(super) stall_ticks: u16,
+    pub(super) min_rope_len: f64,
+}
+
+impl TetherConstraint {
+    fn radius(self, feet: [f64; 3]) -> [f64; 3] {
+        std::array::from_fn(|i| feet[i] - self.anchor[i] + self.attach_offset[i])
+    }
+
+    pub fn length(&self) -> f64 {
+        self.rope_len
+    }
+
+    pub fn attachment_distance(&self, feet: [f64; 3]) -> f64 {
+        let [x, y, z] = self.radius(feet);
+        x.hypot(y).hypot(z)
+    }
+
+    pub(super) fn shorten_at(&mut self, feet: [f64; 3]) {
+        let length = self.attachment_distance(feet);
+        if length.is_finite() {
+            self.rope_len = self.rope_len.min(length.max(self.min_rope_len));
+        }
+    }
+
+    /// Return a shorter step only when this input would extend a taut cable.
+    /// A prior contact correction can put the feet outside: never pull an idle
+    /// body to an old position to repair that difference.
+    pub fn constrain_step(self, feet: [f64; 3], step: [f64; 3]) -> Option<[f64; 3]> {
+        let radius = self.radius(feet);
+        let end: [f64; 3] = std::array::from_fn(|i| radius[i] + step[i]);
+        let allowed = self
+            .rope_len
+            .max(radius[0].hypot(radius[1]).hypot(radius[2]));
+        let distance = end[0].hypot(end[1]).hypot(end[2]);
+        (distance.is_finite() && distance > allowed).then(|| {
+            let scale = allowed / distance;
+            std::array::from_fn(|i| end[i] * scale - radius[i])
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct State {
     pub tracked_targets: Vec<u32>,
     pub(super) ground_wave: Option<Box<super::world::GroundWave>>,
-    pub(super) grapple: Option<Box<GrappleState>>,
+    pub(super) grapple: Option<Box<TetherConstraint>>,
     pub(super) target_children: BTreeMap<u32, u16>,
     pub active: bool,
     pub activation: u16,
@@ -317,6 +354,7 @@ pub struct State {
     pub(super) logical_button_revision: u32,
     pub(super) linked_variable: Option<VarKey>,
     pub(super) ability_stack: Option<VarKey>,
+    pub(super) death_generation: Option<u64>,
     pub(super) untrusted_native: bool,
 }
 
@@ -332,17 +370,16 @@ impl State {
         self.untrusted_native
     }
 
+    pub fn tether(&self) -> Option<TetherConstraint> {
+        self.grapple.as_deref().copied().filter(|_| self.active)
+    }
+
     pub fn move_request(&self) -> Option<([f64; 3], f64)> {
         if !self.active {
             return None;
         }
         match self.kind {
             StateKind::MoveTo { movement } => movement,
-            StateKind::Grapple => self
-                .grapple
-                .as_deref()
-                .filter(|g| !g.pendulum)
-                .map(|g| (g.anchor, g.speed)),
             _ => None,
         }
     }
@@ -379,6 +416,7 @@ impl State {
             logical_button_revision: 0,
             linked_variable: None,
             ability_stack: None,
+            death_generation: None,
             untrusted_native: false,
         }
     }
@@ -692,6 +730,10 @@ pub enum InitFault {
     InvalidRoot(u16),
     InstanceIdExhausted,
     MissingPlayerGraph(u32),
+    StatusScript {
+        graph: u32,
+        diagnostic: Box<Diagnostic>,
+    },
     RootBinding {
         id: u16,
         graph: u32,
@@ -726,6 +768,11 @@ impl fmt::Display for InitFault {
             Self::InstanceIdExhausted => {
                 f.write_str("statescript initialization instance IDs exhausted")
             }
+            Self::StatusScript { graph, diagnostic } => write!(
+                f,
+                "status graph {graph:04X} failed at {:?}: {:?}",
+                diagnostic.site, diagnostic.issue
+            ),
             Self::MissingPlayerGraph(graph) => {
                 write!(f, "player statescript graph {graph:04X} is missing")
             }

@@ -119,6 +119,7 @@ fn synchronous_defender_fault_retires_the_exact_owner_script_before_identity_ack
                 frame: FIRST_TICK,
                 killer: 0xc000_5101,
             },
+            &crate::script_init::HitTags::EMPTY,
         );
         let body = body(id);
         let mut owner = WorldDelivery::new(OWNER);

@@ -18,6 +18,10 @@ const THROTTLE_BACKWARD: u8 = 18;
 const THROTTLE_LATERAL: u8 = 19;
 pub const JUMP_INTENT: u8 = 20;
 pub const CROUCH_INTENT: u8 = 21;
+pub const VELOCITY_MAGNITUDE: u8 = 32;
+pub const VELOCITY_HORIZONTAL: u8 = 33;
+pub const VELOCITY_Y: u8 = 34;
+pub const VELOCITY_JUMP_RATIO: u8 = 35;
 pub const LAND_LIMIT: u8 = 36;
 pub(crate) const CAP_TINY: f64 = 1.1920929e-5;
 
@@ -104,13 +108,14 @@ pub fn directed_throttles(
     [angle.sin() * length, angle.cos() * length]
 }
 
+#[derive(Clone)]
 struct Interval {
     modifier: Modifier,
     start: u32,
     end: Option<u32>,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct ModifierTimeline {
     intervals: BTreeMap<ModifierKey, Interval>,
 }
@@ -188,6 +193,59 @@ impl ActiveModifiers {
 
     pub(crate) fn character_collision(&self, base: &MoverSettings) -> bool {
         self.intent(COLLISION, f64::from(base.character_collision)) > CAP_TINY
+    }
+
+    /// Apply continuous per-tick velocity modifiers (retail slots 32..=35:
+    /// 3D speed, horizontal speed, vertical velocity, jump-ratio velocity).
+    /// E.g. Wrecking Ball Piledriver `160A:STU_316CFEF2_5` sets slot 34 = -98.0
+    /// and slot 33 = 0.0 to slam straight downward.
+    pub(crate) fn apply_velocity(&self, velocity: &mut [f64; 3], jump_speed: f64) {
+        for &(_, modifier) in &self.0 {
+            match modifier.index {
+                VELOCITY_MAGNITUDE => {
+                    let speed = velocity[0].hypot(velocity[1]).hypot(velocity[2]);
+                    let next = modifier.apply(speed).max(0.0);
+                    if speed > 1e-6 && next.is_finite() {
+                        let scale = next / speed;
+                        velocity[0] = narrow(velocity[0] * scale);
+                        velocity[1] = narrow(velocity[1] * scale);
+                        velocity[2] = narrow(velocity[2] * scale);
+                    } else if next == 0.0 {
+                        *velocity = [0.0; 3];
+                    }
+                }
+                VELOCITY_HORIZONTAL => {
+                    let hspeed = velocity[0].hypot(velocity[2]);
+                    let next = modifier.apply(hspeed).max(0.0);
+                    if hspeed > 1e-6 && next.is_finite() {
+                        let scale = next / hspeed;
+                        velocity[0] = narrow(velocity[0] * scale);
+                        velocity[2] = narrow(velocity[2] * scale);
+                    } else if next == 0.0 {
+                        velocity[0] = 0.0;
+                        velocity[2] = 0.0;
+                    }
+                }
+                VELOCITY_Y => {
+                    let next = modifier.apply(velocity[1]);
+                    if next.is_finite() {
+                        velocity[1] = narrow(next);
+                    }
+                }
+                VELOCITY_JUMP_RATIO => {
+                    let base = if jump_speed.abs() > 1e-6 {
+                        velocity[1] / jump_speed
+                    } else {
+                        0.0
+                    };
+                    let next = modifier.apply(base);
+                    if next.is_finite() {
+                        velocity[1] = narrow(next * jump_speed);
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 
     pub(crate) fn throttles(&self, right: f64, forward: f64) -> (f64, f64) {

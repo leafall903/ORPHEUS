@@ -290,3 +290,53 @@ fn message_receiver_resolves_all_bindings_before_writes_or_state_exit() {
         }
     }
 }
+#[test]
+fn body_death_exposes_only_the_terminal_hits_authored_tags_to_the_death_entry() {
+    let fixture = graph(
+        67,
+        vec![node(
+            0,
+            "STUStatescriptEntryGameMessage",
+            None,
+            json!({
+                "m_gameMessage":{"m_gameMessage":"0x024000000000003E"},
+                "m_params":[{"m_B5051BCE":"0x0A4000000000003D","m_out_Var":var(607,true)}]
+            }),
+        )],
+        json!([]),
+        json!([0]),
+    );
+    let mut component = Component::start(
+        Arc::new(store(vec![fixture])),
+        41,
+        Variables::new(),
+        vec![Root::new(1, 67)],
+        10,
+        &mut EmptyWorld,
+        MAX_INIT_WORK,
+    )
+    .unwrap();
+    let mut tags = HitTags::EMPTY;
+    assert!(tags.push(0x0d80_0000_0000_3a01));
+    assert!(tags.push(0x0d80_0000_0000_4af2));
+    assert_eq!(
+        component
+            .queue_body_death_with_tags(42, false, None, tags, None)
+            .unwrap(),
+        1
+    );
+    component.run_now(&mut EmptyWorld).unwrap();
+    assert_eq!(
+        component.snapshot().unwrap().variables[&607],
+        Value::Array(vec![
+            Value::Asset(0x0d80_0000_0000_3a01),
+            Value::Asset(0x0d80_0000_0000_4af2),
+        ])
+    );
+    assert_eq!(component.queue_body_death(0, false, None, None).unwrap(), 1);
+    component.run_now(&mut EmptyWorld).unwrap();
+    assert_eq!(
+        component.snapshot().unwrap().variables[&607],
+        Value::Array(vec![])
+    );
+}

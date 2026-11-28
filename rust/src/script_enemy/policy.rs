@@ -19,7 +19,7 @@ impl EnemyScripts {
         admission
     }
 
-    fn legacy_projectile_control_allowed(
+    pub(crate) fn legacy_projectile_control_allowed(
         &self,
         graphs: &GraphStore,
         binding: &EnemyBinding,
@@ -324,6 +324,46 @@ impl EnemyScripts {
         detach: Option<(u32, u16)>,
         attach: Option<(u32, f64)>,
     ) -> Result<Option<u16>, String> {
+        self.with_body_world(graphs, binding, vitals, |body, world| {
+            if let Some((source, instance)) = detach {
+                body.detach_witch_staff(instance, world)?;
+                world
+                    .control_records
+                    .witch_staff_sources
+                    .shift_remove(&source);
+            }
+            attach
+                .map(|(source, amount)| body.attach_witch_staff(source, amount, world))
+                .transpose()
+        })
+    }
+
+    pub(crate) fn status_script(
+        &mut self,
+        graphs: &GraphStore,
+        binding: &EnemyBinding,
+        vitals: &mut Vitals,
+        op: crate::game_combat::status_scripts::StatusScriptOp<'_>,
+    ) -> Result<Option<u16>, String> {
+        // An NPC graph can deliver messages to its paired controller while
+        // mounting the wrapper. Publish the pair and the vitals together.
+        let mut scripts = self.clone();
+        let mut health = vitals.clone();
+        let outcome = scripts.with_body_world(graphs, binding, &mut health, |body, world| {
+            op.run(body, world)
+        })?;
+        *self = scripts;
+        *vitals = health;
+        Ok(outcome)
+    }
+
+    fn with_body_world<T>(
+        &mut self,
+        graphs: &GraphStore,
+        binding: &EnemyBinding,
+        vitals: &mut Vitals,
+        run: impl FnOnce(&mut Component, &mut EnemyWorld<'_>) -> Result<T, InitFault>,
+    ) -> Result<T, String> {
         let mut world = EnemyWorld {
             retirement_requested: &mut self.retirement_requested,
             messages: &mut self.messages,
@@ -340,19 +380,7 @@ impl EnemyScripts {
                 .ok_or("enemy controller halted")?
                 .variables,
         };
-        if let Some((source, instance)) = detach {
-            self.body
-                .detach_witch_staff(instance, &mut world)
-                .map_err(|error| error.to_string())?;
-            world
-                .control_records
-                .witch_staff_sources
-                .shift_remove(&source);
-        }
-        let instance = attach
-            .map(|(source, amount)| self.body.attach_witch_staff(source, amount, &mut world))
-            .transpose()
-            .map_err(|error| error.to_string())?;
+        let instance = run(&mut self.body, &mut world).map_err(|error| error.to_string())?;
         let body = self.body.snapshot().ok_or("enemy body halted")?;
         if !body.initialization_complete() {
             return Err(format!("enemy body: {:?}", body.diagnostics));
@@ -885,15 +913,18 @@ impl EnemyScripts {
     pub(crate) fn queue_death(
         &mut self,
         source: crate::vitals::Death,
-        critical: bool,
-        loadout: Option<u64>,
+        impact: Option<&crate::game_hitscan::Impact>,
     ) -> Result<(), String> {
         self.clear_pending_script_motion();
         self.body.set_owner_dead(true);
-        self.body
-            .queue_body_death(source.killer, critical, loadout, Some(source.frame))
-            .map(|_| ())
-            .map_err(|error| error.to_string())
+        crate::game_hitscan::queue_script_death(
+            &mut self.body,
+            source.killer,
+            impact,
+            Some(source.frame),
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string())
     }
 
     pub fn advance(

@@ -930,17 +930,7 @@ fn owner_hook_runs_the_prepared_widowmaker_graph() {
         "prepared pack referential integrity"
     );
     let codecs = CodecTable::load(root.join("data/statescript_codecs_174.json")).unwrap();
-    let heroes: serde_json::Value =
-        serde_json::from_slice(&fs::read(root.join("data/game_heroes_174.json")).unwrap()).unwrap();
-    let entry = &heroes["0x02E000000000000A"];
-    assert_eq!(entry["name"], "Widowmaker");
-    let hero = Hero {
-        guid: 0x02E0_0000_0000_000A,
-        name: entry["name"].as_str().unwrap().to_owned(),
-        role: entry["class"].as_str().unwrap().to_owned(),
-        body: u64::from_str_radix(entry["body"].as_str().unwrap().trim_start_matches("0x"), 16)
-            .unwrap(),
-    };
+    let hero = prepared_widowmaker_hero();
     let factory =
         PlayerBodyFactory::from_body(Arc::new(store), Arc::new(codecs), 0, &hero, None, false)
             .unwrap()
@@ -1121,18 +1111,11 @@ fn prepared_widowmaker_hero() -> Hero {
     let root = std::path::PathBuf::from(
         std::env::var_os("ORPHEUS_RUNTIME_DIR").expect("ORPHEUS_RUNTIME_DIR"),
     );
-    let heroes: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(root.join("data/game_heroes_174.json")).unwrap())
-            .unwrap();
-    let entry = &heroes["0x02E000000000000A"];
-    assert_eq!(entry["name"], "Widowmaker");
-    Hero {
-        guid: 0x02E0_0000_0000_000A,
-        name: entry["name"].as_str().unwrap().to_owned(),
-        role: entry["class"].as_str().unwrap().to_owned(),
-        body: u64::from_str_radix(entry["body"].as_str().unwrap().trim_start_matches("0x"), 16)
-            .unwrap(),
-    }
+    crate::game_heroes::HeroCatalog::load(root.join("data/game_heroes_174.json"))
+        .unwrap()
+        .get(0x02E0_0000_0000_000A)
+        .expect("stock Widowmaker catalog entry")
+        .clone()
 }
 
 /// The authored trace points at its launch through a state-group box

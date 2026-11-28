@@ -381,6 +381,109 @@ fn check_spatial_candidates_frame(free_for_all: bool) {
 }
 
 #[test]
+fn actor_bone_point_uses_the_frozen_body_skin_pose_and_generation() {
+    use crate::{contact_world::ContactWorld, mover::Mover, mover_settings::MoverSettings};
+
+    let contract: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/behavior/owner-model-hardpoints-v1.json"
+    ))
+    .unwrap();
+    let input = &contract["input"];
+    let guid = |v: &serde_json::Value| crate::accounts::parse_guid(v.as_str().unwrap()).unwrap();
+    let definition = guid(&input["body"]);
+    let bone = guid(&input["bone"]);
+    let skin = guid(&input["selections"][1]);
+    let local = serde_json::from_value(input["bone_local_point"].clone()).unwrap();
+    let key = input["body"].as_str().unwrap();
+    let bundle = serde_json::json!({
+        "version":1, "missing":[], "graphs":[],
+        "bodies":{(key):{"name":"Fixture","graphs":[],"weapons":[],
+                         "model_hardpoints":input["model_hardpoints"]}}
+    });
+    let graphs =
+        crate::script_graph::GraphStore::from_json(&serde_json::to_vec(&bundle).unwrap()).unwrap();
+    let mut room = RoomSimulation::new(Vec::new()).unwrap();
+    room.enable_spatial_queries(
+        false,
+        Arc::new(fixture_ground()),
+        RoomSpatialNeeds::EntityFacts,
+    );
+    let body = BodyId {
+        entity: 71,
+        generation: 1,
+    };
+    let contact = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+    let spawn = |room: &mut RoomSimulation, id: BodyId, skin| {
+        let mut create = crate::world::Create::new(definition, vec![]);
+        create.skin.guid = skin;
+        let update = EntityUpdate {
+            entity: id.entity,
+            operation: Some(Operation::Create(Box::new(create))),
+            ..Default::default()
+        };
+        let mover = Mover::new(
+            MoverSettings::default(),
+            Arc::clone(&contact),
+            [3.0, 4.0, 5.0],
+            16384,
+            0x08,
+        )
+        .unwrap();
+        room.spawn_player_body(PlayerBodyState::new(
+            id,
+            70,
+            0,
+            0,
+            1,
+            mover,
+            None,
+            10,
+            Some(update),
+        ))
+        .unwrap();
+    };
+    spawn(&mut room, body, 0);
+    room.prepare_spatial_frame(10).unwrap();
+    let first = room.spatial_frame().unwrap();
+    let target = first
+        .actor_bone_point(&graphs, body.entity, bone, local)
+        .unwrap();
+    assert!(
+        target
+            .iter()
+            .zip([17.0, 12.0, 1.0])
+            .all(|(a, b)| (a - b).abs() < 1e-6)
+    );
+    let replacement = BodyId {
+        generation: 2,
+        ..body
+    };
+    spawn(&mut room, replacement, skin);
+    room.prepare_spatial_frame(11).unwrap();
+    let next = room.spatial_frame().unwrap();
+    assert_eq!(
+        next.actor_bone_point(&graphs, body.entity, bone, local),
+        None
+    );
+    assert_eq!(
+        first.actor_bone_point(&graphs, body.entity, bone, local),
+        Some(target)
+    );
+    assert!(
+        next.actor_bone_point(&graphs, body.entity, 0, local)
+            .is_some()
+    );
+    assert!(room.retire_player_body(replacement));
+    room.prepare_spatial_frame(12).unwrap();
+    assert_eq!(
+        room.spatial_frame()
+            .unwrap()
+            .actor_bone_point(&graphs, body.entity, 0, local),
+        None
+    );
+}
+
+#[test]
 fn spatial_actor_poses_follow_room_frames_and_body_generations() {
     use crate::{contact_world::ContactWorld, mover::Mover, mover_settings::MoverSettings};
 
@@ -4124,10 +4227,13 @@ fn spatial_frame_honors_weapon_terrain_category() {
             },
         )])),
         entity_facts: None,
+        dead_voice: HashMap::new(),
         script_targets: HashMap::from([(
             target,
             RoomScriptTarget {
                 entity: Entity::from_raw(target),
+                model: None,
+                controller: None,
                 candidate_index: Some(0),
                 position: [0.0, 0.0, 4.0],
                 health: true,

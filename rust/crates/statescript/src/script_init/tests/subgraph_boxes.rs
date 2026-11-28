@@ -108,6 +108,10 @@ impl World for HookWorld {
     fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
         None
     }
+    fn body_hardpoint_position(&self, entity: u32, hardpoint: u64) -> Option<[f64; 3]> {
+        (entity == 123 && Some(hardpoint) == u64::from_str_radix(&HARDPOINT[2..], 16).ok())
+            .then_some([0.0, 1.5, 0.0])
+    }
     fn body_eye_position(&self, _entity: u32) -> Option<[f64; 3]> {
         Some([0.0, 1.5, 0.0])
     }

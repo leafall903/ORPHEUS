@@ -347,21 +347,25 @@ fn movement_snapshot_honors_base_and_next_pose_contact_participation() {
 
 #[test]
 fn ally_separation_pushes_same_floor_allies_and_ignores_different_heights() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/movement-contact-participation-v1.json"
+    ))
+    .unwrap();
+    let shape = &fixture["input"]["ally_capsule"];
+    let position = |key: &str| serde_json::from_value(shape[key].clone()).unwrap();
     let mut actors = BTreeMap::new();
     let base = CapsulePose {
-        position: [0.0, 0.0, 0.0],
-        radius: 0.5,
-        top: 1.0,
+        position: position("position"),
+        radius: serde_json::from_value(shape["radius"].clone()).unwrap(),
+        top: serde_json::from_value(shape["top"].clone()).unwrap(),
     };
     let overlapping_ally = CapsulePose {
-        position: [0.2, 0.0, 0.0],
-        radius: 0.5,
-        top: 1.0,
+        position: position("overlapping_position"),
+        ..base
     };
     let upper_floor_ally = CapsulePose {
-        position: [0.0, 5.0, 0.0],
-        radius: 0.5,
-        top: 1.0,
+        position: position("separated_position"),
+        ..base
     };
     actors.insert(1, (Some(0), base));
     actors.insert(2, (Some(0), overlapping_ally));
@@ -373,6 +377,7 @@ fn ally_separation_pushes_same_floor_allies_and_ignores_different_heights() {
 
     let isolated = frame.ally_separation(3, 0, upper_floor_ally);
     assert_eq!(isolated, [0.0, 0.0]);
+    assert_eq!(frame.ally_separation(4, 0, base), [0.0, 0.0]);
 }
 
 #[test]

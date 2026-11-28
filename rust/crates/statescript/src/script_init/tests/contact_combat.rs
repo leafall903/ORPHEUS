@@ -16,8 +16,16 @@ impl World for ContactWorld {
         None
     }
 
-    fn position(&mut self, _: u32) -> Option<[f64; 3]> {
-        Some([0.0; 3])
+    fn position(&mut self, entity: u32) -> Option<[f64; 3]> {
+        self.known_position(entity)
+    }
+
+    fn known_position(&self, entity: u32) -> Option<[f64; 3]> {
+        match entity {
+            OWNER => Some([0.0; 3]),
+            TARGET => Some([2.0, 0.0, 0.0]),
+            _ => None,
+        }
     }
 
     fn body_eye_position(&self, entity: u32) -> Option<[f64; 3]> {
@@ -60,6 +68,150 @@ impl World for ContactWorld {
             .extend(hits.iter().map(|&(id, impulse)| (id, damage, impulse)));
         true
     }
+
+    fn queue_modify_health(
+        &mut self,
+        _: Site,
+        target: u32,
+        delta: f64,
+        impulse: Option<[f64; 3]>,
+    ) -> bool {
+        self.damage.push((target, -delta, impulse));
+        true
+    }
+
+    fn admits_generic_player_runtime(&self, _: Site) -> bool {
+        true
+    }
+}
+
+#[test]
+fn discrete_modify_health_uses_authored_impulse_independently_of_graph_id() {
+    let fixture: Json = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../fixtures/behavior/combat-knockback-v1.json"
+    )))
+    .unwrap();
+    let input = &fixture["input"]["modify_health"];
+    let expected = &fixture["expected"];
+    let scalar = |value: &Json| json!({"$":"STUConfigVarFloat", "m_value":value});
+    let vector = &input["explicit_vector"];
+    let cases = [
+        (json!({}), &expected["damage_only_impulse"]),
+        (
+            json!({
+                "m_E33EFEE1":scalar(&input["horizontal"]),
+                "m_10399AE7":scalar(&json!(1)),
+                "m_583C208B":scalar(&input["pop_up"])
+            }),
+            &expected["radial_impulse_at_positive_x"],
+        ),
+        (
+            json!({"m_1376B4DF":{"$":"STUConfigVarVec3",
+                "m_value":{"X":vector[0], "Y":vector[1], "Z":vector[2]}
+            }}),
+            vector,
+        ),
+    ];
+    // Two formerly special-cased graph IDs and an arbitrary third graph run identical inputs.
+    for index in [0x0b27, 0x0dd8, 0x545a] {
+        for (fields, impulse) in &cases {
+            let mut effect = fields.clone();
+            effect["$"] = json!("STUStatescriptModifyHealth");
+            effect["m_amount"] = scalar(&input["amount"]);
+            effect["m_93CDFD2F"] = json!(1);
+            let health = node(
+                0,
+                "STUStatescriptStateModifyHealth",
+                Some(0),
+                json!({
+                    "m_FA3ECC43":var(9, false), "m_modifyHealth":effect, "m_8B707686":1
+                }),
+            );
+            let graphs = Arc::new(store(vec![graph(
+                index,
+                vec![health],
+                json!([0]),
+                json!([]),
+            )]));
+            let mut root = Root::listener(1, index, None);
+            root.variables.insert(9, Value::Entity(TARGET));
+            let mut world = ContactWorld::default();
+            let mut component = Component::start(
+                graphs,
+                OWNER,
+                Variables::new(),
+                vec![root],
+                1,
+                &mut world,
+                MAX_INIT_WORK,
+            )
+            .unwrap();
+            component
+                .run(&mut world, |vm| {
+                    vm.begin(
+                        StateKey {
+                            instance: 1,
+                            raw: 0,
+                        },
+                        0,
+                    )
+                })
+                .unwrap();
+            assert_eq!(
+                world.damage,
+                [(
+                    TARGET,
+                    input["amount"].as_f64().unwrap(),
+                    serde_json::from_value((*impulse).clone()).unwrap()
+                )],
+                "graph {index:#x}, fields {fields}"
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires the prepared build 104319 StateScript graphs"]
+fn prepared_piledriver_victim_node_emits_one_authored_pop_up() {
+    let dir = PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").expect("ORPHEUS_RUNTIME_DIR"));
+    let graphs = Arc::new(GraphStore::load(dir.join("data/game_graphs_174.json.gz")).unwrap());
+    let graph = graphs.graph(0x160a).unwrap();
+    let victim = graph
+        .nodes
+        .iter()
+        .find(|node| node.class == "STUStatescriptStateModifyHealth")
+        .unwrap();
+    let key = StateKey {
+        instance: 1,
+        raw: victim.state.unwrap(),
+    };
+    let mut root = Root::listener(1, graph.index, None);
+    // Supply the landing loop's current index, victims, damage, planar speed and radius.
+    root.variables.extend([
+        (39, Value::Integer(0)),
+        (375, Value::Array(vec![Value::Entity(TARGET)])),
+        (476, Value::Float(37.0)),
+        (9275, Value::Float(4.0)),
+        (6252, Value::Float(5.0)),
+    ]);
+    let mut world = ContactWorld::default();
+    let mut component = Component::start(
+        Arc::clone(&graphs),
+        OWNER,
+        Variables::new(),
+        vec![root],
+        1,
+        &mut world,
+        MAX_INIT_WORK,
+    )
+    .unwrap();
+    component
+        .run(&mut world, |vm| {
+            vm.apply_generic_modify_health(key, victim, None)
+        })
+        .unwrap();
+    assert_eq!(world.damage, [(TARGET, 37.0, Some([-4.0, 11.0, 0.0]))]);
 }
 
 #[test]
@@ -341,4 +493,141 @@ fn prepared_contact_effect_accepts_distinct_104319_contact_sets() {
         component.begin_state(1, raw, &mut world).unwrap();
         assert_eq!(world.0, [(asset, vec![TARGET])]);
     }
+}
+
+#[test]
+fn tracked_contact_rechecks_its_transition_when_a_matching_body_enters() {
+    let fixture: Json = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../fixtures/behavior/combat-knockback-v1.json"
+    )))
+    .unwrap();
+    let case = &fixture["input"]["changed_contact"];
+    let body_mask = case["body_mask"].as_u64().unwrap();
+    let prop_mask = case["prop_mask"].as_u64().unwrap();
+    let heading = case["heading_degrees"].as_f64().unwrap();
+    struct Scene {
+        body_present: bool,
+        body_mask: u64,
+        prop_mask: u64,
+        heading: f64,
+    }
+    impl World for Scene {
+        fn entity_variable(&mut self, _: u32, _: u32) -> Option<Value> {
+            None
+        }
+        fn position(&mut self, _: u32) -> Option<[f64; 3]> {
+            None
+        }
+        fn admits_generic_player_runtime(&self, _: Site) -> bool {
+            true
+        }
+        fn entity_filter_flags(&self, _: Site, entity: u32) -> Option<u64> {
+            Some(if entity == TARGET {
+                self.body_mask
+            } else {
+                self.prop_mask
+            })
+        }
+        fn cone_targets_directed(
+            &self,
+            _: Site,
+            _: u32,
+            _: [f64; 3],
+            _: f64,
+            _: f64,
+            _: f64,
+            yaw: Option<f64>,
+            pitch: Option<f64>,
+            _: bool,
+            _: &Json,
+        ) -> Option<Vec<crate::script_init::TrackedTarget>> {
+            assert_eq!((yaw, pitch), (Some(self.heading), None));
+            Some(
+                if self.body_present {
+                    vec![TARGET + 1, TARGET]
+                } else {
+                    vec![TARGET + 1]
+                }
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            )
+        }
+    }
+    let mut world = Scene {
+        body_present: false,
+        body_mask,
+        prop_mask,
+        heading,
+    };
+    let mut condition = node(
+        1,
+        "STU_3387AB5D",
+        None,
+        json!({
+            "m_condition":var(12,false), "m_truePlug":plug(&[(2,"m_inPlug")], &[])
+        }),
+    );
+    condition["fields"]["m_ADEB6E05"] = json!(true);
+    let authored = graph(
+        0x5501,
+        vec![
+            node(
+                0,
+                "STUStatescriptStateTrackTargets",
+                Some(0),
+                json!({
+                    "m_radius":1.0, "m_A30B383E":60.0,
+                    "m_D45E22FA":{"$":"STUConfigVarFloat","m_value":heading},
+                    "m_filter":{"$":"STUConfigVarFilter","m_84065FD1":body_mask},
+                    "m_8A2905A0":var(12,false), "m_transitionPlug":[plug(&[(1,"m_inPlug")], &[])]
+                }),
+            ),
+            condition,
+            node(
+                2,
+                "STUStatescriptActionSetVar",
+                None,
+                json!({"m_out_Var":var(15,false),"m_value":1}),
+            ),
+        ],
+        json!([0]),
+        json!([]),
+    );
+    let mut component = Component::start(
+        Arc::new(store(vec![authored])),
+        OWNER,
+        Variables::new(),
+        vec![Root::listener(1, 0x5501, None)],
+        5,
+        &mut world,
+        MAX_INIT_WORK,
+    )
+    .unwrap();
+    component
+        .run(&mut world, |vm| {
+            vm.begin(
+                StateKey {
+                    instance: 1,
+                    raw: 0,
+                },
+                0,
+            )
+        })
+        .unwrap();
+    assert_ne!(
+        component.snapshot().unwrap().instances[&1]
+            .variables
+            .get(&15),
+        Some(&Value::Integer(1))
+    );
+    world.body_present = true;
+    component.advance_frame(6, &mut world).unwrap();
+    let instance = &component.snapshot().unwrap().instances[&1];
+    assert_eq!(
+        instance.variables.get(&12),
+        Some(&Value::Array(vec![Value::Entity(TARGET)]))
+    );
+    assert_eq!(instance.variables.get(&15), Some(&Value::Integer(1)));
 }

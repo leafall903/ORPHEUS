@@ -85,7 +85,7 @@ fn prepared_owner_post_startup_loss_receipts() {
         &server,
         &mut client,
         &schemas,
-        bot,
+        (bot, crate::game_heroes::SOLDIER),
         &mut Default::default(),
         |packet, body, receipt| {
             if let Some(chunk) = body_chunk(&schemas, packet, body.entity) {

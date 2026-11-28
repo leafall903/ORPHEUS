@@ -13,8 +13,8 @@ use indexmap::IndexMap;
 use crate::{
     script_expr::StackPriority,
     script_graph::{EntryTopic, GraphStore, HostEventKind},
-    script_modifiers::{Modifier, ModifierKey},
-    script_runtime::{ButtonEdge, Timeline, frame_start},
+    script_modifiers::{Modifier, ModifierKey, MoverProfile},
+    script_runtime::{ButtonEdge, DispatchOrigin, Timeline, frame_start},
     script_wire::{Value, Variables},
 };
 
@@ -32,6 +32,7 @@ enum MessageDestination {
     Ordinary(Option<u16>, u64),
     Command(u64, Option<u32>),
     SettledDamage(u16, u64),
+    BodyDeath,
     Room(u64),
     Host(HostEventKind),
 }
@@ -44,6 +45,7 @@ impl MessageDestination {
             | Self::SettledDamage(_, message)
             | Self::Room(message) => EntryTopic::Message(message),
             Self::Host(kind) => EntryTopic::Host(kind),
+            Self::BodyDeath => EntryTopic::Message(0x0240_0000_0000_003e),
         }
     }
 }
@@ -135,6 +137,7 @@ pub(super) struct Volley {
     pub(super) per_shot: i64,
     pub(super) rate: f64,
     pub(super) spread: f64,
+    pub(super) last_spread: f64,
     pub(super) spread_ramp: Option<f32>,
     pub(super) spread_delay_ms: u64,
     pub(super) planned: u32,
@@ -190,11 +193,23 @@ impl Volley {
             .max(0)
     }
 
+    pub(super) fn spread_at(&self, now_ms: u64) -> f64 {
+        let elapsed_ms = now_ms.saturating_sub(self.start_ms);
+        Self::normalized_shot_spread(
+            self.spread,
+            self.spread_ramp,
+            self.spread_delay_ms,
+            elapsed_ms,
+            self.rate,
+        )
+        .map_or(self.spread, f64::from)
+    }
+
     pub(super) fn output(&self, slot: u8, now_ms: u64, permit_shots: bool) -> Value {
         match slot {
             0 => Value::Integer(self.ammo_at(now_ms, permit_shots)),
             1 => Value::Float(self.rate),
-            2 => Value::Float(self.spread),
+            2 => Value::Float(self.spread_at(now_ms)),
             _ => unreachable!("weapon volley output slot"),
         }
     }
@@ -305,6 +320,23 @@ const SPLITMIX_STEP: u64 = 0x9e37_79b9_7f4a_7c15;
 const SPLITMIX_STEP_INVERSE: u64 = 0xf1de_83e1_9937_733d;
 const _: () = assert!(SPLITMIX_STEP.wrapping_mul(SPLITMIX_STEP_INVERSE) == 1);
 
+fn component_seed(entity: u32, frame: u32) -> u64 {
+    (u64::from(entity) << 32) | u64::from(frame)
+}
+
+fn next_sample(state: u64) -> u64 {
+    let state = state.wrapping_add(SPLITMIX_STEP);
+    let mixed = (state ^ (state >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    let mixed = (mixed ^ (mixed >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    mixed ^ (mixed >> 31)
+}
+
+/// Sample a lowered graph operand from the same stream as a component
+/// constructed for that entity and frame. The first draw has index zero.
+pub fn component_random_at(entity: u32, frame: u32, draw: u64) -> u64 {
+    next_sample(component_seed(entity, frame).wrapping_add(draw.wrapping_mul(SPLITMIX_STEP)))
+}
+
 pub(super) struct Machine {
     pub(super) public_schemas: bool,
     /// The reference component policy (runtime.py `Component.strict`).
@@ -330,6 +362,7 @@ pub(super) struct Machine {
     pub(super) links: BTreeMap<VarKey, Vec<VariableLink>>,
     pub(super) volleys: BTreeMap<StateKey, Volley>,
     pub(super) movement_modifiers: BTreeMap<ModifierKey, Modifier>,
+    pub(super) mover_overrides: BTreeMap<StateKey, MoverProfile>,
     pub(super) shots: Vec<ReportedShot>,
     pub(super) permit_weapon_shots: bool,
     pub(super) ability_presses: BTreeMap<StateKey, Vec<AbilityPress>>,
@@ -346,6 +379,7 @@ pub(super) struct Machine {
     pub(super) held_buttons: Vec<u8>,
     pub(super) button_blocks: [usize; 256],
     pub(super) owner_dead: bool,
+    pub(super) life_generation: u64,
     pub(super) logical_buttons_need_resync: bool,
     pub(super) control_blocked: bool,
     pub(super) disabled_start_entries: HashSet<(u16, u16)>,
@@ -375,6 +409,7 @@ impl Clone for Machine {
             links: self.links.clone(),
             volleys: self.volleys.clone(),
             movement_modifiers: self.movement_modifiers.clone(),
+            mover_overrides: self.mover_overrides.clone(),
             shots: self.shots.clone(),
             permit_weapon_shots: self.permit_weapon_shots,
             ability_presses: self.ability_presses.clone(),
@@ -391,6 +426,7 @@ impl Clone for Machine {
             held_buttons: self.held_buttons.clone(),
             button_blocks: self.button_blocks,
             owner_dead: self.owner_dead,
+            life_generation: self.life_generation,
             logical_buttons_need_resync: self.logical_buttons_need_resync,
             control_blocked: self.control_blocked,
             disabled_start_entries: self.disabled_start_entries.clone(),
@@ -402,13 +438,10 @@ impl Clone for Machine {
 impl Machine {
     pub(super) fn random_u64(&self) -> u64 {
         // SplitMix64 keeps the component's stream reproducible across graph calls.
-        let state = self
-            .random_state
-            .fetch_add(SPLITMIX_STEP, Ordering::Relaxed)
-            .wrapping_add(SPLITMIX_STEP);
-        let mixed = (state ^ (state >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
-        let mixed = (mixed ^ (mixed >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
-        mixed ^ (mixed >> 31)
+        next_sample(
+            self.random_state
+                .fetch_add(SPLITMIX_STEP, Ordering::Relaxed),
+        )
     }
 
     pub(super) fn random_checkpoint(&self) -> RandomCheckpoint {
@@ -433,7 +466,7 @@ impl Machine {
         if max_work == 0 {
             return Err(InitFault::InvalidBudget);
         }
-        let random_initial_seed = (u64::from(entity) << 32) | u64::from(frame);
+        let random_initial_seed = component_seed(entity, frame);
         Ok(Self {
             code_states: Vec::new(),
             code_pending: Default::default(),
@@ -467,6 +500,7 @@ impl Machine {
             links: BTreeMap::new(),
             volleys: BTreeMap::new(),
             movement_modifiers: BTreeMap::new(),
+            mover_overrides: BTreeMap::new(),
             shots: Vec::new(),
             permit_weapon_shots: true,
             ability_presses: BTreeMap::new(),
@@ -483,6 +517,7 @@ impl Machine {
             held_buttons: Vec::new(),
             button_blocks: [0; 256],
             owner_dead: false,
+            life_generation: 0,
             logical_buttons_need_resync: false,
             control_blocked: false,
             disabled_start_entries: HashSet::new(),
@@ -664,6 +699,23 @@ impl Machine {
         )
     }
 
+    pub(super) fn queue_body_death_entries(
+        &mut self,
+        graphs: &GraphStore,
+        killer: u32,
+        parameters: Variables,
+        due_ms: u64,
+    ) -> Result<usize, InitFault> {
+        self.queue_message_entries(
+            graphs,
+            MessageDestination::BodyDeath,
+            crate::script_expr::valid_entity(killer).then_some(killer),
+            parameters,
+            due_ms,
+            HostHealthContext::default(),
+        )
+    }
+
     pub(super) fn queue_room_entries_from(
         &mut self,
         graphs: &GraphStore,
@@ -731,6 +783,7 @@ impl Machine {
                             || node.accepts_directed_numeric_message(&parameters)
                     }
                     MessageDestination::Ordinary(_, _)
+                    | MessageDestination::BodyDeath
                     | MessageDestination::Command(_, _)
                     | MessageDestination::SettledDamage(_, _) => {
                         !node.declares_room_message_entry()
@@ -750,12 +803,13 @@ impl Machine {
             }
         }
         let parameters = Arc::new(parameters);
-        let command_frame = match destination {
-            MessageDestination::Command(_, frame) => frame,
-            _ => None,
+        let origin = match destination {
+            MessageDestination::Command(_, Some(frame)) => DispatchOrigin::Command(frame),
+            MessageDestination::BodyDeath => DispatchOrigin::BodyDeath(self.life_generation),
+            _ => DispatchOrigin::Ordinary,
         };
         for &(instance, position) in &entries {
-            self.queues.push_with_command_frame(
+            self.queues.push_with_origin(
                 instance,
                 due_ms,
                 Event::Message {
@@ -766,7 +820,7 @@ impl Machine {
                     settled_damage: matches!(destination, MessageDestination::SettledDamage(_, _)),
                     room_directed: matches!(destination, MessageDestination::Room(_)),
                 },
-                command_frame,
+                origin,
             )?;
         }
         Ok(entries.len())

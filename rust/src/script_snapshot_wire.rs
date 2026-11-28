@@ -29,7 +29,10 @@ pub(crate) struct CountdownFrame {
     pub states: [Option<ChasePayload>; 4],
 }
 
+mod arming;
 mod encode;
+pub(crate) use arming::ArmingEffects;
+pub(crate) use arming::{inactive_gate, initial_operand, runs_at_creation};
 #[cfg(test)]
 pub(crate) mod identity_test_reader;
 mod projection;
@@ -677,6 +680,12 @@ impl From<StreamError> for SnapshotError {
 pub(crate) struct SceneProjection<'a> {
     pub snapshot: &'a Snapshot,
     pub encoder: SnapshotEncoder<'a>,
+}
+
+/// A room actor's immutable observer frame, shared by all its viewers.
+pub(crate) struct StaticSceneBaseline {
+    pub snapshot: ProjectedSnapshot,
+    pub payload: crate::bits::BitWriter,
 }
 
 pub struct SnapshotEncoder<'a> {

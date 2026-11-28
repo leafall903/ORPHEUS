@@ -137,6 +137,7 @@ fn vm_failure(stage: &'static str, fault: &InitFault) -> Json {
         InitFault::InvalidRoot(_) => "invalid_root",
         InitFault::InstanceIdExhausted => "instance_id_exhausted",
         InitFault::MissingPlayerGraph(_) => "missing_player_graph",
+        InitFault::StatusScript { .. } => "status_script",
         InitFault::RootBinding { .. } => "root_binding",
         InitFault::WorkBudget { .. } => "work_budget",
         InitFault::EventBudget { .. } => "event_budget",

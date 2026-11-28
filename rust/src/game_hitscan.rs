@@ -182,6 +182,24 @@ pub struct TargetPose {
 }
 
 impl TargetPose {
+    pub(crate) fn surface_distance(self, start: Vec3, end: Option<Vec3>) -> f64 {
+        let [low, high] = self.segment();
+        let axis_distance = match end {
+            None => crate::static_ray::segment_distance(start, low, high),
+            Some(end) => {
+                let to_f32 = |v: Vec3| v.map(|n| n as f32);
+                let (a, b) = crate::contact_triangle::closest_segments(
+                    to_f32(start),
+                    to_f32(end),
+                    to_f32(low),
+                    to_f32(high),
+                );
+                crate::static_ray::norm(std::array::from_fn(|axis| f64::from(a[axis] - b[axis])))
+            }
+        };
+        (axis_distance - self.radius).max(0.0)
+    }
+
     pub(crate) fn segment(self) -> [Vec3; 2] {
         let [x, y, z] = self.feet;
         [
@@ -292,6 +310,21 @@ pub struct Impact {
     pub loadout: Option<u64>,
     pub impulse: Option<Vec3>,
     pub geometry: Option<ImpactGeometry>,
+}
+
+/// Forward exactly the terminal hit's provenance to the body's authored Died handler.
+pub(crate) fn queue_script_death(
+    component: &mut crate::script_init::Component,
+    killer: u32,
+    impact: Option<&Impact>,
+    frame: Option<u32>,
+) -> Result<usize, crate::script_init::InitFault> {
+    match impact {
+        Some(hit) => {
+            component.queue_body_death_with_tags(killer, hit.critical, hit.loadout, hit.tags, frame)
+        }
+        None => component.queue_body_death(killer, false, None, frame),
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -448,6 +481,32 @@ mod tests {
             height: 1.8,
             radius: 0.5,
             eye: 1.55,
+        }
+    }
+
+    #[test]
+    fn capsule_surface_range_uses_the_target_stance_and_the_entire_sweep() {
+        let fixture: Json = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/combat-knockback-v1.json"
+        ))
+        .unwrap();
+        let inputs = fixture["input"]["tracked_capsules"].as_array().unwrap();
+        let expected = fixture["expected"]["capsule_surface_ranges"]
+            .as_array()
+            .unwrap();
+        assert_eq!(inputs.len(), expected.len());
+        for (input, expected) in inputs.iter().zip(expected) {
+            let point = |v: &Json| serde_json::from_value::<Vec3>(v.clone()).unwrap();
+            let target = TargetPose {
+                feet: point(&input["feet"]),
+                height: input["height"].as_f64().unwrap(),
+                radius: input["radius"].as_f64().unwrap(),
+                eye: 0.0,
+            };
+            assert_eq!(
+                target.surface_distance(point(&input["origin"]), input.get("end").map(point)),
+                expected.as_f64().unwrap()
+            );
         }
     }
 

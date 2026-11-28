@@ -98,24 +98,27 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         self.trace_write(key, node, "m_9E1A7C58", Value::Bool(false))?;
         self.trace_write(key, node, "m_1FFD7AC0", Value::Entity(0))?;
         self.trace_write(key, node, "m_9169D109", Value::Bool(false))?;
-        // The direction is the authored body pose (the reference's
-        // `STU_2200A66D` resolver unchanged): the kit's mover pose carries
-        // yaw and pitch jointly, and the harness answers the same pair.
-        let Some(direction) = self
-            .world
-            .authored_forward(site.entity)
-            .filter(|vector| flat_len(*vector) > 1e-3 && gap(*vector, [0.0; 3]) > 1.0 - 1e-3)
-        else {
+        self.trace_write(key, node, "m_86CF0002", Value::Asset(0))?;
+        let Some(aim) = self.world.authored_forward(site.entity) else {
             return self.post(key.instance, Event::Finish(key.raw));
         };
-        // The launch point is the eye anchor of the current sample (the
-        // reference's hardpoint patch above the feet, resolved from live
-        // geometry), never a guessed offset.
-        let Some(origin) = self
-            .world
-            .body_eye_position(site.entity)
-            .filter(|[_, y, _]| *y > 0.5 && y.is_finite())
-        else {
+        let magnitude = aim[0].hypot(aim[1]).hypot(aim[2]);
+        if !magnitude.is_finite() || magnitude == 0.0 {
+            return self.post(key.instance, Event::Finish(key.raw));
+        }
+        let direction = aim.map(|axis| axis / magnitude);
+        let attachment = field(&node.fields, "m_F745334E");
+        let origin = if attachment.is_null() {
+            self.world.body_eye_position(site.entity)
+        } else {
+            match self.evaluate(key.instance, node, attachment, Some(key)) {
+                Some(Value::Asset(id)) if id >> 48 == 0x0dc0 && id as u32 != 0 => {
+                    self.world.body_hardpoint_position(site.entity, id)
+                }
+                _ => None,
+            }
+        };
+        let Some(origin) = origin.filter(|point| point.iter().all(|v| v.is_finite())) else {
             return self.post(key.instance, Event::Finish(key.raw));
         };
         let speed = self

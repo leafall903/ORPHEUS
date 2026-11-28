@@ -27,7 +27,7 @@ pub struct Damage {
     pub named_pool_losses: Vec<NamedPoolLoss>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct Pool {
     field: usize,
     id: u32,
@@ -50,7 +50,7 @@ impl Pool {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct ShieldGrant {
     handles: Vec<u32>,
     maximum: f64,
@@ -58,7 +58,7 @@ struct ShieldGrant {
     stacked: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct TemporaryShield {
     identifier: u64,
     field: usize,
@@ -110,7 +110,7 @@ impl TemporaryShield {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Vitals {
     pools: Vec<Pool>,
     temporary_shields: Vec<TemporaryShield>,

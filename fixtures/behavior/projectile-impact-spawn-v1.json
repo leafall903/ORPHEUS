@@ -5,5 +5,16 @@
     {"name": "known field presentation", "class": "STU_78BF9026", "on_spawn_graph": null, "field": true},
     {"name": "additional actor script", "class": "STU_78BF9026", "on_spawn_graph": "0x0580000000001234", "field": false},
     {"name": "unrecognized spawn class", "class": "SyntheticOther", "on_spawn_graph": null, "field": false}
+  ],
+  "arming": {
+    "entity": "0x0400000000004210", "roots": [91, 63], "wait_seconds": 0.25,
+    "effect": "0x0300000000004211", "nested_effect": "0x0300000000004212",
+    "expected_ticks": 16, "expected_effect_slots": [4, 5]
+  },
+  "late_observer": {"damage": 12, "remaining_health": 38},
+  "proximity": {"health": 50, "arm_seconds": 1.5, "lifetime": 18, "damage": 130, "trigger_radius": 1.25, "damage_radius": 2.75},
+  "landed_team_filters": [
+    {"owner_team": 0, "component_26": 8388608, "aligned_create_sha256": "341892bc8d89b36a60f5b9d7adb9bddfd92303b8821894d8a829d943719304ad"},
+    {"owner_team": 1, "component_26": 16777216, "aligned_create_sha256": "a1449d3639a69f6bed6a10ef5eee69466430313b4292593753079c4add3e7f72"}
   ]
 }

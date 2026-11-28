@@ -246,12 +246,13 @@ mod voice;
 mod world;
 
 pub use knockback::Knockback;
+pub use machine::component_random_at;
 pub use types::{
     AbilityCooldown, ChasePayload, Diagnostic, FrameAction, FrameCallout, InitFault, Instance,
     Issue, MoveOutcome, MoveToKey, NodeObservations, PendingTimer, RandomCheckpoint, ReportedShot,
     ShotEvent, Snapshot, SpawnSearch, SpawnSearchKey, StackBinding, State, StateKind,
 };
-pub use types::{SprayAttachment, SprayPlacement};
+pub use types::{SprayAttachment, SprayPlacement, TetherConstraint};
 pub use world::{
     AiBehaviorRequest, AiControlOverride, AiFacing, AiWeaponOverride, BeamContact, CombatModEntry,
     ContactTarget, ContactVolume, CreationKind, DeflectState, EmptyWorld, EntityCreation,
@@ -259,7 +260,8 @@ pub use world::{
     HostHealthContext, LandingSelection, MovementSample, NamedPoolLoss, PetSpawn, PlayScript,
     Relocation, RoomBodyIdentity, RoomCue, RoomCueSpeaker, RoomEntityStatus, RoomMessage,
     ScriptedMotion, Site, SweptDisplacement, TargetTagEffect, TargetTagEffects, TargetTagSnapshot,
-    VelocityAxis, VelocityOp, ViewSightProfile, ViewTargetQuery, World, named_pool_records,
+    TrackedTarget, VelocityAxis, VelocityOp, ViewSightProfile, ViewTargetQuery, World,
+    named_pool_records,
 };
 
 use machine::{Event, Machine, Startup, StateKey, VarKey};
@@ -700,6 +702,27 @@ impl Component {
             .then(|| self.machine.movement_modifiers.clone()))
     }
 
+    /// Read the tether belonging to a live ticking state of this body.
+    pub fn active_tether(&self) -> Option<TetherConstraint> {
+        let snapshot = self.snapshot()?;
+        self.machine.ticking.iter().find_map(|(instance, ticks)| {
+            let states = &snapshot.instances.get(instance)?.states;
+            ticks
+                .keys()
+                .filter_map(|raw| states.get(raw))
+                .find_map(State::tether)
+        })
+    }
+
+    /// Return the active complete inline `STUCharacterMoverComponent` override
+    /// (e.g. Wrecking Ball Roll form `STU_ED2B22BD`) when exactly one is active.
+    pub fn active_mover_override(&self) -> Option<crate::script_modifiers::MoverProfile> {
+        if self.halted || self.machine.mover_overrides.len() != 1 {
+            return None;
+        }
+        self.machine.mover_overrides.values().next().copied()
+    }
+
     /// Queue the authored entries of one instance at the current clock.
     pub fn queue_message(
         &mut self,
@@ -1090,18 +1113,44 @@ impl Component {
         })
     }
 
-    pub fn attach_witch_staff(
+    /// Receive a remote actor's authored PlayScript. Keep the original component
+    /// usable if the receiving graph cannot initialize on this body's host.
+    pub fn receive_room_play_script(
         &mut self,
+        caller: Site,
+        request: &PlayScript,
+        world: &mut impl World,
+    ) -> Result<(), InitFault> {
+        if self.halted {
+            return Err(InitFault::Halted);
+        }
+        let mut candidate = self.clone();
+        candidate.receive_play_script(caller, request, world)?;
+        self.commit_status_change(candidate, request.graph)
+    }
+
+    /// Mount an authored effect on its recipient. Deliver the native application
+    /// message only to this instance, with the applying actor as its sender.
+    pub fn attach_status_script(
+        &mut self,
+        graph: u32,
         source: u32,
-        amount: f64,
+        parameters: Variables,
         world: &mut impl World,
     ) -> Result<u16, InitFault> {
-        let id = self.machine.next_instance_id(false)?;
-        self.run(world, |vm| {
+        if self.graphs.graph(graph).is_none() {
+            return Err(InitFault::MissingPlayerGraph(graph));
+        }
+        if self.halted {
+            return Err(InitFault::Halted);
+        }
+        let mut candidate = self.clone();
+        let id = candidate.machine.next_instance_id(false)?;
+        candidate.run(world, |vm| {
             let variables = Variables::from([(SCRIPT_SOURCE, Value::Entity(source))]);
             vm.create(
                 id,
-                0x0079,
+                graph,
                 None,
                 variables,
                 Startup::Ordinary,
@@ -1112,27 +1161,71 @@ impl Component {
                 Some(id),
                 Some(source),
                 0x0240_0000_0000_000f,
-                Variables::from([(42, Value::Float(amount))]),
+                parameters,
                 vm.machine.now_ms,
             )?;
             vm.run()
         })?;
+        self.commit_status_change(candidate, graph)?;
         Ok(id)
     }
 
-    pub fn detach_witch_staff(&mut self, id: u16, world: &mut impl World) -> Result<(), InitFault> {
-        self.run(world, |vm| {
-            if vm
-                .machine
-                .snapshot
-                .instances
-                .get(&id)
-                .is_some_and(|instance| instance.graph == 0x0079)
-            {
-                vm.destroy(id)?;
-            }
+    fn commit_status_change(&mut self, candidate: Self, graph: u32) -> Result<(), InitFault> {
+        if let Some(diagnostic) = candidate.machine.snapshot.diagnostics.iter().find(|d| {
+            d.issue != Issue::ObservationUnavailable
+                && !self.machine.snapshot.diagnostics.contains(d)
+        }) {
+            return Err(InitFault::StatusScript {
+                graph,
+                diagnostic: Box::new(diagnostic.clone()),
+            });
+        }
+        *self = candidate;
+        Ok(())
+    }
+
+    pub fn detach_status_script(
+        &mut self,
+        id: u16,
+        graph: u32,
+        world: &mut impl World,
+    ) -> Result<(), InitFault> {
+        if self.halted {
+            return Err(InitFault::Halted);
+        }
+        if !self
+            .machine
+            .snapshot
+            .instances
+            .get(&id)
+            .is_some_and(|instance| instance.graph == graph)
+        {
+            return Ok(());
+        }
+        let mut candidate = self.clone();
+        candidate.run(world, |vm| {
+            vm.destroy(id)?;
             vm.run()
-        })
+        })?;
+        self.commit_status_change(candidate, graph)
+    }
+
+    pub fn attach_witch_staff(
+        &mut self,
+        source: u32,
+        amount: f64,
+        world: &mut impl World,
+    ) -> Result<u16, InitFault> {
+        self.attach_status_script(
+            0x0079,
+            source,
+            Variables::from([(42, Value::Float(amount))]),
+            world,
+        )
+    }
+
+    pub fn detach_witch_staff(&mut self, id: u16, world: &mut impl World) -> Result<(), InitFault> {
+        self.detach_status_script(id, 0x0079, world)
     }
 
     /// Submit the common body death event with its authored parameter types.
@@ -1143,18 +1236,37 @@ impl Component {
         loadout: Option<u64>,
         frame: Option<u32>,
     ) -> Result<usize, InitFault> {
-        const DIED: u64 = 0x0240_0000_0000_003e;
+        self.queue_body_death_with_tags(killer, critical, loadout, HitTags::EMPTY, frame)
+    }
+
+    /// Body death subscribers bind the killing hit's identifier list from parameter 003D.
+    pub fn queue_body_death_with_tags(
+        &mut self,
+        killer: u32,
+        critical: bool,
+        loadout: Option<u64>,
+        tags: HitTags,
+        frame: Option<u32>,
+    ) -> Result<usize, InitFault> {
+        if self.halted {
+            return Err(InitFault::Halted);
+        }
         let parameters = Variables::from([
             (0x12, Value::Entity(killer)),
+            (
+                0x3d,
+                Value::Array(tags.as_slice().iter().copied().map(Value::Asset).collect()),
+            ),
             (0x95, Value::Bool(critical)),
             (0x3e6, loadout.map_or(Value::Null, Value::Asset)),
             (0x3e7, Value::Array(Vec::new())),
         ]);
-        if let Some(frame) = frame.filter(|&frame| frame_start(frame) >= self.machine.now_ms) {
-            self.queue_frame_message_from(frame, killer, DIED, parameters)
-        } else {
-            self.queue_entity_message_from(killer, DIED, parameters)
-        }
+        let due_ms = frame
+            .map(frame_start)
+            .unwrap_or_default()
+            .max(self.machine.now_ms);
+        self.machine
+            .queue_body_death_entries(&self.graphs, killer, parameters, due_ms)
     }
 
     /// Queue an authenticated client report for an instance on this body.
@@ -1384,6 +1496,9 @@ impl Component {
     }
 
     pub fn set_owner_dead(&mut self, dead: bool) {
+        if self.machine.owner_dead && !dead {
+            self.machine.life_generation = self.machine.life_generation.wrapping_add(1);
+        }
         self.machine.logical_buttons_need_resync |= dead && !self.machine.owner_dead;
         self.machine.owner_dead = dead;
     }

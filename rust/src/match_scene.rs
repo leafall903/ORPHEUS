@@ -168,11 +168,12 @@ pub fn mode_create(mode: u64) -> EntityUpdate {
 }
 
 pub(crate) fn bot_filter_component(team: u8, dead: bool) -> io::Result<Component> {
-    let mut bits = HERO_BIT | team_bit(team)?;
-    if dead {
-        bits |= DEAD_BIT;
-    }
-    Ok(fields(26, vec![Some(ComponentValue::Id(bits))]))
+    team_filter_component(team, HERO_BIT | if dead { DEAD_BIT } else { 0 })
+}
+
+pub(crate) fn team_filter_component(team: u8, actor_flags: u64) -> io::Result<Component> {
+    let filter = team_bit(team)? | actor_flags;
+    Ok(fields(26, vec![Some(ComponentValue::Id(filter))]))
 }
 
 /// The match freezes each bot's pose and pools when it queues the create.

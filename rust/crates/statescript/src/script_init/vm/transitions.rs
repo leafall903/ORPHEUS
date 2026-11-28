@@ -221,13 +221,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                             .expect("recall history state");
                         self.tick_recall_history(key, node)?;
                     }
-                    Some(StateKind::BallRoll { .. }) => {
-                        let node = self
-                            .graph(id)
-                            .state(usize::from(raw))
-                            .expect("ball roll state");
-                        self.tick_ball_roll(key, node)?;
-                    }
+                    Some(StateKind::BallRoll { .. }) => {}
                     Some(StateKind::HitTracker { .. }) => {
                         let node = self
                             .graph(id)
@@ -295,22 +289,12 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                         self.refresh_tracked_targets(key, node)?;
                     }
                     Some(StateKind::GenericTrackedTargets) => {
-                        if elapsed_ms < 48 {
-                            if let Some(last) = self
-                                .machine
-                                .ticking
-                                .get_mut(&id)
-                                .and_then(|states| states.get_mut(&raw))
-                            {
-                                *last = now.saturating_sub(elapsed_ms);
-                            }
-                            continue;
-                        }
                         let node = self
                             .graph(id)
                             .state(usize::from(raw))
                             .expect("generic tracked target state");
                         self.refresh_generic_tracked_targets(key, node)?;
+                        self.try_complete(key, node, 0)?;
                     }
                     Some(StateKind::ViewTargets { next_sample })
                         if self.machine.frame >= next_sample =>
@@ -397,6 +381,13 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         node: &Node,
     ) -> Result<(), InitFault> {
         let id = key.instance;
+        let death_generation = match self.origin {
+            crate::script_runtime::DispatchOrigin::BodyDeath(generation) => Some(generation),
+            _ => None,
+        };
+        if let Some(state) = self.state_mut(key) {
+            state.death_generation = death_generation;
+        }
         if configured(node, "m_BF1A93B0") {
             self.register_tick(key, self.machine.now_ms);
             return self.check_elapsed_wait(key, node);
@@ -415,9 +406,20 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         let Some(milliseconds) = self.wait_milliseconds(key, node, true) else {
             return Ok(());
         };
-        let start = self.state(key).expect("active wait").start_ms;
+        let wait = self.state(key).expect("active wait");
+        let start = wait.start_ms;
+        let death_generation = wait.death_generation;
         if self.machine.now_ms.saturating_sub(start) >= milliseconds as u64 {
-            self.post(key.instance, Event::Finish(key.raw))?;
+            if let Some(generation) = death_generation {
+                self.machine.queues.push_with_origin(
+                    key.instance,
+                    self.machine.now_ms,
+                    Event::Finish(key.raw),
+                    crate::script_runtime::DispatchOrigin::BodyDeath(generation),
+                )?;
+            } else {
+                self.post(key.instance, Event::Finish(key.raw))?;
+            }
         }
         Ok(())
     }
@@ -563,6 +565,21 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     authored_seconds = Some(f64::from(seconds as f32));
                 }
             }
+        }
+        if authored_seconds.is_none()
+            && !looping.is_null()
+            && self
+                .world
+                .admits_generic_player_runtime(self.site(id, node))
+            && (!is_unlinked_plug(&node.fields, "m_onEndPlug", "STUStatescriptOutputPlug")
+                || !is_unlinked_plug(&node.fields, "m_onFinishedPlug", "STUStatescriptOutputPlug"))
+        {
+            // Non-looping transition clips with an explicit end/finished link
+            // (e.g. Wrecking Ball 0x1203:Anim_41 -> looping Anim_40) need a
+            // fallback finish duration when no anim_timing_174.json table is
+            // present; otherwise the server keeps the one-shot active forever
+            // and the client reverts to idle pose when the clip finishes.
+            authored_seconds = Some(0.4);
         }
         let Some(seconds) = authored_seconds else {
             let client_removes_zombardier_animation = (self.graph(id).index, node.pos)
@@ -1307,6 +1324,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 script_expr::EvalError::UnavailableEntityPosition(_)
                 | script_expr::EvalError::UnavailableEntityDirection(_)
                 | script_expr::EvalError::UnavailableBodyEyePosition(_)
+                | script_expr::EvalError::UnavailableBodyBone { .. }
                 | script_expr::EvalError::UnavailableEntityVariable { .. }
                 | script_expr::EvalError::UnavailableSpatialCandidates
                 | script_expr::EvalError::UnavailableSpatialVisibility
@@ -1905,6 +1923,7 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 self.machine
                     .movement_modifiers
                     .retain(|entry, _| entry.instance != key.instance || entry.state != key.raw);
+                self.machine.mover_overrides.remove(&key);
             }
             StateKind::MovementSample { .. } => {
                 self.update_movement_sample(key, node, depth)?;
@@ -1955,9 +1974,8 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     .set_target_aura(self.site(id, node), &[], effect, None, 0);
             }
             StateKind::Grapple => {
-                if let Ok(Some(latch_var)) = script_expr::lvalue(field(&node.fields, "m_5ED803CF"))
-                {
-                    let _ = self.write(source_key(id, latch_var), Value::Bool(false));
+                if let Some(state) = self.state_mut(key) {
+                    state.grapple = None;
                 }
             }
             StateKind::TargetSubScript { child: Some(child) } => {
@@ -2432,6 +2450,9 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             self.machine.snapshot.instances.shift_remove(&id);
             self.machine
                 .movement_modifiers
+                .retain(|key, _| key.instance != id);
+            self.machine
+                .mover_overrides
                 .retain(|key, _| key.instance != id);
             self.machine
                 .disabled_start_entries

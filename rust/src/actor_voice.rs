@@ -13,9 +13,9 @@ use serde::{Deserialize, Deserializer, de::Error};
 const MAX_CATALOG_BYTES: u64 = 16 * 1024 * 1024;
 const DEFAULT_VOICE_DURATION_SECS: f64 = 1.8;
 
-pub(crate) const STIMULUS_HERO_SPAWN: u64 = 0x0ee0_0000_0000_0020;
-pub(crate) const STIMULUS_HELLO: u64 = 0x0ee0_0000_0000_0007;
-pub(crate) const STIMULUS_THANKS: u64 = 0x0ee0_0000_0000_0008;
+// Named .078 stimuli and .0D8 criteria from the 104319 voice catalog.
+pub(crate) const STIMULUS_HELLO: u64 = 0x0ee0_0000_0000_01cf;
+pub(crate) const STIMULUS_THANKS: u64 = 0x0ee0_0000_0000_01d0;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Guid(u64);
@@ -101,18 +101,6 @@ impl RawVoiceLine {
             || meta.conditions.required_ally_hero.is_some()
     }
 
-    fn matches_target_hero(&self, target_hero: u64, deprecated: &BTreeSet<Guid>) -> bool {
-        if deprecated.contains(&self.guid()) {
-            return false;
-        }
-        let Self::Rich(meta) = self else {
-            return false;
-        };
-        !meta.conditions.deprecated
-            && self.weight() > 0.0
-            && meta.conditions.target_hero == Some(target_hero)
-    }
-
     fn matches(&self, ctx: &VoiceContext<'_>, deprecated: &BTreeSet<Guid>) -> bool {
         if deprecated.contains(&self.guid()) {
             return false;
@@ -184,18 +172,11 @@ impl VoiceOptions<'_> {
         ctx: &VoiceContext<'_>,
         choose: &mut dyn FnMut(usize) -> usize,
     ) -> Option<(u64, u64)> {
-        let mut eligible: Vec<&RawVoiceLine> = self
+        let eligible: Vec<&RawVoiceLine> = self
             .lines
             .iter()
             .filter(|entry| entry.matches(ctx, self.deprecated))
             .collect();
-        if eligible.is_empty() {
-            eligible = self
-                .lines
-                .iter()
-                .filter(|entry| !self.deprecated.contains(&entry.guid()))
-                .collect();
-        }
         if eligible.is_empty() {
             return None;
         }
@@ -212,28 +193,6 @@ impl VoiceOptions<'_> {
             &eligible
         };
         self.pick_weighted(pool, choose)
-    }
-
-    /// Select ONLY a line whose `conditions.target_hero` explicitly matched `target_hero`
-    /// (for rival kill/interaction easter eggs without overriding generic StateScript cues).
-    pub(crate) fn choose_rival_line(
-        &self,
-        target_hero: u64,
-        ctx: &VoiceContext<'_>,
-        choose: &mut dyn FnMut(usize) -> usize,
-    ) -> Option<(u64, u64)> {
-        let matched: Vec<&RawVoiceLine> = self
-            .lines
-            .iter()
-            .filter(|entry| {
-                entry.matches_target_hero(target_hero, self.deprecated)
-                    && entry.matches(ctx, self.deprecated)
-            })
-            .collect();
-        if matched.is_empty() {
-            return None;
-        }
-        self.pick_weighted(&matched, choose)
     }
 
     fn pick_weighted(
@@ -528,12 +487,8 @@ mod tests {
             ally_heroes: &[],
         };
         assert_eq!(
-            opts.choose_rival_line(0x02E0_0000_0000_0005, &rival_ctx, &mut |_| 0),
+            opts.choose_with_context(&rival_ctx, &mut |_| 0),
             Some((0x0EE0_0000_0000_000B, 0x0760_0000_0000_0002))
-        );
-        assert_eq!(
-            opts.choose_rival_line(0x02E0_0000_0000_0009, &VoiceContext::default(), &mut |_| 0),
-            None
         );
         // Map context prefers the King's Row line over the generic line.
         let map_ctx = VoiceContext {

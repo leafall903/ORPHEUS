@@ -9,6 +9,26 @@ use crate::{
     static_ray::Vec3,
 };
 
+pub(crate) const DAMAGE_TAKEN_MESSAGE: u64 = 0x0240_0000_0000_0011;
+
+pub(crate) fn damage_taken_parameters(
+    dealt: f64,
+    direction: Vec3,
+    source: u32,
+    tags: &crate::script_init::HitTags,
+) -> crate::script_wire::Variables {
+    use crate::script_wire::{Value, Variables};
+    Variables::from([
+        (0x12, Value::Entity(source)),
+        (0x13, Value::Float(f64::from(dealt as f32))),
+        (
+            0x3d,
+            Value::Array(tags.as_slice().iter().copied().map(Value::Asset).collect()),
+        ),
+        (0x65, Value::Vector(direction)),
+    ])
+}
+
 const RECEIVED_DAMAGE: u32 = 25000;
 const HIT: u32 = 25001;
 const HEAL_CONFIRM: u32 = 25002;
@@ -407,6 +427,28 @@ impl CombatNotice {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn damage_taken_forwards_only_this_hits_tags_and_attacker() {
+        use crate::script_wire::Value;
+        let mut tags = crate::script_init::HitTags::EMPTY;
+        assert!(tags.push(101));
+        assert!(tags.push(205));
+        let params = damage_taken_parameters(2.5, [0.0, 0.0, 1.0], 80, &tags);
+        assert_eq!(
+            params[&0x3d],
+            Value::Array(vec![Value::Asset(101), Value::Asset(205)])
+        );
+        assert_eq!(params[&0x12], Value::Entity(80));
+        let next = damage_taken_parameters(
+            1.0,
+            [1.0, 0.0, 0.0],
+            81,
+            &crate::script_init::HitTags::EMPTY,
+        );
+        assert_eq!(next[&0x3d], Value::Array(vec![]));
+        assert_eq!(next[&0x12], Value::Entity(81));
+    }
 
     #[test]
     #[ignore = "requires the separately prepared 104319 game schemas"]

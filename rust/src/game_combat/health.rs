@@ -12,6 +12,7 @@ use crate::{
 };
 use std::time::Duration;
 
+#[derive(Clone, Copy)]
 pub(super) enum HealthEffect {
     Damage(f64),
     Heal(f64),
@@ -129,7 +130,6 @@ impl RoomSimulation {
             }
         };
         let critical = impact.is_some_and(|impact| impact.critical);
-        let loadout = impact.and_then(|impact| impact.loadout);
         let effect = match effect {
             HealthEffect::Damage(amount) if amount > 0.0 => {
                 let clamp_floor = if let Some(&entity) = self.by_wire.get(&wire) {
@@ -161,7 +161,7 @@ impl RoomSimulation {
             let target_facts = impact.map(|_| state.health_target_facts());
             let (delta, killed, named_pool_losses) = match effect {
                 HealthEffect::Damage(amount) => Self::damage_bot_with_hit(
-                    state, amount, source, now, critical, loadout,
+                    state, amount, source, now, impact,
                 )
                 .map_or((0.0, false, None), |outcome| {
                     (
@@ -357,50 +357,69 @@ impl RoomSimulation {
     }
 
     pub(super) fn wake_sleeping_actor(&mut self, wire: u32, tick: u32) -> Result<(), CombatError> {
-        let was_sleeping = self
-            .actor_statuses
-            .get_mut(&wire)
-            .and_then(|status| {
-                if status.sleep_until.is_some_and(|until| tick < until) {
-                    status.sleep_until = None;
-                    status.stunned_until = None;
-                    Some(())
-                } else {
-                    None
-                }
-            })
-            .is_some();
-        if was_sleeping {
+        let was_sleeping = self.actor_statuses.get_mut(&wire).and_then(|status| {
+            if status.sleep_until.is_some_and(|until| tick < until) {
+                status.sleep_until = None;
+                Some(status.stunned_until.unwrap_or(tick).saturating_sub(tick))
+            } else {
+                None
+            }
+        });
+        if let Some(remaining_stun) = was_sleeping {
             if let Some(state) = self.state_mut(wire)? {
                 state.bot.clear_stun();
+                if remaining_stun > 0 {
+                    state.bot.stun_for(tick, remaining_stun);
+                }
             } else if let Some(id) = self.player_handle_for_wire(wire) {
                 if let Some(player) = self.player_body_mut(id) {
-                    player.mover.clear_stun();
+                    if remaining_stun == 0 {
+                        player.mover.clear_stun();
+                    }
                 }
             }
+            self.settle_control_scripts(tick);
         }
         Ok(())
     }
 
     pub(super) fn apply_actor_stun(&mut self, wire: u32, tick: u32, ticks: u32) {
+        self.hold_actor(wire, tick, ticks, super::status_scripts::Control::Stun);
+    }
+
+    fn hold_actor(
+        &mut self,
+        wire: u32,
+        tick: u32,
+        ticks: u32,
+        kind: super::status_scripts::Control,
+    ) -> bool {
         if ticks == 0 || self.actor_is_cc_immune(wire, tick) {
-            return;
+            return false;
         }
         if let Ok(Some(state)) = self.state_mut(wire) {
-            if !state.bot.dead {
-                state.bot.stun_for(tick, ticks);
+            if state.bot.dead {
+                return false;
             }
+            state.bot.stun_for(tick, ticks);
         } else if let Some(id) = self.player_handle_for_wire(wire) {
-            if let Some(player) = self.player_body_mut(id) {
-                if player.alive() {
-                    let frame = player.mover.pose().frame.unwrap_or(player.frame);
-                    player.mover.stun(frame.saturating_add(1));
-                    let until = tick.saturating_add(ticks);
-                    let entry = self.actor_statuses.entry(wire).or_default();
-                    entry.stunned_until = Some(entry.stunned_until.map_or(until, |p| p.max(until)));
-                }
+            if let Some(player) = self.player_body_mut(id).filter(|p| p.alive()) {
+                let frame = player.mover.pose().frame.unwrap_or(player.frame);
+                player.mover.stun(frame.saturating_add(1));
+            } else {
+                return false;
             }
+        } else {
+            return false;
         }
+        let entry = self.actor_statuses.entry(wire).or_default();
+        let slot = match kind {
+            super::status_scripts::Control::Sleep => &mut entry.sleep_until,
+            super::status_scripts::Control::Stun => &mut entry.stunned_until,
+        };
+        let until = tick.saturating_add(ticks);
+        *slot = Some(slot.map_or(until, |previous| previous.max(until)));
+        true
     }
 
     /// Apply a retail `m_277A4ECA` projectile status effect GUID to a live actor,
@@ -414,11 +433,16 @@ impl RoomSimulation {
         is_ally: bool,
         tick: u32,
     ) {
+        use super::status_scripts::Control;
         use crate::hero_ability_rules::ProjectileStatusEffectBehavior as EffectBehavior;
 
         let Some(behavior) = self.ability_rules.projectile_status_effect(effect_guid) else {
             return;
         };
+        let graph = self.ability_rules.status_script(effect_guid);
+        if !self.admits_projectile_control(target_wire, effect_guid) {
+            return;
+        }
         let graphs = self.script_graphs.as_ref().map(|(g, _)| g.as_ref());
         let authored_secs = |wrapper_graph: u32, fallback: f64| -> f64 {
             graphs
@@ -435,20 +459,32 @@ impl RoomSimulation {
                 fallback_secs,
             } if !is_ally => {
                 let ticks = secs_to_ticks(authored_secs(wrapper_graph, fallback_secs));
-                self.apply_actor_stun(target_wire, tick, ticks);
-                self.emit_status_vfx_feedback(source_wire, target_wire);
+                if self.hold_actor(target_wire, tick, ticks, Control::Stun) {
+                    self.attach_control_script(
+                        target_wire,
+                        graph,
+                        source_wire,
+                        Control::Stun,
+                        tick,
+                        ticks,
+                    );
+                    self.emit_status_vfx_feedback(source_wire, target_wire);
+                }
             }
             EffectBehavior::Sleep {
                 wrapper_graph,
                 fallback_secs,
             } if !is_ally => {
-                if !self.actor_is_cc_immune(target_wire, tick) {
-                    let sleep_ticks = secs_to_ticks(authored_secs(wrapper_graph, fallback_secs));
-                    self.apply_actor_stun(target_wire, tick, sleep_ticks);
-                    self.actor_statuses
-                        .entry(target_wire)
-                        .or_default()
-                        .sleep_until = Some(tick.saturating_add(sleep_ticks));
+                let sleep_ticks = secs_to_ticks(authored_secs(wrapper_graph, fallback_secs));
+                if self.hold_actor(target_wire, tick, sleep_ticks, Control::Sleep) {
+                    self.attach_control_script(
+                        target_wire,
+                        graph,
+                        source_wire,
+                        Control::Sleep,
+                        tick,
+                        sleep_ticks,
+                    );
                     self.emit_status_vfx_feedback(source_wire, target_wire);
                 }
             }
@@ -500,6 +536,7 @@ impl RoomSimulation {
 
     pub(super) fn step_status_effects(&mut self, tick: u32) {
         if self.actor_statuses.is_empty() {
+            self.settle_control_scripts(tick);
             return;
         }
         let mut heals = Vec::new();
@@ -530,6 +567,7 @@ impl RoomSimulation {
         for wire in dead_wires {
             self.actor_statuses.remove(&wire);
         }
+        self.settle_control_scripts(tick);
         self.actor_statuses.retain(|&wire, status| {
             if status.anti_heal_until.is_some_and(|until| tick >= until) {
                 status.anti_heal_until = None;
@@ -539,6 +577,7 @@ impl RoomSimulation {
             }
             if status.sleep_until.is_some_and(|until| tick >= until) {
                 status.sleep_until = None;
+                unstunned_players.push(wire);
             }
             if status.stunned_until.is_some_and(|until| tick >= until) {
                 status.stunned_until = None;
@@ -664,6 +703,13 @@ impl RoomSimulation {
             );
         }
         for wire in unstunned_players {
+            if self
+                .actor_statuses
+                .get(&wire)
+                .is_some_and(|s| s.sleep_until.is_some() || s.stunned_until.is_some())
+            {
+                continue;
+            }
             if let Some(id) = self.player_handle_for_wire(wire) {
                 if let Some(player) = self.player_body_mut(id) {
                     player.mover.clear_stun();

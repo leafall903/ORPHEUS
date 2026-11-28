@@ -69,6 +69,7 @@ pub(crate) struct PlayerBodyState {
     pub(crate) team: u8,
     pub(crate) hero: u64,
     pub(crate) body_template: u64,
+    pub(super) selected_model: Option<(u64, u64)>,
     pub(super) elimination_streak: Option<EliminationStreak>,
     pub(crate) mover: Mover,
     pub(crate) history: TargetHistory,
@@ -100,6 +101,13 @@ impl PlayerBodyState {
         frame: u32,
         observer_create: Option<EntityUpdate>,
     ) -> Self {
+        // The create record moves to the observer event queue after insertion.
+        let selected_model = observer_create.as_ref().and_then(|update| {
+            let Operation::Create(definition) = update.operation.as_ref()? else {
+                return None;
+            };
+            Some((definition.definition, definition.skin.guid))
+        });
         Self {
             id,
             owner,
@@ -108,6 +116,7 @@ impl PlayerBodyState {
             team,
             hero,
             body_template: 0,
+            selected_model,
             elimination_streak: None,
             mover,
             history: TargetHistory::new(None),
@@ -320,9 +329,14 @@ impl PlayerBodyState {
         (pulses, expired_tokens, healed)
     }
 
-    fn receive_damage(&mut self, amount: f64, source: Death) -> Damage {
+    fn receive_damage(
+        &mut self,
+        amount: f64,
+        source: Death,
+        tags: &crate::script_init::HitTags,
+    ) -> Damage {
         let result = if let Some(runtime) = &mut self.runtime {
-            let result = runtime.receive_damage(amount, source);
+            let result = runtime.receive_damage(amount, source, tags);
             self.mover.set_authored_facing(runtime.authored_facing());
             result
         } else {
@@ -467,9 +481,8 @@ impl RoomSimulation {
                 update: Box::new(update),
             });
         }
-        if !transfer_pets {
-            self.queue_hero_spawn_voice(owner, id, spawn_hero, 0, spawn_frame);
-        }
+        // Selection and respawn voice criteria belong to the body's graph.
+        // Recreating or transferring a body does not identify either event.
         #[cfg(feature = "lua-mods")]
         self.mod_on_player_spawn(id, spawn_frame);
         #[cfg(not(feature = "lua-mods"))]
@@ -529,6 +542,8 @@ impl RoomSimulation {
             self.players_by_owner.shift_remove(&owner);
         }
         self.actor_statuses.remove(&id.entity);
+        self.status_scripts
+            .retain(|&(wire, _), _| wire != id.entity);
         Arc::make_mut(&mut self.retired_entity_ids).insert(id.entity);
         if let Some(new_owner) = transfer_pets_to {
             self.transfer_owner_pets_and_deployables(id.entity, new_owner);
@@ -1048,7 +1063,8 @@ impl RoomSimulation {
             v.amount(Some(crate::vitals::PoolKind::Armour), false) > 0.0
                 || v.amount(Some(crate::vitals::PoolKind::Shields), false) > 0.0
         });
-        let outcome = state.receive_damage(amount, source);
+        let tags = impact.map_or(&crate::script_init::HitTags::EMPTY, |(hit, _)| &hit.tags);
+        let outcome = state.receive_damage(amount, source, tags);
         let health = state.take_health_update().map(|component| EntityUpdate {
             entity,
             operation: Some(Operation::Update(vec![component])),
@@ -1061,11 +1077,8 @@ impl RoomSimulation {
                 .player_body_mut(id)
                 .and_then(|state| state.runtime.as_mut())
             {
-                let (critical, loadout) = impact.map_or((false, None), |(impact, _)| {
-                    (impact.critical, impact.loadout)
-                });
                 death_script_fault = runtime
-                    .publish_death(source.killer, critical, loadout, source_facts)
+                    .publish_death(source.killer, impact.map(|(hit, _)| hit), source_facts)
                     .err();
             }
         }

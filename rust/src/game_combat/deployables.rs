@@ -10,6 +10,8 @@ use std::{
     time::Duration,
 };
 
+mod proximity;
+
 use bevy_ecs::entity::Entity;
 use indexmap::IndexMap;
 use serde_json::Value as Json;
@@ -18,7 +20,7 @@ use super::{RoomScriptRequest, RoomScriptRequests, RoomSimulation, RoomSpatialFr
 use crate::{
     game_body::yaw_rotation,
     game_projectiles::ImpactSpawn,
-    match_scene::bot_filter_component,
+    match_scene::{HERO_BIT, team_filter_component},
     script_expr::{self, EmptyContext, EntityRelation, SpatialCandidate, valid_entity},
     script_graph::{GraphStore, asset_guid, graph_asset_index},
     script_init::{
@@ -34,7 +36,7 @@ const FIRST_PET_WIRE: u32 = 0xc008_0000;
 const PET_WIRE_SPAN: u32 = 0x0008_0000;
 const FIRST_DEPLOYABLE_WIRE: u32 = 0xc010_0000;
 const DEPLOYABLE_WIRE_SPAN: u32 = 0x0008_0000;
-const MAX_DEPLOYABLES_PER_OWNER: usize = 16;
+const MAX_DEPLOYABLES_PER_OWNER: usize = 24;
 const SCRIPTLESS_DEPLOYABLE_TICKS: u32 = 62 * 20; // 20s default lifetime when no script expires it
 const SCRIPTED_DEPLOYABLE_MAX_TICKS: u32 = 62 * 600; // 10m safety cap so permanent deployables stay active until destroyed/replaced
 const SHARED_STUN_GRAPH: u32 = 0x224e;
@@ -101,7 +103,7 @@ pub(super) struct RoomPet {
     pub(super) position: Vec3,
     pub(super) yaw: i32,
     pub(super) vitals: Option<Vitals>,
-    pub(super) wire_vitals: bool,
+    pub(super) create_components: (bool, bool),
     pub(super) published_movement: bool,
     /// Solid world obstacle (e.g. Mei Ice Wall pillar) that blocks movement & shots for both teams.
     pub(super) solid_wall: bool,
@@ -245,22 +247,22 @@ fn casc_verified_entity_components(definition: u64, authored_body_vitals: bool) 
 fn entity_create_update(
     wire: u32,
     team: u8,
+    actor_flags: u64,
     definition: u64,
     attach: Option<u32>,
     position: Vec3,
     yaw: i32,
     local_offset: Option<Vec3>,
     vitals: Option<&Vitals>,
-    authored_body_vitals: bool,
+    supported: (bool, bool),
 ) -> Option<EntityUpdate> {
     if definition >> 48 != 0x0400 || !position.into_iter().all(f64::is_finite) {
         return None;
     }
     let mut components = Vec::new();
-    let (has_filter_26, has_health_51) =
-        casc_verified_entity_components(definition, authored_body_vitals);
+    let (has_filter_26, has_health_51) = supported;
     if has_filter_26 {
-        components.push(bot_filter_component(team, false).ok()?);
+        components.push(team_filter_component(team, actor_flags).ok()?);
     }
     if has_health_51 {
         if let Some(vitals) = vitals {
@@ -352,6 +354,28 @@ impl ScriptWorld for DeployableWorld {
             .as_deref()?
             .actor_pose(entity)
             .map(|(pos, _)| pos)
+    }
+
+    fn body_bone_point(&mut self, entity: u32, bone: u64, local: Vec3) -> Option<Vec3> {
+        if let Some(frame) = self.spatial_frame.as_ref() {
+            if frame.is_retired(entity) {
+                return None;
+            }
+            if frame.actor_alive(entity) {
+                return frame.actor_bone_point(&self.graphs, entity, bone, local);
+            }
+        }
+        if entity != self.entity {
+            return None;
+        }
+        let point = if bone == 0 {
+            local
+        } else {
+            self.graphs
+                .bone_reference_point(self.definition, 0, bone, local)?
+        };
+        // Before its first room frame only the spawn position is observable.
+        crate::script_expr::body_space_point(self.position, None, point)
     }
 
     fn entity_exists(&self, entity: u32) -> Option<bool> {
@@ -535,6 +559,25 @@ impl ScriptWorld for DeployableWorld {
         delta: f64,
         impulse: Option<[f64; 3]>,
     ) -> bool {
+        self.queue_modify_health_with_meta(
+            site,
+            target,
+            delta,
+            impulse,
+            None,
+            crate::script_init::HitTags::EMPTY,
+        )
+    }
+
+    fn queue_modify_health_with_meta(
+        &mut self,
+        site: Site,
+        target: u32,
+        delta: f64,
+        impulse: Option<[f64; 3]>,
+        loadout: Option<u64>,
+        tags: crate::script_init::HitTags,
+    ) -> bool {
         if site.entity != self.entity || !delta.is_finite() {
             return false;
         }
@@ -542,10 +585,12 @@ impl ScriptWorld for DeployableWorld {
             return false;
         };
         if delta < 0.0 || (delta == 0.0 && impulse.is_some()) {
-            self.script_requests.queue_contact_damage(
+            self.script_requests.queue_contact_damage_with_meta(
                 frame,
                 self.tick,
                 (-delta).max(0.0),
+                loadout,
+                tags,
                 &[(target, impulse)],
             )
         } else if delta > 0.0 {
@@ -797,9 +842,12 @@ pub(super) struct RoomDeployable {
     pub(super) position: Vec3,
     pub(super) yaw: i32,
     pub(super) vitals: Option<Vitals>,
-    wire_vitals: bool,
+    create_components: (bool, bool),
+    proximity: Option<proximity::Proximity>,
     spawned_tick: u32,
     max_ticks: u32,
+    armed_effects: Option<crate::script_snapshot_wire::ArmingEffects>,
+    observer_baseline: Option<crate::script_snapshot_wire::StaticSceneBaseline>,
     pub(super) component: Option<Component>,
     pub(super) world: Option<DeployableWorld>,
 }
@@ -843,13 +891,14 @@ impl RoomSimulation {
             entity_create_update(
                 wire,
                 pet.team,
+                HERO_BIT,
                 pet.definition,
                 pet.attach,
                 pet.position,
                 pet.yaw,
                 pet.local_offset,
                 pet.vitals.as_ref(),
-                pet.wire_vitals,
+                pet.create_components,
             )
         });
         let deployables = self
@@ -866,13 +915,14 @@ impl RoomSimulation {
                 entity_create_update(
                     wire,
                     deployable.team,
+                    0,
                     deployable.definition,
                     None,
                     deployable.position,
                     deployable.yaw,
                     None,
                     deployable.vitals.as_ref(),
-                    deployable.wire_vitals,
+                    deployable.create_components,
                 )
             });
         pets.chain(deployables)
@@ -891,6 +941,47 @@ impl RoomSimulation {
                 }),
                 ..EntityUpdate::default()
             })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn proximity_readout(&self) -> Vec<Json> {
+        self.room_deployables
+            .values()
+            .filter_map(|dep| {
+                let p = dep.proximity.as_ref()?;
+                Some(serde_json::json!({"arm":p.arm_ticks,"health":p.health,
+                "trigger":p.trigger_radius,"damage_radius":p.damage_radius,
+                "damage":p.hit.amount,"loadout":p.hit.loadout,"lifetime":p.lifetime,
+                "unit_x_impulse":p.impulse.as_ref().and_then(|force| force.radial_delta([1.0, 0.0], p.damage_radius * 0.5, true, 1.0))}))
+            })
+            .collect()
+    }
+
+    /// A new observer needs the current health and transform even after the spawn tick.
+    #[cfg(test)]
+    pub(crate) fn deployable_creates(&self) -> impl Iterator<Item = EntityUpdate> + '_ {
+        self.room_deployables.iter().filter_map(|(&entity, dep)| {
+            entity_create_update(
+                entity,
+                dep.team,
+                0,
+                dep.definition,
+                None,
+                dep.position,
+                dep.yaw,
+                None,
+                dep.vitals.as_ref(),
+                dep.create_components,
+            )
+        })
+    }
+
+    pub(crate) fn deployable_baselines(
+        &self,
+    ) -> impl Iterator<Item = &crate::script_snapshot_wire::StaticSceneBaseline> {
+        self.room_deployables
+            .values()
+            .filter_map(|dep| dep.observer_baseline.as_ref())
     }
 
     fn deployable_graphs(&self) -> Option<(Arc<GraphStore>, u64)> {
@@ -944,13 +1035,14 @@ impl RoomSimulation {
         let Some(update) = entity_create_update(
             pet_id,
             team,
+            HERO_BIT,
             definition,
             attach,
             position,
             yaw,
             local_offset,
             vitals.as_ref(),
-            authored_body_vitals,
+            casc_verified_entity_components(definition, authored_body_vitals),
         ) else {
             return;
         };
@@ -972,7 +1064,7 @@ impl RoomSimulation {
         };
         let ecs_entity = self.world.spawn_empty().id();
         let max_hp = vitals.as_ref().map_or(0.0, Vitals::maximum);
-        let (_, wire_vitals) = casc_verified_entity_components(definition, authored_body_vitals);
+        let create_components = casc_verified_entity_components(definition, authored_body_vitals);
         let solid_wall = is_ice_wall_root;
         let charge_ticks = if attach.is_none() && max_hp >= 800.0 {
             186 // ~3.0s opening charge for B.O.B. companions
@@ -991,7 +1083,7 @@ impl RoomSimulation {
                 position,
                 yaw,
                 vitals,
-                wire_vitals,
+                create_components,
                 published_movement: false,
                 solid_wall,
                 parent_pet: None,
@@ -1016,16 +1108,18 @@ impl RoomSimulation {
                 ];
                 let pillar_id = next_pet_wire_id();
                 let pillar_vitals = Vitals::new(ice_wall.pillar_health, 0.0, 0.0);
+                let pillar_components = casc_verified_entity_components(definition, false);
                 if let Some(pillar_update) = entity_create_update(
                     pillar_id,
                     team,
+                    HERO_BIT,
                     definition,
                     None,
                     pillar_pos,
                     yaw,
                     None,
                     Some(&pillar_vitals),
-                    false,
+                    pillar_components,
                 ) {
                     let pillar_ecs = self.world.spawn_empty().id();
                     self.room_pets.insert(
@@ -1040,7 +1134,7 @@ impl RoomSimulation {
                             position: pillar_pos,
                             yaw,
                             vitals: Some(pillar_vitals),
-                            wire_vitals: false,
+                            create_components: pillar_components,
                             published_movement: false,
                             solid_wall: true,
                             parent_pet: Some(pet_id),
@@ -1195,25 +1289,63 @@ impl RoomSimulation {
         }
         let entity = next_deployable_wire_id();
         let graphs_and_mode = self.deployable_graphs();
+        let body = graphs_and_mode
+            .as_ref()
+            .and_then(|(graphs, _)| graphs.persistent_projectile(spawn.definition));
+        let proximity = graphs_and_mode.as_ref().and_then(|(graphs, mode)| {
+            let hero = self
+                .players_by_wire
+                .get(&owner)
+                .and_then(|&e| self.world.get::<super::PlayerBodyState>(e))
+                .map_or(0, |p| p.hero);
+            proximity::Proximity::from_definition(
+                body?,
+                proximity::Inputs {
+                    entity,
+                    creator: owner,
+                    frame: self.spatial_frame.as_ref().map(|(_, f)| f.as_ref()),
+                    rules: graphs,
+                    mode: *mode,
+                    hero,
+                    tick,
+                },
+            )
+        });
         let (vitals, authored_body_vitals) = resolve_entity_vitals(
             graphs_and_mode.as_ref().map(|(g, _)| g.as_ref()),
             spawn.definition,
-            None,
+            proximity.as_ref().map(|p| p.health),
+        );
+        let supported = body.map(|body| &body.components).map_or_else(
+            || casc_verified_entity_components(spawn.definition, authored_body_vitals),
+            |components| {
+                (
+                    components.contains("STUTargetTagComponent"),
+                    components.contains("STUHealthComponent"),
+                )
+            },
         );
         let Some(update) = entity_create_update(
             entity,
             team,
+            0, // A deployed projectile inherits team affiliation alone.
             spawn.definition,
             None,
             position,
             yaw,
             None,
             vitals.as_ref(),
-            authored_body_vitals,
+            supported,
         ) else {
             return;
         };
-        let (component, world_opt) = if let Some((graphs, mode)) = graphs_and_mode {
+        let armed_effects = graphs_and_mode.as_ref().and_then(|(graphs, _)| {
+            crate::script_snapshot_wire::ArmingEffects::from_definition(graphs, body?)
+        });
+        let (component, world_opt) = if proximity.is_some() {
+            // The room owns the authored tracking and radial damage.
+            (None, None)
+        } else if let Some((graphs, mode)) = graphs_and_mode {
             start_entity_vm(
                 graphs,
                 mode,
@@ -1229,7 +1361,9 @@ impl RoomSimulation {
         } else {
             (None, None)
         };
-        let max_ticks = if component.is_some() {
+        let max_ticks = if let Some(p) = &proximity {
+            p.lifetime
+        } else if component.is_some() {
             SCRIPTED_DEPLOYABLE_MAX_TICKS
         } else {
             SCRIPTLESS_DEPLOYABLE_TICKS
@@ -1245,13 +1379,12 @@ impl RoomSimulation {
                 position,
                 yaw,
                 vitals,
-                wire_vitals: casc_verified_entity_components(
-                    spawn.definition,
-                    authored_body_vitals,
-                )
-                .1,
+                create_components: supported,
+                proximity,
                 spawned_tick: tick,
                 max_ticks,
+                armed_effects,
+                observer_baseline: None,
                 component,
                 world: world_opt,
             },
@@ -1404,12 +1537,14 @@ impl RoomSimulation {
             if !ffa && attacker_team == Some(dep.team) {
                 continue;
             }
-            let (radius, height) = if vitals.maximum() >= 250.0 {
-                (1.6, 2.3)
+            let (radius, bottom_y, height) = if dep.proximity.is_some() {
+                (0.28, 0.0, 0.35)
+            } else if vitals.maximum() >= 250.0 {
+                (1.6, 0.3, 2.3)
             } else {
-                (0.55, 1.1)
+                (0.55, 0.3, 1.1)
             };
-            let bottom = [dep.position[0], dep.position[1] + 0.3, dep.position[2]];
+            let bottom = [dep.position[0], dep.position[1] + bottom_y, dep.position[2]];
             let top = [dep.position[0], dep.position[1] + height, dep.position[2]];
             if let Some(dist) = crate::static_ray::capsule_entry_distance(
                 origin, direction, max_dist, bottom, top, radius,
@@ -1444,13 +1579,17 @@ impl RoomSimulation {
             killer: source,
         };
         let health = if is_pet {
-            self.room_pets
-                .get_mut(&wire)
-                .and_then(|pet| pet.vitals.as_mut().map(|vitals| (vitals, pet.wire_vitals)))
+            self.room_pets.get_mut(&wire).and_then(|pet| {
+                pet.vitals
+                    .as_mut()
+                    .map(|vitals| (vitals, pet.create_components.1))
+            })
         } else {
-            self.room_deployables
-                .get_mut(&wire)
-                .and_then(|dep| dep.vitals.as_mut().map(|vitals| (vitals, dep.wire_vitals)))
+            self.room_deployables.get_mut(&wire).and_then(|dep| {
+                dep.vitals
+                    .as_mut()
+                    .map(|vitals| (vitals, dep.create_components.1))
+            })
         };
         let Some((vitals, wire_vitals)) = health else {
             return 0.0;
@@ -1505,8 +1644,12 @@ impl RoomSimulation {
         }
         let mut hit: Option<(u32, f64, Vec3)> = None;
         for (&wire, dep) in &self.room_deployables {
-            // Only owner-shootable unarmored/low-HP throwables (not turrets/lamps with >= 100 HP).
-            if dep.owner != shooter || dep.vitals.as_ref().is_some_and(|v| v.maximum() >= 100.0) {
+            // Only owner-shootable unarmored/low-HP throwables (not turrets/lamps with >= 100 HP,
+            // and never Wrecking Ball's own Proximity Mines).
+            if dep.owner != shooter
+                || dep.proximity.is_some()
+                || dep.vitals.as_ref().is_some_and(|v| v.maximum() >= 100.0)
+            {
                 continue;
             }
             let center = [dep.position[0], dep.position[1] + 0.25, dep.position[2]];
@@ -1676,8 +1819,11 @@ impl RoomSimulation {
                     }
                 }
                 if let Some(vitals) = pet.vitals.as_mut() {
-                    self.scripted_health
-                        .extend(take_entity_health(id, vitals, pet.wire_vitals));
+                    self.scripted_health.extend(take_entity_health(
+                        id,
+                        vitals,
+                        pet.create_components.1,
+                    ));
                     if vitals.death().is_some() {
                         dead_pets.push(id);
                     }
@@ -1691,6 +1837,19 @@ impl RoomSimulation {
         if self.room_deployables.is_empty() {
             return;
         }
+        let encoder = self
+            .script_graphs
+            .as_ref()
+            .map(|(g, _)| g.as_ref())
+            .zip(self.script_codecs.as_deref())
+            .or_else(|| {
+                self.stock_bots
+                    .as_ref()
+                    .map(|c| (c.graphs.as_ref(), c.codecs.as_ref()))
+            })
+            .map(|(graphs, codecs)| {
+                crate::script_snapshot_wire::SnapshotEncoder::new(graphs, codecs)
+            });
         let mut expired = Vec::new();
         for (&id, deployable) in &mut self.room_deployables {
             if let (Some(component), Some(world)) =
@@ -1706,9 +1865,27 @@ impl RoomSimulation {
                     }
                 }
             }
+            if let (Some(effects), Some(encoder)) = (&deployable.armed_effects, &encoder) {
+                if deployable.observer_baseline.is_none()
+                    && tick.saturating_sub(deployable.spawned_tick) >= effects.ticks
+                    && effects.enabled(deployable.component.as_ref().and_then(Component::snapshot))
+                {
+                    let snapshot = effects.snapshot(id);
+                    if let Ok(payload) = encoder.full(&snapshot) {
+                        deployable.observer_baseline =
+                            Some(crate::script_snapshot_wire::StaticSceneBaseline {
+                                snapshot,
+                                payload,
+                            });
+                    }
+                }
+            }
             if let Some(vitals) = deployable.vitals.as_mut() {
-                self.scripted_health
-                    .extend(take_entity_health(id, vitals, deployable.wire_vitals));
+                self.scripted_health.extend(take_entity_health(
+                    id,
+                    vitals,
+                    deployable.create_components.1,
+                ));
             }
             if deployable.is_expired(tick) {
                 expired.push(id);
@@ -1880,9 +2057,97 @@ impl RoomSimulation {
             }
         }
 
-        // 4. Autonomous combat pets (Torbjörn Turret 250 HP & Ashe B.O.B. >= 800 HP) +
+        // 4. Autonomous combat pets (Torbjörn Turret 250 HP & Ashe B.O.B. >= 800 HP),
+        //    Wrecking Ball Minefield proximity detonation, and
         //    Junkrat Steel Trap proximity root from HeroAbilityRules.
         if let Some(frame) = frame_arc {
+            // 4a. Proximity damage retains its existing bounds independently of the observer.
+            let mut triggered_mines = Vec::new();
+            for (&dep_wire, dep) in &mut self.room_deployables {
+                let Some(profile) = &dep.proximity else {
+                    continue;
+                };
+                if dep.vitals.as_ref().is_some_and(|v| v.death().is_some())
+                    || tick.saturating_sub(dep.spawned_tick) < profile.arm_ticks
+                    || profile
+                        .inhibit
+                        .and_then(|id| frame.actor_variable(dep_wire, id))
+                        .is_some_and(|v| crate::script_expr::truthy(&v))
+                {
+                    continue;
+                }
+                let center = [dep.position[0], dep.position[1] + 0.1, dep.position[2]];
+                let mut triggered = false;
+                let mut victims = Vec::new();
+                for c in frame.candidates() {
+                    if c.entity == dep.owner
+                        || c.entity == dep_wire
+                        || (!self.free_for_all && c.team == Some(dep.team))
+                    {
+                        continue;
+                    }
+                    let target = frame.actor_target_pose(c.entity, c.position);
+                    let distance = target.surface_distance(center, None);
+                    if distance > profile.trigger_radius.max(profile.damage_radius)
+                        || !frame.aim_point_visible(center, target)
+                    {
+                        continue;
+                    }
+                    triggered |= distance <= profile.trigger_radius;
+                    if distance <= profile.damage_radius {
+                        victims.push((c.entity, target.feet, distance));
+                    }
+                }
+                if triggered {
+                    triggered_mines.push((
+                        dep_wire,
+                        dep.owner,
+                        center,
+                        profile.hit,
+                        profile.impulse.clone(),
+                        victims,
+                    ));
+                }
+            }
+            for (wire, owner, center, hit, impulse, victims) in triggered_mines {
+                if let Some(dep) = self.room_deployables.shift_remove(&wire) {
+                    let _ = self.world.despawn(dep.ecs_entity);
+                    Arc::make_mut(&mut self.retired_entity_ids).insert(wire);
+                    self.retired_enemies.push(wire);
+                }
+                let death = Death {
+                    time: now.as_secs_f64(),
+                    frame: tick,
+                    killer: owner,
+                };
+                for (entity, position, distance) in victims {
+                    let damage = hit.damage_at(distance, false);
+                    let velocity = impulse
+                        .as_ref()
+                        .and_then(|force| force.delta(center, position, distance, true, 1.0));
+                    let impact = crate::game_hitscan::Impact {
+                        tags: hit.tags,
+                        entity,
+                        distance,
+                        damage,
+                        critical: false,
+                        loadout: hit.loadout,
+                        impulse: velocity,
+                        geometry: None,
+                    };
+                    let _ = self.apply_health(
+                        entity,
+                        crate::game_combat::HealthEffect::Damage(damage),
+                        death,
+                        now,
+                        Some(&impact),
+                    );
+                    if let Some(velocity) = velocity {
+                        let _ = self.queue_combat_impulse(entity, tick, velocity);
+                    }
+                }
+            }
+
             let trap_rule = self.ability_rules.junkrat_trap.clone();
             let mut triggered_traps: Vec<(u32, u32, u32)> = Vec::new();
             for (&dep_wire, dep) in &self.room_deployables {
@@ -2553,6 +2818,8 @@ fn queue_deployable_volley_hits(
 
 #[cfg(test)]
 mod tests {
+    const WRECKING_BALL_MINE_DEF: u64 = 0x0400_0000_0000_2578;
+    const MINE_ARM_TICKS: u32 = 94;
     use super::*;
     use crate::{
         mover::VelocityChange,
@@ -2692,6 +2959,72 @@ mod tests {
         assert_eq!(world.despawned, vec![0xc008_0042]);
         let snap = component.snapshot().unwrap();
         assert_eq!(snap.instances[&1].variables.get(&38), Some(&Value::Null));
+    }
+
+    #[test]
+    fn landed_projectile_target_filter_inherits_each_owner_team() {
+        use crate::world::{ComponentValue, Operation};
+        use sha2::{Digest, Sha256};
+
+        let fixture: Json = serde_json::from_str(include_str!(
+            "../../../fixtures/behavior/projectile-impact-spawn-v1.json"
+        ))
+        .unwrap();
+        let mut sim = RoomSimulation::new(Vec::new()).unwrap();
+        sim.set_script_graphs(proximity::fixture(WRECKING_BALL_MINE_DEF), 1);
+        for case in fixture["landed_team_filters"].as_array().unwrap() {
+            let team = u8::try_from(case["owner_team"].as_u64().unwrap()).unwrap();
+            let expected = case["component_26"].as_u64().unwrap();
+            sim.spawn_impact_deployable(
+                0xa000_0101,
+                team,
+                ImpactSpawn {
+                    definition: WRECKING_BALL_MINE_DEF,
+                    on_spawn_graph: None,
+                },
+                [1.0, 2.0, 3.0],
+                0,
+                1,
+            );
+            let updates = sim.take_created();
+            assert_eq!(updates.len(), 1);
+            let Some(Operation::Create(create)) = &updates[0].operation else {
+                panic!("expected the landed projectile create");
+            };
+            let filter = create.components.iter().find(|c| c.index == 26).unwrap();
+            assert_eq!(filter.fields, [Some(ComponentValue::Id(expected))]);
+            // The pinned Python writer accepts components in caller order. Encode 26 then 51 on both sides.
+            let wire = crate::world::create(0, create).unwrap();
+            assert_eq!(wire.bit_len(), 632);
+            assert_eq!(
+                format!("{:x}", Sha256::digest(wire.into_bytes())),
+                case["aligned_create_sha256"].as_str().unwrap()
+            );
+            let entity = updates[0].entity;
+            let damage = fixture["late_observer"]["damage"].as_f64().unwrap();
+            assert_eq!(
+                sim.damage_barrier_or_deployable(entity, false, damage, 2, 2, Duration::ZERO),
+                damage
+            );
+            let current = fixture["late_observer"]["remaining_health"]
+                .as_f64()
+                .unwrap();
+            let mut expected = create.clone();
+            let health = expected
+                .components
+                .iter_mut()
+                .find(|c| c.index == 51)
+                .unwrap();
+            let Some(ComponentValue::Blob20(pool)) = &mut health.fields[0] else {
+                panic!("missing base health pool");
+            };
+            pool[8..12].copy_from_slice(&(current as f32).to_le_bytes());
+            let late = sim
+                .deployable_creates()
+                .find(|u| u.entity == entity)
+                .unwrap();
+            assert_eq!(late.operation, Some(Operation::Create(expected)));
+        }
     }
 
     #[test]
@@ -3145,5 +3478,163 @@ mod tests {
         sim.despawn_room_pet(root_pet);
         assert_eq!(sim.active_room_pets(), 0);
         assert_eq!(sim.solid_wall_capsules().len(), 0);
+    }
+
+    #[test]
+    fn wrecking_ball_minefield_spawns_fifteen_shootable_mines_and_detonates_after_arming() {
+        use crate::game_combat::tests::{fixture_bots, fixture_ground};
+        use crate::game_projectiles::ImpactSpawn;
+        use crate::script_graph::RoomSpatialNeeds;
+
+        let mut enemy = fixture_bots().remove(0);
+        enemy.position = [0.0, 0.0, 0.5];
+        let enemy_wire = enemy.entity;
+        let mut sim = RoomSimulation::new(vec![enemy]).unwrap();
+        sim.enable_spatial_queries(
+            false,
+            Arc::new(fixture_ground()),
+            RoomSpatialNeeds::EntityFacts,
+        );
+        sim.set_script_graphs(proximity::fixture(WRECKING_BALL_MINE_DEF), 1);
+        let owner = 0xa000_0101;
+        let spawn = ImpactSpawn {
+            definition: WRECKING_BALL_MINE_DEF,
+            on_spawn_graph: None,
+        };
+        // Spawn all 15 retail Minefield mines and verify none are prematurely evicted.
+        for i in 0..15u32 {
+            let pos = if i == 0 {
+                [0.0, 0.0, 0.0]
+            } else {
+                [10.0 + f64::from(i), 0.0, 10.0]
+            };
+            sim.spawn_impact_deployable(owner, 0, spawn, pos, 0, 10);
+        }
+        assert_eq!(sim.room_deployables.len(), 15);
+        let (&first_mine, first_dep) = sim.room_deployables.iter().next().unwrap();
+        assert_eq!(first_dep.vitals.as_ref().map(Vitals::maximum), Some(50.0));
+
+        // Wrecking Ball shooting near his own 50 HP mine must NOT trigger Ashe Dynamite detonation.
+        assert!(
+            sim.detonate_owner_deployable_ray(
+                owner,
+                0,
+                false,
+                [0.0, 0.2, -2.0],
+                [0.0, 0.0, 1.0],
+                10.0,
+                20,
+                Duration::from_secs(1),
+            )
+            .is_none()
+        );
+        assert_eq!(sim.room_deployables.len(), 15);
+
+        // Enemy shots hit the mine hitbox and destroy a 50 HP mine cleanly.
+        let (&shootable_wire, shootable_dep) = sim.room_deployables.iter().nth(1).unwrap();
+        let target_pos = shootable_dep.position;
+        let probe = sim.probe_barrier_ray(
+            Some(1),
+            false,
+            [target_pos[0], target_pos[1] + 0.15, target_pos[2] - 2.0],
+            [0.0, 0.0, 1.0],
+            10.0,
+        );
+        assert_eq!(
+            probe.map(|(w, is_pet, _, _)| (w, is_pet)),
+            Some((shootable_wire, false))
+        );
+        sim.damage_barrier_or_deployable(
+            shootable_wire,
+            false,
+            50.0,
+            enemy_wire,
+            25,
+            Duration::from_secs(1),
+        );
+        sim.advance_deployables(26);
+        assert!(!sim.room_deployables.contains_key(&shootable_wire));
+        assert_eq!(sim.room_deployables.len(), 14);
+
+        // Before the 1.5s arming delay (`MINE_ARM_TICKS = 94`), enemy at 0.5m does NOT detonate mine 0.
+        sim.prepare_spatial_frame(10 + 60).unwrap();
+        sim.advance_deployables(10 + 60);
+        assert!(sim.room_deployables.contains_key(&first_mine));
+
+        // After 1.5s arming (`tick >= 10 + 94`), mine 0 arms and detonates for 130 damage (killing 100 HP bot).
+        sim.prepare_spatial_frame(10 + MINE_ARM_TICKS).unwrap();
+        sim.advance_deployables(10 + MINE_ARM_TICKS);
+        assert!(!sim.room_deployables.contains_key(&first_mine));
+        let enemy_entity = sim.by_wire[&enemy_wire];
+        let enemy_state = sim
+            .world
+            .get::<crate::game_combat::BotState>(enemy_entity)
+            .unwrap();
+        assert!(
+            enemy_state.vitals.death().is_some(),
+            "130-dmg mine detonation must kill 100 HP bot, remaining HP = {}",
+            enemy_state.vitals.total()
+        );
+    }
+
+    #[test]
+    fn piledriver_velocity_slots_and_world_space_launch_direction() {
+        use std::collections::BTreeMap;
+
+        use crate::mover_modifiers::{Modifier, ModifierKey, ModifierTimeline, Operation};
+        use crate::projectile_flight::direct_projectile_direction;
+
+        // 1. Piledriver velocity slots 33 (horizontal stop) & 34 (-98 m/s straight down).
+        let mut timeline = ModifierTimeline::default();
+        timeline.track(
+            1,
+            &BTreeMap::from([
+                (
+                    ModifierKey {
+                        instance: 1,
+                        state: 5,
+                        slot: 0,
+                    },
+                    Modifier {
+                        index: 33,
+                        operation: Operation::Set,
+                        value: 0.0,
+                        priority: 10.0,
+                    },
+                ),
+                (
+                    ModifierKey {
+                        instance: 1,
+                        state: 5,
+                        slot: 1,
+                    },
+                    Modifier {
+                        index: 34,
+                        operation: Operation::Set,
+                        value: -98.0,
+                        priority: 10.0,
+                    },
+                ),
+            ]),
+        );
+        let mut vel = [12.0, 4.0, -8.0];
+        timeline.at(2).apply_velocity(&mut vel, 6.0);
+        assert_eq!(vel, [0.0, -98.0, 0.0]);
+
+        // 2. Minefield `m_E2FD6F04` world-space upward launch direction.
+        let launch = json!({
+            "$": "STU_239B571E",
+            "m_E2FD6F04": { "$": "STUConfigVarVec3", "m_value": [0.0, 4.0, 0.0] }
+        });
+        let dir = direct_projectile_direction(&launch, [0.0, 0.0, 1.0], |cfg| {
+            let v = cfg["m_value"].as_array().unwrap();
+            Ok(Value::Vector([
+                v[0].as_f64().unwrap(),
+                v[1].as_f64().unwrap(),
+                v[2].as_f64().unwrap(),
+            ]))
+        })
+        .expect("m_E2FD6F04 upward axis must normalize");
+        assert!((dir[1] - 1.0).abs() < 1e-6 && dir[0].abs() < 1e-6 && dir[2].abs() < 1e-6);
     }
 }

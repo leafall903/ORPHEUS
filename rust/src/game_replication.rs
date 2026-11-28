@@ -100,7 +100,16 @@ struct BotControllerState {
 /// A supported modifier projection is required before the mover can correct
 /// the owner's prediction, even if the current set of modifiers is empty.
 pub(crate) trait OwnerBodyRuntime: Send + Sync {
+    fn status_script(
+        &mut self,
+        _op: crate::game_combat::status_scripts::StatusScriptOp<'_>,
+    ) -> Result<Option<u16>, String> {
+        Ok(None)
+    }
     fn set_room_activity(&mut self, _activity: OwnerRoomActivity) {}
+    fn receive_respawn(&mut self) -> Result<usize, InitFault> {
+        Ok(0)
+    }
     fn set_encounter_active(&mut self, _active: bool) -> io::Result<()> {
         Ok(())
     }
@@ -197,7 +206,15 @@ pub(crate) trait OwnerBodyRuntime: Send + Sync {
         None
     }
 
+    fn active_tether(&self) -> Option<crate::script_init::TetherConstraint> {
+        None
+    }
+
     fn ball_roll_speed(&self) -> Option<f64> {
+        None
+    }
+
+    fn mover_override(&self) -> Option<crate::mover_settings::MoverSettings> {
         None
     }
 
@@ -288,15 +305,19 @@ pub(crate) trait OwnerBodyRuntime: Send + Sync {
         0.0
     }
 
-    fn receive_damage(&mut self, _amount: f64, _source: Death) -> Damage {
+    fn receive_damage(
+        &mut self,
+        _amount: f64,
+        _source: Death,
+        _tags: &crate::script_init::HitTags,
+    ) -> Damage {
         Damage::default()
     }
 
     fn publish_death(
         &mut self,
         _killer: u32,
-        _critical: bool,
-        _loadout: Option<u64>,
+        _impact: Option<&crate::game_hitscan::Impact>,
         _source: Option<crate::game_combat::DeathSourceFacts>,
     ) -> Result<(), InitFault> {
         Ok(())
