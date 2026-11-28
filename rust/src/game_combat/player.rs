@@ -442,7 +442,8 @@ impl RoomSimulation {
         if let Some(name) = self.player_names.get(&owner) {
             state.name = name.clone();
         }
-        let observer_create = state.observer_create.take();
+        // Keep the template for peers that start observing after this event.
+        let observer_create = state.observer_create.clone();
         let spawn_frame = state.frame;
         let spawn_hero = state.hero;
         let spawn_team = state.team;
@@ -1111,7 +1112,25 @@ impl RoomSimulation {
             .values()
             .filter_map(|&entity| self.world.get::<PlayerBodyState>(entity))
             .filter(|state| state.owner != exclude_owner)
-            .filter_map(|state| Some((state.id, state.observer_create.as_ref()?.clone())))
+            .filter_map(|state| {
+                let mut update = state.observer_create.clone()?;
+                let Operation::Create(create) = update.operation.as_mut()? else {
+                    return None;
+                };
+                let pose = state.mover.pose();
+                create.position = pose.position.map(|axis| axis as f32);
+                create.rotation = crate::game_body::yaw_rotation(f64::from(pose.yaw));
+                if let Some(health) = state.vitals().map(Vitals::component) {
+                    if let Some(component) = create
+                        .components
+                        .iter_mut()
+                        .find(|c| c.index == health.index)
+                    {
+                        *component = health;
+                    }
+                }
+                Some((state.id, update))
+            })
             .collect()
     }
 

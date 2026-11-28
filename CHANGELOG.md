@@ -4,6 +4,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Introduce existing player bodies to peers that join after their spawn event.
+  Use the current transform and health, then admit movement and collision when
+  the peer acknowledges the body.
+
 - Send an owner movement correction when a scripted sweep is clipped by an
   actor even if the resulting position quantizes back to its starting point.
 
