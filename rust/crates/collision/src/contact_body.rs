@@ -492,6 +492,18 @@ fn actor_exclusion(moving: CapsulePose, actor: CapsulePose) -> ([f64; 3], [f64; 
     )
 }
 
+/// Horizontal center-to-center distance at contact, keeping both capsules at
+/// their current heights. Between the rounded ends this shrinks to zero.
+pub fn planar_contact_radius(moving: CapsulePose, actor: CapsulePose) -> f64 {
+    let (low, high, radius) = actor_exclusion(moving, actor);
+    let y = f64::from(moving.position[1]);
+    let gap = (low[1] - y).max(y - high[1]).max(0.0);
+    if gap >= radius {
+        return 0.0;
+    }
+    ((radius - gap) * (radius + gap)).sqrt()
+}
+
 fn contact_constraint(current: Vec3, normal: Vec3, points: &[ContactPoint]) -> Constraint {
     let deepest = points[1..]
         .iter()

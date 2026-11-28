@@ -12,6 +12,15 @@
     "step_seconds": 0.008,
     "steps": 20
   },
+  "held_contact": {
+    "actor_feet": [0, 0, 2],
+    "normal_speed": 8.0,
+    "tangent_speed": 4.0,
+    "head_on_frames": 32,
+    "glance_frames": 8,
+    "step_seconds": 0.016,
+    "tolerance": 0.002
+  },
   "expected": {
     "minimum_axis_distance": 1.0,
     "contact_detected": true,

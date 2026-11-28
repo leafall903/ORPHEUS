@@ -692,7 +692,10 @@ impl Room {
                 tick,
                 now,
             };
-            world.scene.simulation_mut().prepare_movement_frame(tick)?;
+            world
+                .scene
+                .simulation_mut()
+                .prepare_peer_movement_frame(tick)?;
             world.scene.simulation_mut().prepare_spatial_frame(tick)?;
             // Movement/input failure previously closes this member. Keep that
             // scope and report the cause; body-script failures are handled locally.

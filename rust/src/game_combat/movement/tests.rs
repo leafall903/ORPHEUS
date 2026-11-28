@@ -104,6 +104,111 @@ fn npc_sweep_blocks_against_the_pose_already_resolved_by_player_input() {
 }
 
 #[test]
+fn opposing_peers_sweep_against_committed_poses_in_the_same_tick() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/peer-contact-order-v1.json"
+    ))
+    .unwrap();
+    let tick = u32::try_from(fixture["tick"].as_u64().unwrap()).unwrap();
+    let origins = [
+        fixture["left_x"].as_f64().unwrap(),
+        fixture["right_x"].as_f64().unwrap(),
+    ];
+    let step = fixture["step"].as_f64().unwrap();
+    let rays = TriangleIndex::new([]).unwrap();
+    let geometry = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+    let settings = MoverSettings {
+        gravity_scale: 0.0,
+        ..MoverSettings::default()
+    };
+    let ids = [
+        BodyId {
+            entity: 71,
+            generation: 1,
+        },
+        BodyId {
+            entity: 72,
+            generation: 1,
+        },
+    ];
+    // Either player can get the first turn under the room's round-robin scheduler.
+    for order in [[0, 1], [1, 0]] {
+        let mut room = RoomSimulation::new(vec![]).unwrap();
+        room.enable_movement_contacts(false, Arc::new(MoverCatalog::default()));
+        for i in 0..2 {
+            let id = ids[i];
+            let mover = Mover::new(
+                settings,
+                Arc::clone(&geometry),
+                [origins[i], 0.0, 0.0],
+                0,
+                0x18,
+            )
+            .unwrap();
+            let team = u8::try_from(i).unwrap();
+            room.spawn_player_body(PlayerBodyState::new(
+                id,
+                id.entity,
+                team,
+                team,
+                1,
+                mover,
+                None,
+                tick - 1,
+                None,
+            ))
+            .unwrap();
+        }
+        for i in order {
+            room.prepare_peer_movement_frame(tick).unwrap();
+            let id = ids[i];
+            let blockers = room
+                .movement_contact_frame()
+                .unwrap()
+                .blockers(id.entity, u8::try_from(i).unwrap());
+            assert_eq!(blockers.len(), 1);
+            let mover = &mut room.player_body_mut(id).unwrap().mover;
+            let sign = if i == 0 { 1.0 } else { -1.0 };
+            let motion =
+                crate::script_init::SweptDisplacement::new([sign * step, 0.0, 0.0]).unwrap();
+            assert!(mover.queue_swept_displacement(tick, motion));
+            mover
+                .step_against(
+                    &rays,
+                    Command {
+                        frame: tick,
+                        ..Command::default()
+                    },
+                    0.016,
+                    &blockers,
+                    |_, _| {},
+                )
+                .unwrap();
+        }
+        let first = order[0];
+        let actual = room.player_body(ids[first]).unwrap().mover.pose().position[0];
+        assert!(((actual - origins[first]).abs() - step).abs() < 0.02);
+        let [left, right] = ids.map(|id| room.player_body(id).unwrap().mover.contact_capsule());
+        let separation = right.position[0] - left.position[0];
+        let touching = left.radius + right.radius;
+        assert!(
+            separation >= touching - 2.0 * SKIN - TOUCH,
+            "{order:?}: {separation}"
+        );
+
+        assert!(room.retire_player_body(ids[first]));
+        let remaining = order[1];
+        room.prepare_peer_movement_frame(tick).unwrap();
+        assert!(
+            room.movement_contact_frame()
+                .unwrap()
+                .blockers(ids[remaining].entity, u8::try_from(remaining).unwrap())
+                .is_empty()
+        );
+    }
+}
+
+#[test]
 fn movement_snapshot_honors_base_and_next_pose_contact_participation() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../fixtures/behavior/movement-contact-participation-v1.json"
@@ -268,4 +373,37 @@ fn ally_separation_pushes_same_floor_allies_and_ignores_different_heights() {
 
     let isolated = frame.ally_separation(3, 0, upper_floor_ally);
     assert_eq!(isolated, [0.0, 0.0]);
+}
+
+#[test]
+fn ally_separation_uses_the_horizontal_slice_through_rounded_ends() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/movement-contact-participation-v1.json"
+    ))
+    .unwrap();
+    let input = &fixture["input"];
+    let capsule = &input["ally_capsule"];
+    let base = CapsulePose {
+        position: [0.0; 3],
+        radius: capsule["radius"].as_f64().unwrap() as f32,
+        top: capsule["top"].as_f64().unwrap() as f32,
+    };
+    let offsets: Vec<[f32; 3]> = serde_json::from_value(input["ally_offsets"].clone()).unwrap();
+    let fractions: Vec<f64> =
+        serde_json::from_value(fixture["expected"]["ally_step_fractions"].clone()).unwrap();
+    assert_eq!(offsets.len(), fractions.len());
+    let max_step = 2.8 * crate::game_clock::TICK_PERIOD.as_secs_f64();
+    for (position, fraction) in offsets.into_iter().zip(fractions) {
+        let other = CapsulePose { position, ..base };
+        let frame = MovementContactFrame {
+            actors: BTreeMap::from([(1, (Some(0), base)), (2, (Some(0), other))]),
+        };
+        let push = frame.ally_separation(1, 0, base);
+        assert!(
+            (push[0] + max_step * fraction).abs() < 1e-9,
+            "{position:?} {push:?}"
+        );
+        assert_eq!(push[1], 0.0);
+        assert_eq!(frame.ally_separation(2, 0, other), [-push[0], -push[1]]);
+    }
 }

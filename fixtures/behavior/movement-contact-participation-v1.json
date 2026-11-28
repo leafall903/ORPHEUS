@@ -19,10 +19,18 @@
       "0x02": {"character_collision": 0},
       "0x03": {"character_collision": 1}
     },
-    "modifier_slot": 22
+    "modifier_slot": 22,
+    "ally_capsule": {"radius": 0.625, "top": 1.125},
+    "ally_offsets": [
+      [0.75, 0, 0],
+      [0.75, 1.25, 0],
+      [1.125, 1.25, 0],
+      [0, 1.75, 0]
+    ]
   },
   "expected": {
     "disabled_blockers": 1,
-    "restored_blockers": 2
+    "restored_blockers": 2,
+    "ally_step_fractions": [0.4, 0.2, 0, 0]
   }
 }

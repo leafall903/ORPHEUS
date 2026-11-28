@@ -1010,9 +1010,6 @@ impl Mover {
         let lifted_origin = self.capsule_origin(lifted);
         if self.body.relocate_if_clear(lifted_origin, blockers)? {
             self.pose.position = lifted;
-        } else {
-            self.body.teleport(origin);
-            self.pose.position = feet;
         }
         Ok(())
     }
@@ -2016,7 +2013,7 @@ mod tests {
     }
 
     #[test]
-    fn relocation_shares_deadline_and_marks_only_a_clear_destination() {
+    fn scripted_relocation_and_teleport_require_a_clear_destination() {
         let fixture = swept_fixture();
         let input = &fixture["input"];
         let category = u16::try_from(input["category"].as_u64().unwrap()).unwrap();
@@ -2026,29 +2023,92 @@ mod tests {
             stand_radius: input["stand_radius"].as_f64().unwrap(),
             ..MoverSettings::default()
         };
-        let mut mover = Mover::new(
-            settings,
-            swept_wall_world(input, category),
-            [0.0; 3],
-            0,
-            category,
-        )
-        .unwrap();
         let destination = serde_json::from_value(input["wall_displacement"].clone()).unwrap();
         let blocker = crate::mover_ground::standing_capsule(&settings, destination);
-        let motion = ScriptedMotion::Relocate(Relocation::new(destination).unwrap());
+        let relocation = Relocation::new(destination).unwrap();
         let rays = TriangleIndex::new([]).unwrap();
-        assert!(mover.queue_scripted_motion(2, motion));
-        assert!(!mover.queue_swept_displacement(2, SweptDisplacement::new(destination).unwrap()));
-        for frame in 1..=4 {
-            if frame == 3 {
-                assert!(mover.queue_scripted_motion(frame, motion));
+        for motion in [
+            ScriptedMotion::Relocate(relocation),
+            ScriptedMotion::Teleport(relocation),
+        ] {
+            let mut mover = Mover::new(
+                settings,
+                swept_wall_world(input, category),
+                [0.0; 3],
+                0,
+                category,
+            )
+            .unwrap();
+            assert!(mover.queue_scripted_motion(2, motion));
+            assert!(
+                !mover.queue_swept_displacement(2, SweptDisplacement::new(destination).unwrap())
+            );
+            for frame in 1..=4 {
+                if frame == 3 {
+                    assert!(mover.queue_scripted_motion(frame, motion));
+                }
+                let blockers = if frame < 3 {
+                    std::slice::from_ref(&blocker)
+                } else {
+                    &[]
+                };
+                mover
+                    .step_against(
+                        &rays,
+                        Command {
+                            frame,
+                            ..Command::default()
+                        },
+                        0.016,
+                        blockers,
+                        |_, _| {},
+                    )
+                    .unwrap();
+                assert_eq!(mover.has_pending_script_motion(), frame == 1);
+                assert_eq!(mover.scripted_motion_at(frame), frame == 3);
+                assert_eq!(
+                    mover.pose.position,
+                    if frame < 3 { [0.0; 3] } else { destination }
+                );
             }
-            let blockers = if frame < 3 {
-                std::slice::from_ref(&blocker)
-            } else {
-                &[]
-            };
+        }
+    }
+
+    #[test]
+    fn repeated_hostile_contact_holds_the_boundary_and_allows_a_glance() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/hostile-capsule-glance-v1.json"
+        ))
+        .unwrap();
+        let input = &fixture["held_contact"];
+        let dt = input["step_seconds"].as_f64().unwrap();
+        let tolerance = input["tolerance"].as_f64().unwrap();
+        let actor_feet: [f64; 3] = serde_json::from_value(input["actor_feet"].clone()).unwrap();
+        let speed = input["normal_speed"].as_f64().unwrap();
+        let tangent = input["tangent_speed"].as_f64().unwrap();
+        let head_on = u32::try_from(input["head_on_frames"].as_u64().unwrap()).unwrap();
+        let glance = u32::try_from(input["glance_frames"].as_u64().unwrap()).unwrap();
+        let settings = MoverSettings {
+            gravity_scale: 0.0,
+            decel_air_base: 0.0,
+            decel_air_per_speed: 0.0,
+            ..MoverSettings::default()
+        };
+        let actor = crate::mover_ground::standing_capsule(&settings, actor_feet);
+        let rays = TriangleIndex::new([]).unwrap();
+        let mut mover = Mover::new(
+            settings,
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            [0.0; 3],
+            0,
+            0x18,
+        )
+        .unwrap();
+        let combined_radius = f64::from(mover.contact_capsule().radius + actor.radius);
+        let mut previous = 0.0;
+        for frame in 1..=head_on + glance {
+            let vn = if frame <= head_on { 0.0 } else { tangent };
+            mover.queue_velocity_change(frame, VelocityChange::SetVelocity([vn, 0.0, speed]));
             mover
                 .step_against(
                     &rays,
@@ -2056,18 +2116,32 @@ mod tests {
                         frame,
                         ..Command::default()
                     },
-                    0.016,
-                    blockers,
+                    dt,
+                    &[actor],
                     |_, _| {},
                 )
                 .unwrap();
-            assert_eq!(mover.has_pending_script_motion(), frame == 1);
-            assert_eq!(mover.scripted_motion_at(frame), frame == 3);
-            assert_eq!(
-                mover.pose.position,
-                if frame < 3 { [0.0; 3] } else { destination }
+            let [x, _, z] = mover.pose().position;
+            let distance = (x - actor_feet[0]).hypot(z - actor_feet[2]);
+            assert!(
+                distance >= combined_radius - tolerance,
+                "frame {frame} separation {distance}"
             );
+            if frame <= head_on {
+                assert!(
+                    z >= previous - tolerance,
+                    "frame {frame} moved back {previous} to {z}"
+                );
+            }
+            if frame == head_on {
+                assert!(
+                    distance <= combined_radius + 0.02,
+                    "stopped short: {distance}"
+                );
+            }
+            previous = z;
         }
+        assert!(mover.pose().position[0] > 0.1);
     }
 
     #[test]

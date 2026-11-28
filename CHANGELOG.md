@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Sweep player movement against poses already committed in the same room
+  tick. This keeps opposing bodies separated when both move in one tick.
+- Sweep NPC ally-separation movement against the current hostile blockers.
+  Use the rounded capsule profile to calculate ally overlap across different
+  heights. Synthetic cases cover both movement orders, body retirement,
+  queued NPC separation against a hostile capsule, and rounded cap tangency.
+- Check occupied destinations for both NPC and player teleports. An invalid
+  landing preserves the original position. Verify repeated inward movement
+  stops at the hostile capsule boundary with lateral motion still available.
+
 - Treat unavailable static grapple queries as misses instead of reusing the
   previous hit. Upward scripted pulls that leave walkable support now publish
   takeoff on the first swept pose rather than reseating on the departure floor.
