@@ -13,6 +13,7 @@ pub enum RuleValue {
     Bool(bool),
     Integer(i64),
     Float(f64),
+    Asset(u64),
 }
 
 type RuleValues = BTreeMap<(Option<u64>, u32), RuleValue>;
@@ -77,9 +78,9 @@ impl ModeRulesets {
                 value,
             } in rules
             {
-                let value = scalar(&value).ok_or_else(|| {
+                let value = rule_value(&value).ok_or_else(|| {
                     invalid(format!(
-                        "ruleset {mode:016X}:{id} requires null, a Boolean, a signed integer or a finite float"
+                        "ruleset {mode:016X}:{id} requires null, a Boolean, a signed integer, a finite float or a canonical asset GUID"
                     ))
                 })?;
                 if values.insert((scope, id), value).is_some() {
@@ -149,6 +150,15 @@ fn body_scope<'de, D: Deserializer<'de>>(decoder: D) -> Result<Option<u64>, D::E
 
 fn nonzero_guid(value: &Json) -> Option<u64> {
     asset_guid(value).filter(|&guid| guid != 0)
+}
+
+fn rule_value(value: &RawValue) -> Option<RuleValue> {
+    if value.get().starts_with('"') {
+        let guid = serde_json::from_str(value.get()).ok()?;
+        nonzero_guid(&guid).map(RuleValue::Asset)
+    } else {
+        scalar(value)
+    }
 }
 
 fn scalar(value: &RawValue) -> Option<RuleValue> {

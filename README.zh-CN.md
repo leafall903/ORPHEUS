@@ -67,18 +67,30 @@ return {
 
 ---
 
-## 启动原生服务端（一键整合启动脚本）
+## 准备运行包并启动原生服务端
 
-启动原生服务端只需准备一份来自你本地合法客户端文件的完整 **1.74.0.0.104319** 运行包（严禁向仓库提交游戏客户端、暴雪商业资源或密钥）。从零提取打包时，请务必在生成 `data/game_graphs_174.json.gz` 与打包时附带 `--mode-xml`（`0C5` 模式脚本与变量）、`--target-tags-xml`（`003` 全部 32 英雄/实体目标标签）及 `--mode-rulesets`——仅通过 `--check-runtime` 不会检测图包内部是否缺模式数据或 `target_tags`（缺失会导致选角卡在「准备战斗」）。完整打包命令与自检方式见 [data/README.md](data/README.md)。
+在 Windows 上，只需指向你自己合法持有的 **1.74.0.0.104319** 游戏安装目录，**一条命令即可从零生成并校验完整的靶场运行包**——无需任何额外下载的外部协议表、抓包模板或私钥。脚本会自动从本地客户端离线提取协议 Schema、CASC 资源密钥（`090`）、英雄/地图目录、碰撞缓存、StateScript 图与模型骨骼挂点、规则集，并自动生成 Battle.net RPC 描述集、StateScript 编码表、净室大厅模板和本地 64 字节签名密钥，且每一步都有断点缓存（严禁提交游戏文件或生成的运行包）。环境依赖和进阶选项见[运行包指南](data/README.md)。
 
-使用整合启动脚本可一键完成数据打包（若指定 `-SourceDir`）、编译 `orpheus_server`（含 `inspector` 与 `lua-mods`）、执行 `--check-runtime` 预检、开启 `http://127.0.0.1:3726/` Web 3D 查看器，并将玩家皮肤、战利品箱和设置持久化到 `%LOCALAPPDATA%\ORPHEUS\state`：
+```powershell
+# 1. 从本地守望先锋 1.74.0.0.104319 目录一键构建并校验运行包
+python scripts/runtime.py build "C:\Games\Overwatch"
+
+# 2. （可选）随时复查已有运行包的完整性
+python scripts/runtime.py check --complete
+```
+
+如需复用已有运行包里的额外地图/自定义数据或指定输出目录，可在构建命令后追加 `--inputs <目录>` 或 `--output <目录>`。已有运行包可以在受支持的服务端平台上直接校验，无需安装游戏。
+
+快速核对文件可以运行 `python scripts/runtime.py check --complete --files-only`。完整校验使用 `ORPHEUS_SERVER_BIN` 指定的服务端，未指定时由 Cargo 在首次运行时编译。启动脚本支持 Windows 自带的 PowerShell 5.1 与 PowerShell 7，从游戏中提取碰撞索引时需要 PowerShell 7。
+
+运行包校验通过后，Windows 启动脚本会自动编译带调试器和 Lua Mod 支持的服务端，开启 `http://127.0.0.1:3726/` 上的 3D 查看器，并将玩家存档保存在 `%LOCALAPPDATA%\ORPHEUS\state`：
 
 ```powershell
 # 双击 scripts\PLAY_ORPHEUS.cmd，或在终端运行：
-powershell -ExecutionPolicy Bypass -File scripts\setup_and_play.ps1 -RuntimeDir 'C:\path\to\orpheus-runtime-104319'
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
 
 # 同时加载 ABI v2 工坊 Mod 与 Web 3D 查看器启动：
-powershell -ExecutionPolicy Bypass -File scripts\setup_and_play.ps1 -RuntimeDir 'C:\path\to\orpheus-runtime-104319' -ModScript rust\scripts\mods\dance_party_workshop.lua
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
 ```
 
 ---

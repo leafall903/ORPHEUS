@@ -21,6 +21,7 @@ ORPHEUS builds on community Overwatch 1.74 research, preservation tooling, and o
 ## Tooling & Ecosystem
 
 - **[overtools / OWLib](https://github.com/overtools/OWLib)** (`overwatch/1.74` DataTool/TankLib) & **[TACTLib](https://github.com/overtools/TACTLib)** — CASC/TACT extraction and catalog/voice/collision tooling.
+- The runtime builder reuses ORPHEUS's Python catalog and collision extractors. Its STU exporter follows OWLib's DataTool XML output and adds a typed UUID serializer. OWLib is copyright © 2016–2022 overtools. [Pinned ORPHEUS extractors](https://github.com/leafall903/ORPHEUS/tree/cedec602c41ee14f158ea9fdd9f16d60e4f51f3d/tools) · [DataTool XML exporter](https://github.com/overtools/OWLib/blob/7afe5f52706e7002ed8c2717299cd60846f3fa3a/DataTool/ToolLogic/Extract/Debug/ExtractSTUType.cs) · [Upstream MIT license](https://github.com/overtools/OWLib/blob/7afe5f52706e7002ed8c2717299cd60846f3fa3a/LICENSE)
 - **[Plasmawatch](https://github.com/plasmawatch/login-server)** — Battle.net login-server emulation reference.
 - **[Prometheus](https://github.com/saturn-xvi/prometheus/tree/ad1fea7e6c04c9959c7115cb8ecd9c79c93c1ccb)** — early/beta Overwatch research compared for controller/model/replication structure (remains separate with its own license).
 - **Claudewatch contributors** — Beta 1.0.0.3 leads for hit-confirm cues and entity/announcer voice routing (cross-checked against 104319 data).
