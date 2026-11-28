@@ -874,7 +874,7 @@ impl Mover {
             },
             &mut self.pose.position,
             &mut self.pose.velocity,
-            |radius, top| self.body.try_resize(radius, top),
+            |radius, top| self.body.try_resize_against(radius, top, blockers),
         )?;
         let ground = self.posture.ground();
         let velocity = if let Some(mv) = move_to_velocity {
@@ -1287,6 +1287,79 @@ mod tests {
         assert_eq!(fixture["case_id"], "native-swept-displacement.synthetic.v1");
         assert_eq!(fixture["evidence"], "synthetic-native");
         fixture
+    }
+
+    #[test]
+    fn grounded_crouch_release_waits_for_clearance_from_other_actors() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            stand_height: f64,
+            stand_radius: f64,
+            crouch_height: f64,
+            crouch_radius: f64,
+            floor_lift: f64,
+            blocker_feet: [[f64; 3]; 2],
+        }
+        let case: Case = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/actor-stance-clearance-v1.json"
+        ))
+        .unwrap();
+        let settings = MoverSettings {
+            stand_height: case.stand_height,
+            stand_radius: case.stand_radius,
+            crouch_height: case.crouch_height,
+            crouch_radius: case.crouch_radius,
+            stand_pogo: case.floor_lift,
+            crouch_pogo: case.floor_lift,
+            ..MoverSettings::default()
+        };
+        let ground = TriangleIndex::new([crate::collision_index::SceneTriangle {
+            vertices: [[-10.0, 0.0, -10.0], [0.0, 0.0, 10.0], [10.0, 0.0, -10.0]],
+            mask: 0x18,
+            surface: 0,
+        }])
+        .unwrap();
+        let geometry = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let step = |mover: &mut Mover, frame, buttons, blockers: &[CapsulePose]| {
+            mover
+                .step_against(
+                    &ground,
+                    Command {
+                        frame,
+                        buttons,
+                        ..Command::default()
+                    },
+                    0.016,
+                    blockers,
+                    |_, _| {},
+                )
+                .unwrap();
+        };
+        for feet in case.blocker_feet {
+            let blocker = crate::mover_ground::standing_capsule(&settings, feet);
+            let mut mover = Mover::new(settings, Arc::clone(&geometry), [0.0; 3], 0, 0x18).unwrap();
+            let standing = mover.contact_capsule();
+            step(&mut mover, 1, CROUCH, &[]);
+            assert!(mover.crouched());
+            assert_eq!(mover.posture.ground(), Ground::Standing);
+            let crouched = mover.contact_capsule();
+            let position = mover.pose().position;
+            for frame in 2..=3 {
+                step(&mut mover, frame, 0, &[blocker]);
+                let actual = mover.contact_capsule();
+                assert!(mover.crouched(), "blocker at {feet:?}");
+                assert_eq!((actual.radius, actual.top), (crouched.radius, crouched.top));
+                assert_eq!(mover.pose().position, position);
+                assert_eq!(mover.pose().crouch_frame, None);
+                assert!(!mover.needs_owner_correction_at(frame));
+            }
+            step(&mut mover, 4, 0, &[]);
+            let actual = mover.contact_capsule();
+            assert!(!mover.crouched());
+            assert_eq!((actual.radius, actual.top), (standing.radius, standing.top));
+            assert_eq!(mover.pose().position, position);
+            assert_eq!(mover.pose().crouch_frame, Some(4));
+        }
     }
 
     #[test]

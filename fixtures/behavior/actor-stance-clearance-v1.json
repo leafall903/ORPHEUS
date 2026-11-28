@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "actor-stance-clearance.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "stand_height": 2.0,
+  "stand_radius": 0.5,
+  "crouch_height": 1.1,
+  "crouch_radius": 0.25,
+  "floor_lift": 0.25,
+  "blocker_feet": [[0.0, 1.25, 0.0], [0.85, 0.0, 0.0]]
+}

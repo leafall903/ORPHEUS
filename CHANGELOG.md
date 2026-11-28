@@ -29,6 +29,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   capsule, and separation from an exactly coincident body.
 - Compare squared distances consistently when testing a placement against
   capsules with coincident endpoints.
+- Check hostile capsule clearance before growing a player's stance. Preserve
+  the current footprint until there is room for the requested dimensions.
 
 - Eliminate all seven external private inputs from `scripts/runtime.py build` so a fresh
   Windows machine with only a local 1.74.0.0.104319 Overwatch installation can build and
