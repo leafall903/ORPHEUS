@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "case_id": "owner-ally-separation.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "A synthetic capsule enters an acknowledged teammate on the first of three owner poses while retaining the same room contact frame. Soft separation starts on entry, persists on subsequent poses, and produces an owner correction. Recovered and separately supplied poses use the same result."
+  },
+  "input": {
+    "start_frame": 100,
+    "posed_frames": 3,
+    "capsule_radius": 0.5,
+    "ally_position": [
+      1.25,
+      0,
+      0
+    ],
+    "owner_displacement": [
+      0.625,
+      0,
+      0
+    ],
+    "frame_quanta_us": [
+      16000,
+      7000
+    ]
+  }
+}

@@ -295,7 +295,6 @@ pub struct Mover {
     /// is no scripted motion). Set by `move_body`, consumed by `step`.
     drive_pose_moved: bool,
     actor_contact: bool,
-    pending_ally_separation: [f64; 2],
     ball_roll_speed: Option<f64>,
     last_command: Option<Command>,
     last_input: Option<u32>,
@@ -337,7 +336,6 @@ impl Mover {
             owner_move_result: None,
             drive_pose_moved: false,
             actor_contact: false,
-            pending_ally_separation: [0.0; 2],
             ball_roll_speed: None,
             last_command: None,
             last_input: None,
@@ -447,6 +445,10 @@ impl Mover {
         // Room ticks and input frames can diverge. Use the next frame on the
         // capsule's own clock to include newly started or retired intervals.
         let frame = self.pose.frame.unwrap_or(admitted_at).wrapping_add(1);
+        self.character_collision_at(frame)
+    }
+
+    fn character_collision_at(&self, frame: u32) -> bool {
         self.modifiers.at(frame).character_collision(&self.base)
     }
 
@@ -556,12 +558,6 @@ impl Mover {
         self.scripted_motion_at(frame) || (self.pose.frame == Some(frame) && self.actor_contact)
     }
 
-    pub(crate) fn set_ally_separation(&mut self, delta: [f64; 2]) {
-        if delta[0].is_finite() && delta[1].is_finite() {
-            self.pending_ally_separation = delta;
-        }
-    }
-
     pub(crate) fn set_ball_roll_speed(&mut self, speed: Option<f64>) {
         self.ball_roll_speed = speed.filter(|s| s.is_finite() && *s > 0.0);
     }
@@ -572,14 +568,18 @@ impl Mover {
         delta: [f64; 2],
         blockers: &[CapsulePose],
         dt: f64,
-    ) -> bool {
+    ) {
         if delta == [0.0; 2]
             || !delta[0].is_finite()
             || !delta[1].is_finite()
             || dt <= 0.0
             || !dt.is_finite()
+            || !self
+                .pose
+                .frame
+                .is_some_and(|frame| self.character_collision_at(frame))
         {
-            return false;
+            return;
         }
         let start = self.body.position();
         let mut staged = self.body.fresh_at(start);
@@ -588,20 +588,19 @@ impl Mover {
             dt as f32,
             blockers,
         ) else {
-            return false;
+            return;
         };
         let feet = std::array::from_fn(|axis| {
             self.pose.position[axis] + f64::from(moved.position[axis]) - f64::from(start[axis])
         })
         .map(snap);
         if feet == self.pose.position {
-            return false;
+            return;
         }
         staged.teleport(self.capsule_origin(feet));
         self.body = staged;
         self.pose.position = feet;
         self.actor_contact = true;
-        true
     }
 
     /// Simulate the newest command and any reconstructible poses before it.
@@ -919,12 +918,6 @@ impl Mover {
         // ordinary motion, not scripted motion).
         scripted_motion_changed |= self.drive_pose_moved;
         self.posture.finish_fall(settings.gravity_scale, vertical);
-        let pending_ally = std::mem::take(&mut self.pending_ally_separation);
-        let ally_pushed = if pending_ally != [0.0; 2] {
-            self.apply_ally_separation(pending_ally, blockers, dt)
-        } else {
-            false
-        };
 
         if input.throttles != [0; 2] {
             self.last_input = Some(command.frame);
@@ -946,7 +939,7 @@ impl Mover {
         self.pose.spring_speed = f64::from(self.posture.spring_speed());
         self.pose.fall = self.posture.fall;
         self.scripted_motion_frame = scripted_motion_changed.then_some(command.frame);
-        self.actor_contact = actor_contact || standing_on_actor || ally_pushed;
+        self.actor_contact = actor_contact || standing_on_actor;
         Ok(())
     }
 

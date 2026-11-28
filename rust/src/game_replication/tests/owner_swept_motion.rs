@@ -170,7 +170,145 @@ fn hostile_actor_contact_corrects_ordinary_movement_with_or_without_an_owner_scr
         } else {
             assert!(pose.position[0] > position[0], "{pose:?}");
         }
-        assert_eq!(corrected, scripted || blocked);
+        // Visible allies can still be crossed, but their soft separation is
+        // authoritative movement and needs the same owner correction.
+        assert_eq!(corrected, scripted || delivered);
+    }
+}
+
+#[test]
+fn owner_ally_separation_uses_each_resolved_pose() {
+    use crate::script_init::SweptDisplacement;
+
+    #[derive(serde::Deserialize)]
+    struct Input {
+        start_frame: u32,
+        posed_frames: u32,
+        capsule_radius: f64,
+        ally_position: [f64; 3],
+        owner_displacement: [f64; 3],
+        frame_quanta_us: [u32; 2],
+    }
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/owner-ally-separation-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+    let last = case.start_frame + case.posed_frames;
+    let step = SweptDisplacement::new(case.owner_displacement).unwrap();
+    let card = PlayerCard::default();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &card,
+    };
+    let run = |scripted: bool, delivered: bool, reconstruct: bool, quanta: u32| {
+        let mut scene = PreparedScene::fixture_for_bots(Vec::new());
+        let mut world = WorldDelivery::new(OWNER);
+        world.started = Some(case.start_frame - 1);
+        world.input.processed = world.started;
+        let owner = avatar(1, 1);
+        let ally = avatar(2, 1);
+        let contact_world = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let settings = MoverSettings {
+            gravity_scale: 0.0,
+            stand_radius: case.capsule_radius,
+            ..MoverSettings::default()
+        };
+        let mover =
+            |position| Mover::new(settings, Arc::clone(&contact_world), position, 0, 0x18).unwrap();
+
+        let room = scene.simulation_mut();
+        activate_script_without_movement_projection(&mut world, room, owner, 7, Arc::default());
+        if !scripted {
+            world.cancel_body_script(Some(room));
+        }
+        room.player_body_mut(owner).unwrap().mover = mover([0.0; 3]);
+        room.spawn_player_body(PlayerBodyState::new(
+            ally,
+            OWNER + 0x100,
+            1,
+            0,
+            7,
+            mover(case.ally_position),
+            None,
+            case.start_frame - 1,
+            None,
+        ))
+        .unwrap();
+        room.enable_movement_contacts(false, Arc::default());
+        room.prepare_peer_movement_frame(case.start_frame).unwrap();
+        world.acknowledge(
+            outcome(
+                Arc::new(record(owner.entity, Delivery::CreateBody(owner))),
+                true,
+            ),
+            Duration::ZERO,
+        );
+        remote_contact_delivery(ally, &mut world, delivered);
+        assert_eq!(world.actor_contact_ready(ally.entity), delivered);
+
+        let command = |frame| Command {
+            frame,
+            ..Command::default()
+        };
+        world.queue_commands(case.start_frame, &[command(case.start_frame)]);
+        assert_eq!(
+            world
+                .advance_input(&mut scene, &viewer, quanta, 16)
+                .unwrap(),
+            (1, false)
+        );
+        assert!(
+            scene
+                .simulation_mut()
+                .player_body_mut(owner)
+                .unwrap()
+                .mover
+                .queue_swept_displacement(case.start_frame + 1, step)
+        );
+        if reconstruct {
+            world.queue_commands(last, &[command(last)]);
+            assert_eq!(
+                world
+                    .advance_input(&mut scene, &viewer, quanta, 16)
+                    .unwrap(),
+                (usize::try_from(case.posed_frames).unwrap(), false)
+            );
+        } else {
+            for frame in case.start_frame + 1..=last {
+                world.queue_commands(frame, &[command(frame)]);
+                assert_eq!(
+                    world
+                        .advance_input(&mut scene, &viewer, quanta, 16)
+                        .unwrap(),
+                    (1, false)
+                );
+                if delivered && frame == case.start_frame + 1 {
+                    let pose = scene.simulation().player_body(owner).unwrap().mover.pose();
+                    assert!(pose.position[0] < case.owner_displacement[0], "{pose:?}");
+                }
+            }
+        }
+        let mover = &scene.simulation().player_body(owner).unwrap().mover;
+        let pose = mover.pose();
+        assert_eq!(pose.frame, Some(last));
+        (pose.position[0], mover.needs_owner_correction_at(last))
+    };
+
+    for scripted in [true, false] {
+        for quanta in case.frame_quanta_us {
+            let separated = run(scripted, true, true, quanta);
+            assert_eq!(separated, run(scripted, true, false, quanta));
+            assert!(separated.1, "separation alone needs an owner correction");
+            let ghost = run(scripted, false, true, quanta);
+            assert_eq!(ghost, (case.owner_displacement[0], false));
+            assert!(separated.0 < ghost.0);
+            assert!(case.ally_position[0] - separated.0 < 2.0 * case.capsule_radius);
+        }
     }
 }
 

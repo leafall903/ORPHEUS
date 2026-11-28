@@ -4,6 +4,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Resolve soft player ally separation from the resulting capsule of each
+  simulated input pose before recording its correction. The push scales with
+  the pose duration and works without an attached owner script.
+
 - Sweep player movement against poses already committed in the same room
   tick. This keeps opposing bodies separated when both move in one tick.
 - Sweep NPC ally-separation movement against the current hostile blockers.

@@ -67,6 +67,14 @@ pub(super) enum BotLifetime {
     RetiringEnemy,
 }
 
+fn acknowledged_contact(
+    entity: u32,
+    created: &HashSet<u32>,
+    pending_respawn: &HashSet<u32>,
+) -> bool {
+    created.contains(&entity) && !pending_respawn.contains(&entity)
+}
+
 impl WorldDelivery {
     pub(crate) fn new(owner: u32) -> Self {
         Self {
@@ -181,7 +189,8 @@ impl WorldDelivery {
     }
 
     pub(crate) fn actor_contact_ready(&self, entity: u32) -> bool {
-        self.identity_ready(entity) && !self.pending_respawn_presentation.contains(&entity)
+        self.world_started()
+            && acknowledged_contact(entity, &self.created, &self.pending_respawn_presentation)
     }
 
     pub(super) fn owner_movement_blockers(
@@ -2057,18 +2066,11 @@ impl WorldDelivery {
         let blockers = motion_frame.as_ref().map_or_else(Vec::new, |frame| {
             self.owner_movement_blockers(frame, id.entity, team)
         });
-        let ally_sep = if alive && self.body_script.is_some() {
-            motion_frame.as_ref().map_or([0.0; 2], |frame| {
-                frame.ally_separation_where(
-                    id.entity,
-                    team,
-                    state.mover.contact_capsule(),
-                    |entity| self.actor_contact_ready(entity),
-                )
-            })
-        } else {
-            [0.0; 2]
-        };
+        let world_started = self.world_started();
+        let created = &self.created;
+        let pending_respawn = &self.pending_respawn_presentation;
+        let can_contact =
+            |entity| world_started && acknowledged_contact(entity, created, pending_respawn);
         let previously_processed = self.input.processed;
         let script = &mut self.body_script;
         let detached_motion = &mut self.detached_motion;
@@ -2081,9 +2083,6 @@ impl WorldDelivery {
             hitscan,
             ..
         } = state;
-        if ally_sep != [0.0; 2] {
-            mover.set_ally_separation(ally_sep);
-        }
         let mut buffers = StepBuffers {
             frame: body_frame,
             fields,
@@ -2113,15 +2112,28 @@ impl WorldDelivery {
             }
         }
         let mut posed_buttons: Vec<u32> = Vec::new();
+        let dt = f64::from(frame_us) / 1_000_000.0;
         let stepped = mover.step_pending(
             rays,
             &mut pending.poses,
-            f64::from(frame_us) / 1_000_000.0,
+            dt,
             budget - used,
             || &blockers,
             |mover, command| {
                 if alive {
                     posed_buttons.push(command.buttons);
+                    if let Some(frame) = &motion_frame {
+                        // Use the resulting capsule on every posed frame, before
+                        // saving it for owner correction or running body scripts.
+                        let separation = frame.ally_separation_where(
+                            id.entity,
+                            team,
+                            mover.contact_capsule(),
+                            dt,
+                            can_contact,
+                        );
+                        mover.apply_ally_separation(separation, &blockers, dt);
+                    }
                 }
                 if script.is_none()
                     && frame_us != 0
