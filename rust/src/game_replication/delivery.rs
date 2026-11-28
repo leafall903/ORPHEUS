@@ -1,3 +1,5 @@
+mod control;
+
 use super::{body::*, *};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -23,6 +25,9 @@ pub(super) enum Delivery {
     Health {
         revision: u64,
     },
+    PlayerSeat {
+        revision: u64,
+    },
     BotDestroy,
     BotControllerCreate,
     BotPossession {
@@ -30,6 +35,7 @@ pub(super) enum Delivery {
     },
     RemotePlayerCreate(BodyId),
     RemotePlayerDestroy(BodyId),
+    ParticipantDestroy,
     CreateBody(BodyId),
     Possession(BodyId),
     DestroyBody(BodyId),
@@ -42,6 +48,12 @@ pub(super) enum Delivery {
     },
     SceneScript {
         last: u32,
+    },
+    ObjectiveScript {
+        last: u32,
+    },
+    ObjectivePlacement {
+        appearing: bool,
     },
     ObservedProjectile {
         id: u64,
@@ -97,7 +109,22 @@ impl WorldDelivery {
             started: None,
             presentation_due: false,
             controller: Stream::new(owner),
+            controller_pending: None,
+            controller_skins: false,
             mode: Stream::new(GAME_MODE_ENTITY),
+            custom_mode_view: None,
+            payload_mode_view: None,
+            objective_views: BTreeMap::new(),
+            objective_placements: BTreeMap::new(),
+            payload_pose: None,
+            payload_cart_phase: None,
+            payload_cart_finish_music: false,
+            payload_progress_bound: false,
+            payload_viewer_team: None,
+            payload_refresh_rows: false,
+            payload_audio: None,
+            payload_cues: Vec::new(),
+            control_body_round: None,
             countdown: None,
             encounter_post_match_queued: false,
             encounter_screens: None,
@@ -107,6 +134,11 @@ impl WorldDelivery {
             encounter_result_queued: false,
             encounter_outcome_queued: false,
             select_open: true,
+            viewer_team: 0,
+            assembly_choice: None,
+            assembly_confirmed: false,
+            refresh_selection: false,
+            team_updates: HashMap::new(),
             body: None,
             bound: None,
             generation: 0,
@@ -143,7 +175,28 @@ impl WorldDelivery {
         self.remote_players.clear();
         self.health_updates.clear();
         self.started = None;
+        self.controller = Stream::new(self.owner);
+        self.controller_pending = None;
+        self.controller_skins = false;
+        self.select_open = true;
+        self.assembly_choice = None;
+        self.assembly_confirmed = false;
+        self.refresh_selection = false;
+        self.team_updates.clear();
         self.presentation_due = false;
+        self.custom_mode_view = None;
+        self.payload_mode_view = None;
+        self.objective_views.clear();
+        self.objective_placements.clear();
+        self.payload_pose = None;
+        self.payload_cart_phase = None;
+        self.payload_cart_finish_music = false;
+        self.payload_progress_bound = false;
+        self.payload_viewer_team = None;
+        self.payload_refresh_rows = false;
+        self.payload_audio = None;
+        self.payload_cues.clear();
+        self.control_body_round = None;
         self.countdown = None;
         self.encounter_post_match_queued = false;
         self.encounter_screens = None;
@@ -231,6 +284,81 @@ impl WorldDelivery {
         self.mode.delivered() != 0
     }
 
+    pub(crate) fn change_viewer_team(&mut self, team: u8, simulation: &mut RoomSimulation) {
+        if self.viewer_team == team {
+            return;
+        }
+        self.viewer_team = team;
+        self.select_open = team != crate::room_primitives::SPECTATOR_TEAM;
+        self.assembly_choice = None;
+        self.assembly_confirmed = false;
+        self.refresh_selection = true;
+        self.input.work.clear();
+        self.cancel_body_script(Some(simulation));
+        if let Some(body) = self.body.take() {
+            simulation.retire_player_body(body.id);
+            self.retire_body(body.id);
+        }
+        self.bound = None;
+        self.remove_stale();
+    }
+
+    pub(crate) fn queue_participant(&mut self, update: EntityUpdate) {
+        self.push(Record::baseline(update));
+    }
+
+    pub(crate) fn retire_participant(&mut self, entity: u32) {
+        if !self.world_started() {
+            return;
+        }
+        self.team_updates.remove(&entity);
+        self.remove_stale();
+        self.push(Record {
+            update: EntityUpdate {
+                entity,
+                operation: Some(Operation::Destroy),
+                ..Default::default()
+            },
+            delivery: Delivery::ParticipantDestroy,
+        });
+    }
+
+    pub(crate) fn queue_player_seat(&mut self, mut update: EntityUpdate) {
+        let entity = update.entity;
+        if !self.world_started() {
+            return;
+        }
+        let Some(Operation::Update(components)) = &mut update.operation else {
+            return;
+        };
+        let mut clears_possession = components.iter().any(|component| component.index == 44);
+        if !clears_possession
+            && self
+                .team_updates
+                .get(&entity)
+                .is_some_and(|&(_, pending)| pending)
+        {
+            components.extend(crate::match_scene::Possession::CLEARED.components());
+            clears_possession = true;
+        }
+        self.health_revision = self.health_revision.wrapping_add(1);
+        let revision = self.health_revision;
+        self.team_updates
+            .insert(entity, (revision, clears_possession));
+        self.remove_stale();
+        self.push(Record {
+            update,
+            delivery: Delivery::PlayerSeat { revision },
+        });
+    }
+
+    pub(crate) fn take_payload_cues(&mut self) -> Vec<crate::room_primitives::VoiceCue> {
+        if self.mode.data_in_flight() {
+            return Vec::new();
+        }
+        std::mem::take(&mut self.payload_cues)
+    }
+
     pub(crate) fn health_pending(&self, entity: u32) -> bool {
         self.health_updates.contains_key(&entity)
     }
@@ -251,7 +379,18 @@ impl WorldDelivery {
             body.id.entity == entity
                 && self.bodies.get(&entity) == Some(&(body.id.generation, Lifetime::Live))
         });
-        if !is_owner_or_mode && !live_bot && !live_remote && !live_body {
+        let placed_movement = entity & crate::room_primitives::MAP_ENTITY_BIT != 0
+            && update.operation.is_none()
+            && update.chunk.is_none()
+            && update.movement.is_some()
+            && self.identity_ready(entity);
+        if !is_owner_or_mode
+            && !live_bot
+            && !live_remote
+            && !live_body
+            && !placed_movement
+            && !self.objective_views.contains_key(&entity)
+        {
             return;
         }
         self.health_revision = self.health_revision.wrapping_add(1);
@@ -372,7 +511,7 @@ impl WorldDelivery {
     fn current(&self, record: &Record) -> bool {
         let entity = record.update.entity;
         match record.delivery {
-            Delivery::Baseline => true,
+            Delivery::Baseline | Delivery::ParticipantDestroy => true,
             Delivery::Script {
                 last,
                 close: false,
@@ -425,7 +564,19 @@ impl WorldDelivery {
                         stream.pending().any(|(pending, _, _)| pending == last)
                     })
             }
+            Delivery::ObjectiveScript { last } => {
+                self.objective_views.get(&entity).is_some_and(|view| {
+                    view.stream.latest_data() == last && view.stream.delivered() < last
+                })
+            }
+            Delivery::ObjectivePlacement { appearing } => {
+                self.objective_placements.get(&entity) == Some(&appearing)
+            }
             Delivery::Health { revision } => self.health_updates.get(&entity) == Some(&revision),
+            Delivery::PlayerSeat { revision } => self
+                .team_updates
+                .get(&entity)
+                .is_some_and(|&(pending, _)| pending == revision),
             Delivery::ObservedProjectile { id, step } => {
                 self.observed_projectiles.current(id, step)
                     && (step != super::observed_projectiles::ProjectileDelivery::Launch
@@ -602,6 +753,9 @@ impl WorldDelivery {
                             self.created.insert(record.update.entity);
                         }
                     }
+                    (true, Delivery::ParticipantDestroy) => {
+                        self.created.remove(&record.update.entity);
+                    }
                     (true, Delivery::BotCreate { .. }) => {
                         self.created.insert(record.update.entity);
                         if let Some(stream) = self.scene_views.get_mut(&record.update.entity) {
@@ -647,6 +801,9 @@ impl WorldDelivery {
                     }
                     (true, Delivery::Health { .. }) => {
                         self.health_updates.remove(&record.update.entity);
+                    }
+                    (true, Delivery::PlayerSeat { .. }) => {
+                        self.team_updates.remove(&record.update.entity);
                     }
                     (true, Delivery::ObservedProjectile { id, step }) => {
                         self.observed_projectiles.arrived(id, step);
@@ -695,8 +852,25 @@ impl WorldDelivery {
                     (true, Delivery::BioticDestroy) => {
                         self.biotic_views.remove(&record.update.entity);
                     }
+                    (true, Delivery::ObjectiveScript { last }) => {
+                        if let Some(view) = self.objective_views.get_mut(&record.update.entity) {
+                            view.stream.arrived(last);
+                        }
+                    }
+                    (true, Delivery::ObjectivePlacement { appearing }) => {
+                        let entity = record.update.entity;
+                        self.objective_placements.remove(&entity);
+                        if appearing {
+                            self.created.insert(entity);
+                        } else {
+                            self.created.remove(&entity);
+                            self.objective_views.remove(&entity);
+                        }
+                    }
                     (true, Delivery::Script { last, .. }) if record.update.entity == self.owner => {
-                        self.controller.arrived(last);
+                        if self.controller.arrived(last) && self.controller_pending.is_some() {
+                            self.presentation_due = true;
+                        }
                     }
                     (true, Delivery::Script { last, .. }) => {
                         self.mode.arrived(last);
@@ -770,6 +944,11 @@ impl WorldDelivery {
                     return None;
                 }
                 match record.delivery {
+                    Delivery::ParticipantDestroy
+                        if !self.created.contains(&record.update.entity) =>
+                    {
+                        return None;
+                    }
                     Delivery::SceneScript { last }
                         if !self
                             .scene_views
@@ -816,6 +995,12 @@ impl WorldDelivery {
                                         && script.projected_health_revision != Some(revision)
                                 })) =>
                     {
+                        return None;
+                    }
+                    Delivery::PlayerSeat { .. } if !self.identity_ready(record.update.entity) => {
+                        return None;
+                    }
+                    Delivery::DestroyBody(_) if self.team_updates.contains_key(&self.owner) => {
                         return None;
                     }
                     Delivery::CreateBody(id) if Some(id) == body => created = true,
@@ -1209,6 +1394,8 @@ impl WorldDelivery {
         tick: u32,
     ) -> io::Result<()> {
         let records = scene.initial_world(viewer)?;
+        self.viewer_team = viewer.team;
+        self.select_open = viewer.team != crate::room_primitives::SPECTATOR_TEAM;
         self.gate = scene
             .simulation()
             .junkenstein_gate()
@@ -1252,16 +1439,747 @@ impl WorldDelivery {
     pub(crate) fn present(&mut self, scene: &PreparedScene, tick: u32) -> io::Result<()> {
         if self.controller.latest_data() == 0
             && self.created.contains(&self.owner)
+            && !self.team_updates.contains_key(&self.owner)
             && (!scene.map().is_junkenstein() || self.mode_ready())
         {
-            self.queue_controller(scene, tick, true, None)?;
+            self.queue_controller(scene, tick, self.select_open, self.assembly_choice)?;
+            self.refresh_selection = false;
         }
-        if self.mode.latest_data() == 0 && self.created.contains(&GAME_MODE_ENTITY) {
+        if !self.controller.data_in_flight() && !self.team_updates.contains_key(&self.owner) {
+            if let Some(frame) = self.controller_pending {
+                let command_frame = self.command_ack(tick);
+                if let Some(record) = Self::controller_chunk(
+                    &mut self.controller,
+                    scene,
+                    command_frame,
+                    frame,
+                    self.controller_skins,
+                )? {
+                    self.controller_pending = None;
+                    self.controller_skins = frame.skins;
+                    self.push(record);
+                }
+            }
+        }
+        if self.mode.latest_data() == 0
+            && self.created.contains(&GAME_MODE_ENTITY)
+            && !scene.has_objective_presenter()
+        {
             let chunk = self.mode.full(scene.mode_ui()).map_err(invalid)?;
             self.push(Record::script(chunk, false));
+            self.custom_mode_view = scene.custom_mode_view();
         }
         self.presentation_due = self.controller.latest_data() == 0 || self.mode.latest_data() == 0;
         Ok(())
+    }
+
+    pub(crate) fn queue_custom_mode_presentation(
+        &mut self,
+        scene: &PreparedScene,
+        tick: u32,
+        team: u8,
+        now: Duration,
+    ) -> io::Result<()> {
+        if self.team_updates.contains_key(&self.owner) {
+            return Ok(());
+        }
+        if self.refresh_selection && self.created.contains(&self.owner) {
+            self.queue_controller(scene, tick, self.select_open, None)?;
+            self.refresh_selection = false;
+        }
+        if let Some((graphs, codecs)) = scene.payload_presentation() {
+            return self.queue_payload_presentation(scene, tick, team, now, graphs, codecs);
+        }
+        if let Some((graphs, codecs)) = scene.objective_presentation() {
+            if scene.control_round().is_some() {
+                return self.queue_control_presentation(scene, tick, team, now, graphs, codecs);
+            }
+            self.queue_capture_presentation(scene, tick, team, now, graphs, codecs)?;
+            return Ok(());
+        }
+        let (Some(previous), Some(current)) = (self.custom_mode_view, scene.custom_mode_view())
+        else {
+            return Ok(());
+        };
+        if previous == current || self.mode.data_in_flight() {
+            return Ok(());
+        }
+        let phase_changed = previous.0 != current.0;
+        let chunk = if phase_changed {
+            self.mode.full(scene.mode_ui()).map_err(invalid)?
+        } else {
+            self.mode
+                .reliable_delta(&custom_countdown_delta(current.1)?)
+                .map_err(invalid)?
+        };
+        self.push(Record::script(chunk, false));
+        self.custom_mode_view = Some(current);
+        self.update_assembly_controller(scene, tick, team, Some(previous.0), current.0)
+    }
+
+    fn update_assembly_controller(
+        &mut self,
+        scene: &PreparedScene,
+        tick: u32,
+        team: u8,
+        previous: Option<MatchPhase>,
+        phase: MatchPhase,
+    ) -> io::Result<()> {
+        let phase_changed = previous != Some(phase);
+        if phase_changed
+            && team < 2
+            && scene.has_objective_presenter()
+            && self.controller.latest_data() != 0
+        {
+            let hero = self.assembly_choice.or(self.body.map(|body| body.hero));
+            if phase == MatchPhase::Assemble {
+                self.queue_controller(scene, tick, true, hero)?;
+            } else if previous == Some(MatchPhase::Assemble) {
+                self.assembly_confirmed = false;
+                let awaiting_body = self.body.is_none_or(|body| hero != Some(body.hero));
+                self.queue_controller(scene, tick, awaiting_body, hero)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn queue_objective(
+        &mut self,
+        encoder: &crate::script_snapshot_wire::SnapshotEncoder<'_>,
+        snapshot: ProjectedSnapshot,
+        initial_pose: Option<crate::world::Movement>,
+    ) -> io::Result<bool> {
+        let entity = snapshot.entity();
+        if !self.identity_ready(entity) {
+            return Ok(false);
+        }
+        let chunk = if let Some(view) = self.objective_views.get_mut(&entity) {
+            if view.stream.data_in_flight() {
+                return Ok(false);
+            }
+            let Some(frame) = encoder
+                .mounted_delta(Some(&view.snapshot), &snapshot)
+                .map_err(invalid)?
+            else {
+                return Ok(false);
+            };
+            let chunk = view.stream.reliable_delta(&frame).map_err(invalid)?;
+            view.snapshot = snapshot;
+            chunk
+        } else {
+            let mut stream = Stream::new(entity);
+            let mut chunk = stream
+                .full(&encoder.full(&snapshot).map_err(invalid)?)
+                .map_err(invalid)?;
+            chunk.update.movement = initial_pose;
+            self.objective_views.insert(
+                entity,
+                ObjectiveView {
+                    stream,
+                    snapshot,
+                    door_state: None,
+                    capture_state: None,
+                },
+            );
+            chunk
+        };
+        self.push(Record {
+            update: chunk.update,
+            delivery: Delivery::ObjectiveScript { last: chunk.last },
+        });
+        Ok(true)
+    }
+
+    fn queue_objective_rooms(
+        &mut self,
+        encoder: &crate::script_snapshot_wire::SnapshotEncoder<'_>,
+        entries: &[crate::room_primitives::BarrierEntry],
+        now: f64,
+        team: u8,
+        door_state: impl Fn(
+            &crate::room_primitives::BarrierEntry,
+            Option<&crate::room_primitives::DoorState>,
+        ) -> crate::room_primitives::DoorState,
+        room_visual: impl Fn(&crate::room_primitives::BarrierEntry) -> bool,
+    ) -> io::Result<()> {
+        use crate::{pvp_mode::presentation, room_primitives::BarrierKind};
+        let graphs = encoder.graphs;
+        for entry in entries {
+            if matches!(
+                entry.kind,
+                BarrierKind::Door | BarrierKind::CheckpointGate | BarrierKind::GateDebris
+            ) {
+                let previous = self
+                    .objective_views
+                    .get(&entry.entity)
+                    .and_then(|view| view.door_state.as_ref());
+                let state = door_state(entry, previous);
+                if previous == Some(&state) {
+                    continue;
+                }
+                let seen = previous.is_some();
+                let snapshot = presentation::door(graphs, entry, &state, now)?;
+                let pose = entry.rotation.filter(|_| !seen).map(|rotation| {
+                    let [x, y, z] = crate::room_primitives::rotate_vec(rotation, [0.0, 0.0, 1.0]);
+                    let units = 65536.0 / std::f64::consts::TAU;
+                    crate::world::Movement {
+                        position: entry.position,
+                        yaw: i32::from((x.atan2(z) * units).round_ties_even() as i32 as i16),
+                        body_pitch: ((-y).atan2(x.hypot(z)) * units).round_ties_even() as i32,
+                        ..Default::default()
+                    }
+                });
+                if self.queue_objective(encoder, snapshot, pose)? {
+                    self.objective_views
+                        .get_mut(&entry.entity)
+                        .expect("queued objective view")
+                        .door_state = Some(state);
+                }
+            } else if entry.kind.is_room_visual() {
+                let visible = room_visual(entry);
+                if self.queue_objective_placement(entry.placeable, visible) && visible {
+                    self.queue_objective(
+                        encoder,
+                        presentation::room_visual(graphs, entry, team)?,
+                        None,
+                    )?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    // True once the viewer has confirmed the desired placement lifetime.
+    fn queue_objective_placement(&mut self, placeable: u32, visible: bool) -> bool {
+        let entity = crate::room_primitives::MAP_ENTITY_BIT | placeable;
+        if self.objective_placements.contains_key(&entity) {
+            return false;
+        }
+        if visible == self.identity_ready(entity) {
+            return true;
+        }
+        if self
+            .objective_views
+            .get(&entity)
+            .is_some_and(|view| view.stream.data_in_flight())
+        {
+            return false;
+        }
+        let operation = if visible {
+            Operation::Placeable(placeable)
+        } else {
+            Operation::Destroy
+        };
+        self.objective_placements.insert(entity, visible);
+        self.push(Record {
+            update: EntityUpdate {
+                entity,
+                operation: Some(operation),
+                ..Default::default()
+            },
+            delivery: Delivery::ObjectivePlacement { appearing: visible },
+        });
+        false
+    }
+
+    fn queue_payload_presentation(
+        &mut self,
+        scene: &PreparedScene,
+        tick: u32,
+        team: u8,
+        now: Duration,
+        graphs: &crate::script_graph::GraphStore,
+        codecs: &crate::script_codecs::CodecTable,
+    ) -> io::Result<()> {
+        use crate::{
+            pvp_mode::{
+                AudioTimeline, ModeActionSnapshot, hud_clock_seconds, match_speech, mode_action,
+                presentation,
+            },
+            room_primitives::MAP_ENTITY_BIT,
+        };
+
+        let Some(round) = scene.payload_round() else {
+            return Ok(());
+        };
+        let Some((phase, seconds)) = scene.custom_mode_view() else {
+            return Ok(());
+        };
+        let Some(cart) = round
+            .payload_placeable
+            .map(|placeable| MAP_ENTITY_BIT | placeable)
+        else {
+            return Ok(());
+        };
+        if self.identity_ready(cart) {
+            if let Some((_, update)) = scene
+                .simulation()
+                .pvp_objective()
+                .and_then(|pvp| pvp.payload_entity_update())
+            {
+                if let Some(pose) = update.movement {
+                    let changed = self.payload_pose.is_none_or(|previous| {
+                        let [x, y, z] = std::array::from_fn(|axis| {
+                            pose.position[axis] - previous.position[axis]
+                        });
+                        x.hypot(y).hypot(z) >= 0.01
+                            || pose.yaw != previous.yaw
+                            || pose.body_pitch != previous.body_pitch
+                            || (pose.velocity == [0.0; 3]) != (previous.velocity == [0.0; 3])
+                    });
+                    if changed {
+                        self.queue_health(update);
+                        self.payload_pose = Some(pose);
+                    }
+                }
+            }
+        }
+        let encoder = crate::script_snapshot_wire::SnapshotEncoder::new(graphs, codecs);
+        let mut checkpoints_ready = true;
+        for checkpoint in presentation::checkpoints(round) {
+            let entity = checkpoint.entity();
+            if let Some(view) = self.objective_views.get(&entity) {
+                checkpoints_ready &= view.stream.delivered() != 0;
+            } else {
+                self.queue_objective(&encoder, checkpoint, None)?;
+                checkpoints_ready = false;
+            }
+        }
+        if scene.capture_round().is_some() {
+            if !checkpoints_ready || !self.identity_ready(cart) {
+                return Ok(());
+            }
+            if !self.queue_capture_presentation(scene, tick, team, now, graphs, codecs)? {
+                return Ok(());
+            }
+        }
+        let now = now.as_secs_f64();
+        let stage = round.room_stage();
+        let handoff = round.stage_offset != 0
+            && self
+                .payload_audio
+                .is_some_and(|old| old.stage < round.stage_offset);
+        let team_changed = self
+            .payload_viewer_team
+            .replace(team)
+            .is_some_and(|old| old != team);
+        if team_changed && team < 2 && phase == MatchPhase::Active && round.stage > 0 {
+            self.payload_refresh_rows = true;
+        }
+        let cart_confirmed = self
+            .objective_views
+            .get(&cart)
+            .is_some_and(|view| !view.stream.data_in_flight());
+        let cart_phase_confirmed = cart_confirmed && self.payload_cart_phase == Some(round.phase);
+        let finish_music_confirmed = cart_confirmed && self.payload_cart_finish_music;
+        if self.mode_ready() {
+            self.queue_objective_rooms(
+                &encoder,
+                &round.barriers.entries,
+                now,
+                team,
+                |entry, previous| round.door_state(entry.entity, now, previous),
+                |entry| round.room_visual_visible(entry, team),
+            )?;
+            let refresh =
+                self.payload_refresh_rows && cart_confirmed && phase == MatchPhase::Active;
+            let previous = self.objective_views.get(&cart).map(|view| &view.snapshot);
+            if self.queue_objective(
+                &encoder,
+                presentation::cart(graphs, round, refresh, now, previous)?,
+                None,
+            )? {
+                self.payload_cart_phase = Some(round.phase);
+                self.payload_cart_finish_music = round.near_finish();
+                self.payload_refresh_rows &= !refresh;
+            }
+        }
+        if !checkpoints_ready
+            || !self.identity_ready(cart)
+            || !self.identity_ready(GAME_MODE_ENTITY)
+            || self.mode.data_in_flight()
+        {
+            return Ok(());
+        }
+        let previous_phase = self.custom_mode_view.map(|view| view.0);
+        if previous_phase.is_some()
+            && (previous_phase != Some(phase) || handoff)
+            && matches!(phase, MatchPhase::Active | MatchPhase::Complete)
+            && !cart_phase_confirmed
+        {
+            return Ok(());
+        }
+        if phase == MatchPhase::Active
+            && previous_phase == Some(phase)
+            && !handoff
+            && cart_phase_confirmed
+            && !self.payload_progress_bound
+        {
+            let frame = presentation::progress_binding(
+                graphs,
+                scene.map().mode_guid,
+                false,
+                tick,
+                self.mode.latest_data() + 1,
+            )?;
+            let chunk = self.mode.reliable_delta(&frame).map_err(invalid)?;
+            self.push(Record::script(chunk, false));
+            self.payload_progress_bound = true;
+            return Ok(());
+        }
+        let remaining = if phase == MatchPhase::Active || phase == MatchPhase::Setup {
+            hud_clock_seconds(round.deadline - now)
+        } else {
+            f64::from(seconds)
+        };
+        let audio = AudioTimeline {
+            phase,
+            seconds: remaining.ceil() as i64,
+            stage,
+            overtime: round.overtime,
+            winner: round.winner,
+            near_finish: round.near_finish()
+                && (finish_music_confirmed
+                    || self.payload_audio.is_some_and(|old| old.near_finish)),
+            control_wins: None,
+            round_winner: None,
+        };
+        let mut snapshot =
+            presentation::mode(graphs, scene.map(), round, phase, seconds, now, team)?;
+        let mut actions = Vec::new();
+        if let Some(old) = self.payload_audio {
+            let before = ModeActionSnapshot {
+                phase: old.phase,
+                seconds: old.seconds as f64,
+                stage: old.stage,
+                overtime: old.overtime,
+            };
+            let current = ModeActionSnapshot {
+                phase,
+                seconds: remaining,
+                stage,
+                overtime: round.overtime,
+            };
+            if !handoff && phase == MatchPhase::Active && old.phase == phase && stage > old.stage {
+                actions.push(presentation::checkpoint_sound(graphs, &mut snapshot, team)?);
+            }
+            if let Some(position) = mode_action(before, current) {
+                actions.push((1, position));
+            }
+        }
+        let chunk = if let Some(previous) = &self.payload_mode_view {
+            let Some(frame) = encoder
+                .mounted_delta_with_actions(
+                    Some(previous),
+                    &snapshot,
+                    self.mode.latest_data() + 1,
+                    &actions,
+                )
+                .map_err(invalid)?
+            else {
+                self.payload_cues.extend(match_speech(
+                    self.payload_audio.as_ref(),
+                    &audio,
+                    scene.map().mode_guid,
+                    team,
+                    false,
+                ));
+                self.payload_audio = Some(audio);
+                return Ok(());
+            };
+            self.mode.reliable_delta(&frame).map_err(invalid)?
+        } else {
+            self.mode
+                .full(&encoder.full(&snapshot).map_err(invalid)?)
+                .map_err(invalid)?
+        };
+        self.push(Record::script(chunk, false));
+        self.payload_cues.extend(match_speech(
+            self.payload_audio.as_ref(),
+            &audio,
+            scene.map().mode_guid,
+            team,
+            false,
+        ));
+        self.payload_audio = Some(audio);
+        self.payload_mode_view = Some(snapshot);
+        if handoff {
+            self.payload_progress_bound = false;
+        }
+        self.custom_mode_view = Some((phase, seconds));
+        self.update_assembly_controller(scene, tick, team, previous_phase, phase)
+    }
+
+    fn queue_capture_presentation(
+        &mut self,
+        scene: &PreparedScene,
+        tick: u32,
+        team: u8,
+        now: Duration,
+        graphs: &crate::script_graph::GraphStore,
+        codecs: &crate::script_codecs::CodecTable,
+    ) -> io::Result<bool> {
+        use crate::{
+            pvp_mode::{
+                AudioTimeline, FIRST_ATTACKING_TEAM, ModeActionSnapshot, hud_clock_seconds,
+                match_speech, mode_action,
+                presentation::{self, CapturePresentation},
+                spawn_door_open, stage_room_visual,
+            },
+            room_primitives::MAP_ENTITY_BIT,
+        };
+
+        let Some(round) = scene.capture_round() else {
+            return Ok(false);
+        };
+        let Some((phase, seconds)) = scene.custom_mode_view() else {
+            return Ok(false);
+        };
+        let payload = scene.payload_round();
+        let handoff = payload.is_some_and(|route| route.unlocked_objective());
+        if let Some(route) = payload.filter(|route| route.unlocked_objective()) {
+            if self
+                .payload_audio
+                .is_some_and(|old| old.stage >= route.stage_offset)
+            {
+                return Ok(true);
+            }
+        }
+        let encoder = crate::script_snapshot_wire::SnapshotEncoder::new(graphs, codecs);
+        let now = now.as_secs_f64();
+        let stage = round.stage;
+        let mode_id = scene.map().mode_guid;
+        let mut descriptors_ready = true;
+        for index in 0..round.points.len() {
+            let snapshot = presentation::capture_descriptor(round, index);
+            let entity = snapshot.entity();
+            if let Some(view) = self.objective_views.get(&entity) {
+                descriptors_ready &= view.stream.delivered() != 0;
+            } else {
+                self.queue_objective(&encoder, snapshot, None)?;
+                descriptors_ready = false;
+            }
+        }
+        if !descriptors_ready || !self.identity_ready(GAME_MODE_ENTITY) {
+            return Ok(false);
+        }
+
+        // The mode creates its HUD containers locally. Install point presenters after that frame.
+        let previous_phase = self.custom_mode_view.map(|view| view.0);
+        if self.mode_ready() {
+            if let Some(route) = payload {
+                self.queue_objective_rooms(
+                    &encoder,
+                    &route.barriers.entries,
+                    now,
+                    team,
+                    |entry, previous| route.door_state(entry.entity, now, previous),
+                    |entry| route.room_visual_visible(entry, team),
+                )?;
+                if !handoff {
+                    self.queue_objective(
+                        &encoder,
+                        presentation::cart(graphs, route, false, now, None)?,
+                        None,
+                    )?;
+                }
+            } else {
+                self.queue_objective_rooms(
+                    &encoder,
+                    &round.barriers.entries,
+                    now,
+                    team,
+                    |entry, previous| {
+                        let open = spawn_door_open(entry, phase, stage);
+                        round
+                            .barriers
+                            .door_state(entry.entity, now, stage, open, previous)
+                    },
+                    |entry| stage_room_visual(phase, stage, entry, team),
+                )?;
+            }
+            let mut old_waypoint_retired = true;
+            for (index, point) in round
+                .points
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| *index != stage)
+            {
+                let view = &self.objective_views[&(MAP_ENTITY_BIT | point.spec.placeable)];
+                old_waypoint_retired &= !view.stream.data_in_flight()
+                    && view.capture_state.is_none_or(|state| !state.waypoint);
+                if let Some(outline) = round.outlines[index] {
+                    old_waypoint_retired &= self.queue_objective_placement(outline, false);
+                }
+            }
+            let mut points_ready = true;
+            for (index, point) in round.points.iter().enumerate() {
+                let entity = MAP_ENTITY_BIT | point.spec.placeable;
+                let desired = CapturePresentation::of(round, index, phase);
+                let view = &self.objective_views[&entity];
+                let acknowledged =
+                    view.capture_state == Some(desired) && !view.stream.data_in_flight();
+                let newly_visible =
+                    desired.waypoint && view.capture_state.is_none_or(|state| !state.waypoint);
+                points_ready &= acknowledged;
+                if let Some(outline) = round.outlines[index] {
+                    let visible = desired.waypoint && acknowledged && old_waypoint_retired;
+                    let keep = desired.waypoint && self.identity_ready(MAP_ENTITY_BIT | outline);
+                    let settled = self.queue_objective_placement(outline, visible || keep);
+                    if handoff {
+                        points_ready &= settled;
+                    }
+                    if settled && visible {
+                        self.queue_objective(
+                            &encoder,
+                            presentation::capture_outline(
+                                graphs,
+                                MAP_ENTITY_BIT | outline,
+                                !desired.active,
+                            )?,
+                            None,
+                        )?;
+                    }
+                }
+                if (!newly_visible || old_waypoint_retired)
+                    && self.queue_objective(
+                        &encoder,
+                        presentation::capture_point(graphs, round, index, phase)?,
+                        None,
+                    )?
+                {
+                    self.objective_views
+                        .get_mut(&entity)
+                        .expect("queued capture presenter")
+                        .capture_state = Some(desired);
+                }
+            }
+            let transition = self
+                .payload_audio
+                .is_some_and(|old| old.phase != phase || old.stage != stage);
+            if (transition || handoff) && !points_ready {
+                return Ok(false);
+            }
+            if !handoff
+                && points_ready
+                && matches!(phase, MatchPhase::Active | MatchPhase::Complete)
+                && previous_phase == Some(phase)
+                && !self.mode.data_in_flight()
+                && !self.payload_progress_bound
+            {
+                let frame = presentation::progress_binding(
+                    graphs,
+                    mode_id,
+                    true,
+                    tick,
+                    self.mode.latest_data() + 1,
+                )?;
+                let chunk = self.mode.reliable_delta(&frame).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.payload_progress_bound = true;
+                return Ok(false);
+            }
+        }
+        if self.mode.data_in_flight() {
+            return Ok(false);
+        }
+        if handoff && self.payload_mode_view.is_none() {
+            return Ok(true);
+        }
+
+        let remaining = match phase {
+            MatchPhase::Waiting | MatchPhase::Complete => 0.0,
+            MatchPhase::Assemble => f64::from(seconds),
+            _ => hud_clock_seconds(round.deadline - now),
+        };
+        let audio = AudioTimeline {
+            phase,
+            stage,
+            seconds: remaining.ceil() as i64,
+            overtime: round.overtime,
+            winner: round.winner,
+            near_finish: false,
+            control_wins: None,
+            round_winner: None,
+        };
+        let snapshot = presentation::capture_mode(
+            graphs,
+            scene.map(),
+            round,
+            phase,
+            presentation::ObjectiveClock { now, remaining },
+            team,
+            payload,
+        )?;
+        let chunk = if let Some(previous) = &self.payload_mode_view {
+            let stamp = self.mode.latest_data() + 1;
+            let old = self
+                .payload_audio
+                .expect("capture view has an audio timeline");
+            let captured = old.phase == MatchPhase::Active
+                && (handoff
+                    || stage > old.stage
+                    || phase == MatchPhase::Complete && round.winner == Some(FIRST_ATTACKING_TEAM));
+            // Keep the checkpoint effect and an overtime exit action in separate reliable frames.
+            if captured && !previous.has_instance(presentation::CHECKPOINT_SOUND_INSTANCE) {
+                let mut sound = previous.clone();
+                let (instance, action) = presentation::checkpoint_sound(graphs, &mut sound, team)?;
+                let frame = encoder
+                    .mounted_delta_with_action(
+                        Some(previous),
+                        &sound,
+                        Some((stamp, instance, action)),
+                    )
+                    .map_err(invalid)?
+                    .expect("checkpoint action");
+                let chunk = self.mode.reliable_delta(&frame).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.payload_mode_view = Some(sound);
+                return Ok(false);
+            }
+            if handoff {
+                return Ok(true);
+            }
+            let action = mode_action(
+                ModeActionSnapshot {
+                    phase: old.phase,
+                    stage: old.stage,
+                    seconds: old.seconds as f64,
+                    overtime: old.overtime,
+                },
+                ModeActionSnapshot {
+                    phase,
+                    stage,
+                    seconds: remaining,
+                    overtime: round.overtime,
+                },
+            )
+            .map(|action| (stamp, 1, action));
+            let Some(frame) = encoder
+                .mounted_delta_with_action(Some(previous), &snapshot, action)
+                .map_err(invalid)?
+            else {
+                return Ok(false);
+            };
+            self.mode.reliable_delta(&frame).map_err(invalid)?
+        } else {
+            self.mode
+                .full(&encoder.full(&snapshot).map_err(invalid)?)
+                .map_err(invalid)?
+        };
+        self.push(Record::script(chunk, false));
+        self.payload_cues.extend(match_speech(
+            self.payload_audio.as_ref(),
+            &audio,
+            mode_id,
+            team,
+            false,
+        ));
+        self.payload_audio = Some(audio);
+        self.payload_mode_view = Some(snapshot);
+        self.custom_mode_view = Some((phase, seconds));
+        self.update_assembly_controller(scene, tick, team, previous_phase, phase)?;
+        Ok(false)
     }
 
     pub(crate) fn advance_controller_ack(&mut self, now: Duration) -> io::Result<()> {
@@ -1573,6 +2491,7 @@ impl WorldDelivery {
         self.started.is_some()
             && self.controller.latest_data() != 0
             && self.created.contains(&self.owner)
+            && !self.team_updates.contains_key(&self.owner)
     }
 
     fn game_message(
@@ -1584,7 +2503,8 @@ impl WorldDelivery {
         quanta: u32,
         message: &Message,
     ) -> io::Result<()> {
-        if !self.can_handle_game_message() {
+        if !self.can_handle_game_message() || viewer.team == crate::room_primitives::SPECTATOR_TEAM
+        {
             return Ok(());
         }
         let Some(message) = ClientGameMessage::read(message) else {
@@ -1595,10 +2515,12 @@ impl WorldDelivery {
         }
         enum HeroSelectAction {
             Pick(Hero),
+            ReopenAssembly,
             OpenOrClose(Option<bool>),
         }
         let action = match message.hero_select(scene.heroes()) {
             Some(HeroSelectRequest::Pick(Some(hero))) => Some(HeroSelectAction::Pick(hero.clone())),
+            Some(HeroSelectRequest::ReopenAssembly) => Some(HeroSelectAction::ReopenAssembly),
             Some(HeroSelectRequest::OpenOrClose(wanted)) => {
                 Some(HeroSelectAction::OpenOrClose(wanted))
             }
@@ -1613,6 +2535,19 @@ impl WorldDelivery {
                 {
                     return Ok(());
                 }
+                let assembling = scene.selected_phase() == Some(MatchPhase::Assemble);
+                if scene.holds_assembly_spawn(viewer.team) {
+                    self.assembly_choice = Some(hero.guid);
+                    self.assembly_confirmed = assembling;
+                    return self.queue_controller(scene, tick, true, Some(hero.guid));
+                }
+                if assembling && scene.has_objective_presenter() {
+                    self.assembly_choice = Some(hero.guid);
+                    self.assembly_confirmed = true;
+                } else {
+                    self.assembly_choice = None;
+                    self.assembly_confirmed = false;
+                }
                 let skin = viewer
                     .card
                     .skins
@@ -1626,18 +2561,70 @@ impl WorldDelivery {
                             .player_body(body.id)
                             .is_some_and(PlayerBodyState::needs_runtime_restart)
                 }) {
-                    self.queue_controller(scene, tick, false, Some(hero.guid))?;
+                    self.queue_controller(scene, tick, self.assembly_confirmed, Some(hero.guid))?;
                 } else if let Some(entity) = self.next_body(now) {
                     self.switch(scene, viewer, tick, quanta, entity, (&hero, skin))?;
                 }
             }
-            Some(HeroSelectAction::OpenOrClose(wanted)) => {
-                let open = self.body.is_none() || wanted.unwrap_or(!self.select_open);
-                self.queue_controller(scene, tick, open, self.body.map(|body| body.hero))?;
+            Some(HeroSelectAction::ReopenAssembly)
+                if self.assembly_confirmed
+                    && scene.selected_phase() == Some(MatchPhase::Assemble) =>
+            {
+                self.assembly_confirmed = false;
+                self.queue_controller(
+                    scene,
+                    tick,
+                    true,
+                    self.assembly_choice.or(self.body.map(|body| body.hero)),
+                )?;
             }
-            None => {}
+            Some(HeroSelectAction::OpenOrClose(wanted)) => {
+                let open = self.body.is_none()
+                    || self.assembly_confirmed
+                    || scene.holds_assembly_spawn(viewer.team)
+                    || wanted.unwrap_or(!self.select_open);
+                let hero = self.assembly_choice.or(self.body.map(|body| body.hero));
+                self.queue_controller(scene, tick, open, hero)?;
+            }
+            _ => {}
         }
         Ok(())
+    }
+
+    pub(crate) fn advance_assembly_selection(
+        &mut self,
+        scene: &mut PreparedScene,
+        viewer: &PlayerAppearance<'_>,
+        tick: u32,
+        quanta: u32,
+        now: Duration,
+    ) -> io::Result<()> {
+        let Some(guid) = self.assembly_choice else {
+            return Ok(());
+        };
+        if scene.selected_phase() == Some(MatchPhase::Assemble)
+            || self.custom_mode_view.is_none_or(|(phase, _)| {
+                matches!(phase, MatchPhase::Waiting | MatchPhase::Assemble)
+            })
+            || self.mode.data_in_flight()
+        {
+            return Ok(());
+        }
+        if self.body.is_some_and(|body| body.hero == guid) {
+            self.assembly_choice = None;
+            self.assembly_confirmed = false;
+            return Ok(());
+        }
+        let Some(entity) = self.next_body(now) else {
+            return Ok(());
+        };
+        let Some(hero) = scene.heroes().get(guid).cloned() else {
+            return Ok(());
+        };
+        let skin = viewer.card.skins.get(&guid).copied().unwrap_or_default();
+        self.assembly_choice = None;
+        self.assembly_confirmed = false;
+        self.switch(scene, viewer, tick, quanta, entity, (&hero, skin))
     }
 
     pub(crate) fn command_ack(&self, tick: u32) -> u32 {
@@ -2105,6 +3092,10 @@ impl WorldDelivery {
                 }
             }
         }
+        let movement_scale = scene
+            .simulation()
+            .pvp_objective()
+            .map_or(1.0, |mode| mode.movement_scale());
         let (simulation, rays) = scene.simulation_and_rays();
         let motion_frame = simulation.movement_contact_frame();
         let Some(state) = simulation.player_body_mut(id) else {
@@ -2170,7 +3161,7 @@ impl WorldDelivery {
             }
         }
         let mut posed_buttons: Vec<u32> = Vec::new();
-        let dt = f64::from(frame_us) / 1_000_000.0;
+        let dt = f64::from(frame_us) * movement_scale / 1_000_000.0;
         let stepped = mover.step_pending(
             rays,
             &mut pending.poses,
@@ -2507,6 +3498,11 @@ impl WorldDelivery {
                 Some((position, yaw)) => {
                     scene.player_spawn_mover_at(body_def, viewer.team, position, yaw)
                 }
+                None if scene.custom_mode_view().is_some() => scene.player_spawn_mover_for_slot(
+                    body_def,
+                    viewer.team,
+                    viewer.slot.max(0) as usize,
+                ),
                 None => scene.player_spawn_mover(body_def, viewer.team),
             }
         };
@@ -2670,12 +3666,14 @@ impl WorldDelivery {
             skin: (skin.guid != 0).then_some(skin.guid),
         };
         let mut controller = self.controller.clone();
+        let open = self.assembly_confirmed;
+        let frame = self.selection_frame(scene, open, Some(hero.guid));
         let close = Self::controller_chunk(
             &mut controller,
             scene,
             self.command_ack(tick),
-            false,
-            Some(hero.guid),
+            frame,
+            self.controller_skins,
         )?;
 
         let state = PlayerBodyState::new(
@@ -2699,11 +3697,12 @@ impl WorldDelivery {
         self.generation = generation;
         self.bodies.insert(entity, (generation, Lifetime::Live));
         self.created.remove(&entity);
+        self.control_body_round = scene.control_round().map(|round| round.round_index);
         let old = self.body.replace(body);
         self.cancel_body_script(None);
         self.body_script = script;
         self.bound = None;
-        self.select_open = false;
+        self.select_open = open;
         self.push(Record {
             update: create,
             delivery: Delivery::CreateBody(id),
@@ -2721,7 +3720,11 @@ impl WorldDelivery {
         if let Some(old) = old {
             self.retire_body(old.id);
         }
-        self.push(close);
+        self.controller_pending = close.is_none().then_some(frame);
+        if let Some(close) = close {
+            self.controller_skins = frame.skins;
+            self.push(close);
+        }
         self.remove_stale();
         Ok(())
     }
@@ -2758,24 +3761,57 @@ impl WorldDelivery {
         controller: &mut Stream,
         scene: &PreparedScene,
         command_frame: u32,
+        frame: ControllerFrame<'_>,
+        previous_skins: bool,
+    ) -> io::Result<Option<Record>> {
+        if controller.data_in_flight() {
+            return Ok(None);
+        }
+        let chunk = if controller.latest_data() == 0 {
+            controller.full_owner(command_frame, |cmfd| {
+                scene.controller().controller_frame(cmfd, frame)
+            })
+        } else {
+            controller.reliable_owner_delta(command_frame, |cmfd| {
+                scene
+                    .controller()
+                    .selection_delta(cmfd, frame, frame.skins != previous_skins)
+            })
+        }
+        .map_err(invalid)?;
+        Ok(Some(Record::script(
+            chunk,
+            frame.hero.is_some() && !frame.select_open,
+        )))
+    }
+
+    fn selection_frame(
+        &self,
+        scene: &PreparedScene,
         open: bool,
         hero: Option<u64>,
-    ) -> io::Result<Record> {
-        let chunk = controller
-            .full_owner(command_frame, |cmfd| {
-                scene.controller().controller_frame(
-                    cmfd,
-                    ControllerFrame {
-                        select_open: open,
-                        skins: open && !scene.map().is_junkenstein(),
-                        hide_assemble: !scene.map().is_junkenstein(),
-                        hero,
-                        ..ControllerFrame::default()
-                    },
-                )
-            })
-            .map_err(invalid)?;
-        Ok(Record::script(chunk, hero.is_some() && !open))
+    ) -> ControllerFrame<'static> {
+        ControllerFrame {
+            select_open: open,
+            // Keep the original map-entry transition, then leave the assembly
+            // input steady while the player opens and closes the picker.
+            skins: if self.controller.latest_data() == 0 {
+                open && !scene.map().is_junkenstein()
+            } else {
+                self.controller_skins
+                    && (scene.map().mode_guid == crate::game_content::PRACTICE_RANGE_MODE
+                        || matches!(
+                            scene.selected_phase(),
+                            Some(MatchPhase::Waiting | MatchPhase::Assemble)
+                        ))
+            },
+            hide_assemble: scene.hide_assemble(),
+            hero,
+            confirmed_hero: self.assembly_choice.filter(|_| self.assembly_confirmed),
+            send_selection: self.refresh_selection || scene.has_objective_presenter(),
+            objective: scene.hero_select_objective(self.viewer_team),
+            ..ControllerFrame::default()
+        }
     }
 
     fn queue_controller(
@@ -2786,10 +3822,20 @@ impl WorldDelivery {
         hero: Option<u64>,
     ) -> io::Result<()> {
         let command_frame = self.command_ack(tick);
-        let record =
-            Self::controller_chunk(&mut self.controller, scene, command_frame, open, hero)?;
+        let frame = self.selection_frame(scene, open, hero);
+        let record = Self::controller_chunk(
+            &mut self.controller,
+            scene,
+            command_frame,
+            frame,
+            self.controller_skins,
+        )?;
         self.select_open = open;
-        self.push(record);
+        self.controller_pending = record.is_none().then_some(frame);
+        if let Some(record) = record {
+            self.controller_skins = frame.skins;
+            self.push(record);
+        }
         self.remove_stale();
         Ok(())
     }
@@ -2816,7 +3862,10 @@ impl WorldDelivery {
             .collect();
         // The room already selected this world send, which can fall between
         // exact cadence multiples when the clock skips simulation ticks.
-        for (entity, movement) in scene.simulation().observer_player_movements(self.owner) {
+        for (entity, movement) in scene
+            .simulation()
+            .observer_player_movements(self.owner, tick)
+        {
             if self.created.contains(&entity) {
                 updates.push(EntityUpdate {
                     entity,

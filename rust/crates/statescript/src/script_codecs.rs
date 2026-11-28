@@ -631,7 +631,20 @@ fn project(
             fields.insert("top", Value::Bool(vm.flag("top")).into());
             fields.insert("under", Value::Bool(vm.flag("under")).into());
         }
-        Family::Button | Family::Anim | Family::Counter2 => {
+        Family::Anim => {
+            fields.insert(
+                "counter",
+                Value::Integer(vm.integer("counter", 0)? & 7).into(),
+            );
+            if !owner {
+                if let Some(time) = vm.optional_int("time")? {
+                    fields.insert("has_time", Value::Bool(true).into());
+                    fields.insert("time_set", Value::Bool(time != 0).into());
+                    fields.insert("time", Value::Integer(time).into());
+                }
+            }
+        }
+        Family::Button | Family::Counter2 => {
             fields.insert("counter", Value::Integer(vm.integer("counter", 0)?).into());
         }
         Family::Volley => project_volley(&mut fields, &vm, mode)?,

@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub const SPECTATOR_TEAM: u8 = 3;
+pub(crate) const FREE_FOR_ALL_ROSTER_TEAM: u8 = 2;
 pub const MAP_ENTITY_BIT: u32 = 0x8000_0000;
 
 pub const DOOR_OPEN_ANIM: u16 = 0;
@@ -27,6 +28,21 @@ pub const GATE_DEBRIS_DELAY: f64 = 3.0;
 pub const FOLLOW_UP_GAP: f64 = 2.0;
 pub const CAPTURE_FOLLOW_UP_GAP: f64 = 3.5;
 pub const SCORE_FOLLOW_UP_GAP: f64 = 1.5;
+
+pub(crate) fn choose_seat(
+    capacity: u8,
+    requested: Option<u8>,
+    current: Option<u8>,
+    occupied: impl Fn(u8) -> bool,
+) -> Option<u8> {
+    let available = |slot| slot < capacity && !occupied(slot);
+    if let Some(slot) = requested {
+        return available(slot).then_some(slot);
+    }
+    current
+        .filter(|&slot| available(slot))
+        .or_else(|| (0..capacity).find(|&slot| available(slot)))
+}
 
 // ---------------------------------------------------------------------------
 // 1. ObbTrigger & ObbZone
@@ -169,15 +185,17 @@ pub const DEFAULT_ROLLBACK_SPEED: f64 = 0.3;
 pub const SAMPLES_PER_SEGMENT: usize = 32;
 pub const RAIL_LOOKAHEAD: f64 = 0.75;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 pub struct SplineNode {
     pub position: [f64; 3],
     /// Relative cubic Bezier control offsets `(c1, c2, end)` from `position`.
     pub curve: Option<[[f64; 3]; 3]>,
     pub checkpoint: Option<u32>,
+    #[serde(default)]
     pub wait_seconds: f64,
     pub open_gate: Option<u32>,
     pub close_gate: Option<u32>,
+    #[serde(default)]
     pub gate_impact: bool,
     pub auto_drive_to: Option<usize>,
 }
@@ -417,7 +435,9 @@ impl SplineMover {
     }
 
     pub fn scripted_movement(&self) -> bool {
-        self.last_update < self.route_wait_until || self.distance < self.route_drive_end
+        self.last_update < self.route_wait_until
+            || self.distance < self.route_drive_end
+            || self.active_auto_drive
     }
 
     pub fn contested(&self) -> bool {
@@ -447,23 +467,22 @@ impl SplineMover {
         attacker_team: u8,
         defender_team: u8,
     ) -> SplineStepEvents {
-        let mut events = SplineStepEvents {
-            open_gates: Vec::new(),
-            close_gates: Vec::new(),
-            gate_impact_at: None,
-            reached_checkpoints: Vec::new(),
-        };
-        let pos = self.pose().position;
-        let prev_distance = self.distance;
+        self.sample_occupants(self.pose().position, actors, attacker_team, defender_team);
+        self.step_sampled(now, f64::INFINITY)
+    }
+
+    pub(crate) fn sample_occupants(
+        &mut self,
+        position: [f64; 3],
+        actors: &[ActorSample],
+        attacker_team: u8,
+        defender_team: u8,
+    ) {
         self.pushers.clear();
         self.blockers.clear();
-
-        for actor in actors {
-            if !actor.alive {
-                continue;
-            }
-            let dy = (actor.position[1] - pos[1]).abs();
-            let horiz = (actor.position[0] - pos[0]).hypot(actor.position[2] - pos[2]);
+        for actor in actors.iter().filter(|actor| actor.alive) {
+            let dy = (actor.position[1] - position[1]).abs();
+            let horiz = (actor.position[0] - position[0]).hypot(actor.position[2] - position[2]);
             if dy <= self.curve.push_height && horiz <= self.curve.push_radius {
                 if actor.team == attacker_team {
                     self.pushers.push(actor.entity);
@@ -472,28 +491,35 @@ impl SplineMover {
                 }
             }
         }
+    }
 
-        let elapsed = (now - self.last_update.max(self.route_wait_until)).max(0.0);
+    pub(crate) fn step_sampled(&mut self, now: f64, end: f64) -> SplineStepEvents {
+        let mut events = SplineStepEvents {
+            open_gates: Vec::new(),
+            close_gates: Vec::new(),
+            gate_impact_at: None,
+            reached_checkpoints: Vec::new(),
+        };
+        let prev_distance = self.distance;
+        let elapsed = (now.min(end) - self.last_update.max(self.route_wait_until)).max(0.0);
         let route_driving = prev_distance < self.route_drive_end;
         let auto_end = self.auto_drive_end.max(self.route_drive_end);
         let auto_driving = prev_distance < auto_end;
         self.last_step_scripted = auto_driving || now < self.route_wait_until || route_driving;
         let mut push_dist = 0.0;
 
-        if auto_driving {
+        if auto_driving && elapsed > 0.0 {
             push_dist = (elapsed * self.curve.auto_drive_speed * self.curve.speed_scale)
                 .min((auto_end - prev_distance).max(0.0));
             self.last_attacker = now;
         } else if now < self.route_wait_until {
             self.last_attacker = now;
-        } else if !self.pushers.is_empty() {
+        } else if !self.pushers.is_empty() && now < end {
             self.last_attacker = now;
             if self.blockers.is_empty() {
                 let count = self.pushers.len().min(3);
                 push_dist = elapsed * self.curve.speeds[count] * self.curve.speed_scale;
             }
-        } else if !self.blockers.is_empty() {
-            self.last_attacker = self.last_attacker.max(now - self.curve.rollback_delay);
         } else if now > self.last_attacker + self.curve.rollback_delay {
             let rb_dt = elapsed.min(now - self.last_attacker - self.curve.rollback_delay);
             let floor = self.rollback_floor.max(self.route_rollback_floor);
@@ -557,6 +583,9 @@ impl SplineMover {
         } else {
             0.0
         };
+        if now < self.route_wait_until || route_driving && self.distance >= self.route_drive_end {
+            self.speed = 0.0;
+        }
         self.direction = if self.distance > prev_distance + 1e-9 {
             1
         } else if self.distance + 1e-9 < prev_distance {
@@ -981,6 +1010,15 @@ pub enum BarrierKind {
     RestrictedSign,
 }
 
+impl BarrierKind {
+    pub(crate) fn is_room_visual(self) -> bool {
+        matches!(
+            self,
+            Self::TeamBarrier | Self::Overlay | Self::RestrictedSign
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DoorPose {
     Closed = 0,
@@ -1026,6 +1064,7 @@ pub struct BarrierEntry {
     pub rooms: Vec<(usize, u8)>,
     pub viewers: Vec<u8>,
     pub position: [f64; 3],
+    pub rotation: Option<[f64; 4]>,
     pub open_seconds: f64,
     pub close_seconds: f64,
     pub open_delay: f64,
@@ -1046,6 +1085,7 @@ impl BarrierEntry {
             rooms,
             viewers: Vec::new(),
             position: [placeable as f64, 0.0, 0.0],
+            rotation: None,
             open_seconds: 2.0,
             close_seconds: 2.0,
             open_delay: 0.0,
@@ -1055,6 +1095,27 @@ impl BarrierEntry {
             debris_rail_node: None,
             payload_unlock: false,
             shapes: Vec::new(),
+        }
+    }
+
+    pub(crate) fn door_command(&self, opened: bool, now: f64, wait: f64) -> RouteGateCommand {
+        let (delay, duration) = if opened {
+            (self.open_delay, self.open_seconds)
+        } else {
+            (self.close_delay, self.close_seconds)
+        };
+        let starts_at = now + delay;
+        let ends_at = starts_at + duration;
+        let collision_at = if opened && wait > 0.0 {
+            ends_at.min(now + wait)
+        } else {
+            ends_at
+        };
+        RouteGateCommand {
+            opened,
+            starts_at,
+            ends_at,
+            collision_at,
         }
     }
 }
@@ -1087,7 +1148,7 @@ impl DynamicBarrierRegistry {
         match entry.kind {
             BarrierKind::CheckpointGate | BarrierKind::GateDebris => false,
             BarrierKind::Door => {
-                if !is_active_or_unlocked {
+                if !is_active_or_unlocked || entry.payload_unlock {
                     return false;
                 }
                 entry
@@ -1107,7 +1168,7 @@ impl DynamicBarrierRegistry {
         is_active_or_unlocked: bool,
     ) -> bool {
         if let Some(cmd) = self.gate_commands.get(&entity) {
-            return cmd.opened && now >= cmd.collision_at;
+            return cmd.opened == (now >= cmd.collision_at);
         }
         self.door_open(entity, stage, is_active_or_unlocked)
     }
@@ -1125,32 +1186,8 @@ impl DynamicBarrierRegistry {
             if currently_open == opened {
                 continue;
             }
-            let start = now
-                + if opened {
-                    entry.open_delay
-                } else {
-                    entry.close_delay
-                };
-            let end = start
-                + if opened {
-                    entry.open_seconds
-                } else {
-                    entry.close_seconds
-                };
-            let clear = if opened && wait > 0.0 {
-                end.min(now + wait)
-            } else {
-                end
-            };
-            self.gate_commands.insert(
-                entry.entity,
-                RouteGateCommand {
-                    opened,
-                    starts_at: start,
-                    ends_at: end,
-                    collision_at: clear,
-                },
-            );
+            self.gate_commands
+                .insert(entry.entity, entry.door_command(opened, now, wait));
             changed = true;
         }
         changed
@@ -1243,20 +1280,6 @@ impl DynamicBarrierRegistry {
         }
 
         let opened = self.door_open(entity, stage, is_active_or_unlocked);
-        if previous.is_none() {
-            return DoorState {
-                pose: if opened {
-                    DoorPose::Open
-                } else {
-                    DoorPose::Closed
-                },
-                states: BTreeSet::new(),
-                starts_at: 0.0,
-                ends_at: 0.0,
-                timed: false,
-                debris_played: false,
-            };
-        }
         if !opened {
             return DoorState {
                 pose: DoorPose::Closed,

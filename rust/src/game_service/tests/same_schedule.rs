@@ -166,10 +166,7 @@ fn same_schedule_practice_room() {
             MATCH,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(scene),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(scene, PlayerCard::default())),
             Duration::ZERO,
         )
         .unwrap()

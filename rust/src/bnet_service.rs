@@ -20,6 +20,7 @@ use crate::service_tcp::{PeerStream, PeerWorkers, accept, retryable};
 
 pub const STALL_PORT: u16 = 1119;
 pub const RPC_PORT: u16 = 21119;
+pub const SECOND_RPC_PORT: u16 = 21120;
 pub const SUBPROTOCOL: &str = "v1.rpc.battle.net";
 const MAX_RPC_SIZE: usize = 8 << 20;
 const ACCEPT_POLL: Duration = Duration::from_millis(10);
@@ -28,7 +29,7 @@ const PING_INTERVAL: Duration = Duration::from_secs(20);
 
 /// Background listeners for the original client dial and the relay's RPC pipe.
 pub struct BnetService {
-    stall: SocketAddr,
+    stall: Option<SocketAddr>,
     rpc: SocketAddr,
     stop: mpsc::Sender<()>,
     worker: Option<JoinHandle<io::Result<()>>>,
@@ -45,10 +46,32 @@ impl BnetService {
         player: impl Fn(SocketAddr) -> Player + Send + Sync + 'static,
     ) -> io::Result<Self> {
         let stall_listener = TcpListener::bind(stall)?;
-        let rpc_listener = TcpListener::bind(rpc)?;
         stall_listener.set_nonblocking(true)?;
+        Self::start_listeners(Some(stall_listener), rpc, lobby, protocol, player)
+    }
+
+    pub(crate) fn start_rpc(
+        rpc: SocketAddrV4,
+        lobby: SocketAddrV4,
+        protocol: Arc<Protocol>,
+        player: impl Fn(SocketAddr) -> Player + Send + Sync + 'static,
+    ) -> io::Result<Self> {
+        Self::start_listeners(None, rpc, lobby, protocol, player)
+    }
+
+    fn start_listeners(
+        stall_listener: Option<TcpListener>,
+        rpc: SocketAddrV4,
+        lobby: SocketAddrV4,
+        protocol: Arc<Protocol>,
+        player: impl Fn(SocketAddr) -> Player + Send + Sync + 'static,
+    ) -> io::Result<Self> {
+        let rpc_listener = TcpListener::bind(rpc)?;
         rpc_listener.set_nonblocking(true)?;
-        let stall = stall_listener.local_addr()?;
+        let stall = stall_listener
+            .as_ref()
+            .map(TcpListener::local_addr)
+            .transpose()?;
         let rpc = rpc_listener.local_addr()?;
         let endpoint = Arc::new(RpcEndpoint {
             protocol,
@@ -71,6 +94,7 @@ impl BnetService {
 
     pub fn stall_addr(&self) -> SocketAddr {
         self.stall
+            .expect("Battle.net service has no stall listener")
     }
 
     pub fn rpc_addr(&self) -> SocketAddr {
@@ -122,7 +146,7 @@ fn wall_millis() -> u64 {
 }
 
 fn serve(
-    stall: TcpListener,
+    stall: Option<TcpListener>,
     rpc: TcpListener,
     endpoint: Arc<RpcEndpoint>,
     shutdown: mpsc::Receiver<()>,
@@ -130,7 +154,7 @@ fn serve(
     let mut peers = PeerWorkers::default();
     while matches!(shutdown.try_recv(), Err(mpsc::TryRecvError::Empty)) {
         peers.reap();
-        let stall_peer = accept(&stall)?;
+        let stall_peer = stall.as_ref().map(accept).transpose()?.flatten();
         let rpc_peer = accept(&rpc)?;
         if stall_peer.is_none() && rpc_peer.is_none() {
             if !matches!(

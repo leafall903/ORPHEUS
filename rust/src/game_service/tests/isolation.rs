@@ -442,19 +442,15 @@ fn team_members_follow_admitted_roster_without_possession() {
         map.free_for_all = free_for_all;
         let mut players = roster(3);
         players[2].team = 1;
+        let world = WorldStart {
+            scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
+                [0.0, 0.0, 10.0],
+            )])),
+            cards: vec![PlayerCard::default(); players.len()],
+            slots: vec![None; players.len()],
+        };
         let tickets = state
-            .open_match(
-                MATCH,
-                map,
-                players,
-                Some(WorldStart {
-                    scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                        [0.0, 0.0, 10.0],
-                    )])),
-                    card: PlayerCard::default(),
-                }),
-                Duration::ZERO,
-            )
+            .open_match(MATCH, map, players, Some(world), Duration::ZERO)
             .unwrap();
         let room = state.rooms.get_mut(&MATCH).unwrap();
         let counts = |room: &Room| {

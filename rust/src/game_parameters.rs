@@ -191,10 +191,25 @@ impl<'a> ClientGameMessage<'a> {
         heroes: &'catalog HeroCatalog,
     ) -> Option<HeroSelectRequest<'catalog>> {
         match self.guid {
-            PICK_HERO => Some(HeroSelectRequest::Pick(
-                self.parameters
-                    .find_asset(HERO_ASSET_TYPE, |guid| heroes.get(guid)),
-            )),
+            PICK_HERO => {
+                let bytes = self.parameters.as_bytes();
+                // One typed hero parameter (005D), followed by two entity words.
+                const HERO_PARAMETER: [u8; 13] =
+                    [0, 0, 0, 0, 1, 0xc1, 0x5d, 0x40, 0x0a, 0x0c, 1, 0xff, 4];
+                if bytes.len() == 29 && bytes.starts_with(&HERO_PARAMETER) {
+                    let guid =
+                        u64::from_le_bytes(bytes[13..21].try_into().expect("hero parameter"));
+                    return Some(if guid == 0 {
+                        HeroSelectRequest::ReopenAssembly
+                    } else {
+                        HeroSelectRequest::Pick(heroes.get(guid))
+                    });
+                }
+                Some(HeroSelectRequest::Pick(
+                    self.parameters
+                        .find_asset(HERO_ASSET_TYPE, |guid| heroes.get(guid)),
+                ))
+            }
             OPEN_OR_CLOSE => Some(HeroSelectRequest::OpenOrClose(
                 self.parameters.bool_before_entities(),
             )),
@@ -207,6 +222,7 @@ impl<'a> ClientGameMessage<'a> {
 pub enum HeroSelectRequest<'a> {
     /// A recognized pick without a known hero has no gameplay effect.
     Pick(Option<&'a Hero>),
+    ReopenAssembly,
     /// Without a readable bool, the client request toggles the current screen.
     OpenOrClose(Option<bool>),
 }
@@ -388,6 +404,32 @@ mod tests {
             known.hero_select(&heroes),
             Some(HeroSelectRequest::Pick(Some(heroes.get(SOLDIER).unwrap())))
         );
+    }
+
+    #[test]
+    fn only_a_typed_null_hero_reopens_assembly() {
+        let case: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/escort-assembly-seat-pose-v1.json"
+        ))
+        .unwrap();
+        let hex = case["input"]["reopen_pick_parameters"].as_str().unwrap();
+        let bytes: Vec<_> = (0..hex.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+            .collect();
+        let heroes = HeroCatalog::from_json("{}").unwrap();
+        let request = |parameters| {
+            ClientGameMessage {
+                entity: 1,
+                guid: PICK_HERO,
+                instance: 3,
+                parameters: Parameters::new(parameters),
+            }
+            .hero_select(&heroes)
+        };
+        assert_eq!(request(&bytes), Some(HeroSelectRequest::ReopenAssembly));
+        assert_eq!(request(&bytes[..28]), Some(HeroSelectRequest::Pick(None)));
+        assert_eq!(request(&[0; 29]), Some(HeroSelectRequest::Pick(None)));
     }
 
     #[test]

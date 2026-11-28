@@ -84,6 +84,18 @@ impl CharacterBody {
         self.breakables = Some(breakables);
     }
 
+    pub fn set_contact_layer(&mut self, world: Arc<ContactWorld>) {
+        if Arc::ptr_eq(&self.world, &world) {
+            return;
+        }
+        let first_changed = self.world.layer_start().min(world.layer_start());
+        self.contacts
+            .retain(|(id, _)| (*id as usize) < first_changed);
+        self.pairs.retain(|&id| (id as usize) < first_changed);
+        self.world = world;
+        self.proxy_moved = true;
+    }
+
     pub fn position(&self) -> Vec3 {
         self.pose.position
     }
@@ -138,7 +150,7 @@ impl CharacterBody {
             .world
             .query_with_breakables(bounds, self.breakables.as_deref())
         {
-            let shape = &self.world.shapes()[id as usize];
+            let shape = self.world.shape(id).expect("shape from this world's query");
             if shape.geometry().mask() & self.category != 0
                 && penetrates_shape(shape, capsule, self.category)?
             {
@@ -221,7 +233,7 @@ impl CharacterBody {
             .world
             .query_with_breakables(bounds, self.breakables.as_deref())
         {
-            let shape = &self.world.shapes()[id as usize];
+            let shape = self.world.shape(id).expect("shape from this world's query");
             if shape.geometry().mask() & self.category != 0
                 && overlaps_segment(shape, [capsule.a, capsule.b], reach, self.category)?
             {
@@ -377,7 +389,10 @@ impl CharacterBody {
         if let Some(breakables) = self.breakables.as_deref() {
             if breakables.broken_count() > 0 {
                 self.contacts.retain(|(id, _)| {
-                    let keep = self.world.shapes()[*id as usize]
+                    let keep = self
+                        .world
+                        .shape(*id)
+                        .expect("cached contact shape")
                         .breakable_placement()
                         .is_none_or(|placement| !breakables.is_broken(placement));
                     if !keep {
@@ -395,7 +410,7 @@ impl CharacterBody {
             .world
             .query_with_breakables(self.fat, self.breakables.as_deref())
         {
-            let shape = &self.world.shapes()[id as usize];
+            let shape = self.world.shape(id).expect("shape from this world's query");
             if shape.geometry().mask() & self.category != 0 && self.pairs.insert(id) {
                 self.contacts
                     .push((id, ProxyContact::new(shape, self.category)));
@@ -421,7 +436,11 @@ impl CharacterBody {
         let low = self.fat.low.map(f64::from);
         let high = self.fat.high.map(f64::from);
         self.contacts.retain(|(id, _)| {
-            let bounds = self.world.shapes()[*id as usize].fat_bounds();
+            let bounds = self
+                .world
+                .shape(*id)
+                .expect("cached contact shape")
+                .fat_bounds();
             let keep = bounds.is_some_and(|bounds| overlaps(low, high, bounds));
             if !keep {
                 self.pairs.remove(id);

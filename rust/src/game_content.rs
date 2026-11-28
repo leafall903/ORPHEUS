@@ -2,12 +2,20 @@
 //!
 //! Ported from the map portion of ow174/game/content.py.
 
-use std::{collections::HashMap, fs, io, path::Path};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs, io,
+    path::Path,
+};
 
 use indexmap::IndexMap;
 use serde::Deserialize;
 
 use crate::accounts::parse_guid;
+use crate::pvp_mode::{
+    MODE_ASSAULT, MODE_CONTROL, MODE_ESCORT, MODE_HYBRID, ModePlaceablesCatalog,
+};
+use crate::room_primitives::{BarrierEntry, BarrierKind, SplineNode};
 
 pub const PRACTICE_RANGE_MAP: u64 = 0x0800_0000_0000_0688;
 pub const PRACTICE_RANGE_MODE: u64 = 0x0230_0000_0000_0018;
@@ -87,6 +95,86 @@ pub struct MapObjective {
     pub position: [f64; 3],
     #[serde(default)]
     pub rotation: Option<[f64; 4]>,
+    #[serde(default)]
+    pub objective: Option<u32>,
+    #[serde(default)]
+    pub stage: Option<usize>,
+    #[serde(default)]
+    pub submap_name: Option<String>,
+    #[serde(default)]
+    pub outlines: Vec<u32>,
+    #[serde(default)]
+    pub escort_seconds: Option<f64>,
+    #[serde(default)]
+    pub casual_seconds: Option<f64>,
+    #[serde(default)]
+    pub unlock_delay: f64,
+    #[serde(default)]
+    pub unlock_seconds: f64,
+    #[serde(default)]
+    pub auto_drive: bool,
+    #[serde(default)]
+    pub speed_multiplier: Option<f64>,
+    #[serde(default)]
+    pub round_seconds: Option<f64>,
+    #[serde(default)]
+    pub capture_seconds: Option<f64>,
+    #[serde(default)]
+    pub decay_seconds: Option<f64>,
+    #[serde(default)]
+    pub capture_boxes: Vec<[f64; 10]>,
+    #[serde(default)]
+    pub outline: Option<u32>,
+    #[serde(default)]
+    pub collision: Vec<serde_json::Value>,
+    #[serde(default = "unit_scale")]
+    pub scale: [f32; 3],
+}
+
+fn unit_scale() -> [f32; 3] {
+    [1.0; 3]
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObjectiveModel {
+    pub position: [f32; 3],
+    pub rotation: [f32; 4],
+    pub scale: [f32; 3],
+    pub shapes: Vec<serde_json::Value>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PayloadRoute {
+    pub nodes: Vec<SplineNode>,
+    pub barriers: Vec<BarrierEntry>,
+    pub stage_seconds: Vec<f64>,
+    pub later_spawns: Vec<Vec<Spawn>>,
+    pub speed_scale: f64,
+    pub cart_model: ObjectiveModel,
+    pub room_models: BTreeMap<u32, ObjectiveModel>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CaptureCourse {
+    pub barriers: Vec<BarrierEntry>,
+    pub later_spawns: Vec<Vec<Spawn>>,
+    pub room_models: BTreeMap<u32, ObjectiveModel>,
+    pub speed_scale: f64,
+    pub spawn_candidates: Vec<[Vec<u32>; 2]>,
+    pub control: Option<ControlCourse>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ControlCourse {
+    pub rules: crate::pvp_mode::ControlRuleSettings,
+    pub healing_rooms: Vec<ControlHealingRoom>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct ControlHealingRoom {
+    pub stage: usize,
+    pub team: u8,
+    pub boxes: Vec<[f64; 10]>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -94,10 +182,13 @@ pub struct GameMap {
     pub name: String,
     pub map_guid: u64,
     pub mode_guid: u64,
+    pub preset_guid: u64,
     pub placeables: Vec<u32>,
     pub first_entity: Option<u32>,
     pub spawns: Vec<Spawn>,
     pub objectives: Vec<MapObjective>,
+    pub payload_route: Option<PayloadRoute>,
+    pub capture_course: Option<CaptureCourse>,
     pub mode_name: String,
     pub team_sizes: Vec<u8>,
     pub free_for_all: bool,
@@ -113,6 +204,7 @@ impl GameMap {
             name: PRACTICE_RANGE_NAME.into(),
             map_guid: PRACTICE_RANGE_MAP,
             mode_guid: PRACTICE_RANGE_MODE,
+            preset_guid: 0,
             placeables: vec![0x88, 0x22e, 0x234, 0x289],
             first_entity: None,
             spawns: vec![Spawn {
@@ -121,6 +213,8 @@ impl GameMap {
                 yaw: -170.3434,
             }],
             objectives: Vec::new(),
+            payload_route: None,
+            capture_course: None,
             mode_name: PRACTICE_RANGE_NAME.into(),
             team_sizes: vec![1, 0],
             free_for_all: false,
@@ -130,26 +224,49 @@ impl GameMap {
     /// Cycle through a team's points (or all points if that team has none).
     /// Players sharing a point alternate along its local right-hand axis.
     pub fn spawn_point(&self, team: u8, number: usize) -> Option<([f64; 3], f64)> {
-        let for_team = |spawn: &&Spawn| spawn.team.is_none() || spawn.team == Some(team);
-        let count = self.spawns.iter().filter(for_team).count();
-        let row_size = if count == 0 { self.spawns.len() } else { count };
-        let index = number.checked_rem(row_size)?;
-        let spawn = self
-            .spawns
-            .iter()
-            .filter(|spawn| count == 0 || for_team(spawn))
-            .nth(index)?;
-        let row = number / row_size;
-        let side = row.div_ceil(2) as f64 * SPAWN_SPACING;
-        let side = if row != 0 && row % 2 == 0 {
-            -side
-        } else {
-            side
-        };
-        let (sin, cos) = spawn.yaw.to_radians().sin_cos();
-        let [x, y, z] = spawn.position;
-        Some(([x - cos * side, y, z + sin * side], spawn.yaw))
+        spawn_point(&self.spawns, team, number)
     }
+
+    pub(crate) fn spawn_for_stage(
+        &self,
+        team: u8,
+        number: usize,
+        stage: usize,
+    ) -> Option<([f64; 3], f64)> {
+        self.payload_route
+            .as_ref()
+            .map(|route| &route.later_spawns)
+            .or_else(|| {
+                self.capture_course
+                    .as_ref()
+                    .map(|course| &course.later_spawns)
+            })
+            .and_then(|spawns| spawns.get(stage.checked_sub(1)?))
+            .filter(|spawns| spawns.iter().any(|spawn| spawn.team == Some(team)))
+            .and_then(|spawns| spawn_point(spawns, team, number))
+            .or_else(|| self.spawn_point(team, number))
+    }
+}
+
+fn spawn_point(spawns: &[Spawn], team: u8, number: usize) -> Option<([f64; 3], f64)> {
+    let for_team = |spawn: &&Spawn| spawn.team.is_none() || spawn.team == Some(team);
+    let count = spawns.iter().filter(for_team).count();
+    let row_size = if count == 0 { spawns.len() } else { count };
+    let index = number.checked_rem(row_size)?;
+    let spawn = spawns
+        .iter()
+        .filter(|spawn| count == 0 || for_team(spawn))
+        .nth(index)?;
+    let row = number / row_size;
+    let side = row.div_ceil(2) as f64 * SPAWN_SPACING;
+    let side = if row != 0 && row % 2 == 0 {
+        -side
+    } else {
+        side
+    };
+    let (sin, cos) = spawn.yaw.to_radians().sin_cos();
+    let [x, y, z] = spawn.position;
+    Some(([x - cos * side, y, z + sin * side], spawn.yaw))
 }
 
 pub(crate) fn is_junkenstein_mode(mode: u64) -> bool {
@@ -202,10 +319,10 @@ impl MapCatalog {
                 .into_iter()
                 .map(|entry| SpawnEntry {
                     spawn: entry.spawn,
+                    stage: entry.stage,
+                    placeable: entry.placeable,
                     free_for_all: entry.ffa.unwrap_or_default(),
-                    first_objective: entry
-                        .objectives
-                        .is_some_and(|objectives| objectives.iter().any(|(index, _)| *index == 0)),
+                    objectives: entry.objectives.unwrap_or_default(),
                 })
                 .collect();
             entries.insert(
@@ -219,6 +336,23 @@ impl MapCatalog {
                     first_entity: raw.first_entity,
                     spawns,
                     objectives: raw.objectives.unwrap_or_default(),
+                    escort_rail: raw.escort_rail,
+                    escort_scene_placeables: raw.escort_scene_placeables,
+                    escort_room_placeables: raw.escort_room_placeables,
+                    escort_room_models: raw.escort_room_models,
+                    assault_scene_placeables: raw.assault_scene_placeables,
+                    assault_room_placeables: raw.assault_room_placeables,
+                    assault_room_models: raw.assault_room_models,
+                    hybrid_rail: raw.hybrid_rail,
+                    hybrid_scene_placeables: raw.hybrid_scene_placeables,
+                    hybrid_room_placeables: raw.hybrid_room_placeables,
+                    hybrid_room_models: raw.hybrid_room_models,
+                    control_scene_placeables: raw.control_scene_placeables,
+                    control_room_placeables: raw.control_room_placeables,
+                    control_room_models: raw.control_room_models,
+                    control_healing_rooms: raw.control_healing_rooms,
+                    control_objective_placeables: raw.control_objective_placeables,
+                    health_packs: raw.health_packs,
                 },
             );
         }
@@ -267,7 +401,7 @@ impl MapCatalog {
         if SCRIPTED_LOADING_MODES.contains(&mode_guid) || !entry.modes.contains(&mode_guid) {
             return None;
         }
-        let spawns = entry.first_round_spawns(free_for_all);
+        let mut spawns = entry.first_round_spawns(free_for_all);
         if spawns.is_empty() {
             return None;
         }
@@ -276,6 +410,195 @@ impl MapCatalog {
             .get(&mode_guid)
             .unwrap_or(&entry.placeables)
             .clone();
+        let mut objectives = entry.objectives.clone();
+        let hybrid = mode_guid == MODE_HYBRID && !free_for_all;
+        let control = mode_guid == MODE_CONTROL && !free_for_all;
+        let capture_course = if control {
+            objectives.retain(|goal| {
+                goal.kind == "control point"
+                    && goal.placeable.is_some_and(|id| {
+                        (entry.mirrored.contains(&id) || placeables.contains(&id))
+                            && (entry.control_objective_placeables.is_empty()
+                                || entry.control_objective_placeables.contains(&id))
+                    })
+            });
+            objectives.sort_by_key(|goal| goal.stage);
+            let by_stage: Vec<_> = objectives
+                .iter()
+                .enumerate()
+                .map(|(stage, goal)| {
+                    let tag = goal.stage.unwrap_or(stage);
+                    entry
+                        .spawns
+                        .iter()
+                        .filter(|spawn| !spawn.free_for_all && spawn.stage == Some(tag))
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            if let Some(first) = by_stage.first().filter(|first| !first.is_empty()) {
+                spawns = first.iter().map(|entry| entry.spawn).collect();
+            }
+            (!objectives.is_empty()).then(|| CaptureCourse {
+                barriers: entry
+                    .control_room_placeables
+                    .iter()
+                    .filter_map(RawBarrier::entry)
+                    .collect(),
+                later_spawns: by_stage
+                    .iter()
+                    .skip(1)
+                    .map(|entries| entries.iter().map(|entry| entry.spawn).collect())
+                    .collect(),
+                room_models: room_models(
+                    &entry.control_room_placeables,
+                    &entry.control_room_models,
+                ),
+                speed_scale: 1.0,
+                spawn_candidates: by_stage
+                    .iter()
+                    .map(|entries| {
+                        std::array::from_fn(|team| {
+                            entries
+                                .iter()
+                                .filter(|entry| entry.spawn.team == Some(team as u8))
+                                .filter_map(|entry| entry.placeable)
+                                .collect()
+                        })
+                    })
+                    .collect(),
+                control: Some(ControlCourse {
+                    rules: Default::default(),
+                    healing_rooms: entry.control_healing_rooms.clone(),
+                }),
+            })
+        } else if (mode_guid == MODE_ASSAULT && !free_for_all)
+            || (hybrid && !entry.hybrid_rail.is_empty())
+        {
+            objectives.retain(|goal| {
+                (goal.kind == "point" || hybrid)
+                    && goal
+                        .placeable
+                        .is_some_and(|id| entry.mirrored.contains(&id))
+            });
+            objectives.sort_by_key(|goal| goal.objective);
+            let goals: Vec<_> = objectives
+                .iter()
+                .filter(|goal| goal.kind != "payload")
+                .collect();
+            let outlines: Vec<_> = objectives.iter().filter_map(|goal| goal.outline).collect();
+            placeables.retain(|id| !outlines.contains(id));
+            goals
+                .iter()
+                .any(|goal| goal.kind == "point")
+                .then(|| CaptureCourse {
+                    barriers: entry
+                        .assault_room_placeables
+                        .iter()
+                        .filter(|placement| entry.mirrored.contains(&placement.placeable))
+                        .filter_map(RawBarrier::entry)
+                        .collect(),
+                    later_spawns: entry.later_objective_spawns(goals.iter().copied()),
+                    room_models: room_models(
+                        &entry.assault_room_placeables,
+                        &entry.assault_room_models,
+                    ),
+                    speed_scale: 1.0,
+                    spawn_candidates: goals
+                        .iter()
+                        .map(|goal| {
+                            std::array::from_fn(|team| {
+                                entry
+                                    .objective_spawns(goal, team as u8)
+                                    .filter_map(|spawn| spawn.placeable)
+                                    .collect()
+                            })
+                        })
+                        .collect(),
+                    control: None,
+                })
+        } else {
+            None
+        };
+        let objective_scene = match (mode_guid, free_for_all) {
+            (MODE_CONTROL, false) => Some((
+                &entry.control_scene_placeables,
+                &entry.control_room_placeables[..],
+                &["control point"][..],
+            )),
+            (MODE_ESCORT, false) => Some((
+                &entry.escort_scene_placeables,
+                &[][..],
+                &["payload", "checkpoint"][..],
+            )),
+            (MODE_ASSAULT, false) => Some((
+                &entry.assault_scene_placeables,
+                &entry.assault_room_placeables[..],
+                &["point"][..],
+            )),
+            (MODE_HYBRID, false) if capture_course.is_some() => Some((
+                &entry.hybrid_scene_placeables,
+                &entry.hybrid_room_placeables[..],
+                &["point", "payload", "checkpoint"][..],
+            )),
+            _ => None,
+        };
+        if let Some((scene, rooms, kinds)) = objective_scene {
+            use std::collections::BTreeSet;
+            let outlines: BTreeSet<_> = objectives
+                .iter()
+                .flat_map(|goal| {
+                    goal.outline
+                        .into_iter()
+                        .chain(goal.outlines.iter().copied())
+                })
+                .collect();
+            if control {
+                let dynamic: BTreeSet<_> = rooms
+                    .iter()
+                    .filter(|room| room.kind != "door")
+                    .map(|room| room.placeable)
+                    .chain(outlines.iter().copied())
+                    .collect();
+                placeables.retain(|id| !dynamic.contains(id));
+            }
+            placeables = ModePlaceablesCatalog {
+                base_placeables: placeables,
+                placeables_by_mode: BTreeMap::new(),
+                mirrored: entry.mirrored.iter().copied().collect::<BTreeSet<_>>(),
+                objective_placeables: objectives
+                    .iter()
+                    .filter(|goal| kinds.contains(&goal.kind.as_str()))
+                    .filter_map(|goal| goal.placeable)
+                    .collect(),
+                health_pack_placeables: entry
+                    .health_packs
+                    .iter()
+                    .map(|pack| pack.placeable)
+                    .collect(),
+                scene_placeables: scene
+                    .iter()
+                    .copied()
+                    .chain(
+                        rooms
+                            .iter()
+                            .filter_map(|room| (room.kind == "door").then_some(room.placeable)),
+                    )
+                    .filter(|id| {
+                        !outlines.contains(id)
+                            && (!control
+                                || !rooms
+                                    .iter()
+                                    .any(|room| room.placeable == *id && room.kind != "door"))
+                    })
+                    .collect(),
+            }
+            .resolve(mode_guid, true);
+        }
+        let payload_route = ((mode_guid == MODE_ESCORT && !free_for_all)
+            || (hybrid && capture_course.is_some()))
+        .then(|| entry.payload_route(&placeables, hybrid))
+        .flatten();
+        let capture_course = capture_course.filter(|_| !hybrid || payload_route.is_some());
         if map_guid == JUNKENSTEIN_MAP
             && is_junkenstein_mode(mode_guid)
             && entry.mirrored.contains(&JUNKENSTEIN_GATE)
@@ -288,10 +611,13 @@ impl MapCatalog {
             name: entry.name.clone()?,
             map_guid,
             mode_guid,
+            preset_guid: 0,
             placeables,
             first_entity: entry.first_entity,
             spawns,
-            objectives: entry.objectives.clone(),
+            objectives,
+            payload_route,
+            capture_course,
             mode_name: mode_name.into(),
             team_sizes: team_sizes.into(),
             free_for_all,
@@ -309,9 +635,56 @@ struct MapEntry {
     first_entity: Option<u32>,
     spawns: Vec<SpawnEntry>,
     objectives: Vec<MapObjective>,
+    escort_rail: Vec<SplineNode>,
+    escort_scene_placeables: Vec<u32>,
+    escort_room_placeables: Vec<RawBarrier>,
+    escort_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    assault_scene_placeables: Vec<u32>,
+    assault_room_placeables: Vec<RawBarrier>,
+    assault_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    hybrid_rail: Vec<SplineNode>,
+    hybrid_scene_placeables: Vec<u32>,
+    hybrid_room_placeables: Vec<RawBarrier>,
+    hybrid_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    control_scene_placeables: Vec<u32>,
+    control_room_placeables: Vec<RawBarrier>,
+    control_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    control_healing_rooms: Vec<ControlHealingRoom>,
+    control_objective_placeables: Vec<u32>,
+    health_packs: Vec<RawPlacement>,
 }
 
 impl MapEntry {
+    fn objective_spawns(&self, goal: &MapObjective, team: u8) -> impl Iterator<Item = &SpawnEntry> {
+        let stage = goal.objective;
+        let role = if team == 0 { "defense" } else { "attack" };
+        self.spawns.iter().filter(move |entry| {
+            entry.spawn.team == Some(team)
+                && !entry.free_for_all
+                && entry
+                    .objectives
+                    .iter()
+                    .any(|(index, name)| Some(*index) == stage && name == role)
+        })
+    }
+
+    fn later_objective_spawns<'a>(
+        &self,
+        goals: impl IntoIterator<Item = &'a MapObjective>,
+    ) -> Vec<Vec<Spawn>> {
+        goals
+            .into_iter()
+            .skip(1)
+            .map(|goal| {
+                [0, 1]
+                    .into_iter()
+                    .flat_map(|team| self.objective_spawns(goal, team))
+                    .map(|entry| entry.spawn)
+                    .collect()
+            })
+            .collect()
+    }
+
     fn first_round_spawns(&self, free_for_all: bool) -> Vec<Spawn> {
         if free_for_all {
             return self
@@ -327,21 +700,174 @@ impl MapEntry {
                 .spawns
                 .iter()
                 .filter(|entry| !entry.free_for_all && entry.spawn.team == Some(team));
-            let has_first = mine.clone().any(|entry| entry.first_objective);
+            let has_first = mine
+                .clone()
+                .any(|entry| entry.objectives.iter().any(|(stage, _)| *stage == 0));
             chosen.extend(
-                mine.filter(|entry| !has_first || entry.first_objective)
-                    .map(|entry| entry.spawn),
+                mine.filter(|entry| {
+                    !has_first || entry.objectives.iter().any(|(stage, _)| *stage == 0)
+                })
+                .map(|entry| entry.spawn),
             );
         }
         chosen
     }
+
+    fn payload_route(&self, placeables: &[u32], capture_first: bool) -> Option<PayloadRoute> {
+        let mut carts = self.objectives.iter().filter(|goal| goal.kind == "payload");
+        let cart = carts.next()?;
+        if carts.next().is_some() || !placeables.contains(&cart.placeable?) {
+            return None;
+        }
+        let mut checkpoints: Vec<_> = self
+            .objectives
+            .iter()
+            .filter(|goal| goal.kind == "checkpoint")
+            .collect();
+        checkpoints.sort_by_key(|goal| goal.objective);
+        let goals = checkpoints
+            .iter()
+            .map(|goal| goal.placeable)
+            .collect::<Option<Vec<_>>>()?;
+        let (nodes, rooms, models) = if capture_first {
+            (
+                &self.hybrid_rail,
+                &self.hybrid_room_placeables,
+                &self.hybrid_room_models,
+            )
+        } else {
+            (
+                &self.escort_rail,
+                &self.escort_room_placeables,
+                &self.escort_room_models,
+            )
+        };
+        if goals.is_empty()
+            || nodes.first()?.checkpoint.is_some()
+            || nodes.last()?.checkpoint != goals.last().copied()
+            || nodes
+                .iter()
+                .filter_map(|node| node.checkpoint)
+                .ne(goals.iter().copied())
+            || goals.iter().any(|goal| !placeables.contains(goal))
+            || !nodes.iter().enumerate().all(|(index, node)| {
+                node.position.iter().all(|v| v.is_finite())
+                    && node.wait_seconds.is_finite()
+                    && node.wait_seconds >= 0.0
+                    && node
+                        .auto_drive_to
+                        .is_none_or(|next| index < next && next < nodes.len())
+            })
+            || !nodes.windows(2).all(|pair| {
+                let [from, to] = pair else { unreachable!() };
+                from.position != to.position
+                    && from.curve.is_some_and(|curve| {
+                        curve.iter().flatten().all(|v| v.is_finite())
+                            && (0..3).all(|axis| {
+                                let end = from.position[axis]
+                                    + curve.iter().map(|term| term[axis]).sum::<f64>();
+                                (end - to.position[axis]).abs() < 0.01
+                            })
+                    })
+            })
+        {
+            return None;
+        }
+        let default_seconds = [240.0, 150.0, 90.0];
+        let stage_seconds: Vec<_> = checkpoints
+            .iter()
+            .enumerate()
+            .map(|(index, goal)| {
+                (if capture_first {
+                    goal.casual_seconds
+                } else {
+                    goal.escort_seconds
+                })
+                .unwrap_or(default_seconds[index.min(default_seconds.len() - 1)])
+            })
+            .collect();
+        if stage_seconds
+            .iter()
+            .any(|seconds| !seconds.is_finite() || *seconds <= 0.0)
+        {
+            return None;
+        }
+        let later_spawns = if capture_first {
+            self.later_objective_spawns(
+                self.objectives
+                    .iter()
+                    .filter(|goal| goal.kind == "point")
+                    .chain(checkpoints),
+            )
+        } else {
+            self.later_objective_spawns(checkpoints)
+        };
+        let nodes = nodes
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(index, mut node)| {
+                // The map stores the cubic, quadratic, and linear coefficients.
+                // Preserve the exact authored anchor at the end of each segment.
+                if let (Some([_, quadratic, linear]), Some(next)) =
+                    (node.curve, nodes.get(index + 1))
+                {
+                    node.curve = Some([
+                        linear.map(|value| value / 3.0),
+                        std::array::from_fn(|axis| (2.0 * linear[axis] + quadratic[axis]) / 3.0),
+                        std::array::from_fn(|axis| next.position[axis] - node.position[axis]),
+                    ]);
+                }
+                node
+            })
+            .collect();
+        Some(PayloadRoute {
+            nodes,
+            barriers: rooms.iter().filter_map(RawBarrier::entry).collect(),
+            stage_seconds,
+            later_spawns,
+            speed_scale: 1.0,
+            cart_model: ObjectiveModel {
+                position: cart.position.map(|axis| axis as f32),
+                rotation: cart
+                    .rotation
+                    .unwrap_or([0.0, 0.0, 0.0, 1.0])
+                    .map(|axis| axis as f32),
+                scale: cart.scale,
+                shapes: cart.collision.clone(),
+            },
+            room_models: room_models(rooms, models),
+        })
+    }
+}
+
+fn room_models(
+    rooms: &[RawBarrier],
+    models: &HashMap<u32, Vec<serde_json::Value>>,
+) -> BTreeMap<u32, ObjectiveModel> {
+    rooms
+        .iter()
+        .filter_map(|placement| {
+            Some((
+                placement.placeable,
+                ObjectiveModel {
+                    position: placement.position?.map(|axis| axis as f32),
+                    rotation: placement.rotation?,
+                    scale: placement.scale,
+                    shapes: models.get(&placement.model?)?.clone(),
+                },
+            ))
+        })
+        .collect()
 }
 
 #[derive(Debug)]
 struct SpawnEntry {
     spawn: Spawn,
+    stage: Option<usize>,
+    placeable: Option<u32>,
     free_for_all: bool,
-    first_objective: bool,
+    objectives: Vec<(u32, String)>,
 }
 
 #[derive(Deserialize)]
@@ -357,12 +883,102 @@ struct RawMap {
     placeables_by_mode: Option<IndexMap<String, Vec<u32>>>,
     spawns: Option<Vec<RawSpawn>>,
     objectives: Option<Vec<MapObjective>>,
+    #[serde(default)]
+    escort_rail: Vec<SplineNode>,
+    #[serde(default)]
+    escort_scene_placeables: Vec<u32>,
+    #[serde(default)]
+    escort_room_placeables: Vec<RawBarrier>,
+    #[serde(default)]
+    escort_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    #[serde(default)]
+    assault_scene_placeables: Vec<u32>,
+    #[serde(default)]
+    assault_room_placeables: Vec<RawBarrier>,
+    #[serde(default)]
+    assault_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    #[serde(default)]
+    hybrid_rail: Vec<SplineNode>,
+    #[serde(default)]
+    hybrid_scene_placeables: Vec<u32>,
+    #[serde(default)]
+    hybrid_room_placeables: Vec<RawBarrier>,
+    #[serde(default)]
+    hybrid_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    #[serde(default)]
+    control_scene_placeables: Vec<u32>,
+    #[serde(default)]
+    control_room_placeables: Vec<RawBarrier>,
+    #[serde(default)]
+    control_room_models: HashMap<u32, Vec<serde_json::Value>>,
+    #[serde(default)]
+    control_healing_rooms: Vec<ControlHealingRoom>,
+    #[serde(default)]
+    control_objective_placeables: Vec<u32>,
+    #[serde(default)]
+    health_packs: Vec<RawPlacement>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawPlacement {
+    placeable: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawBarrier {
+    placeable: u32,
+    kind: String,
+    rooms: Vec<(usize, u8)>,
+    position: Option<[f64; 3]>,
+    rotation: Option<[f32; 4]>,
+    #[serde(default = "unit_scale")]
+    scale: [f32; 3],
+    model: Option<u32>,
+    #[serde(default)]
+    viewers: Vec<u8>,
+    open_seconds: Option<f64>,
+    close_seconds: Option<f64>,
+    open_delay: Option<f64>,
+    close_delay: Option<f64>,
+    gate_tag: Option<u32>,
+    debris_rail_node: Option<usize>,
+    #[serde(default)]
+    payload_unlock: bool,
+}
+
+impl RawBarrier {
+    fn entry(&self) -> Option<BarrierEntry> {
+        let kind = match self.kind.as_str() {
+            "door" => BarrierKind::Door,
+            "checkpoint_gate" => BarrierKind::CheckpointGate,
+            "gate_debris" => BarrierKind::GateDebris,
+            "barrier" => BarrierKind::TeamBarrier,
+            "overlay" => BarrierKind::Overlay,
+            "restricted_sign" => BarrierKind::RestrictedSign,
+            _ => return None,
+        };
+        let mut entry = BarrierEntry::new(self.placeable, kind, self.rooms.clone());
+        entry.position = self.position.unwrap_or_default();
+        entry.rotation = self.rotation.map(|rotation| rotation.map(f64::from));
+        entry.viewers.clone_from(&self.viewers);
+        entry.open_seconds = self.open_seconds.unwrap_or(entry.open_seconds);
+        entry.close_seconds = self.close_seconds.unwrap_or(entry.close_seconds);
+        entry.open_delay = self.open_delay.unwrap_or_default();
+        entry.close_delay = self.close_delay.unwrap_or_default();
+        entry.gate_tag = self.gate_tag;
+        entry.debris_rail_node = self.debris_rail_node;
+        entry.gate_debris = kind == BarrierKind::GateDebris;
+        entry.payload_unlock = self.payload_unlock;
+        Some(entry)
+    }
 }
 
 #[derive(Deserialize)]
 struct RawSpawn {
     #[serde(flatten)]
     spawn: Spawn,
+    stage: Option<usize>,
+    placeable: Option<u32>,
     ffa: Option<bool>,
     objectives: Option<Vec<(u32, String)>>,
 }

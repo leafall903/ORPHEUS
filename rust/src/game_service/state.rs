@@ -110,6 +110,12 @@ impl State {
         if count == 0 || count > usize::from(u8::MAX) {
             return Err(invalid("invalid match roster size"));
         }
+        if world
+            .as_ref()
+            .is_some_and(|start| start.cards.len() != count || start.slots.len() != count)
+        {
+            return Err(invalid("prepared match roster and world players disagree"));
+        }
         let mut room = Room {
             map,
             players: players
@@ -119,6 +125,7 @@ impl State {
                     info,
                     entity: player_entity(slot),
                     gone: false,
+                    room_slot: world.as_ref().and_then(|start| start.slots[slot]),
                 })
                 .collect(),
             members: IndexMap::new(),
@@ -137,7 +144,10 @@ impl State {
         let mod_host = self.mod_host.clone();
         let schemas = Arc::clone(&self.schemas);
         let prepared = guard_room(&mut room, RoomStage::Admission, |room| {
-            if let Some(WorldStart { mut scene, card }) = world {
+            if let Some(WorldStart {
+                mut scene, cards, ..
+            }) = world
+            {
                 let patrol = preloaded.map_or_else(
                     || {
                         #[cfg(feature = "lua-debug")]
@@ -176,7 +186,7 @@ impl State {
                 }
                 room.world = Some(RoomWorld {
                     scene,
-                    card,
+                    cards,
                     patrol,
                     #[cfg(any(test, feature = "inspector", feature = "lua-debug"))]
                     patrol_generation,
@@ -417,21 +427,74 @@ impl State {
                 connection,
                 id,
                 release,
+                loaded_only,
                 reply,
             } => {
                 let exists = self
                     .routes
                     .get(&connection)
                     .is_some_and(|owner| *owner == id);
-                if exists {
+                let loaded = !loaded_only
+                    || self
+                        .rooms
+                        .get(&id)
+                        .is_some_and(|room| room.member_loaded(connection));
+                if exists && loaded {
                     let resolved = self.resolve(connection)?;
-                    if release && resolved.is_some() && !self.links.cancel_handoff(connection) {
-                        self.send_home(connection, now)?;
+                    if release && resolved.is_some() {
+                        if self.links.cancel_handoff(connection) {
+                            self.retire(connection)?;
+                        } else {
+                            self.send_home(connection, now)?;
+                        }
                     }
                     let _ = reply.send(resolved.is_some());
                 } else {
                     let _ = reply.send(false);
                 }
+            }
+            Request::StartCustomMode {
+                connection,
+                id,
+                reply,
+            } => {
+                let mut started = false;
+                if self.routes.get(&connection) == Some(&id) && self.resolve(connection)?.is_some()
+                {
+                    self.room_work(id, RoomStage::Loading, Some(connection), |room| {
+                        let loaded = room.member_loaded(connection);
+                        if let Some(world) = room.world.as_mut().filter(|_| loaded) {
+                            started = world.scene.request_custom_mode_start();
+                        }
+                        Ok(())
+                    })?;
+                }
+                let _ = reply.send(started);
+            }
+            Request::MoveCustomSeat {
+                connection,
+                id,
+                lobby_team,
+                slot,
+                spectator_capacity,
+                reply,
+            } => {
+                let mut moved = None;
+                if self.routes.get(&connection) == Some(&id) && self.resolve(connection)?.is_some()
+                {
+                    let schemas = Arc::clone(&self.schemas);
+                    self.room_work(id, RoomStage::Loading, Some(connection), |room| {
+                        moved = room.move_custom_seat(
+                            connection,
+                            lobby_team,
+                            slot,
+                            spectator_capacity,
+                            &schemas,
+                        )?;
+                        Ok(())
+                    })?;
+                }
+                let _ = reply.send(moved);
             }
             Request::Skin {
                 connection,
@@ -445,8 +508,10 @@ impl State {
                     let tick = self.clock.frame();
                     self.room_work(id, RoomStage::Skin, Some(connection), |room| {
                         let room_tick = room.sim_tick(tick);
-                        if let Some(world) = &mut room.world {
-                            world.card.skins.insert(hero, skin);
+                        if let (Some(world), Some(member)) =
+                            (&mut room.world, room.members.get(&connection))
+                        {
+                            world.cards[member.slot].skins.insert(hero, skin);
                             if let Some(peer) = room
                                 .members
                                 .get_mut(&connection)
@@ -1084,12 +1149,13 @@ impl State {
             // respawn/history, then loading and delivery.
             let ids: Vec<_> = self.rooms.keys().copied().collect();
             for id in ids {
-                let (simulate, room_tick, _, _) =
+                let (simulate, room_tick, room_now, _) =
                     room_tick_plan(&room_plans, id, tick, now, drain, send_frames);
                 if !simulate {
                     continue;
                 }
                 self.room_work(id, RoomStage::Bots, None, |room| {
+                    room.advance_custom_mode(room_now)?;
                     if let Some(world) = &mut room.world {
                         world.scene.step_bots(room_tick, &world.patrol)?;
                     }
@@ -1097,6 +1163,7 @@ impl State {
                 })?;
             }
             let connections: Vec<_> = self.order.keys().copied().collect();
+            let schemas = Arc::clone(&self.schemas);
             for connection in connections {
                 if !self.order.contains_key(&connection) {
                     continue;
@@ -1123,6 +1190,13 @@ impl State {
                                 .map(|state| state.hero);
                             world.scene.try_step_encounter(room_tick, encounter_hero)?;
                             peer.world.queue_encounter_presentation(&world.scene)?;
+                            peer.advance_payload_voice(&schemas, player.info.team, room_now)?;
+                            peer.world.queue_custom_mode_presentation(
+                                &world.scene,
+                                room_tick,
+                                player.info.team,
+                                room_now,
+                            )?;
                             peer.world.advance_controller_ack(room_now)?;
                         }
                         let activity = world.scene.owner_room_activity();

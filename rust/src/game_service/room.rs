@@ -7,12 +7,25 @@ use thiserror::Error;
 
 pub(super) struct WorldStart {
     pub(super) scene: Box<PreparedScene>,
-    pub(super) card: PlayerCard,
+    pub(super) cards: Vec<PlayerCard>,
+    pub(super) slots: Vec<Option<i8>>,
+}
+
+#[cfg(test)]
+impl WorldStart {
+    pub(super) fn new(scene: PreparedScene, card: PlayerCard) -> Self {
+        let slot = scene.custom_slot;
+        Self {
+            scene: Box::new(scene),
+            cards: vec![card],
+            slots: vec![slot],
+        }
+    }
 }
 
 pub(super) struct RoomWorld {
     pub(super) scene: Box<PreparedScene>,
-    pub(super) card: PlayerCard,
+    pub(super) cards: Vec<PlayerCard>,
     pub(super) patrol: PatrolScript,
     #[cfg(any(test, feature = "inspector", feature = "lua-debug"))]
     pub(super) patrol_generation: u64,
@@ -22,6 +35,7 @@ pub(super) struct Player {
     pub(super) info: MatchPlayer,
     pub(super) entity: u32,
     pub(super) gone: bool,
+    pub(super) room_slot: Option<i8>,
 }
 
 impl Player {
@@ -204,6 +218,13 @@ impl RoomDebugControl {
 }
 
 impl Room {
+    pub(super) fn member_loaded(&self, connection: u32) -> bool {
+        self.members
+            .get(&connection)
+            .and_then(|member| member.peer.as_ref())
+            .is_some_and(|peer| peer.world.world_started())
+    }
+
     pub(super) fn is_paused(&self) -> bool {
         #[cfg(any(test, feature = "inspector"))]
         {
@@ -257,12 +278,13 @@ impl Room {
     }
 
     pub(super) fn appearance(&self, slot: usize) -> Option<PlayerAppearance<'_>> {
-        let player = self.players.get(slot)?;
+        let player = self.players.get(slot).filter(|player| !player.gone)?;
+        let world = self.world.as_ref()?;
         Some(PlayerAppearance {
             entity: player.entity,
-            slot: i8::try_from(slot).ok()?,
+            slot: player.room_slot.or_else(|| i8::try_from(slot).ok())?,
             team: player.info.team,
-            card: &self.world.as_ref()?.card,
+            card: world.cards.get(slot)?,
         })
     }
 
@@ -533,9 +555,120 @@ impl Room {
                 simulation.voice_chat_mut().leave(entity);
                 simulation.retire_player_owner(entity);
                 simulation.set_team_member_counts(counts);
+                for other in self
+                    .members
+                    .values_mut()
+                    .filter_map(|member| member.peer.as_mut())
+                {
+                    other.world.retire_participant(entity);
+                }
             }
         }
         Ok(())
+    }
+
+    pub(super) fn move_custom_seat(
+        &mut self,
+        connection: u32,
+        lobby_team: u8,
+        requested: Option<u8>,
+        spectator_capacity: u8,
+        schemas: &Schemas,
+    ) -> Result<Option<u8>, RoomError> {
+        use crate::room_primitives::{FREE_FOR_ALL_ROSTER_TEAM, SPECTATOR_TEAM, choose_seat};
+        let Some(member) = self.members.get(&connection) else {
+            return Ok(None);
+        };
+        let index = member.slot;
+        let Some(player) = self.players.get(index).filter(|player| !player.gone) else {
+            return Ok(None);
+        };
+        let Some(prior_slot) = player.room_slot else {
+            return Ok(None);
+        };
+        let (team, capacity) = match lobby_team {
+            SPECTATOR_TEAM => (SPECTATOR_TEAM, spectator_capacity),
+            FREE_FOR_ALL_ROSTER_TEAM if self.map.free_for_all => {
+                (0, self.map.team_sizes.first().copied().unwrap_or(0))
+            }
+            0 | 1 if !self.map.free_for_all => (
+                lobby_team,
+                self.map
+                    .team_sizes
+                    .get(usize::from(lobby_team))
+                    .copied()
+                    .unwrap_or(0),
+            ),
+            _ => return Ok(None),
+        };
+        let Some(slot) = choose_seat(
+            capacity,
+            requested,
+            (team == player.info.team).then_some(prior_slot as u8),
+            |slot| {
+                self.players.iter().enumerate().any(|(other, player)| {
+                    other != index
+                        && !player.gone
+                        && player.info.team == team
+                        && player.room_slot == Some(slot as i8)
+                })
+            },
+        ) else {
+            return Ok(None);
+        };
+        let crossed = player.info.team != team;
+        if !crossed && prior_slot == slot as i8 {
+            return Ok(Some(slot));
+        }
+        let entity = player.entity;
+        let update = crate::match_scene::player_seat_update(
+            entity,
+            team,
+            slot as i8,
+            self.map.free_for_all,
+            crossed,
+        )?;
+        self.players[index].info.team = team;
+        self.players[index].room_slot = Some(slot as i8);
+        let counts = self.team_member_counts();
+        if let Some(world) = &mut self.world {
+            let simulation = world.scene.simulation_mut();
+            simulation.set_team_member_counts(counts);
+            if crossed {
+                let voice = simulation.voice_chat_mut();
+                voice.leave(entity);
+                if team != SPECTATOR_TEAM {
+                    voice.join(entity, crate::game_replay::VoiceChannel::Team(team));
+                }
+                if let Some(peer) = self
+                    .members
+                    .get_mut(&connection)
+                    .and_then(|member| member.peer.as_mut())
+                {
+                    peer.world.change_viewer_team(team, simulation);
+                }
+            }
+        }
+        // Build each roster from its viewer's perspective, then enqueue to existing peers.
+        let viewers: Vec<_> = self
+            .members
+            .iter()
+            .filter_map(|(&connection, member)| {
+                member.peer.as_ref().map(|_| (connection, member.slot))
+            })
+            .collect();
+        for (connection, slot) in viewers {
+            let roster = self.message(slot, false)?;
+            if let Some(peer) = self
+                .members
+                .get_mut(&connection)
+                .and_then(|member| member.peer.as_mut())
+            {
+                peer.reliable(schemas, roster)?;
+                peer.world.queue_player_seat(update.clone());
+            }
+        }
+        Ok(Some(slot))
     }
 
     pub(super) fn receive(
@@ -668,12 +801,12 @@ impl Room {
         budget: usize,
     ) -> Result<(usize, bool), RoomError> {
         self.with_peer(connection, |room, peer, slot| {
-            let (quanta, player_entity, team) = {
+            let (quanta, player_entity, team, room_slot) = {
                 let player = room
                     .players
                     .get(slot)
                     .ok_or(RoomError::Invariant("input without viewer"))?;
-                (player.quanta(), player.entity, player.info.team)
+                (player.quanta(), player.entity, player.info.team, player.room_slot)
             };
             let world = room
                 .world
@@ -681,10 +814,10 @@ impl Room {
                 .ok_or(RoomError::Invariant("input without world"))?;
             let viewer = PlayerAppearance {
                 entity: player_entity,
-                slot: i8::try_from(slot)
-                    .map_err(|_| RoomError::Invariant("input without viewer"))?,
+                slot: room_slot.or_else(|| i8::try_from(slot).ok())
+                    .ok_or(RoomError::Invariant("input without viewer"))?,
                 team,
-                card: &world.card,
+                card: &world.cards[slot],
             };
             let context = ShotContext {
                 team: viewer.team,
@@ -757,6 +890,12 @@ impl Room {
                 peer.clear_world_in_room(world.scene.simulation_mut());
                 world.scene.retire_projectiles(connection);
                 peer.loading = MapReadiness::default();
+            } else if let Some(body) = peer
+                .world
+                .active_body_id()
+                .and_then(|id| world.scene.simulation_mut().player_body_mut(id))
+            {
+                body.sample_observer_clock(tick);
             }
             Ok((used, leave))
         })
@@ -774,6 +913,31 @@ pub(super) struct RoomUpdates {
 }
 
 impl Room {
+    pub(super) fn advance_custom_mode(&mut self, now: Duration) -> Result<(), RoomError> {
+        let Some(world) = self.world.as_mut() else {
+            return Ok(());
+        };
+        if world.scene.custom_mode_view().is_none() {
+            return Ok(());
+        }
+        let mut loaded = [0; 2];
+        for member in self.members.values() {
+            let player = &self.players[member.slot];
+            if !player.gone
+                && member
+                    .peer
+                    .as_ref()
+                    .is_some_and(|peer| peer.world.world_started())
+            {
+                if let Some(count) = loaded.get_mut(usize::from(player.info.team)) {
+                    *count += 1;
+                }
+            }
+        }
+        world.scene.advance_custom_mode(now, loaded)?;
+        Ok(())
+    }
+
     pub(super) fn finish_simulation(
         &mut self,
         tick: u32,
@@ -977,6 +1141,39 @@ impl Room {
                     .deliver_player_defender_sighting(message);
             }
         }
+        if world
+            .scene
+            .control_round()
+            .is_some_and(|round| round.round_index > 0)
+        {
+            for member in self.members.values_mut() {
+                let Some(peer) = &mut member.peer else {
+                    continue;
+                };
+                let Some(player) = self.players.get(member.slot).filter(|player| !player.gone)
+                else {
+                    continue;
+                };
+                let viewer = PlayerAppearance {
+                    entity: player.entity,
+                    slot: player
+                        .room_slot
+                        .or_else(|| i8::try_from(member.slot).ok())
+                        .ok_or(RoomError::Invariant(
+                            "control member has invalid roster slot",
+                        ))?,
+                    team: player.info.team,
+                    card: &world.cards[member.slot],
+                };
+                peer.world.advance_control_round_spawn(
+                    &mut world.scene,
+                    &viewer,
+                    tick,
+                    player.quanta(),
+                    now,
+                )?;
+            }
+        }
         if respawn_delay.is_some() && !world.scene.simulation().encounter_screens_complete() {
             for member in self.members.values_mut() {
                 let Some(peer) = &mut member.peer else {
@@ -1001,11 +1198,14 @@ impl Room {
                 };
                 let viewer = PlayerAppearance {
                     entity: player.entity,
-                    slot: i8::try_from(member.slot).map_err(|_| {
-                        RoomError::Invariant("respawn member has invalid roster slot")
-                    })?,
+                    slot: player
+                        .room_slot
+                        .or_else(|| i8::try_from(member.slot).ok())
+                        .ok_or(RoomError::Invariant(
+                            "respawn member has invalid roster slot",
+                        ))?,
                     team: player.info.team,
-                    card: &world.card,
+                    card: &world.cards[member.slot],
                 };
                 if let Err(error) = peer.world.advance_player_respawn(
                     &mut world.scene,
@@ -1027,15 +1227,27 @@ impl Room {
                 else {
                     continue;
                 };
-                let Ok(slot) = i8::try_from(member.slot) else {
+                let Some(slot) = player.room_slot.or_else(|| i8::try_from(member.slot).ok()) else {
                     continue;
                 };
                 let viewer = PlayerAppearance {
                     entity: player.entity,
                     slot,
                     team: player.info.team,
-                    card: &world.card,
+                    card: &world.cards[member.slot],
                 };
+                if let Err(error) = peer.world.advance_assembly_selection(
+                    &mut world.scene,
+                    &viewer,
+                    tick,
+                    player.quanta(),
+                    now,
+                ) {
+                    eprintln!(
+                        "player {:08X} assembly spawn rejected: {error}",
+                        viewer.entity
+                    );
+                }
                 if let Err(error) = peer.world.advance_body_swap(
                     &mut world.scene,
                     &viewer,

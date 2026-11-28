@@ -359,6 +359,8 @@ pub fn health(now: f32, most: f32, armour: f32, shields: f32) -> Component {
 pub struct Movement {
     pub position: [f64; 3],
     pub yaw: i32,
+    /// Euler rotation of the entity. `pitch` is the separate aim word.
+    pub body_pitch: i32,
     pub pitch: i32,
     pub velocity: [f64; 3],
     pub flags: u32,
@@ -374,6 +376,32 @@ pub struct Movement {
     pub spring: [i32; 2],
     pub spring_speed: f64,
     pub fall: f32,
+}
+
+impl Movement {
+    /// Observer records describe the pose at the outgoing packet's tick.
+    /// Express the pose's auxiliary command stamps on the room clock used
+    /// to sample it, independently of either client's command clock.
+    pub(crate) fn for_observer(mut self, sampled_at: u32) -> Self {
+        if let Some(command_frame) = self.frame.take() {
+            let room_frame = |frame: u32| {
+                if frame >= command_frame {
+                    sampled_at.saturating_add(frame - command_frame)
+                } else {
+                    sampled_at.saturating_sub(command_frame - frame)
+                }
+            };
+            self.input_frame = self.input_frame.map(|frame| {
+                if frame == NO_INPUT {
+                    NO_INPUT
+                } else {
+                    room_frame(frame)
+                }
+            });
+            self.crouch_frame = self.crouch_frame.map(room_frame);
+        }
+        self
+    }
 }
 
 fn quantize(value: f64) -> Result<i64, WorldError> {
@@ -509,7 +537,13 @@ pub fn write_movement(
     } else {
         out.bit(false);
     }
-    out.bits(0, 2)?; // No Euler pitch or roll.
+    let body_pitch = state.body_pitch as u16;
+    if body_pitch != 0 {
+        selector(out, i64::from(body_pitch), 2, 16)?;
+    } else {
+        out.bit(false);
+    }
+    out.bit(false); // No Euler roll.
     for axis in position {
         selector(out, axis, 2, MOVEMENT_AXIS_BITS)?;
     }
@@ -898,6 +932,33 @@ mod tests {
             .collect()
     }
 
+    #[test]
+    fn movement_writes_body_pitch_independently_of_aim() {
+        let case: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/escort-assembly-seat-pose-v1.json"
+        ))
+        .unwrap();
+        let input = &case["input"]["movement"];
+        let expected = &case["expected"];
+        let movement = Movement {
+            position: std::array::from_fn(|i| input["position"][i].as_f64().unwrap()),
+            yaw: input["yaw"].as_i64().unwrap() as i32,
+            body_pitch: input["body_pitch"].as_i64().unwrap() as i32,
+            pitch: input["aim_pitch"].as_i64().unwrap() as i32,
+            ..Movement::default()
+        };
+        let mut out = BitWriter::new();
+        write_movement(&mut out, &movement, None, None, None).unwrap();
+        assert_eq!(
+            out.bit_len() as u64,
+            expected["movement_bits"].as_u64().unwrap()
+        );
+        assert_eq!(
+            out.as_bytes(),
+            hex(expected["movement_bytes"].as_str().unwrap())
+        );
+    }
+
     fn entity(entity: u32, operation: Operation) -> EntityUpdate {
         EntityUpdate {
             entity,
@@ -917,6 +978,7 @@ mod tests {
         Movement {
             position: [1.5, -2.25, 3.0],
             yaw: 33067,
+            body_pitch: 0,
             pitch: -32769,
             velocity: [0.5, 2.0, -1.25],
             flags: 0x8010_0405,
@@ -1029,6 +1091,57 @@ mod tests {
                 tick: 3975
             })
         ));
+    }
+
+    #[test]
+    fn observer_movement_uses_the_room_clock_without_retiming_owner_corrections() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            command_frame: u32,
+            input_frame: Option<u32>,
+            crouch_frame: Option<u32>,
+            sample_tick: u32,
+            packet_tick: u32,
+            observed_input_frame: Option<u32>,
+            observed_crouch_frame: Option<u32>,
+        }
+        #[derive(serde::Deserialize)]
+        struct Contract {
+            cases: Vec<Case>,
+        }
+        let contract: Contract = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/observer-movement-clock-v1.json"
+        ))
+        .unwrap();
+        for case in contract.cases {
+            let owner_pose = Movement {
+                frame: Some(case.command_frame),
+                input_frame: case.input_frame,
+                crouch_frame: case.crouch_frame,
+                ..moving()
+            };
+            let observer_pose = owner_pose.for_observer(case.sample_tick);
+            assert_eq!(
+                observer_pose,
+                Movement {
+                    frame: None,
+                    input_frame: case.observed_input_frame,
+                    crouch_frame: case.observed_crouch_frame,
+                    ..owner_pose
+                },
+            );
+            let record = movement_record(&observer_pose, Some(case.packet_tick)).unwrap();
+            assert_eq!(
+                record,
+                movement_record(&observer_pose, Some(case.packet_tick + 3)).unwrap(),
+            );
+            if case.command_frame > case.packet_tick {
+                assert!(matches!(
+                    movement_record(&owner_pose, Some(case.packet_tick)),
+                    Err(WorldError::FutureMovement { .. })
+                ));
+            }
+        }
     }
 
     #[test]

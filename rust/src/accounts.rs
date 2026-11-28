@@ -46,6 +46,13 @@ pub struct LootBox {
     pub name: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum GreetedEvent {
+    Id(u64),
+    Name(String),
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
 pub struct Profile {
@@ -70,7 +77,7 @@ pub struct Profile {
     pub last_online: i64,
     pub lobby_hero: String,
     pub events: Vec<String>,
-    pub greeted_events: Vec<String>,
+    pub greeted_events: Vec<GreetedEvent>,
     pub server_date: String,
     pub challenge: String,
     pub challenge_wins: i64,
@@ -452,6 +459,78 @@ fn write_profile_with_account(
 
 pub fn save_profile(profile: &Profile, path: &Path) -> io::Result<()> {
     write_profile_with_account(profile, None, path, true)
+}
+
+/// Import Python profiles while the destination server is stopped, keeping existing saves.
+pub fn import_python_profiles(source: &Path, data: &Path) -> io::Result<(usize, usize)> {
+    let mut entries = fs::read_dir(source)?.collect::<io::Result<Vec<_>>>()?;
+    entries.sort_by_key(|entry| entry.file_name());
+    let registry = Accounts::new(data.join("profiles"), data.join("profile.json"))?;
+    let mut pending = Vec::new();
+    let mut names = HashSet::new();
+    let mut skipped = 0;
+    for entry in entries {
+        let path = entry.path();
+        if !entry.file_type()?.is_file()
+            || !path
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
+        {
+            continue;
+        }
+        let stem = path
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| {
+                io::Error::new(io::ErrorKind::InvalidData, "invalid profile filename")
+            })?;
+        let mut value: Value = serde_json::from_slice(&fs::read(&path)?).map_err(json_error)?;
+        let name = trim_name(
+            value
+                .get("account_name")
+                .and_then(Value::as_str)
+                .unwrap_or(stem),
+        );
+        if name.is_empty() || !names.insert(name_key(name)) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "empty or duplicate login name in import",
+            ));
+        }
+        crate::bnet_session_key::session_key(name)?;
+        let (destination, disambiguated) = registry.path_for(name)?;
+        if destination.try_exists()? {
+            skipped += 1;
+            continue;
+        }
+        let saved_name = disambiguated.then(|| name.to_owned());
+        let mut checked = value.clone();
+        sanitize_saved_settings(&mut checked);
+        Profile::from_json(checked)?;
+        let object = value.as_object_mut().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidData, "expected a profile object")
+        })?;
+        object.insert(UNLOCKS_RESET_MARKER.into(), Value::Bool(true));
+        if let Some(name) = saved_name {
+            object.insert("account_name".into(), Value::String(name));
+        }
+        pending.push((
+            destination,
+            serde_json::to_vec_pretty(&value).map_err(json_error)?,
+        ));
+    }
+    let mut imported = 0;
+    for (path, bytes) in pending {
+        let mut file = tempfile::NamedTempFile::new_in(&registry.directory)?;
+        file.write_all(&bytes)?;
+        file.as_file().sync_all()?;
+        match file.persist_noclobber(path) {
+            Ok(_) => imported += 1,
+            Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => skipped += 1,
+            Err(error) => return Err(error.error),
+        }
+    }
+    Ok((imported, skipped))
 }
 
 fn backup_corrupt_profile(path: &Path) -> io::Result<PathBuf> {
@@ -996,6 +1075,55 @@ mod tests {
         assert_ne!(account.account_lo, plain.account_lo);
         assert_eq!(registry.all_saved().unwrap().len(), 2);
         assert_eq!(account.profile().loot_boxes.len(), 140);
+    }
+
+    #[test]
+    fn python_import_keeps_legacy_greetings_and_inventory_without_clobbering() {
+        let source = tempfile::tempdir().unwrap();
+        let state = tempfile::tempdir().unwrap();
+        let path = source.path().join("ImportProbe.json");
+        let fixture = include_bytes!("../../fixtures/behavior/python-profile-import-v1.json");
+        fs::write(&path, fixture).unwrap();
+
+        assert_eq!(
+            import_python_profiles(source.path(), state.path()).unwrap(),
+            (1, 0)
+        );
+        let registry = Accounts::new(
+            state.path().join("profiles"),
+            state.path().join("profile.json"),
+        )
+        .unwrap();
+        let account = registry.get("ImportProbe").unwrap();
+        {
+            let profile = account.profile();
+            assert_eq!(profile.player_name, "Migration Probe");
+            assert_eq!(profile.credits, 125);
+            assert_eq!(
+                profile.greeted_events,
+                [
+                    GreetedEvent::Id(7),
+                    GreetedEvent::Name("synthetic-event".into())
+                ]
+            );
+            assert!(profile.unlocked_guids().contains(&0x0250_0000_0000_00aa));
+        }
+        account
+            .edit_profile(|profile| {
+                profile.credits = 250;
+                Ok(Some(()))
+            })
+            .unwrap();
+        assert_eq!(
+            import_python_profiles(source.path(), state.path()).unwrap(),
+            (0, 1)
+        );
+        let saved = load_existing_profile(account.path.as_deref().unwrap())
+            .unwrap()
+            .0;
+        assert_eq!(saved.credits, 250);
+        assert_eq!(saved.greeted_events, account.profile().greeted_events);
+        assert_eq!(fs::read(path).unwrap(), fixture);
     }
 
     #[test]

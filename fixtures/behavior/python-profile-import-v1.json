@@ -1,0 +1,6 @@
+{
+  "player_name": "Migration Probe",
+  "credits": 125,
+  "greeted_events": [7, "synthetic-event"],
+  "unlocked_items": ["0x02500000000000AA"]
+}

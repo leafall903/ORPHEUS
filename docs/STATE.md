@@ -19,6 +19,30 @@ The [pinned Python → Rust parity matrix](https://github.com/leafall903/ORPHEUS
 
 ---
 
+## Custom-game lobby and match start
+
+Rust serves 104319 public rooms through the Game Browser. Both clients can create, browse, and join, and room members receive the same roster. The host can edit names and multipart settings, move any player, and start the selected map and preset. Players can move their own seat. The lobby reserves each member a distinct UDP ticket into one match. Live team moves update both connections through the acknowledged entity stream. Authored mode rules drive the waiting phase and assembly, and the host can return both members to the saved room or restart after the old links close.
+
+On King's Row, the prepared PvP regression verifies that both players acknowledge new owner StateScript frames after nonlethal hits in both directions. Retail action playback remains open for verification.
+
+## Escort in custom games
+
+The six 104319 Escort maps use the prepared cubic route, checkpoint time awards, gate actions, and stage-specific spawn data. Per-viewer StateScript streams deliver the mode, objective, cart, and room visuals through the common acknowledgement path. Cart and door models share a room contact layer with native movement.
+
+The six 104319 Assault maps use authored capture volumes, timings, outlines, and stage-specific rooms. The shared objective streams deliver the setup waypoint, segmented HUD, point transitions, and results after per-viewer acknowledgement.
+
+Six 104319 Control map variants use authored point and room areas, independent setup and unlock clocks, 99-percent overtime, and per-connection round and match presentation.
+
+Assault, Escort, Hybrid, and Control share the authored overtime touch window and fuse. Their native HUD receives the active flag, remaining time, and normalized fill through the acknowledged mode stream.
+
+Ten 104319 Hybrid map variants combine the shared capture and escort systems in one custom round. The connection confirms A's completed point state and outline removal before the capture sound, cart activation, and payload HUD handoff.
+
+The full objective flows require a separately prepared 104319 PvP map catalog, StateScript graphs, and collision caches. The one-command runtime installer currently prepares Practice Range geometry.
+
+The locked cart receives its pose after placement acknowledgement during map entry. Restricted signs use their own positive team flags in the stage room presenter. Hero picker changes across modes update the existing owner script instances and keep the original map entry as the sole controller initialization.
+
+Escort attackers can confirm or reopen hero selection during assembly and spawn after the acknowledged setup transition. Setup headings follow the viewer's assigned side. Live lobby seat changes publish the new roster and team filter, and the cart movement record carries its rail pitch.
+
 ## Practice Range playtest follow-up
 
 The shared static grapple trace reads the firing body's model attachment and
@@ -840,7 +864,7 @@ published a third generation.
 
 | Workflow | Python reference | Rust implementation | Open client or parity gap |
 | --- | --- | --- | --- |
-| **Login, Profiles & Lobby** | Battle.net/JAM auth, profiles, settings (`22200`–`22204`), queues, Windows launcher + TLS relay. | Native BNet/JAM lobby, `profile-settings-v1` (CI verified), encrypted UDP seat handoff. | Standalone Rust launcher & public client connection flow open. |
+| **Login, Profiles & Lobby** | Battle.net/JAM auth, profiles, settings (`22200`–`22204`), queues, Windows launcher + TLS relay. | Native BNet/JAM lobby, `profile-settings-v1` (CI verified), encrypted UDP seat handoff, Python save import, and two distinct local RPC logins through the Windows workspace launcher. | Original-client dual login and public client connection flow open. |
 | **Hero Gallery** | Loadouts, skins, equipped voice & emotes. | Loadout equip/persist, live skin body replacement, 23 NPC previews (C++ policy verified in CI). | Client Hero Gallery NPC framing & animation retest pending. |
 | **Practice Range & Soldier: 76** | Full body/weapon VM, rifle, Sprint, Helix, Biotic Field, bots, format-5 collision. | Stock Soldier startup tree + rifle/Sprint/Helix/Biotic Field VM regressions; bots/projectiles in Bevy ECS with default StateScript patrol decisions and an optional Lua debug override; all 43 movers match Python trajectories. | Client 60s stock-weapon mount, HUD/ammo sync, upstairs patrol, bot HUD/SFX (#3, #7–#9, #13), and original-client acceptance of the `08B6` / `004B -> 01CB` startup tree differences vs. Python pending. |
 | **Movement & Collision** | GJK/contact solver, static ray queries, `0688` + 95 map caches. | `orpheus-collision` matches 10,148 Python movement records & 8,256 velocity cases; shared map-agnostic static navigation queries (`walkable_ground`, `capsule_clearance`, `walk_edge`, `find_path`, `valid_spawns`, `snap_spawn_points`) verified on synthetic fixtures and prepared `104319` Practice Range (`0688`), King's Row (`00D4`), Temple of Anubis (`005B`), Hanamura (`0165`), and Kanezaka (`0CD3`) collision caches ([#63](https://github.com/leafall903/ORPHEUS/issues/63), manifest SHA-256 `dad26628515e60e45e6128effd0c6408092dee8c8fc674ce00850b3463f8a90b`); player bodies live in `RoomSimulation` ECS ([#65](https://github.com/leafall903/ORPHEUS/issues/65)) and safe-boundary Lua AI hot reload with rollback landed in [#120](https://github.com/leafall903/ORPHEUS/pull/120). | Dynamic player-vs-player / player-vs-bot character collision blocking and live client checks (#7, #13) remain open. |

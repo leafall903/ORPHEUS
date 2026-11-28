@@ -275,6 +275,7 @@ mod tests {
                 position: [3.125, 0.5, -3.75],
                 velocity: [0.25, 0.75, -2.125],
                 yaw: 12_000,
+                body_pitch: 0,
                 pitch: -3000,
                 flags: 0x0400_0002,
                 air_ticks: 11,

@@ -1,11 +1,21 @@
 //! Immutable-per-room prepared scene state and simulation accessors.
 
 use super::*;
+use std::time::Duration;
+
+pub(super) struct CustomMode {
+    pub(super) start: CustomMatchStart,
+    pub(super) graphs: Arc<GraphStore>,
+    pub(super) variables: Variables,
+    pub(super) presentation: (MatchPhase, u32),
+    pub(super) codecs: Option<Arc<crate::script_codecs::CodecTable>>,
+}
 
 pub struct PreparedScene {
     pub(super) junkenstein_validation:
         Option<crate::pve_encounter::validation::JunkensteinValidation>,
     pub(super) map: GameMap,
+    pub(crate) custom_slot: Option<i8>,
     #[cfg(any(test, feature = "inspector"))]
     pub(super) movement_cache: String,
     pub(super) ground: Arc<CollisionScene>,
@@ -15,6 +25,7 @@ pub struct PreparedScene {
     pub(super) breakables: Arc<crate::collision_scene::BreakableState>,
     pub(super) controller: Controller,
     pub(super) mode_ui: BitWriter,
+    pub(super) custom_mode: Option<CustomMode>,
     pub(super) initial_board: Component,
     pub(super) simulation: RoomSimulation,
     pub(super) scripted_bots: usize,
@@ -103,6 +114,7 @@ impl PreparedScene {
         Self {
             junkenstein_validation: None,
             map: GameMap::practice_range(),
+            custom_slot: None,
             #[cfg(any(test, feature = "inspector"))]
             movement_cache: String::new(),
             combat_rays: Arc::clone(&ground),
@@ -112,6 +124,7 @@ impl PreparedScene {
             breakables,
             controller: Controller::fixture_for_test(),
             mode_ui: BitWriter::new(),
+            custom_mode: None,
             initial_board: Component {
                 index: 0,
                 fields: Vec::new(),
@@ -172,7 +185,7 @@ impl PreparedScene {
     }
 
     pub(crate) fn movement_ready(&self) -> bool {
-        (is_practice_range(&self.map) || self.map.is_junkenstein())
+        (self.custom_slot.is_some() || is_practice_range(&self.map) || self.map.is_junkenstein())
             && self.bot_scripts_ready()
             && self.contacts.is_some()
     }
@@ -194,9 +207,27 @@ impl PreparedScene {
     }
 
     pub(crate) fn player_spawn_mover(&self, body: u64, team: u8) -> io::Result<Mover> {
+        let slot = self.custom_slot.map_or(0, |slot| slot as usize);
+        self.player_spawn_mover_for_slot(body, team, slot)
+    }
+
+    pub(crate) fn player_spawn_mover_for_slot(
+        &self,
+        body: u64,
+        team: u8,
+        slot: usize,
+    ) -> io::Result<Mover> {
         let (position, yaw) = self
             .map
-            .spawn_point(team, 0)
+            .spawn_for_stage(
+                team,
+                slot,
+                self.payload_round()
+                    .map(|round| round.room_stage())
+                    .or_else(|| self.capture_round().map(|round| round.stage))
+                    .or_else(|| self.control_round().map(|round| round.stage()))
+                    .unwrap_or(0),
+            )
             .ok_or_else(|| invalid("no spawn for the selected hero"))?;
         let yaw = (yaw * 65536.0 / 360.0).round_ties_even() as i32;
         self.player_spawn_mover_at(body, team, position, yaw)
@@ -209,12 +240,16 @@ impl PreparedScene {
         position: [f64; 3],
         yaw: i32,
     ) -> io::Result<Mover> {
-        let contacts = self.contacts.as_ref().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::Unsupported,
-                "the scene has no native player collision",
-            )
-        })?;
+        let contacts = self
+            .simulation
+            .payload_contact_world()
+            .or(self.contacts.as_ref())
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    "the scene has no native player collision",
+                )
+            })?;
         let mut mover = Mover::new(
             *self.movers.for_body(Some(body)),
             Arc::clone(contacts),
@@ -290,6 +325,135 @@ impl PreparedScene {
 
     pub fn mode_ui(&self) -> &BitWriter {
         &self.mode_ui
+    }
+
+    pub(crate) fn custom_mode_view(&self) -> Option<(MatchPhase, u32)> {
+        self.custom_mode.as_ref().map(|mode| mode.presentation)
+    }
+
+    pub(crate) fn selected_phase(&self) -> Option<MatchPhase> {
+        self.custom_mode_view().map(|(phase, _)| phase)
+    }
+
+    pub(crate) fn holds_assembly_spawn(&self, team: u8) -> bool {
+        self.has_objective_presenter()
+            && self.control_round().is_none()
+            && team == crate::pvp_mode::FIRST_ATTACKING_TEAM
+            && self.selected_phase() == Some(MatchPhase::Assemble)
+    }
+
+    pub(crate) fn hero_select_objective(&self, team: u8) -> Option<(u64, u8)> {
+        use crate::pvp_mode::FIRST_ATTACKING_TEAM;
+        if self.control_round().is_some() {
+            return None;
+        }
+        if team >= 2 || !self.has_objective_presenter() {
+            return None;
+        }
+        Some((
+            if team == FIRST_ATTACKING_TEAM {
+                0x0de0_0000_0000_6e64
+            } else {
+                0x0de0_0000_0000_6e63
+            },
+            team,
+        ))
+    }
+
+    pub(crate) fn payload_round(&self) -> Option<&crate::pvp_mode::EscortRound> {
+        self.map.payload_route.as_ref()?;
+        self.simulation.pvp_objective()?.escort_round()
+    }
+
+    pub(crate) fn payload_presentation(
+        &self,
+    ) -> Option<(&GraphStore, &crate::script_codecs::CodecTable)> {
+        self.payload_round()?;
+        self.objective_presentation()
+    }
+
+    pub(crate) fn capture_round(&self) -> Option<&crate::pvp_mode::AssaultRound> {
+        self.map.capture_course.as_ref()?;
+        match self.simulation.pvp_objective()? {
+            crate::pvp_mode::PvpObjectiveRuntime::Assault(round) => Some(round),
+            crate::pvp_mode::PvpObjectiveRuntime::Hybrid(round) => Some(&round.capture),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn control_round(&self) -> Option<&crate::pvp_mode::ControlRound> {
+        match self.simulation.pvp_objective()? {
+            crate::pvp_mode::PvpObjectiveRuntime::Control(round) => Some(round),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn has_objective_presenter(&self) -> bool {
+        self.objective_presentation().is_some()
+    }
+
+    pub(crate) fn objective_presentation(
+        &self,
+    ) -> Option<(&GraphStore, &crate::script_codecs::CodecTable)> {
+        if self.payload_round().is_none()
+            && self.capture_round().is_none()
+            && self.control_round().is_none()
+        {
+            return None;
+        }
+        let mode = self.custom_mode.as_ref()?;
+        Some((&mode.graphs, mode.codecs.as_deref()?))
+    }
+
+    pub(crate) fn request_custom_mode_start(&mut self) -> bool {
+        self.custom_mode
+            .as_mut()
+            .is_some_and(|mode| mode.start.request_start())
+    }
+
+    pub(crate) fn advance_custom_mode(
+        &mut self,
+        now: Duration,
+        loaded: [usize; 2],
+    ) -> io::Result<()> {
+        let Some(mode) = self.custom_mode.as_mut() else {
+            return Ok(());
+        };
+        mode.start.advance(now, loaded, &self.map.team_sizes);
+        let mut presentation = mode.start.presentation(now);
+        if presentation.0 == MatchPhase::Assemble {
+            if let Some(round) = self.simulation.pvp_objective_mut() {
+                round.start_custom_assembly(now.as_secs_f64());
+            }
+        }
+        if let Some(end) = mode.start.assembly_ends().filter(|&end| now >= end) {
+            if let Some(pvp) = self.simulation.pvp_objective_mut() {
+                pvp.start_custom_setup(end.as_secs_f64());
+                presentation = (pvp.phase(), pvp.phase_seconds(now.as_secs_f64()));
+            }
+        }
+        if presentation != mode.presentation {
+            if (self.map.payload_route.is_none() && self.map.capture_course.is_none())
+                || mode.codecs.is_none()
+            {
+                self.mode_ui = custom_mode_presentation(
+                    &mode.graphs,
+                    self.map.mode_guid,
+                    &mode.variables,
+                    presentation.0,
+                    presentation.1,
+                )?;
+            }
+            mode.presentation = presentation;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn hide_assemble(&self) -> bool {
+        !self.map.is_junkenstein()
+            && !self
+                .custom_mode_view()
+                .is_some_and(|(phase, _)| phase == MatchPhase::Assemble)
     }
 
     pub fn junkenstein_gate(&self) -> Option<&JunkensteinGate> {
@@ -597,6 +761,18 @@ impl PreparedScene {
             self.initial_board.clone(),
             std::iter::empty(),
         )?;
+        if let Some(barriers) = self
+            .payload_round()
+            .map(|round| &round.barriers)
+            .or_else(|| self.capture_round().map(|round| &round.barriers))
+        {
+            updates.retain(|update| {
+                !barriers
+                    .entries
+                    .iter()
+                    .any(|entry| entry.entity == update.entity && entry.kind.is_room_visual())
+            });
+        }
         updates.extend(self.simulation.initial_creates()?);
         Ok(updates)
     }

@@ -39,12 +39,14 @@ use crate::{
     game_stats::{PlayerStats, StatsCatalog, initial_on_fire},
     map_environment::EnvironmentCatalog,
     match_scene::{
-        PlayerAppearance, initial_world, junkenstein_presentation, mode_presentation, team_bit,
+        PlayerAppearance, custom_mode_presentation, initial_world, junkenstein_presentation,
+        mode_presentation, team_bit,
     },
     mover::Mover,
     mover_ground::NOT_GROUND,
     mover_settings::MoverCatalog,
     patrol_script::PatrolScript,
+    pvp_mode::{CustomMatchStart, MatchPhase},
     runtime::{
         ACTOR_VOICE_CATALOG, COMBAT_HURT_VOLUMES, COMBAT_VOICE_CATALOG, JUNKENSTEIN_MAP_WORLD,
         MAP_ENVIRONMENT,
@@ -82,7 +84,7 @@ fn mover_category(map: &GameMap, team: u8) -> u16 {
     mover_category_for_team(map.free_for_all, team)
 }
 
-fn mover_category_for_team(free_for_all: bool, team: u8) -> u16 {
+pub(crate) fn mover_category_for_team(free_for_all: bool, team: u8) -> u16 {
     match (free_for_all, team) {
         (false, 0) => 0x08,
         (false, 1) => 0x10,
@@ -120,7 +122,7 @@ type OwnerBodyFactory = dyn Fn(&Hero, OwnerBodySpawn, OwnerBodySetup) -> io::Res
     + Send
     + Sync;
 
-fn practice_owner_selector(
+fn owner_factory_selector(
     factories: BTreeMap<
         (u64, u64),
         Result<Arc<PlayerBodyFactory>, Arc<SceneOwnerPreparationError>>,
@@ -477,6 +479,25 @@ impl SceneAssets {
     /// Load the map before handing it to the worker. The render layouts and
     /// graph requirements are checked without blocking a game tick.
     pub fn prepare(&self, map: GameMap) -> io::Result<PreparedScene> {
+        self.prepare_scene(map, None, None)
+    }
+
+    pub(crate) fn prepare_custom(
+        &self,
+        map: GameMap,
+        slot: i8,
+        start_mode: u32,
+    ) -> io::Result<PreparedScene> {
+        let start_mode = (map.mode_guid != PRACTICE_RANGE_MODE).then_some(start_mode);
+        self.prepare_scene(map, Some(slot), start_mode)
+    }
+
+    fn prepare_scene(
+        &self,
+        map: GameMap,
+        custom_slot: Option<i8>,
+        start_mode: Option<u32>,
+    ) -> io::Result<PreparedScene> {
         let (junkenstein_gate, junkenstein_anchors) = if map.is_junkenstein() {
             let (gate, anchors) =
                 read_junkenstein_map(&self.junkenstein_map_world, &map, &self.graphs)?;
@@ -504,7 +525,8 @@ impl SceneAssets {
             contacts,
         } = self.map_collision(
             &map,
-            is_practice_range(&map)
+            custom_slot.is_some()
+                || is_practice_range(&map)
                 || map.is_junkenstein()
                 || bots.iter().any(|bot| !bot.spawn.route.is_empty()),
         )?;
@@ -535,7 +557,31 @@ impl SceneAssets {
             .transpose()?;
         // Client presenters can read the room mode entity's authored variables.
         let variables = authored_mode_variables(&self.graphs, map.mode_guid).unwrap_or_default();
-        let mode_ui = mode_presentation(&self.graphs, &variables, encounter)?;
+        let (mode_ui, custom_mode) = if let Some(start_mode) = start_mode {
+            let presentation = (MatchPhase::Waiting, 0);
+            let mode_ui = custom_mode_presentation(
+                &self.graphs,
+                map.mode_guid,
+                &variables,
+                presentation.0,
+                presentation.1,
+            )?;
+            (
+                mode_ui,
+                Some(prepared::CustomMode {
+                    start: CustomMatchStart::new(start_mode),
+                    graphs: Arc::clone(&self.graphs),
+                    variables,
+                    presentation,
+                    codecs: self.codecs.clone(),
+                }),
+            )
+        } else {
+            (
+                mode_presentation(&self.graphs, &variables, encounter)?,
+                None,
+            )
+        };
         let initial_board = crate::game_stats::with_on_fire(
             self.stats
                 .component(&PlayerStats::default(), map.mode_guid, None, None),
@@ -557,7 +603,13 @@ impl SceneAssets {
         simulation.set_map_guid(map.map_guid);
         simulation.set_environment(self.environment.for_map(map.map_guid));
         if let Some(pvp) = crate::pvp_mode::PvpObjectiveRuntime::from_game_map(&map) {
-            simulation.set_pvp_objective(pvp);
+            simulation.set_pvp_objective(pvp, custom_mode.is_some());
+        }
+        if let (Some(route), Some(base)) = (&map.payload_route, &contacts) {
+            simulation.set_payload_contacts(Arc::clone(base), route)?;
+        }
+        if let (Some(course), Some(base)) = (&map.capture_course, &contacts) {
+            simulation.set_capture_contacts(Arc::clone(base), course)?;
         }
         if self.graphs.uses_host_health_events() {
             simulation.enable_host_health_events();
@@ -601,6 +653,7 @@ impl SceneAssets {
         }
         let mut scene = PreparedScene {
             map,
+            custom_slot,
             #[cfg(any(test, feature = "inspector"))]
             movement_cache: _movement_cache,
             ground,
@@ -610,6 +663,7 @@ impl SceneAssets {
             breakables,
             controller,
             mode_ui,
+            custom_mode,
             junkenstein_validation: None,
             initial_board,
             simulation,
@@ -623,8 +677,10 @@ impl SceneAssets {
         if is_practice_range(scene.map()) {
             scene.owner_body_factory = self
                 .practice_owner_body
-                .get_or_init(|| self.compile_practice_factories(&scene))
+                .get_or_init(|| self.compile_owner_factories(&scene))
                 .clone();
+        } else if custom_slot.is_some() {
+            scene.owner_body_factory = self.compile_owner_factories(&scene);
         }
         Ok(scene)
     }
@@ -752,7 +808,7 @@ impl SceneAssets {
         }))
     }
 
-    fn compile_practice_factories(&self, scene: &PreparedScene) -> Option<Arc<OwnerBodyFactory>> {
+    fn compile_owner_factories(&self, scene: &PreparedScene) -> Option<Arc<OwnerBodyFactory>> {
         // A scriptless scene omits the entire owner configuration.
         let bodies = self.graphs.bodies();
         if self.codecs.is_none()
@@ -779,7 +835,7 @@ impl SceneAssets {
             .collect();
         let on_fire = initial_on_fire(&scene.initial_board);
         (!factories.is_empty()).then(|| {
-            practice_owner_selector(
+            owner_factory_selector(
                 factories,
                 Arc::clone(&self.graphs),
                 self.codecs.clone(),

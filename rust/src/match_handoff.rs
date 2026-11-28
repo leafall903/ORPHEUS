@@ -149,7 +149,7 @@ pub fn queue_popped(key: Fields) -> LobbyMessage {
     )
 }
 
-fn match_lobby_id(id: [u64; 2]) -> Value {
+pub(crate) fn match_lobby_id(id: [u64; 2]) -> Value {
     Value::Struct(Fields::from([(
         0,
         Value::Array(id.into_iter().map(Value::Unsigned).collect()),

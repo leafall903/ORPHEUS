@@ -1,20 +1,26 @@
 use std::{env, ffi::OsString, io, path::PathBuf, process::ExitCode};
 
 use orpheus::{
+    accounts::import_python_profiles,
     runtime::check_practice_runtime,
     server::{Server, ServerConfig},
 };
 
 const USAGE: &str = "Usage: orpheus_server --data-dir <directory> [--runtime <directory>]
-       [--account <name>] [--lobby-port <port>] [--game-port <port>]
-       [--stall-port <port>] [--rpc-port <port>] [--debug-port <port>] [--debug-control]
+       [--account <name>] [--second-account <name>] [--lobby-port <port>] [--game-port <port>]
+       [--stall-port <port>] [--rpc-port <port>] [--second-rpc-port <port>]
+       [--debug-port <port>] [--debug-control]
        [--junkenstein-validation <local-json>] [--ai-script <lua-file>] [--mod-script <lua-file>]
        orpheus_server --check-runtime [--runtime <directory>]
        orpheus_server --check-runtime-graphs [--runtime <directory>]
+       orpheus_server --import-python-profiles <profiles> --data-dir <directory>
 
 The native 1.74 server listens on loopback. Use an authorized base runtime
 directory or set ORPHEUS_RUNTIME_DIR. --check-runtime lists missing inputs
-without starting listeners. --debug-port enables the read-only inspector
+without starting listeners. --second-account enables a second relay RPC login
+on the same lobby (port 21120 by default). Import profiles with the destination
+server stopped. The import keeps existing Rust saves in that directory.
+--debug-port enables the read-only inspector
 in a binary built with --features inspector (disabled by default).
 --debug-control enables opt-in local room pause/resume/step POST commands
 (requires --features inspector and --debug-port; disabled by default).
@@ -39,6 +45,7 @@ fn run() -> io::Result<()> {
     let mut args = env::args_os().skip(1);
     let mut check_runtime = false;
     let mut check_graphs = false;
+    let mut import_profiles = None;
     let mut config = ServerConfig::new(
         env::var_os("ORPHEUS_RUNTIME_DIR").map_or_else(PathBuf::new, PathBuf::from),
         PathBuf::new(),
@@ -63,6 +70,7 @@ fn run() -> io::Result<()> {
         match arg.to_str() {
             Some("--runtime") => config.runtime = PathBuf::from(value),
             Some("--data-dir") => config.data = PathBuf::from(value),
+            Some("--import-python-profiles") => import_profiles = Some(PathBuf::from(value)),
             Some("--account") => {
                 config.account = Some(
                     value
@@ -70,10 +78,18 @@ fn run() -> io::Result<()> {
                         .map_err(|_| usage_error("invalid account name"))?,
                 );
             }
+            Some("--second-account") => {
+                config.second_account = Some(
+                    value
+                        .into_string()
+                        .map_err(|_| usage_error("invalid second account name"))?,
+                );
+            }
             Some("--lobby-port") => config.lobby_port = port(value)?,
             Some("--game-port") => config.game_port = port(value)?,
             Some("--stall-port") => config.stall_port = port(value)?,
             Some("--rpc-port") => config.rpc_port = port(value)?,
+            Some("--second-rpc-port") => config.second_rpc_port = port(value)?,
             Some("--debug-port") => config.debug_port = Some(port(value)?),
             Some("--junkenstein-validation") => {
                 config.junkenstein_validation = Some(PathBuf::from(value));
@@ -96,6 +112,16 @@ fn run() -> io::Result<()> {
             }
             _ => return Err(usage_error("unknown option")),
         }
+    }
+    if let Some(source) = import_profiles {
+        if check_runtime || config.data.as_os_str().is_empty() {
+            return Err(usage_error(
+                "profile import requires --data-dir and cannot check a runtime",
+            ));
+        }
+        let (imported, skipped) = import_python_profiles(&source, &config.data)?;
+        println!("Imported {imported} profiles. Kept {skipped} existing Rust profiles.");
+        return Ok(());
     }
     if !check_runtime && config.debug_port.is_some() && !cfg!(feature = "inspector") {
         return Err(usage_error(
@@ -140,6 +166,9 @@ fn run() -> io::Result<()> {
         server.stall_addr(),
         server.rpc_addr(),
     );
+    if let Some(address) = server.second_rpc_addr() {
+        println!("Second local account relay RPC {address}");
+    }
     if let Some(address) = server.debug_addr() {
         if debug_control_enabled {
             println!("Local room-control inspector http://{address}/");

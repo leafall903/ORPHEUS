@@ -4,7 +4,7 @@ mod benchmark;
 mod bot_replacement;
 mod combat_audio;
 mod death_notice;
-mod harness;
+pub(crate) mod harness;
 mod isolation;
 mod junkenstein_validation;
 mod npc_fire;
@@ -98,12 +98,10 @@ fn lua_fault_in_one_room_leaves_sibling_room_and_patrol_alive() {
                 failed_id,
                 GameMap::practice_range(),
                 player(),
-                Some(WorldStart {
-                    scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                        [0.0, 0.0, 10.0],
-                    )])),
-                    card: PlayerCard::default(),
-                }),
+                Some(WorldStart::new(
+                    PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                    PlayerCard::default(),
+                )),
                 Duration::ZERO,
             )
             .unwrap();
@@ -121,12 +119,10 @@ fn lua_fault_in_one_room_leaves_sibling_room_and_patrol_alive() {
                 survivor_id,
                 GameMap::practice_range(),
                 player(),
-                Some(WorldStart {
-                    scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                        [0.0, 0.0, 10.0],
-                    )])),
-                    card: PlayerCard::default(),
-                }),
+                Some(WorldStart::new(
+                    PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                    PlayerCard::default(),
+                )),
                 Duration::ZERO,
             )
             .unwrap();
@@ -220,10 +216,7 @@ fn prepared_rooms_keep_patrol_script_state_local() {
                 id,
                 map,
                 player(),
-                Some(WorldStart {
-                    scene: Box::new(scene),
-                    card: PlayerCard::default(),
-                }),
+                Some(WorldStart::new(scene, PlayerCard::default())),
                 Duration::ZERO,
             )
             .unwrap();
@@ -296,15 +289,16 @@ fn busy_peers_resume_in_round_robin_order_after_the_global_input_budget() {
     let scene = assets.prepare(GameMap::practice_range()).unwrap();
     let mut state = State::new(Arc::new(fixture()), PatrolScript::load().unwrap());
     state.timing = Some(WorkerTiming::new());
-    // Five synthetic peers share a prepared fixture solely to test the
-    // worker scheduler. The actual admission route remains solo.
+    // Five synthetic peers share a prepared fixture to test the worker scheduler.
     let players: Vec<_> = (0..5)
         .map(|slot| Player {
             info: player().pop().unwrap(),
             entity: player_entity(slot),
+            room_slot: None,
             gone: false,
         })
         .collect();
+    let cards = vec![PlayerCard::default(); players.len()];
     state.rooms.insert(
         MATCH,
         Room {
@@ -315,7 +309,7 @@ fn busy_peers_resume_in_round_robin_order_after_the_global_input_budget() {
             injection: None,
             world: Some(RoomWorld {
                 scene: Box::new(scene),
-                card: PlayerCard::default(),
+                cards,
                 patrol: PatrolScript::load().unwrap(),
                 patrol_generation: 0,
             }),
@@ -668,12 +662,10 @@ fn hot_reload_updates_active_rooms_future_rooms_and_digest() {
             room_a,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             Duration::ZERO,
         )
         .unwrap();
@@ -736,12 +728,10 @@ fn hot_reload_updates_active_rooms_future_rooms_and_digest() {
             room_b,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             Duration::ZERO,
         )
         .unwrap();
@@ -809,12 +799,10 @@ fn hot_reload_rejects_invalid_scripts_and_rolls_back_atomically() {
             room_a,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             Duration::ZERO,
         )
         .unwrap();
@@ -961,12 +949,10 @@ fn hot_reload_partial_staging_failure_leaves_all_rooms_and_digest_unchanged() {
                 id,
                 GameMap::practice_range(),
                 player(),
-                Some(WorldStart {
-                    scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                        [0.0, 0.0, 10.0],
-                    )])),
-                    card: PlayerCard::default(),
-                }),
+                Some(WorldStart::new(
+                    PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                    PlayerCard::default(),
+                )),
                 Duration::ZERO,
             )
             .unwrap();
@@ -1017,12 +1003,10 @@ fn hot_reload_partial_staging_failure_leaves_all_rooms_and_digest_unchanged() {
             room_c,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             Duration::ZERO,
         )
         .unwrap();
@@ -1105,12 +1089,10 @@ fn hot_reload_never_resurrects_stale_body_id_handles() {
             room_id,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             Duration::ZERO,
         )
         .unwrap();
@@ -1325,12 +1307,10 @@ fn pausing_one_room_freezes_its_bots_and_timers_while_sibling_room_runs_unimpede
                 id,
                 GameMap::practice_range(),
                 player(),
-                Some(WorldStart {
-                    scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                        [0.0, 0.0, 10.0],
-                    )])),
-                    card: PlayerCard::default(),
-                }),
+                Some(WorldStart::new(
+                    PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                    PlayerCard::default(),
+                )),
                 now,
             )
             .unwrap();
@@ -1574,12 +1554,10 @@ fn paused_room_keeps_keepalive_disconnect_and_packet_budget_sane_without_busy_sp
             MATCH,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             now,
         )
         .unwrap();
@@ -1707,12 +1685,10 @@ fn paused_room_keeps_keepalive_disconnect_and_packet_budget_sane_without_busy_sp
             MATCH,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(PreparedScene::fixture_for_bots(vec![Bot::fixture_walker(
-                    [0.0, 0.0, 10.0],
-                )])),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(
+                PreparedScene::fixture_for_bots(vec![Bot::fixture_walker([0.0, 0.0, 10.0])]),
+                PlayerCard::default(),
+            )),
             now,
         )
         .unwrap();

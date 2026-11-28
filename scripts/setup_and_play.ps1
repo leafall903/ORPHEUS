@@ -18,19 +18,32 @@ param(
     [string]$GameExe = "",
     [string]$RelayDll = "",
     [string]$Locale = "auto",
+    [ValidatePattern('^$|^[A-Z]{2}$')]
+    [string]$Region = "",
     [string]$Account = "",
     [int]$DebugPort = 3726,
     [int]$StallPort = 1119,
+    [ValidateRange(0, 65535)]
+    [int]$SecondRpcPort = 0,
+    [string]$ClientLogRoot = "",
     [string]$ModScript = "",
     [string]$AiScript = "",
     [string[]]$Maps = @("0688", "06C9"),
     [switch]$Repack,
     [switch]$NoBuild,
     [switch]$ServerOnly,
+    [switch]$ClientOnly,
+    [switch]$Windowed,
     [switch]$PreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
+if ($ClientOnly -and ($ServerOnly -or [string]::IsNullOrWhiteSpace($GameExe))) {
+    throw "-ClientOnly requires -GameExe and cannot be combined with -ServerOnly."
+}
+if ($SecondRpcPort -and (-not $ClientOnly -or $SecondRpcPort -eq 21119)) {
+    throw "-SecondRpcPort requires -ClientOnly and a port distinct from 21119."
+}
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LocalAppData = if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
@@ -207,6 +220,40 @@ function Test-TcpPortListening {
     } finally {
         if ($Client) { $Client.Dispose() }
     }
+}
+
+function Start-RetailClient {
+    param([string]$Executable, [string]$Relay, [int]$Port, [string]$ClientLocale,
+        [string]$ClientRegion, [switch]$UseWindowedMode, [int]$RpcPort = 21119,
+        [string]$LogRoot)
+
+    $GameArgs = @("--BNetServer=127.0.0.1:$Port")
+    if ($ClientLocale) {
+        $GameArgs += "--tank_Locale=$ClientLocale"
+    }
+    if ($ClientRegion) { $GameArgs += "--tank_Region=$ClientRegion" }
+    if ($UseWindowedMode) { $GameArgs += "--tank_NoFullScreen=1" }
+    if ($LogRoot) {
+        $ClientLog = Join-Path $LogRoot "client-$RpcPort"
+        New-Item -ItemType Directory -Force -Path $ClientLog | Out-Null
+        $GameArgs += @("--tank_logpath", ('"{0}"' -f $ClientLog))
+    }
+    Write-Host "[5/5] Launching Overwatch.exe with relay RPC $RpcPort..." -ForegroundColor Green
+    $StartInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $StartInfo.FileName = $Executable
+    $StartInfo.Arguments = $GameArgs -join " "
+    $StartInfo.WorkingDirectory = Split-Path $Executable -Parent
+    $StartInfo.UseShellExecute = $false
+    $StartInfo.EnvironmentVariables["ORPHEUS_RELAY_RPC_PORT"] = "$RpcPort"
+    $Process = [System.Diagnostics.Process]::Start($StartInfo)
+    try {
+        [OrpheusRelayInjector]::WaitAndInject($Process.Id, $Relay, 30000)
+    } catch {
+        if (-not $Process.HasExited) { $Process.Kill() }
+        throw
+    }
+    Write-Host "Overwatch.exe (PID $($Process.Id)) started. Close the game when finished." -ForegroundColor Green
+    return $Process
 }
 
 $RelayInjectorCode = @'
@@ -413,7 +460,7 @@ try {
 
     New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 
-    if ($StallPort -eq 1119 -and (Test-TcpPortListening 1119)) {
+    if (-not $ClientOnly -and $StallPort -eq 1119 -and (Test-TcpPortListening 1119)) {
         Write-Host "[net] Port 1119 already in use; switching Battle.net stall port to 1118." -ForegroundColor DarkYellow
         $StallPort = 1118
     }
@@ -474,6 +521,35 @@ try {
     }
 
     Add-Type -TypeDefinition $RelayInjectorCode -Language CSharp
+    $ClientOptions = @{
+        Executable = $ResolvedGame
+        Relay = $ResolvedRelay
+        Port = $StallPort
+        ClientLocale = $DetectedLocale
+        ClientRegion = $Region
+        UseWindowedMode = $Windowed
+    }
+
+    if ($ClientOnly) {
+        $Clients = @()
+        $ClientExitCode = 0
+        try {
+            $Clients += Start-RetailClient @ClientOptions -LogRoot $ClientLogRoot
+            if ($SecondRpcPort) {
+                $Clients += Start-RetailClient @ClientOptions -RpcPort $SecondRpcPort -LogRoot $ClientLogRoot
+            }
+            foreach ($Client in $Clients) {
+                $Client.WaitForExit()
+                if ($ClientExitCode -eq 0) { $ClientExitCode = $Client.ExitCode }
+            }
+        } finally {
+            foreach ($Client in $Clients) {
+                try { if (-not $Client.HasExited) { $Client.Kill() } }
+                finally { $Client.Dispose() }
+            }
+        }
+        exit $ClientExitCode
+    }
 
     $ServerLog = Join-Path $DataDir "orpheus_server.log"
     if (Test-Path $ServerLog) {
@@ -548,14 +624,7 @@ try {
             Write-Host "      Lua 5.4 Mod         : $ModScript" -ForegroundColor Cyan
         }
 
-        Write-Host "[5/5] Launching Overwatch.exe and injecting TLS relay..." -ForegroundColor Green
-        $GameArgs = @("--BNetServer=127.0.0.1:$StallPort")
-        if ($DetectedLocale) {
-            $GameArgs += "--tank_Locale=$DetectedLocale"
-        }
-        $GameProc = Start-Process -FilePath $ResolvedGame -ArgumentList $GameArgs -WorkingDirectory (Split-Path $ResolvedGame -Parent) -PassThru
-        [OrpheusRelayInjector]::WaitAndInject($GameProc.Id, $ResolvedRelay, 30000)
-        Write-Host "[+] Overwatch.exe (PID $($GameProc.Id)) connected with relay! Close the game when finished." -ForegroundColor Green
+        $GameProc = Start-RetailClient @ClientOptions
         if (-not [string]::IsNullOrWhiteSpace($ModScript) -or -not [string]::IsNullOrWhiteSpace($AiScript)) {
             Write-Host "    Tip: Type 'reload' + Enter here to hot-reload Lua scripts while playing." -ForegroundColor DarkCyan
         }

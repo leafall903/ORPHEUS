@@ -82,6 +82,8 @@ pub enum CombatError {
     },
     #[error("combat collision query failed: {0}")]
     Collision(#[from] IndexError),
+    #[error("objective contact layer: {0}")]
+    ObjectiveContacts(#[source] io::Error),
     #[error("gate {wire:08X} references missing ECS component {entity:?}")]
     MissingGate { wire: u32, entity: Entity },
     #[error("gate index {wire:08X} references gate with wire ID {actual:08X}")]
@@ -485,6 +487,14 @@ impl RoomSpatialFrame {
 
     pub(crate) fn actor_alive(&self, entity: u32) -> bool {
         self.script_targets.contains_key(&entity)
+    }
+
+    pub(crate) fn is_unowned_body(&self, entity: u32) -> bool {
+        self.player_wires.values().any(|&wire| wire == entity)
+            || self
+                .script_targets
+                .get(&entity)
+                .is_some_and(|target| target.candidate_index.is_some())
     }
 
     pub(crate) fn measured_actor_pose(&self, entity: u32) -> Option<TargetPose> {
@@ -1129,6 +1139,8 @@ pub(crate) struct RoomSimulation {
     interactive_props: crate::room_primitives::InteractivePropRuntime,
     interactive_prop_floor_y: f64,
     pvp_objective: Option<crate::pvp_mode::PvpObjectiveRuntime>,
+    payload_contacts: Option<crate::pvp_mode::collision::PayloadContacts>,
+    pvp_hud_room_managed: bool,
     pvp_completion_emitted: bool,
     pending_match_winner: Option<u8>,
     last_pvp_payload_pos: Option<[f64; 3]>,
@@ -1665,6 +1677,8 @@ impl RoomSimulation {
             interactive_props: crate::room_primitives::InteractivePropRuntime::default(),
             interactive_prop_floor_y: 0.0,
             pvp_objective: None,
+            payload_contacts: None,
+            pvp_hud_room_managed: false,
             pvp_completion_emitted: false,
             pending_match_winner: None,
             last_pvp_payload_pos: None,
@@ -1704,20 +1718,74 @@ impl RoomSimulation {
         self.interactive_props.take_emitted_cues()
     }
 
-    #[cfg(test)]
     pub(crate) fn pvp_objective(&self) -> Option<&crate::pvp_mode::PvpObjectiveRuntime> {
         self.pvp_objective.as_ref()
     }
 
-    pub(crate) fn set_pvp_objective(&mut self, runtime: crate::pvp_mode::PvpObjectiveRuntime) {
+    pub(crate) fn set_pvp_objective(
+        &mut self,
+        mut runtime: crate::pvp_mode::PvpObjectiveRuntime,
+        custom_start: bool,
+    ) {
+        if custom_start {
+            runtime.wait_for_assembly();
+        }
+        self.pvp_hud_room_managed = custom_start;
         self.pvp_objective = Some(runtime);
+    }
+
+    pub(crate) fn pvp_objective_mut(
+        &mut self,
+    ) -> Option<&mut crate::pvp_mode::PvpObjectiveRuntime> {
+        self.pvp_objective.as_mut()
+    }
+
+    pub(crate) fn set_payload_contacts(
+        &mut self,
+        base: Arc<crate::contact_world::ContactWorld>,
+        route: &crate::game_content::PayloadRoute,
+    ) -> io::Result<()> {
+        if let Some(round) = self
+            .pvp_objective
+            .as_ref()
+            .and_then(crate::pvp_mode::PvpObjectiveRuntime::escort_round)
+        {
+            let mut contacts = crate::pvp_mode::collision::PayloadContacts::new(base, route)?;
+            contacts.update(round, 0.0)?;
+            self.payload_contacts = Some(contacts);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn set_capture_contacts(
+        &mut self,
+        base: Arc<orpheus_collision::contact_world::ContactWorld>,
+        course: &crate::game_content::CaptureCourse,
+    ) -> io::Result<()> {
+        if let Some(crate::pvp_mode::PvpObjectiveRuntime::Assault(round)) = &self.pvp_objective {
+            let mut contacts =
+                crate::pvp_mode::collision::PayloadContacts::capture(base, &course.room_models)?;
+            contacts.update_capture(round, 0.0)?;
+            self.payload_contacts = Some(contacts);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn payload_contact_world(&self) -> Option<&Arc<crate::contact_world::ContactWorld>> {
+        self.payload_contacts
+            .as_ref()
+            .map(|contacts| contacts.world())
     }
 
     pub(crate) fn set_player_names(&mut self, names: HashMap<u32, String>) {
         self.player_names = names;
     }
 
-    fn step_interactive_props_and_pvp(&mut self, tick: u32, now: Duration) {
+    fn step_interactive_props_and_pvp(
+        &mut self,
+        tick: u32,
+        now: Duration,
+    ) -> Result<(), CombatError> {
         const MELEE_BUTTON_BIT: u32 = 0x0800;
         let now_secs = now.as_secs_f64();
         let mut interact_positions = Vec::new();
@@ -1831,6 +1899,11 @@ impl RoomSimulation {
             let _ = tick;
         }
         if let Some(pvp) = &mut self.pvp_objective {
+            use crate::pvp_mode::PvpObjectiveRuntime;
+            let previous_cart = pvp
+                .escort_round()
+                .filter(|_| self.payload_contacts.is_some())
+                .map(|round| round.pose());
             let mut actors = Vec::with_capacity(self.players_by_wire.len() + self.by_wire.len());
             let mut wire_to_owner: HashMap<u32, u32> = HashMap::new();
             for (&wire, &entity) in &self.players_by_wire {
@@ -1873,6 +1946,28 @@ impl RoomSimulation {
             }
             pvp.advance(now_secs, &actors);
             let dt = crate::game_clock::TICK_PERIOD.as_secs_f64();
+            if let PvpObjectiveRuntime::Control(round) = pvp {
+                for actor in actors.iter().filter(|actor| {
+                    actor.alive && round.in_healing_room(actor.team, actor.position)
+                }) {
+                    let Some(&entity) = self.players_by_wire.get(&actor.entity) else {
+                        continue;
+                    };
+                    let Some(mut state) = self.world.get_mut::<PlayerBodyState>(entity) else {
+                        continue;
+                    };
+                    // The room's native heal is environmental and does not generate player credit.
+                    if state.heal(400.0 * dt) > 0.0 {
+                        if let Some(component) = state.take_health_update() {
+                            self.scripted_health.push(EntityUpdate {
+                                entity: actor.entity,
+                                operation: Some(crate::world::Operation::Update(vec![component])),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+            }
             for wire in pvp.objective_occupants(&actors) {
                 if let Some(&owner) = wire_to_owner.get(&wire) {
                     self.scoreboard.record_objective_time(owner, dt, now_secs);
@@ -1885,21 +1980,29 @@ impl RoomSimulation {
                 }
             }
             // Replicate live payload movement pose whenever the cart moves >= 1cm.
-            if let Some((pos, update)) = pvp.payload_entity_update() {
-                let moved = self.last_pvp_payload_pos.is_none_or(|prev| {
-                    (pos[0] - prev[0])
-                        .hypot(pos[1] - prev[1])
-                        .hypot(pos[2] - prev[2])
-                        >= 0.01
-                });
-                if moved {
-                    self.last_pvp_payload_pos = Some(pos);
-                    self.scripted_health.push(update);
+            let authored_payload = pvp
+                .escort_round()
+                .is_some_and(|round| round.payload_origin.is_some());
+            if !authored_payload {
+                if let Some((pos, update)) = pvp.payload_entity_update() {
+                    let moved = self.last_pvp_payload_pos.is_none_or(|prev| {
+                        (pos[0] - prev[0])
+                            .hypot(pos[1] - prev[1])
+                            .hypot(pos[2] - prev[2])
+                            >= 0.01
+                    });
+                    if moved {
+                        self.last_pvp_payload_pos = Some(pos);
+                        self.scripted_health.push(update);
+                    }
                 }
             }
             // Replicate live GAME_MODE_ENTITY HUD countdown & phase whenever state changes.
             let hud_key = pvp.hud_state_key(now_secs);
-            if self.last_pvp_hud_key != Some(hud_key) {
+            if !self.pvp_hud_room_managed
+                && !authored_payload
+                && self.last_pvp_hud_key != Some(hud_key)
+            {
                 self.last_pvp_hud_key = Some(hud_key);
                 if let Some((graphs, _)) = &self.script_graphs {
                     let vars = pvp.hud_variables(now_secs);
@@ -1914,7 +2017,64 @@ impl RoomSimulation {
                     }
                 }
             }
+            if let Some(contacts) = &mut self.payload_contacts {
+                use crate::room_primitives::RiderCarry;
+                let mut riders = Vec::new();
+                if let (Some(previous_pose), Some(round)) = (previous_cart, pvp.escort_round()) {
+                    let pose = round.pose();
+                    if pose != previous_pose {
+                        for &entity in self.players_by_wire.values() {
+                            if let Some(player) = self.world.get::<PlayerBodyState>(entity) {
+                                let feet = player.mover.pose();
+                                let category = crate::scene_assets::mover_category_for_team(
+                                    false,
+                                    player.team,
+                                );
+                                if player.alive()
+                                    && feet.velocity[1] <= 0.1
+                                    && contacts.supported_by_cart(feet.position, category)
+                                {
+                                    let local =
+                                        RiderCarry::local_anchor(previous_pose, feet.position);
+                                    let next = RiderCarry::world_target(pose, local);
+                                    riders.push((
+                                        entity,
+                                        std::array::from_fn(|axis| {
+                                            next[axis] - feet.position[axis]
+                                        }),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+                let changed = match pvp {
+                    PvpObjectiveRuntime::Escort(round) => contacts.update(round, now_secs),
+                    PvpObjectiveRuntime::Hybrid(round) => contacts.update(&round.escort, now_secs),
+                    PvpObjectiveRuntime::Assault(round) => contacts.update_capture(round, now_secs),
+                    PvpObjectiveRuntime::Control(round) => contacts.update_control(round, now_secs),
+                }
+                .map_err(CombatError::ObjectiveContacts)?;
+                if changed {
+                    let mut riders: HashMap<_, _> = riders.into_iter().collect();
+                    for &entity in self.players_by_wire.values() {
+                        if let Some(mut player) = self.world.get_mut::<PlayerBodyState>(entity) {
+                            player
+                                .mover
+                                .set_room_contacts(
+                                    Arc::clone(contacts.world()),
+                                    riders.remove(&entity),
+                                    dt,
+                                )
+                                .map_err(|error| {
+                                    CombatError::ObjectiveContacts(io::Error::other(error))
+                                })?;
+                        }
+                    }
+                }
+            }
         }
+        Ok(())
     }
 
     pub(crate) fn take_match_winner(&mut self) -> Option<u8> {
@@ -4432,7 +4592,7 @@ impl RoomSimulation {
             self.collect_local_health_events();
             self.settle_authored_requests(tick, now)?;
             self.settle_environment(tick, now)?;
-            self.step_interactive_props_and_pvp(tick, now);
+            self.step_interactive_props_and_pvp(tick, now)?;
             self.flush_health_events();
             return self.respawn_due(tick, now);
         }
@@ -4876,7 +5036,7 @@ impl RoomSimulation {
             self.collect_local_health_events();
         }
         self.settle_environment(tick, now)?;
-        self.step_interactive_props_and_pvp(tick, now);
+        self.step_interactive_props_and_pvp(tick, now)?;
         let replacements = self.respawn_due(tick, now);
         self.record_poses(queries, tick)?;
         let replacements = replacements?;
@@ -5289,6 +5449,7 @@ impl RoomSimulation {
         self.interactive_props = Default::default();
         self.interactive_prop_floor_y = 0.0;
         self.pvp_objective = None;
+        self.payload_contacts = None;
         self.pvp_completion_emitted = false;
         self.pending_match_winner = None;
         self.last_pvp_payload_pos = None;

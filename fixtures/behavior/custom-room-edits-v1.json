@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "target_build": 104319,
+  "evidence": "synthetic",
+  "names": ["练习房", "Blue Foxes", "Red Cranes"],
+  "rename_reply": 23310,
+  "move_reply": 53002,
+  "target_team": 1,
+  "target_slot": 3,
+  "auto_slot": 255,
+  "map": "08000000000002C3",
+  "map_header": "07900000000002C3",
+  "mode": "0230000000000015",
+  "preset": "0FD000000000002E",
+  "capacity": [4, 2, 1],
+  "refresh_replies": [53000, 23304, 23305, 23307, 23306, 53001, 53002],
+  "settings_replies": [23312, 23313, 23315, 23314, 53001, 53002]
+}

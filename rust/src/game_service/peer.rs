@@ -33,6 +33,7 @@ pub(super) struct CombatUi {
     /// Recent `(healer_body, target, last_frame)` heal confirmation notices
     /// throttled to ~100ms (6 ticks) so continuous beams emit crisp heal cues.
     recent_heal_notices: VecDeque<(BodyId, u32, u32)>,
+    payload_voice: crate::room_primitives::RoomVoiceRouter,
 }
 
 impl CombatUi {
@@ -109,7 +110,7 @@ pub(super) fn initial_controller(
             ControllerFrame {
                 select_open: true,
                 skins: !scene.map().is_junkenstein(),
-                hide_assemble: !scene.map().is_junkenstein(),
+                hide_assemble: scene.hide_assemble(),
                 ..ControllerFrame::default()
             },
         )
@@ -336,6 +337,42 @@ impl Peer {
 
     pub(super) fn queue_combat_notice(&mut self, notice: CombatNotice) {
         self.queue_notice(notice, CombatAudience::Legacy);
+    }
+
+    pub(super) fn advance_payload_voice(
+        &mut self,
+        schemas: &Schemas,
+        team: u8,
+        now: Duration,
+    ) -> Result<(), RoomError> {
+        use crate::room_primitives::VoiceCue;
+        let listener = self.world.spawned_body().unwrap_or(u32::MAX);
+        let send =
+            |egress: &mut GameEgress<Arc<Record>>, cue: VoiceCue| -> Result<u32, RoomError> {
+                let message = CombatNotice::Voice {
+                    speaker: GAME_MODE_ENTITY,
+                    anchor: GAME_MODE_ENTITY,
+                    listener,
+                    stimulus: cue.stimulus_guid(),
+                    line: cue.line_guid(),
+                }
+                .encode(schemas)?;
+                Ok(egress.queue_reliable(message)?)
+            };
+        let cues = self.world.take_payload_cues();
+        let router = &mut self.combat_ui.payload_voice;
+        if let Some(&first) = cues.first() {
+            let ordinal = send(&mut self.egress, first)?;
+            router.enqueue(u64::from(ordinal), 2.0, team, &cues);
+        } else if let Some(next) = router.poll(now.as_secs_f64(), team, |ordinal| {
+            u64::from(u32::MAX) >= ordinal && self.egress.delivered_through(ordinal as u32)
+        }) {
+            let ordinal = send(&mut self.egress, next)?;
+            if let Some(pending) = &mut router.follow_up {
+                pending.ordinal = u64::from(ordinal);
+            }
+        }
+        Ok(())
     }
 
     pub(super) fn queue_player_death(&mut self, death: PlayerDeath) {
@@ -597,6 +634,17 @@ impl Peer {
                     let viewer = room
                         .appearance(slot)
                         .ok_or(RoomError::Invariant("prepared player missing"))?;
+                    for other in (0..room.players.len()).filter(|&other| other != slot) {
+                        if let Some(participant) = room.appearance(other) {
+                            self.world
+                                .queue_participant(crate::match_scene::player_create(
+                                    &room.map,
+                                    &participant,
+                                    None,
+                                    None,
+                                )?);
+                        }
+                    }
                     self.world.start(&world.scene, &viewer, tick)?;
                 }
                 MapReadyStep::Controller => self.world.presentation_due = true,

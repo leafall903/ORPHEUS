@@ -110,6 +110,7 @@ fn configured_cassidy_immunity_routes_real_room_damage_and_death_notices() {
             players: vec![Player {
                 info: player().pop().unwrap(),
                 entity: owner,
+                room_slot: None,
                 gone: false,
             }],
             members: IndexMap::from([(
@@ -121,7 +122,7 @@ fn configured_cassidy_immunity_routes_real_room_damage_and_death_notices() {
             )]),
             world: Some(RoomWorld {
                 scene: Box::new(scene),
-                card: PlayerCard::default(),
+                cards: vec![PlayerCard::default()],
                 patrol: PatrolScript::load().unwrap(),
                 patrol_generation: 0,
             }),

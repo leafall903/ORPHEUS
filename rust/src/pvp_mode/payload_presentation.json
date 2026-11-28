@@ -1,0 +1,66 @@
+{
+  "mode": {
+    "receiver_attachment": 12,
+    "hud_values_attachment": 50,
+    "hud_values": [0],
+    "common": [4, 95, 171],
+    "receiver_common": [0, 4, 5, 9, 11, 56],
+    "phases": {
+      "WAITING": {"mode": [5], "receiver": [12, 51], "heading": 24852},
+      "ASSEMBLE": {"mode": [9, 10], "receiver": [1, 52], "heading": 24853},
+      "SETUP": {"mode": [14, 93], "receiver": [10, 53], "heading": 4292, "defend_heading": 4293},
+      "ACTIVE": {"mode": [18, 111, 112, 160], "receiver": [2, 54], "heading": 245, "defend_heading": 247},
+      "COMPLETE": {"mode": [19, 20, 44, 111, 112, 160], "receiver": [3, 55], "heading": 0}
+    },
+    "waiting_hud_attachment": 11,
+    "waiting_hud_states": [16],
+    "final_music": 147,
+    "overtime": [131, 177],
+    "overtime_countdown": 136,
+    "progress_bindings": [105, 110],
+    "cart_changed_action": 508
+  },
+  "cart": {
+    "graph": "0x0580000000001225",
+    "locked": 23,
+    "unlocking": 21,
+    "forward": 17,
+    "reverse": 18,
+    "automatic": 22,
+    "result": 29,
+    "waypoint": 137,
+    "finish_music": 75
+  },
+  "capture": {
+    "point_graph": "0x0580000000000E8E",
+    "outline_graph": "0x0580000000000B78",
+    "point_presenter": 47,
+    "local_ui": 89,
+    "outline_appearance": 28,
+    "waypoint_enum": 3170367,
+    "active_headings": [4288, 4286],
+    "scoreboard": 17,
+    "progress_bindings": [105, 106, 107, 109, 110]
+  },
+  "checkpoint_sound": {
+    "graph": "0x058000000000224E",
+    "action": 127,
+    "effects": ["0x0300000000000D4C", "0x0300000000000B45"]
+  },
+  "room_visuals": {
+    "barrier": "0x0580000000000FA8",
+    "overlay": "0x0580000000000D73",
+    "sign": "0x05800000000000F6",
+    "show": 3,
+    "show_sign": 4
+  },
+  "gate_impact": {"graph": "0x0580000000000C78", "clip": 0, "duration": 10.0},
+  "gate_debris": {"graph": "0x0580000000000E41", "clip": 0, "alias": 6},
+  "door": {
+    "graph": "0x0580000000000D32",
+    "open_clip": 0,
+    "close_clip": 1,
+    "open_alias": 5,
+    "close_alias": 8
+  }
+}

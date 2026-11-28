@@ -158,11 +158,92 @@ pub(crate) fn mode_action_delta(
     Ok(out)
 }
 
+/// Some replicated bindings are addressed only by their raw state index.
+pub(crate) fn binding_delta(
+    graph: &Graph,
+    instance: u16,
+    states: &[u16],
+    action: Option<u16>,
+    frame: u32,
+    stamp: u32,
+) -> Result<BitWriter, WireError> {
+    let action = action
+        .map(|action| {
+            graph
+                .node(action)
+                .filter(|node| node.is_action() && node.is_networked() && node.remote >= 0)
+                .ok_or(WireError::InvalidValue)
+        })
+        .transpose()?;
+    let states: BTreeSet<_> = states.iter().map(|&state| usize::from(state)).collect();
+    for &state in &states {
+        graph
+            .state(state)
+            .filter(|node| node.is_networked() && node.class == "STU_6A926B21")
+            .ok_or(WireError::SlotOutOfRange)?;
+    }
+    let mut body = BitWriter::new();
+    body.w_u16(instance);
+    body.bits(0, 2)?;
+    body.w_u16(0);
+    script_wire::variable_list(&mut body, &Variables::new(), ValueEncoding::Compact)?;
+    write_delta_variables(&mut body, instance, graph, &ProjectedVariables::default())?;
+    write_mask(&mut body, graph.states.len(), &states);
+    for _ in states {
+        body.bit(true);
+    }
+    body.bit(false); // No timer lists.
+    let mut out = BitWriter::new();
+    out.bits(2, 3)?; // H=1, no reconcile.
+    out.w_var(frame.max(1));
+    out.w_var(u32::try_from(body.bit_len()).map_err(|_| WireError::ChunkRange)?);
+    out.append(&body);
+    out.bit(false); // No further subframes.
+    if let Some(action) = action {
+        let mut entry = BitWriter::new();
+        entry.bit(true);
+        entry.w_u16(instance);
+        entry.bits(u64::from(action.rid), usize::from(graph.header.nodes_bits))?;
+        out.bit(true);
+        out.w_u32(stamp);
+        out.w_var(u32::try_from(10 + entry.bit_len()).map_err(|_| WireError::ChunkRange)?);
+        out.bits(1, 2)?;
+        out.bits((8 + entry.bit_len()) as u64, 8)?;
+        out.append(&entry);
+    }
+    out.bits(0, 3)?;
+    Ok(out)
+}
+
 impl<'a> SnapshotEncoder<'a> {
     pub(crate) fn mounted_delta(
         &self,
         previous: Option<&ProjectedSnapshot>,
         current: &ProjectedSnapshot,
+    ) -> Result<Option<BitWriter>, SnapshotError> {
+        self.mounted_delta_with_action(previous, current, None)
+    }
+
+    pub(crate) fn mounted_delta_with_action(
+        &self,
+        previous: Option<&ProjectedSnapshot>,
+        current: &ProjectedSnapshot,
+        action: Option<(u32, u16, u16)>,
+    ) -> Result<Option<BitWriter>, SnapshotError> {
+        match action {
+            Some((stamp, instance, position)) => {
+                self.mounted_delta_with_actions(previous, current, stamp, &[(instance, position)])
+            }
+            None => self.mounted_delta_with_actions(previous, current, 0, &[]),
+        }
+    }
+
+    pub(crate) fn mounted_delta_with_actions(
+        &self,
+        previous: Option<&ProjectedSnapshot>,
+        current: &ProjectedSnapshot,
+        stamp: u32,
+        actions: &[(u16, u16)],
     ) -> Result<Option<BitWriter>, SnapshotError> {
         let mut baseline;
         let base = if let Some(previous) = previous {
@@ -177,8 +258,13 @@ impl<'a> SnapshotEncoder<'a> {
             &baseline
         };
         let known = base.instances.keys().copied().collect();
-        let delta = self.differences(base, current, &BTreeSet::new(), &known)?;
-        if delta.keys.is_empty() {
+        let mut delta = self.differences(base, current, &BTreeSet::new(), &known)?;
+        delta.mounted_actions.extend(
+            actions
+                .iter()
+                .map(|&(instance, position)| (stamp, instance, position)),
+        );
+        if delta.keys.is_empty() && actions.is_empty() {
             return Ok(None);
         }
         self.delta_frame(current, &delta, DeltaKind::Observer { resend: true }, 16)
@@ -604,55 +690,63 @@ impl<'a> SnapshotEncoder<'a> {
         if cmfd.is_some() {
             frame.bit(false);
         }
-        self.write_frame_action(&mut frame, delta.callout, current, mode)?;
+        self.write_frame_actions(&mut frame, delta, current, mode)?;
         Ok(frame)
     }
 
-    fn write_frame_action(
+    fn write_frame_actions(
         &self,
         out: &mut BitWriter,
-        action: Option<(u32, u32, u16, u16)>,
+        delta: &SnapshotDelta<'_>,
         current: &ProjectedSnapshot,
         mode: PayloadMode,
     ) -> Result<(), SnapshotError> {
-        let Some((_, stamp, target, position)) = action else {
-            out.bits(0, 2)?;
-            return Ok(());
-        };
-        let instance = current
-            .instances
-            .get(&target)
-            .ok_or(WireError::InvalidValue)?;
-        let graph = self.graph(target, instance.graph)?;
-        let node = graph
-            .node(position)
-            .filter(|node| node.is_action() && node.is_networked() && node.remote >= 0)
-            .ok_or(WireError::InvalidValue)?;
-        let (index, width) = match mode {
-            PayloadMode::Owner { .. } => {
-                (u64::from(node.rid), usize::from(graph.header.nodes_bits))
+        let actions = delta
+            .callout
+            .iter()
+            .map(|&(_, stamp, target, position)| (stamp, target, position))
+            .chain(delta.mounted_actions.iter().copied());
+        let mut entries = BitWriter::new();
+        let mut group_stamp = None;
+        for (stamp, target, position) in actions {
+            let instance = current
+                .instances
+                .get(&target)
+                .ok_or(WireError::InvalidValue)?;
+            let graph = self.graph(target, instance.graph)?;
+            let node = graph
+                .node(position)
+                .filter(|node| node.is_action() && node.is_networked() && node.remote >= 0)
+                .ok_or(WireError::InvalidValue)?;
+            if group_stamp.is_some_and(|previous| previous != stamp) {
+                return Err(WireError::InvalidValue.into());
             }
-            PayloadMode::Remote { .. } => (
-                u64::try_from(node.remote).map_err(|_| WireError::InvalidValue)?,
-                usize::from(graph.header.remote_bits),
-            ),
-        };
-        let mut entry = BitWriter::new();
-        entry.bit(true); // TrID present
-        entry.w_u16(target);
-        entry.bits(index, width)?;
-
-        out.bit(true);
-        out.w_u32(stamp);
-        let entry_bits = u32::try_from(entry.bit_len()).map_err(|_| WireError::ChunkRange)?;
-        out.w_var(10 + entry_bits); // RMSz excludes the group terminator
-        out.bit(true); // one entry
-        out.bit(false); // short length and no node payload
-        out.bits(8 + u64::from(entry_bits), 8)?;
-        out.append(&entry);
-        out.bit(false); // no more entries
-        out.bit(false); // no more groups
-        out.bit(false); // no ungrouped entries
+            group_stamp = Some(stamp);
+            let (index, width) = match mode {
+                PayloadMode::Owner { .. } => {
+                    (u64::from(node.rid), usize::from(graph.header.nodes_bits))
+                }
+                PayloadMode::Remote { .. } => (
+                    u64::try_from(node.remote).map_err(|_| WireError::InvalidValue)?,
+                    usize::from(graph.header.remote_bits),
+                ),
+            };
+            let mut entry = BitWriter::new();
+            entry.bit(true);
+            entry.w_u16(target);
+            entry.bits(index, width)?;
+            entries.bits(1, 2)?; // An entry with a short length and no node payload.
+            entries.bits((8 + entry.bit_len()) as u64, 8)?;
+            entries.append(&entry);
+        }
+        if let Some(stamp) = group_stamp {
+            out.bit(true);
+            out.w_u32(stamp);
+            out.w_var(u32::try_from(entries.bit_len()).map_err(|_| WireError::ChunkRange)?);
+            out.append(&entries);
+            out.bit(false);
+        }
+        out.bits(0, 2)?;
         Ok(())
     }
 
@@ -841,6 +935,7 @@ pub(super) struct SnapshotDelta<'a> {
     pub(super) keys: BTreeSet<ChangeKey>,
     pub(super) ammo_seeds: BTreeMap<(u16, u32), i64>,
     pub(super) callout: Option<(u32, u32, u16, u16)>,
+    mounted_actions: Vec<(u32, u16, u16)>,
 }
 
 /// Choose the next action for this stream and retain its original stamp until ACK.

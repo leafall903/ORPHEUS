@@ -227,6 +227,7 @@ fn feedback_room_with_bots<const N: usize>(
                 Player {
                     info,
                     entity: player_entity(slot),
+                    room_slot: None,
                     gone: false,
                 }
             })
@@ -246,7 +247,7 @@ fn feedback_room_with_bots<const N: usize>(
             .collect(),
         world: Some(RoomWorld {
             scene: Box::new(scene),
-            card,
+            cards: (0..teams.len()).map(|_| card.clone()).collect(),
             patrol: PatrolScript::load().unwrap(),
             patrol_generation: 0,
         }),
@@ -317,7 +318,7 @@ fn received_damage_audio_follows_only_the_current_victim_connection() {
         entity: player_entity(1),
         slot: 1,
         team: 0,
-        card: &world.card,
+        card: &world.cards[0],
     };
     let replacement = pick_body(peer, &mut world.scene, &viewer, ALTERNATE_HERO);
     assert_ne!(victim, replacement);

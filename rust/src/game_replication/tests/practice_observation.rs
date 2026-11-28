@@ -318,6 +318,133 @@ fn prepared_piledriver_landing_lifts_a_room_bot() {
 }
 
 #[test]
+#[ignore = "requires the prepared 104319 King's Row runtime"]
+fn prepared_pvp_nonlethal_hits_keep_both_owner_streams_running() {
+    use crate::game_content::MapCatalog;
+
+    #[derive(serde::Deserialize)]
+    struct Case {
+        heroes: [String; 2],
+        damage: f64,
+    }
+    let cases: Vec<Case> = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/pvp-hit-owner-stream-v1.json"
+    ))
+    .unwrap();
+    let runtime = std::path::PathBuf::from(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap());
+    let assets = SceneAssets::load(&runtime).unwrap();
+    let maps = MapCatalog::load(runtime.join("data/game_maps_174.json")).unwrap();
+    for case in cases {
+        let map = maps
+            .game_map(
+                0x0800_0000_0000_00d4,
+                0x0230_0000_0000_0016,
+                "Hybrid",
+                false,
+                &[1, 1],
+            )
+            .unwrap();
+        let mut scene = assets.prepare_custom(map, 0, 9673).unwrap();
+        let heroes = case
+            .heroes
+            .map(|guid| u64::from_str_radix(&guid, 16).unwrap());
+        exercise_pvp_nonlethal_hits(&mut scene, heroes, case.damage);
+    }
+}
+
+fn exercise_pvp_nonlethal_hits(scene: &mut PreparedScene, heroes: [u64; 2], damage: f64) {
+    use crate::{game_clock::TICK_PERIOD, script_stream::OWNER_SETTLE_FRAMES, vitals::Death};
+
+    let card = PlayerCard::default();
+    let viewers = [0, 1].map(|team| PlayerAppearance {
+        entity: crate::game_service::player_entity(usize::from(team)),
+        slot: 0,
+        team,
+        card: &card,
+    });
+    let mut peers = viewers
+        .each_ref()
+        .map(|viewer| (WorldDelivery::new(viewer.entity), GameEgress::default()));
+    let mut tick = FIRST_TICK;
+    let bodies = std::array::from_fn::<_, 2, _>(|index| {
+        let (world, egress) = &mut peers[index];
+        let viewer = &viewers[index];
+        world.start(scene, viewer, tick).unwrap();
+        assert!(deliver_until(world, scene, egress, &mut tick, |world| {
+            world.identity_ready(viewer.entity) && world.controller.latest_data() != 0
+        }));
+        world.queue_game_message(
+            tick,
+            tick * TICK_PERIOD,
+            pick_hero(viewer.entity, heroes[index]),
+        );
+        assert_eq!(
+            world
+                .advance_input(scene, viewer, RETAIL_QUANTA, 1)
+                .unwrap(),
+            (1, false)
+        );
+        let id = world.active_body_id().unwrap();
+        assert!(deliver_until(world, scene, egress, &mut tick, |world| {
+            world.bound == Some(id) && world.body_script.as_ref().unwrap().stream.base().is_some()
+        }));
+        id
+    });
+    for (source, victim) in [(0, 1), (1, 0)] {
+        tick += 1;
+        scene.simulation_mut().prepare_spatial_frame(tick).unwrap();
+        let (_, outcome, _) = scene
+            .simulation_mut()
+            .damage_player_body_by_wire(
+                bodies[victim],
+                damage,
+                Death {
+                    time: (tick * TICK_PERIOD).as_secs_f64(),
+                    frame: tick,
+                    killer: bodies[source].entity,
+                },
+                None,
+            )
+            .unwrap();
+        assert_eq!(outcome.dealt, damage);
+        assert!(!outcome.killed);
+        let (simulation, queries) = scene.bot_simulation();
+        simulation
+            .finish_tick(&queries, tick, tick * TICK_PERIOD)
+            .unwrap();
+        let hit_tick = tick;
+        for index in [victim, source] {
+            let (world, egress) = &mut peers[index];
+            let previous_base = world.body_script.as_ref().unwrap().stream.base().unwrap().0;
+            let first = hit_tick + 1;
+            let last = first + OWNER_SETTLE_FRAMES;
+            let commands = (first..=last).map(forward).collect::<Vec<_>>();
+            world.queue_commands(last, &commands);
+            let (_, leave) = world
+                .advance_input(scene, &viewers[index], RETAIL_QUANTA, 64)
+                .unwrap();
+            assert!(!leave);
+            assert_eq!(world.input.processed, Some(last));
+            assert!(
+                world.owner_script_fault.is_none(),
+                "{:?}",
+                world.owner_script_fault.as_ref().map(|fault| &fault.error)
+            );
+            tick = tick.max(last);
+            assert!(deliver_until(world, scene, egress, &mut tick, |world| {
+                world.body_script.as_ref().is_some_and(|script| {
+                    script.stream.command_frame() >= first
+                        && script
+                            .stream
+                            .base()
+                            .is_some_and(|(base, _)| base > previous_base)
+                })
+            }));
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires the target-tagged 104319 Practice Range runtime"]
 fn prepared_final_blow_effect_survives_owner_egress_loss() {
     exercise_final_blow_effect(false);

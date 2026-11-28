@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "room_id": [124, 928],
+  "host_account": [11, 51],
+  "guest_account": [12, 51],
+  "room_name": "Open Room Fixture",
+  "browser_header_hex": "090000000003",
+  "browser_initial_counts": [1, 6, 0, 6, 0, 2],
+  "initial_positions": [[0, 0], [1, 0]],
+  "same_team_positions": [[0, 0], [0, 1]]
+}

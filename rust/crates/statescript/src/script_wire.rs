@@ -133,6 +133,18 @@ pub fn write_value(
         Value::Asset(guid) => {
             let kind = guid >> 48;
             out.bits(9, 4)?;
+            if *guid != 0 && kind == 0 {
+                out.bit(false);
+                let bytes = guid.to_le_bytes();
+                let mask = bytes.iter().enumerate().fold(0u8, |mask, (index, byte)| {
+                    mask | (u8::from(*byte != 0) << index)
+                });
+                out.raw(&[mask]);
+                for byte in bytes.into_iter().filter(|byte| *byte != 0) {
+                    out.raw(&[byte]);
+                }
+                return Ok(());
+            }
             out.bit(true);
             out.bits(kind, 16)?;
             if kind != 0 {
@@ -436,6 +448,77 @@ pub fn remote_full(instances: &[Instance], variables: &Variables) -> Result<BitW
 
 pub fn variables_frame(variables: &Variables) -> Result<BitWriter, WireError> {
     full_frame(None, &[], variables, ValueEncoding::Explicit)
+}
+
+pub struct InstanceVariableDelta<'a> {
+    pub id: u16,
+    pub sync_slots: usize,
+    pub state_slots: usize,
+    pub sync: Option<(usize, &'a Value)>,
+    pub variables: &'a Variables,
+}
+
+/// An owner delta for an existing instance and the entity that owns it.
+pub fn owner_variable_delta(
+    command_frame: u32,
+    entity: &Variables,
+    instance: Option<InstanceVariableDelta<'_>>,
+) -> Result<BitWriter, WireError> {
+    if command_frame == 0 {
+        return Err(WireError::ZeroCommandFrame);
+    }
+    let mut body = BitWriter::new();
+    if let Some(instance) = &instance {
+        if instance.id == 0
+            || instance
+                .sync
+                .is_some_and(|(slot, _)| slot >= instance.sync_slots)
+        {
+            return Err(WireError::SlotOutOfRange);
+        }
+        body.w_u16(instance.id);
+        body.bits(0, 2)?; // Existing instance with no descriptor.
+    }
+    body.w_u16(0);
+    variable_list(&mut body, entity, ValueEncoding::Compact)?;
+    if let Some(instance) = instance {
+        let selected = instance.sync.map(|(slot, _)| slot);
+        if instance.sync_slots > 8 {
+            let group = selected.map(|slot| slot / 8);
+            for index in 0..instance.sync_slots.div_ceil(8) {
+                body.bit(Some(index) == group);
+            }
+            if let Some(group) = group {
+                for slot in group * 8..((group + 1) * 8).min(instance.sync_slots) {
+                    body.bit(Some(slot) == selected);
+                }
+            }
+        } else {
+            for slot in 0..instance.sync_slots {
+                body.bit(Some(slot) == selected);
+            }
+        }
+        if let Some((_, value)) = instance.sync {
+            variable(&mut body, value, ValueEncoding::Compact)?;
+        }
+        variable_list(&mut body, instance.variables, ValueEncoding::Compact)?;
+        for _ in 0..if instance.state_slots > 8 {
+            instance.state_slots.div_ceil(8)
+        } else {
+            instance.state_slots
+        } {
+            body.bit(false);
+        }
+    }
+    body.bit(false); // No instance events.
+    let mut out = BitWriter::new();
+    out.bits(2, 3)?; // Owner frame, without reconciliation.
+    out.w_var(command_frame);
+    out.w_var(u32::try_from(body.bit_len()).map_err(|_| WireError::ChunkRange)?);
+    out.append(&body);
+    out.bit(false); // No further subframes.
+    out.bits(0, 2)?; // No short actions.
+    Ok(out)
 }
 
 fn full_frame(

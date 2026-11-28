@@ -442,6 +442,7 @@ fn room_respawn_waits_for_death_notice_admission_then_replaces_the_body_once() {
         players: vec![Player {
             info: player().pop().unwrap(),
             entity: owner,
+            room_slot: None,
             gone: false,
         }],
         members: IndexMap::from([(
@@ -453,7 +454,7 @@ fn room_respawn_waits_for_death_notice_admission_then_replaces_the_body_once() {
         )]),
         world: Some(RoomWorld {
             scene: Box::new(scene),
-            card,
+            cards: vec![card],
             patrol: PatrolScript::load().unwrap(),
             patrol_generation: 0,
         }),

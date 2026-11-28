@@ -182,6 +182,19 @@ impl Stream {
         Ok(result)
     }
 
+    pub(crate) fn reliable_owner_delta(
+        &mut self,
+        newest: u32,
+        encode: impl FnOnce(u32) -> Result<BitWriter, WireError>,
+    ) -> Result<ScriptChunk, StreamError> {
+        validate_frame(self.cmfd, newest)?;
+        let cmfd = newest.max(self.cmfd + 1);
+        validate_frame(self.cmfd, cmfd)?;
+        let result = self.reliable_delta(&encode(cmfd)?)?;
+        self.cmfd = cmfd;
+        Ok(result)
+    }
+
     /// After the data has arrived, ACK-only chunks may cumulatively cover
     /// earlier ACK-only chunks that the peer has missed.
     pub fn owner_ack(

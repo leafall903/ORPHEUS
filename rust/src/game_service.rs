@@ -62,7 +62,7 @@ pub(crate) fn lua_debug_required() -> io::Error {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 pub(crate) use peer::player_entity;
 use peer::{Peer, initial_controller, script_record};
@@ -141,7 +141,21 @@ enum Request {
         connection: u32,
         id: MatchId,
         release: bool,
+        loaded_only: bool,
         reply: mpsc::SyncSender<bool>,
+    },
+    StartCustomMode {
+        connection: u32,
+        id: MatchId,
+        reply: mpsc::SyncSender<bool>,
+    },
+    MoveCustomSeat {
+        connection: u32,
+        id: MatchId,
+        lobby_team: u8,
+        slot: Option<u8>,
+        spectator_capacity: u8,
+        reply: mpsc::SyncSender<Option<u8>>,
     },
     Skin {
         connection: u32,
@@ -334,49 +348,78 @@ impl GameService {
         player: MatchPlayer,
         card: PlayerCard,
     ) -> io::Result<Handoff> {
+        let slot = scene.custom_slot;
+        self.open_prepared(id, scene, vec![(player, card, slot)])?
+            .pop()
+            .ok_or_else(|| invalid("a solo world requires a seat"))
+    }
+
+    pub(crate) fn open_prepared(
+        &self,
+        id: MatchId,
+        scene: PreparedScene,
+        participants: Vec<(MatchPlayer, PlayerCard, Option<i8>)>,
+    ) -> io::Result<Vec<Handoff>> {
         if !scene.movement_ready() {
             return Err(io::Error::new(
                 io::ErrorKind::Unsupported,
-                "this map cannot start in the native solo worker",
+                "this map cannot start in the native world worker",
             ));
         }
         if scene.map().is_junkenstein() && scene.encounter_snapshot().is_none() {
             return Err(invalid("Junkenstein world has no initialized encounter"));
         }
-        let viewer = PlayerAppearance {
-            entity: player_entity(0),
-            slot: 0,
-            team: player.team,
-            card: &card,
-        };
-        let creates = scene.initial_world(&viewer)?;
         let controller = initial_controller(&scene, FIRST_TICK)?;
-        let scripts = [
-            script_record(viewer.entity, &controller)?,
-            script_record(GAME_MODE_ENTITY, scene.mode_ui())?,
-        ];
-        for record in creates.iter().chain(&scripts) {
+        let mode = script_record(GAME_MODE_ENTITY, scene.mode_ui())?;
+        let validate = |record: &EntityUpdate| -> io::Result<()> {
             let packet = frame(u32::MAX, u32::MAX, &[], &[], &[record]).map_err(invalid)?;
             if packet.len() > MAX_PAYLOAD {
                 return Err(invalid("a world baseline exceeds the game datagram budget"));
             }
+            Ok(())
+        };
+        validate(&mode)?;
+        let mut players = Vec::with_capacity(participants.len());
+        let mut cards = Vec::with_capacity(participants.len());
+        let mut slots = Vec::with_capacity(participants.len());
+        for (index, (player, card, slot)) in participants.into_iter().enumerate() {
+            let viewer = PlayerAppearance {
+                entity: player_entity(index),
+                slot: slot.unwrap_or(index as i8),
+                team: player.team,
+                card: &card,
+            };
+            if index == 0 {
+                for record in scene.initial_world(&viewer)? {
+                    validate(&record)?;
+                }
+            } else {
+                validate(&crate::match_scene::player_create(
+                    scene.map(),
+                    &viewer,
+                    None,
+                    None,
+                )?)?;
+            }
+            validate(&script_record(viewer.entity, &controller)?)?;
+            players.push(player);
+            cards.push(card);
+            slots.push(slot);
         }
         let map = scene.map().clone();
-        let mut handoffs = self.request(|reply| {
+        self.request(|reply| {
             Request::Open(Box::new(OpenRequest {
                 id,
                 map,
-                players: vec![player],
+                players,
                 world: Some(WorldStart {
                     scene: Box::new(scene),
-                    card,
+                    cards,
+                    slots,
                 }),
                 reply,
             }))
-        })??;
-        handoffs
-            .pop()
-            .ok_or_else(|| invalid("a solo world requires a seat"))
+        })?
     }
 
     pub fn handoff_pending(&self, connection: u32) -> io::Result<bool> {
@@ -388,11 +431,40 @@ impl GameService {
     }
 
     pub fn seat_exists(&self, handoff: &Handoff) -> io::Result<bool> {
-        self.seat(handoff, false)
+        self.seat(handoff, false, false)
     }
 
     pub fn release_seat(&self, handoff: &Handoff) -> io::Result<bool> {
-        self.seat(handoff, true)
+        self.seat(handoff, true, false)
+    }
+
+    pub(crate) fn release_loaded_seat(&self, handoff: &Handoff) -> io::Result<bool> {
+        self.seat(handoff, true, true)
+    }
+
+    pub(crate) fn start_custom_mode(&self, handoff: &Handoff) -> io::Result<bool> {
+        self.request(|reply| Request::StartCustomMode {
+            connection: handoff.conn,
+            id: handoff.match_id,
+            reply,
+        })
+    }
+
+    pub(crate) fn move_custom_seat(
+        &self,
+        handoff: &Handoff,
+        lobby_team: u8,
+        slot: Option<u8>,
+        spectator_capacity: u8,
+    ) -> io::Result<Option<u8>> {
+        self.request(|reply| Request::MoveCustomSeat {
+            connection: handoff.conn,
+            id: handoff.match_id,
+            lobby_team,
+            slot,
+            spectator_capacity,
+            reply,
+        })
     }
 
     pub(crate) fn update_skin(
@@ -481,11 +553,12 @@ impl GameService {
         self.request(|reply| Request::AiPolicyStatus { reply })
     }
 
-    fn seat(&self, handoff: &Handoff, release: bool) -> io::Result<bool> {
+    fn seat(&self, handoff: &Handoff, release: bool, loaded_only: bool) -> io::Result<bool> {
         self.request(|reply| Request::Seat {
             connection: handoff.conn,
             id: handoff.match_id,
             release,
+            loaded_only,
             reply,
         })
     }

@@ -1231,13 +1231,21 @@ pub fn exercise_hero_selection(
             }
             assert!(client.window.accept(packet.seq));
             client.send(ACK, Vec::new());
-            assert!(Instant::now() < deadline, "waiting for the selected body");
+            assert!(
+                Instant::now() < deadline,
+                "waiting for the selected body {body:08x}"
+            );
         }
     };
     let describe = |records: &[WorldRecord]| {
         records
             .iter()
             .filter(|record| matches!(record.entity, OWNER | FIRST | SECOND))
+            .filter(|record| {
+                record.entity != OWNER
+                    || record.operation != Some(2)
+                    || record.possessed_body.is_some()
+            })
             .map(|record| {
                 (
                     record.entity,
@@ -1255,20 +1263,24 @@ pub fn exercise_hero_selection(
             .find(|record| record.entity == OWNER && record.script.is_some())
             .and_then(|record| record.script.as_ref())
             .expect("hero selection controller frame");
-        assert_eq!(script.first, 0);
+        assert!(
+            script.first > 0,
+            "selection restarted the controller graphs"
+        );
         let mut reader = script.bits();
         assert_eq!(reader.bits(3).unwrap(), 2);
         let cmfd = reader.w_var().unwrap();
         let expected = controller
-            .controller_frame(
+            .selection_delta(
                 cmfd,
                 ControllerFrame {
                     select_open: open,
-                    skins: open,
+                    skins: true,
                     hide_assemble: true,
                     hero: Some(hero),
                     ..ControllerFrame::default()
                 },
+                false,
             )
             .unwrap();
         assert_eq!(script.width, expected.bit_len());
@@ -1281,7 +1293,7 @@ pub fn exercise_hero_selection(
     let expected = [
         (FIRST, Some(1), None),
         (OWNER, Some(2), None),
-        (OWNER, None, Some(2)),
+        (OWNER, None, Some(0)),
     ];
     assert_eq!(describe(&records), expected);
     assert!(
@@ -1304,7 +1316,7 @@ pub fn exercise_hero_selection(
     let tick = BitReader::new(&retry.payload).var_a().unwrap();
     let first_input = tick + 32;
     let mut newest = first_input + 4;
-    let mut controller_end = 2; // The controller full frame just acknowledged.
+    let mut controller_end = 2; // The first selection delta just acknowledged.
     let observe_controller_ack = |records: &[WorldRecord], end: &mut u32| {
         for script in records
             .iter()
@@ -1314,7 +1326,11 @@ pub fn exercise_hero_selection(
         {
             let mut bits = script.bits();
             assert_eq!(bits.bits(3).unwrap(), 2);
-            let expected = crate::script_wire::owner_ack(bits.w_var().unwrap()).unwrap();
+            let cmfd = bits.w_var().unwrap();
+            if bits.w_var().unwrap() != 7 {
+                continue;
+            }
+            let expected = crate::script_wire::owner_ack(cmfd).unwrap();
             assert_eq!(script.width, expected.bit_len());
             assert_eq!(script.data, expected.as_bytes());
             assert!(script.first <= *end + 1);
@@ -1382,7 +1398,7 @@ pub fn exercise_hero_selection(
             .filter(|(entity, operation, _)| *entity != FIRST || operation.is_some())
             .collect();
         if !changes.is_empty() {
-            let [(entity, operation, span)] = changes.as_slice() else {
+            let [(entity, operation, _)] = changes.as_slice() else {
                 panic!("unexpected records while reopening hero selection: {changes:?}");
             };
             assert_eq!((*entity, *operation), (OWNER, None));
@@ -1391,9 +1407,13 @@ pub fn exercise_hero_selection(
                 .find(|record| record.entity == OWNER)
                 .and_then(|record| record.script.as_ref())
                 .expect("controller chunk while reopening hero selection");
-            if script.first == 0 {
-                assert!(span.unwrap() > controller_end);
-                controller_end = span.unwrap();
+            let mut bits = script.bits();
+            assert_eq!(bits.bits(3).unwrap(), 2);
+            bits.w_var().unwrap();
+            if bits.w_var().unwrap() != 7 {
+                assert!(script.first > 0 && script.first <= controller_end + 1);
+                assert!(script.first + script.span > controller_end);
+                controller_end = script.first + script.span;
                 break verify_controller(&records, SOLDIER, true);
             }
         }
@@ -1405,25 +1425,20 @@ pub fn exercise_hero_selection(
     };
     assert!(reopen_cmfd > first_cmfd);
 
-    let tracer = assets.heroes().find_hero("Tracer").unwrap().guid;
-    let (ordinal, next_hero) = if attached {
-        // This prepared catalog rejects Tracer's startup. The following
-        // selection must still use the second body generation and replace
-        // the original body in one acknowledged batch.
-        send(client, 3, PICK_HERO, tracer.to_le_bytes().to_vec());
-        (4, assets.heroes().find_hero("Reaper").unwrap().guid)
+    let next_hero = if attached {
+        assets.heroes().find_hero("Reaper").unwrap().guid
     } else {
-        (3, tracer)
+        assets.heroes().find_hero("Tracer").unwrap().guid
     };
-    send(client, ordinal, PICK_HERO, next_hero.to_le_bytes().to_vec());
+    send(client, 3, PICK_HERO, next_hero.to_le_bytes().to_vec());
     let (swap, records) = next_body_frame(client, SECOND);
     let swap_script = records
         .iter()
         .find(|record| record.entity == OWNER && record.script.is_some())
         .and_then(|record| record.script.as_ref())
         .expect("hero replacement controller frame");
-    assert_eq!(swap_script.first, 0);
-    assert!(swap_script.span > controller_end);
+    assert!(swap_script.first > 0 && swap_script.first <= controller_end + 1);
+    assert!(swap_script.first + swap_script.span > controller_end);
     assert_eq!(
         describe(&records),
         [

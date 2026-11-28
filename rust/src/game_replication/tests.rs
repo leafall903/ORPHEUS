@@ -23,7 +23,10 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+mod capture;
+mod control;
 mod npc_chunk_delivery;
+mod overtime;
 pub(crate) mod owner_effects;
 mod owner_fault_shields;
 mod owner_model;
@@ -32,6 +35,7 @@ mod owner_startup_health;
 mod owner_swept_motion;
 mod owner_synchronous_fault;
 mod owner_walk;
+mod payload;
 mod player_respawn;
 pub(crate) mod practice_observation;
 mod wheel_input;
@@ -2122,6 +2126,7 @@ fn rejected_owner_replacements_preserve_body_and_input_progress() {
         .controller
         .full_owner(FIRST_TICK, |_| Ok(BitWriter::new()))
         .unwrap();
+    world.controller.arrived(1);
     let active = BodyId {
         entity: OWNER | input.active_wire_suffix,
         generation: input.active_generation,
@@ -3685,8 +3690,11 @@ fn owner_and_observer_share_one_authoritative_room_body() {
     assert!(observer_world.identity_ready(id.entity));
 
     // Step the owner once: only RoomSimulation holds the authoritative Mover/pose.
-    step_player(&mut owner_world, &mut simulation, &rays, id, forward(101));
-    let moved_pose = simulation.player_body_by_owner(owner).unwrap().mover.pose();
+    step_player(&mut owner_world, &mut simulation, &rays, id, forward(105));
+    let state = simulation.player_body_mut(id).unwrap();
+    state.sample_observer_clock(101);
+    let moved_pose = state.mover.pose();
+    assert_eq!(moved_pose.frame, Some(105));
     assert_ne!(moved_pose.position, [8.0, 0.0, 0.0]);
 
     // Hostile hitscan in RoomSimulation mutates the single authoritative body.
@@ -3759,7 +3767,7 @@ fn owner_and_observer_share_one_authoritative_room_body() {
             .any(|projection| projection.snapshot.entity == id.entity)
     );
     let observer_movements: Vec<_> = simulation
-        .observer_player_movements(observer_owner)
+        .observer_player_movements(observer_owner, 101)
         .into_iter()
         .filter(|(entity, _)| *entity == id.entity)
         .map(|(entity, movement)| EntityUpdate {
@@ -3769,7 +3777,13 @@ fn owner_and_observer_share_one_authoritative_room_body() {
         })
         .collect();
     assert_eq!(observer_movements.len(), 1);
-    assert_eq!(observer_movements[0].movement, Some(moved_pose));
+    assert_eq!(
+        observer_movements[0].movement,
+        Some(crate::world::Movement {
+            frame: None,
+            ..moved_pose
+        })
+    );
 
     for update in simulation.take_scripted_health() {
         observer_world.queue_health(update);
