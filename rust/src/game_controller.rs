@@ -7,7 +7,8 @@ use crate::{
     game_content::{PRACTICE_RANGE_MODE, is_junkenstein_mode},
     script_graph::{Graph, GraphStore},
     script_wire::{
-        Instance, Layout, Value, Variables, WireError, owner_full, remote_full, subscript,
+        Instance, InstanceVariableDelta, Layout, Value, Variables, WireError, owner_full,
+        owner_variable_delta, remote_full, subscript,
     },
 };
 
@@ -26,6 +27,8 @@ const SELECT_SHOWN: u32 = 31435;
 const CURRENT_HERO: u32 = 940;
 const PICKED: u32 = 2114;
 const PICKED_HERO: u32 = 13161;
+const OBJECTIVE_TEXT: u32 = 8975;
+const OBJECTIVE_COLOR_TEAM: u32 = 6999;
 
 #[derive(Clone, Copy, Debug)]
 struct StateSlot {
@@ -55,6 +58,9 @@ pub struct Controller {
     start_screen: StateSlot,
     start_entry: StateSlot,
     assembling: usize,
+    screen_sync: usize,
+    screen_states: usize,
+    assembling_sync: usize,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -65,6 +71,9 @@ pub struct ControllerFrame<'a> {
     /// Extra presence bits of the root controller, such as notice switches.
     pub presence: Option<&'a BTreeMap<usize, Value>>,
     pub hero: Option<u64>,
+    pub confirmed_hero: Option<u64>,
+    pub send_selection: bool,
+    pub objective: Option<(u64, u8)>,
 }
 
 impl Controller {
@@ -91,6 +100,9 @@ impl Controller {
             start_screen: first,
             start_entry: second,
             assembling: 0,
+            screen_sync: 1,
+            screen_states: 0,
+            assembling_sync: 0,
         }
     }
 
@@ -116,6 +128,9 @@ impl Controller {
             start_screen: slot,
             start_entry: slot,
             assembling: 0,
+            screen_sync: 1,
+            screen_states: 0,
+            assembling_sync: 0,
         }
     }
 
@@ -177,6 +192,12 @@ impl Controller {
                 })
             })
             .transpose()?;
+        let assembling = presence_bit(screen, ASSEMBLING)?;
+        let assembling_sync = screen
+            .presence_vars()
+            .nth(assembling)
+            .expect("validated screen slot")
+            .0;
         Ok(Self {
             root: layout(root)?,
             host: layout(host)?,
@@ -189,7 +210,10 @@ impl Controller {
             start_host: owner_slot(root, start_host)?,
             start_screen: owner_slot(host, 0)?,
             start_entry: owner_slot(host, 1)?,
-            assembling: presence_bit(screen, ASSEMBLING)?,
+            assembling,
+            screen_sync: screen.sync_vars.len(),
+            screen_states: screen.states.len(),
+            assembling_sync,
         })
     }
 
@@ -237,9 +261,7 @@ impl Controller {
         if input.skins {
             screen.presence.insert(self.assembling, Value::Bool(true));
         }
-        if input.hide_assemble {
-            screen.variables.insert(HIDE_ASSEMBLE, Value::Bool(true));
-        }
+        screen.variables = screen_variables(input, false);
         let entry = Instance::new(
             entry_id,
             self.entry,
@@ -257,20 +279,65 @@ impl Controller {
         instances.extend(hud);
         instances.push(entry);
 
-        let mut variables = Variables::from([
-            (OPEN_SELECT, Value::Bool(input.select_open)),
-            (SELECT_SHOWN, Value::Bool(input.select_open)),
-        ]);
-        if let Some(hero) = input.hero.filter(|&hero| hero != 0) {
-            variables.insert(CURRENT_HERO, Value::Asset(hero));
-        }
-        owner_full(command_frame, &instances, &variables)
+        owner_full(command_frame, &instances, &selection_variables(input))
+    }
+
+    pub(crate) fn selection_delta(
+        &self,
+        command_frame: u32,
+        input: ControllerFrame<'_>,
+        update_assembling: bool,
+    ) -> Result<BitWriter, WireError> {
+        let value = Value::Bool(input.skins);
+        owner_variable_delta(
+            command_frame,
+            &selection_variables(input),
+            Some(InstanceVariableDelta {
+                id: if self.parent.is_some() { 4 } else { 3 },
+                sync_slots: self.screen_sync,
+                state_slots: self.screen_states,
+                sync: update_assembling.then_some((self.assembling_sync, &value)),
+                variables: &screen_variables(input, true),
+            }),
+        )
     }
 
     /// A remote 288D root and the three entity variables used by team selection.
     pub fn team_entry_frame(&self, hero: Option<u64>) -> Result<BitWriter, WireError> {
         team_entry(self.entry, hero)
     }
+}
+
+fn screen_variables(input: ControllerFrame<'_>, delta: bool) -> Variables {
+    let mut variables = Variables::new();
+    if delta || input.hide_assemble || input.send_selection {
+        variables.insert(HIDE_ASSEMBLE, Value::Bool(input.hide_assemble));
+    }
+    if let Some((text, team)) = input.objective {
+        variables.insert(OBJECTIVE_TEXT, Value::Asset(text));
+        variables.insert(OBJECTIVE_COLOR_TEAM, Value::Integer(i64::from(team)));
+    } else if delta && input.send_selection {
+        variables.insert(OBJECTIVE_TEXT, Value::Null);
+        variables.insert(OBJECTIVE_COLOR_TEAM, Value::Null);
+    }
+    variables
+}
+
+fn selection_variables(input: ControllerFrame<'_>) -> Variables {
+    let mut variables = Variables::from([
+        (OPEN_SELECT, Value::Bool(input.select_open)),
+        (SELECT_SHOWN, Value::Bool(input.select_open)),
+    ]);
+    if let Some(hero) = input.hero.filter(|&hero| hero != 0) {
+        variables.insert(CURRENT_HERO, Value::Asset(hero));
+    } else if input.send_selection {
+        variables.insert(CURRENT_HERO, Value::Asset(0));
+    }
+    if input.send_selection {
+        variables.insert(PICKED, Value::Bool(input.confirmed_hero.is_some()));
+        variables.insert(PICKED_HERO, Value::Asset(input.confirmed_hero.unwrap_or(0)));
+    }
+    variables
 }
 
 fn team_entry(layout: Layout, hero: Option<u64>) -> Result<BitWriter, WireError> {
@@ -357,6 +424,42 @@ mod tests {
         let choosing = team_entry(layout, None).unwrap();
         assert_frame(&choosing, 69, "884614001342000000");
         assert_eq!(team_entry(layout, Some(0)).unwrap(), choosing);
+    }
+
+    #[test]
+    fn picker_variable_deltas_match_python_without_remounting_the_screen() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/hero-picker-variables-v1.json"
+        ))
+        .unwrap();
+        let number = |key: &str| fixture[key].as_u64().unwrap();
+        let controller = Controller {
+            screen_sync: number("screen_sync_slots") as usize,
+            screen_states: number("screen_state_slots") as usize,
+            assembling_sync: number("assembling_sync_slot") as usize,
+            ..Controller::fixture_for_test()
+        };
+        let hero = crate::accounts::parse_guid(fixture["hero"].as_str().unwrap());
+        for case in fixture["cases"].as_array().unwrap() {
+            let frame = controller
+                .selection_delta(
+                    number("command_frame") as u32,
+                    ControllerFrame {
+                        select_open: case["open"].as_bool().unwrap(),
+                        skins: case["assembling"].as_bool().unwrap(),
+                        hide_assemble: true,
+                        hero,
+                        ..ControllerFrame::default()
+                    },
+                    case["update_assembling"].as_bool().unwrap(),
+                )
+                .unwrap();
+            assert_frame(
+                &frame,
+                case["bits"].as_u64().unwrap() as usize,
+                case["hex"].as_str().unwrap(),
+            );
+        }
     }
 
     #[test]

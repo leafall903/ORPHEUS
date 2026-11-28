@@ -4557,7 +4557,7 @@ fn live_room_interactive_props_authored_blast_breakables_and_pvp_objective() {
     assault.phase = MatchPhase::Active;
     assault.deadline = 300.0;
     assault.last_update = 0.0;
-    room.set_pvp_objective(PvpObjectiveRuntime::Assault(assault));
+    room.set_pvp_objective(PvpObjectiveRuntime::Assault(assault), false);
 
     let owner = BodyId {
         entity: 0xa000_0100,

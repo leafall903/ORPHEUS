@@ -6,6 +6,47 @@ use crate::room_primitives::{
     ObbZone, SPECTATOR_TEAM, SplineNode, SplineSpeedCurve, SplineTrack,
 };
 
+#[test]
+fn custom_start_waits_for_loaded_playing_slots_or_the_host() {
+    let now = Duration::from_secs(3600);
+    let mut immediate = CustomMatchStart::new(START_IMMEDIATELY);
+    immediate.advance(now, [0, 0], &[1, 0]);
+    assert_eq!(immediate.presentation(now), (MatchPhase::Waiting, 0));
+    immediate.advance(now, [1, 0], &[2, 1]);
+    assert_eq!(immediate.presentation(now), (MatchPhase::Assemble, 30));
+    assert!(!immediate.request_start());
+    assert_eq!(
+        immediate.presentation(now + ASSEMBLY_TIME),
+        (MatchPhase::Active, 0)
+    );
+
+    let mut full = CustomMatchStart::new(START_WHEN_FULL);
+    full.advance(now, [2, 0], &[1, 1]);
+    assert_eq!(full.presentation(now), (MatchPhase::Waiting, 0));
+    full.advance(now, [1, 1], &[1, 1]);
+    assert_eq!(full.presentation(now), (MatchPhase::Assemble, 30));
+    let mut solo = CustomMatchStart::new(START_WHEN_FULL);
+    solo.advance(now, [1, 0], &[1, 0]);
+    assert_eq!(solo.presentation(now), (MatchPhase::Assemble, 30));
+
+    for rule in [START_WHEN_FULL, START_MANUALLY] {
+        let mut manual = CustomMatchStart::new(rule);
+        manual.advance(now, [1, 0], &[1, 1]);
+        assert_eq!(manual.presentation(now), (MatchPhase::Waiting, 0));
+        assert!(manual.request_start());
+        assert!(!manual.request_start());
+        assert_eq!(manual.presentation(now), (MatchPhase::Waiting, 0));
+        manual.advance(now, [1, 0], &[1, 1]);
+        assert_eq!(
+            manual.presentation(now + Duration::from_secs(1)),
+            (MatchPhase::Assemble, 29)
+        );
+    }
+    let mut manual = CustomMatchStart::new(START_MANUALLY);
+    manual.advance(now, [1, 1], &[1, 1]);
+    assert_eq!(manual.presentation(now), (MatchPhase::Waiting, 0));
+}
+
 fn parse_hex_u64(s: &str) -> u64 {
     u64::from_str_radix(s.trim_start_matches("0x"), 16).unwrap()
 }
@@ -407,6 +448,21 @@ fn contract_assault_round_v1() {
     let segs = fixture["presentation"]["capture_segments"]
         .as_u64()
         .unwrap() as usize;
+    let waypoint = fixture["presentation"]["waypoint_type"].as_str().unwrap();
+    let waypoint = u64::from_str_radix(waypoint.trim_start_matches("0x"), 16).unwrap();
+    let mut wire = crate::bits::BitWriter::new();
+    crate::script_wire::write_value(
+        &mut wire,
+        &crate::script_wire::Value::Asset(waypoint),
+        crate::script_wire::ValueEncoding::Compact,
+    )
+    .unwrap();
+    let mut read = crate::bits::BitReader::new(wire.as_bytes());
+    assert_eq!(read.bits(4).unwrap(), 9);
+    assert_eq!(read.bits(1).unwrap(), 0);
+    let bytes: Vec<u8> =
+        serde_json::from_value(fixture["presentation"]["waypoint_mask_bytes"].clone()).unwrap();
+    assert_eq!(read.raw_bits(bytes.len() * 8).unwrap(), bytes);
 
     let specs: Vec<CapturePointSpec> = inp["points"]
         .as_array()
@@ -474,6 +530,18 @@ fn contract_assault_round_v1() {
         assert_eq!(cur.captured_segments(), want[3].as_u64().unwrap() as usize);
     }
 
+    let mut rate_round = AssaultRound::new(specs.clone(), 1.0);
+    rate_round.start_setup(inp["assembly_ends"].as_f64().unwrap());
+    for (step, wanted) in inp["rate_steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(exp["rate_progress"].as_array().unwrap())
+    {
+        rate_round.advance(step[0].as_f64().unwrap(), &build_actors(&step[1]));
+        assert!((rate_round.current().progress - wanted.as_f64().unwrap()).abs() < 1e-6);
+    }
+
     let mut o_round = AssaultRound::new(specs, 1.0);
     o_round.start_setup(inp["assembly_ends"].as_f64().unwrap());
     o_round.advance(75.0, &[]);
@@ -487,6 +555,52 @@ fn contract_assault_round_v1() {
         assert_eq!(o_round.overtime, want[0].as_bool().unwrap());
         assert_eq!(o_round.winner.map(u64::from), want[1].as_u64());
     }
+}
+
+#[test]
+fn contract_objective_overtime() {
+    let fixture: Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/fixtures/behavior/objective-overtime-v1.json"
+    )))
+    .unwrap();
+    let input = &fixture["input"];
+    let expected = &fixture["expected"];
+    let deadline = input["deadline"].as_f64().unwrap();
+    let timer_window = Some((deadline, deadline));
+    for (touch, enters) in input["touches"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(expected["timed_enters"].as_array().unwrap())
+    {
+        let mut fuse = OvertimeFuse::default();
+        fuse.advance(touch.as_f64().unwrap(), true, None);
+        fuse.advance(deadline, false, timer_window);
+        assert_eq!(fuse.started.is_some(), enters.as_bool().unwrap());
+    }
+    let mut late = OvertimeFuse::default();
+    late.advance(deadline + 0.01, true, timer_window);
+    assert!(late.started.is_none());
+
+    let mut fuse = OvertimeFuse::default();
+    for (at, grace) in input["decay_samples"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(expected["delay_then_held_fuse"].as_array().unwrap())
+    {
+        let at = at.as_f64().unwrap();
+        fuse.advance(at, true, timer_window);
+        assert!((fuse.remaining(at) - grace.as_f64().unwrap()).abs() < 1e-6);
+    }
+    fuse.advance(145.5, false, timer_window);
+    assert!((fuse.remaining(145.5) - 1.0).abs() < 1e-6);
+    let mut refreshed = fuse.clone();
+    refreshed.advance(146.25, true, timer_window);
+    assert!((refreshed.remaining(146.25) - 1.5).abs() < 1e-6);
+    fuse.advance(146.5, true, timer_window);
+    assert_eq!(fuse.remaining(146.5), 0.0);
 }
 
 #[test]
@@ -545,6 +659,28 @@ fn contract_hybrid_round_v1() {
         cart["unlock_seconds"].as_f64().unwrap(),
     );
     hybrid.start_setup(inp["assembly_ends"].as_f64().unwrap());
+    let mut timeout = hybrid.clone();
+    for (step, want) in inp["capture_timeout_steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(exp["capture_timeout"].as_array().unwrap())
+    {
+        let point = f32_3(&pt["position"]);
+        let contest = [
+            ActorSample::living(100, 1, point),
+            ActorSample::living(101, 0, point),
+        ];
+        let actors = if step[1] == "contested" {
+            &contest[..]
+        } else {
+            &[]
+        };
+        timeout.advance(step[0].as_f64().unwrap(), actors);
+        assert_eq!(timeout.escort.overtime, want[0].as_bool().unwrap());
+        assert_eq!(timeout.escort.winner.map(u64::from), want[1].as_u64());
+        assert!(!timeout.escort.unlocked_objective());
+    }
 
     for (step, want) in inp["steps"]
         .as_array()
@@ -569,6 +705,14 @@ fn contract_hybrid_round_v1() {
         assert_eq!(hybrid.room_stage(), want[1].as_u64().unwrap() as usize);
         assert!((hybrid.escort.deadline - want[2].as_f64().unwrap()).abs() < 1e-4);
         assert!((hybrid.escort.mover.distance - want[3].as_f64().unwrap()).abs() < 1e-3);
+        let gate = &hybrid.escort.barriers.entries[0];
+        assert_eq!(
+            hybrid
+                .escort
+                .barriers
+                .door_open(gate.entity, hybrid.room_stage(), true),
+            want[4].as_bool().unwrap()
+        );
         assert_eq!(hybrid.payload_active(), want[5].as_bool().unwrap());
         assert_eq!(hybrid.escort.winner.map(u64::from), want[6].as_u64());
     }
@@ -653,6 +797,99 @@ fn contract_control_round_v1() {
         assert_eq!(ctrl.contested, want[5].as_bool().unwrap());
         assert_eq!(ctrl.overtime, want[6].as_bool().unwrap());
     }
+
+    let order = control_stage_order(3, inp["score_to_win"]["setting"].as_u64().unwrap() as u32);
+    assert_eq!(order.len(), 5);
+    assert_eq!(
+        order[..3].iter().copied().collect::<BTreeSet<_>>(),
+        BTreeSet::from([0, 1, 2])
+    );
+    assert!(order.windows(2).all(|rounds| rounds[0] != rounds[1]));
+
+    let mut neutral = ctrl.clone();
+    neutral.next_round(0.0);
+    neutral.advance(60.0, &[]);
+    let point = neutral.stages[neutral.stage()].point.position;
+    for (step, expected) in inp["neutral_retake"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(exp["neutral_retake"].as_array().unwrap())
+    {
+        let actors: Vec<_> = step[1]
+            .as_array()
+            .unwrap()
+            .iter()
+            .enumerate()
+            .map(|(id, team)| {
+                ActorSample::living(id as u32 + 1, team.as_u64().unwrap() as u8, point)
+            })
+            .collect();
+        neutral.advance(step[0].as_f64().unwrap(), &actors);
+        assert_eq!(i64::from(neutral.capturer), expected[0].as_i64().unwrap());
+        assert!((neutral.progress - expected[1].as_f64().unwrap()).abs() < 1e-6);
+    }
+
+    let overtime: Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/fixtures/behavior/objective-overtime-v1.json"
+    )))
+    .unwrap();
+    for (score, enters) in overtime["input"]["control_touch_scores"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(overtime["expected"]["control_enters"].as_array().unwrap())
+    {
+        let mut round = ctrl.clone();
+        round.next_round(0.0);
+        round.advance(60.0, &[]);
+        round.owner = 0;
+        round.score_scale = 1.0;
+        let point = round.stages[round.stage()].point.position;
+        let contest = [
+            ActorSample::living(101, 0, point),
+            ActorSample::living(102, 1, point),
+        ];
+        let touch = 60.0 + score.as_f64().unwrap() * 1.2;
+        round.advance(touch, &contest);
+        round.advance(179.0, &[]);
+        assert_eq!(
+            round.overtime,
+            enters.as_bool().unwrap(),
+            "touch at {score}%"
+        );
+    }
+
+    let mut fuse = ctrl.clone();
+    fuse.next_round(0.0);
+    fuse.advance(60.0, &[]);
+    fuse.owner = 0;
+    fuse.scores[0] = 99.0;
+    let point = fuse.stages[fuse.stage()].point.position;
+    let contested = [
+        ActorSample::living(101, 0, point),
+        ActorSample::living(102, 1, point),
+    ];
+    let start = 118.8;
+    fuse.last_update = start;
+    fuse.advance(start, &contested);
+    assert_eq!(fuse.scores[0], 99.99);
+    for (time, expected) in inp["overtime_hold"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(exp["overtime_grace"].as_array().unwrap())
+    {
+        let now = time.as_f64().unwrap();
+        fuse.advance(now, &contested);
+        assert!(fuse.overtime);
+        assert!((fuse.fuse.remaining(now) - expected.as_f64().unwrap()).abs() < 1e-6);
+    }
+    fuse.advance(150.29, &[]);
+    assert!(fuse.overtime);
+    fuse.advance(150.31, &[]);
+    assert_eq!(fuse.round_winner, Some(0));
 
     // Verify control room panel fitting
     let rp = &inp["room_panel"];
@@ -797,6 +1034,104 @@ fn contract_match_audio_v1() {
 }
 
 #[test]
+fn authored_escort_catalog_drives_shared_route_and_spawn_interfaces() {
+    use crate::game_content::MapCatalog;
+    use crate::room_primitives::{DoorPose, MAP_ENTITY_BIT};
+
+    let case: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/fixtures/behavior/escort-authored-route-v1.json"
+    )))
+    .unwrap();
+    let catalog = MapCatalog::from_json(
+        &serde_json::json!({
+            "0x0800000000003333": case["input"]["map"]
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let expected = &case["expected"];
+    let mut map = catalog
+        .game_map(0x0800_0000_0000_3333, MODE_ESCORT, "Escort", false, &[6, 6])
+        .unwrap();
+    let values = |key: &str| expected[key].clone();
+    assert_eq!(serde_json::json!(map.placeables), values("placeables"));
+    let numbers = |key: &str| {
+        expected[key]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_f64().unwrap())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        map.spawn_for_stage(1, 0, 1).unwrap().0.as_slice(),
+        numbers("later_spawn")
+    );
+    assert_eq!(
+        map.spawn_for_stage(0, 0, 1).unwrap().0.as_slice(),
+        numbers("fallback_spawn")
+    );
+    map.payload_route.as_mut().unwrap().speed_scale = 2.0;
+    let Some(PvpObjectiveRuntime::Escort(mut round)) = PvpObjectiveRuntime::from_game_map(&map)
+    else {
+        panic!("route did not mount")
+    };
+    assert_eq!(round.stage_seconds, numbers("stage_seconds"));
+    assert_eq!(round.pose().position.as_slice(), numbers("start_pose"));
+    let offsets: [[f64; 3]; 3] =
+        serde_json::from_value(values("first_segment_control_offsets")).unwrap();
+    assert_eq!(round.mover.track.nodes[0].curve, Some(offsets));
+    for ((distance, placement), row) in round
+        .checkpoints
+        .iter()
+        .zip(expected["checkpoints"].as_array().unwrap())
+    {
+        assert!((distance - row[0].as_f64().unwrap()).abs() < 1e-8);
+        assert_eq!(u64::from(*placement), row[1].as_u64().unwrap());
+    }
+    round.phase = MatchPhase::Active;
+    round.deadline = 60.0;
+    round.advance(
+        8.0,
+        &[ActorSample {
+            entity: 7,
+            team: 1,
+            position: [0.0, 0.5, 0.0],
+            alive: true,
+        }],
+    );
+    assert_eq!(round.stage, 1);
+    let gate = MAP_ENTITY_BIT | 40;
+    assert_eq!(round.door_state(gate, 8.5, None).pose, DoorPose::Closed);
+    let command = round.barriers.gate_commands[&gate];
+    assert_eq!(
+        command.starts_at,
+        expected["gate_open_starts"].as_f64().unwrap()
+    );
+    assert_eq!(
+        command.ends_at,
+        expected["gate_open_ends"].as_f64().unwrap()
+    );
+    round.advance(18.0, &[]);
+    assert!((round.mover.distance - expected["auto_drive_ends_at"].as_f64().unwrap()).abs() < 1e-8);
+    assert_eq!(round.mover.route_rollback_floor, round.mover.distance);
+    assert_eq!(round.mover.speed, 0.0);
+
+    let skirmish = catalog
+        .game_map(
+            map.map_guid,
+            0x0230_0000_0000_0010,
+            "Skirmish",
+            false,
+            &[6, 6],
+        )
+        .unwrap();
+    assert!(skirmish.payload_route.is_none());
+    assert!(!skirmish.placeables.contains(&20));
+}
+
+#[test]
 fn from_game_map_auto_mounts_all_four_pvp_modes() {
     use crate::game_content::{GameMap, MapObjective};
     let make_map = |objectives: Vec<MapObjective>| GameMap {
@@ -804,11 +1139,28 @@ fn from_game_map_auto_mounts_all_four_pvp_modes() {
         ..GameMap::practice_range()
     };
     let obj = |kind: &str, pos: [f64; 3]| MapObjective {
+        stage: None,
+        submap_name: None,
+        outlines: vec![],
         kind: kind.into(),
         name: None,
         placeable: Some(10),
         position: pos,
         rotation: None,
+        objective: None,
+        escort_seconds: None,
+        casual_seconds: None,
+        unlock_delay: 0.0,
+        unlock_seconds: 0.0,
+        auto_drive: false,
+        speed_multiplier: None,
+        round_seconds: None,
+        capture_seconds: None,
+        decay_seconds: None,
+        capture_boxes: Vec::new(),
+        outline: None,
+        collision: Vec::new(),
+        scale: [1.0; 3],
     };
     let assault = make_map(vec![
         obj("point", [0.0, 0.0, 0.0]),
@@ -836,11 +1188,12 @@ fn from_game_map_auto_mounts_all_four_pvp_modes() {
         PvpObjectiveRuntime::from_game_map(&hybrid),
         Some(PvpObjectiveRuntime::Hybrid(_))
     ));
-    let control = make_map(vec![
+    let mut control = make_map(vec![
         obj("control point", [0.0, 0.0, 0.0]),
         obj("control point", [0.0, 100.0, 0.0]),
         obj("control point", [0.0, 200.0, 0.0]),
     ]);
+    control.mode_guid = MODE_CONTROL;
     assert!(matches!(
         PvpObjectiveRuntime::from_game_map(&control),
         Some(PvpObjectiveRuntime::Control(_))

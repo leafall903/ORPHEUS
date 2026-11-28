@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "case_id": "objective-overtime",
+  "target_build": "104319",
+  "source": "Synthetic timings derived from the retail timed objective and Control state graphs",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "deadline": 100,
+    "touches": [96.99, 97, 97.01],
+    "control_touch_scores": [96.49, 96.51, 96.69],
+    "decay_samples": [100, 115, 120, 130, 145]
+  },
+  "expected": {
+    "timed_enters": [false, false, true],
+    "control_enters": [false, true, true],
+    "delay_then_held_fuse": [5, 5, 3.8333333333, 1.5, 1.5]
+  }
+}

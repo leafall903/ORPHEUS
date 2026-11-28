@@ -132,7 +132,9 @@ impl GroundProbe {
         else {
             return Ok(result);
         };
-        let shape = &world.shapes()[cast.shape as usize];
+        let shape = world
+            .shape(cast.shape)
+            .expect("support shape from this world");
         let (mut point, mut normal, mut surface) =
             (cast.hit.point, cast.hit.normal.map(f64::from), 0);
         match shape.geometry() {
@@ -143,7 +145,9 @@ impl GroundProbe {
                 normal = face_normal.map(f64::from);
                 surface = face_surface;
             }
-            StaticGeometry::Hull(_) => {
+            StaticGeometry::Hull(_)
+                if world.layer_start() == 0 || (cast.shape as usize) < world.layer_start() =>
+            {
                 let Some((ray_point, ray_normal, ray_surface)) =
                     self.rays(rays, start, point, cast.hit.normal, category)
                 else {
@@ -153,6 +157,7 @@ impl GroundProbe {
                 normal = ray_normal;
                 surface = ray_surface;
             }
+            StaticGeometry::Hull(_) => {}
             StaticGeometry::Round { .. } => {}
         }
         result.non_ground_under |= surface & NOT_GROUND != 0;

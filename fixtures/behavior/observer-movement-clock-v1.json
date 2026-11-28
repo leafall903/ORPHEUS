@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "command_frame": 37565,
+      "input_frame": 37561,
+      "crouch_frame": 37569,
+      "sample_tick": 37562,
+      "packet_tick": 37563,
+      "observed_input_frame": 37558,
+      "observed_crouch_frame": 37566
+    },
+    {
+      "command_frame": 38800,
+      "input_frame": 4294967295,
+      "crouch_frame": null,
+      "sample_tick": 38801,
+      "packet_tick": 38802,
+      "observed_input_frame": 4294967295,
+      "observed_crouch_frame": null
+    },
+    {
+      "command_frame": 39012,
+      "input_frame": null,
+      "crouch_frame": null,
+      "sample_tick": 39007,
+      "packet_tick": 39009,
+      "observed_input_frame": null,
+      "observed_crouch_frame": null
+    }
+  ]
+}

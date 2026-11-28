@@ -2598,8 +2598,15 @@ impl World for BodyWorld {
         {
             return None;
         }
-        // Both relations point to the same controller for this human body.
         match relation {
+            // Ordinary room bodies have no pet owner to read from component 72.
+            EntityRelation::OwningController
+                if self.spatial_frame.as_deref().is_some_and(|frame| {
+                    frame.is_unowned_body(entity) || frame.is_retired(entity)
+                }) =>
+            {
+                Some(0)
+            }
             EntityRelation::OwningController | EntityRelation::CurrentPossessor
                 if entity == self.entity =>
             {

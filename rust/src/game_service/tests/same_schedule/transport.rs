@@ -68,10 +68,7 @@ fn prepared_owner_post_startup_loss_receipts() {
             MATCH,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(scene),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(scene, PlayerCard::default())),
             Duration::ZERO,
         )
         .unwrap()

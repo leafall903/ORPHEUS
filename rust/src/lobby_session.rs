@@ -214,6 +214,14 @@ impl<'a> LobbySession<'a> {
         Ok(true)
     }
 
+    pub(crate) fn transport_mut(&mut self) -> &mut LobbyTransport {
+        &mut self.transport
+    }
+
+    pub(crate) fn announces(&self, crc: u32) -> bool {
+        self.transport.wire_for(crc).is_some()
+    }
+
     /// Send the disconnect reason. The caller manages the grace period and socket shutdown.
     pub fn send_disconnect(&mut self, reason: u64) -> io::Result<bool> {
         self.send(&(
@@ -556,16 +564,27 @@ mod tests {
     fn native_server_logs_in_saved_profile_and_loads_practice_over_udp() {
         use crate::{
             accounts::load_or_create_profile,
-            bits::BitReader,
+            bits::{BitReader, BitWriter},
             game_content::PRACTICE_RANGE_MAP,
             game_heroes::SOLDIER,
-            game_link::{ACK, KIND_FRAME, LinkCipher, MAX_DATAGRAM, Packet, SYN},
-            game_messages::read_channel,
+            game_link::{
+                ACK, FIN, KIND_CONTROL, KIND_FRAME, LinkCipher, MAX_DATAGRAM, Packet, SYN,
+            },
+            game_messages::{encode, read_channel, write_channel},
+            game_service::{
+                player_entity,
+                tests::{
+                    harness::{Client, messages, world_records},
+                    pick_soldier_for_weapon,
+                },
+            },
+            lobby_custom_room::{CUSTOM_GAMES, MATCH_LOBBY_OUT, ROOM_ACTION},
             lobby_gallery::{EQUIP, EQUIPPED, GALLERY_OUT},
             lobby_practice::CREATE_GAME,
-            match_handoff::{HANDOFF, HANDOFF_MESSAGE},
+            match_handoff::{HANDOFF, HANDOFF_MESSAGE, Handoff, MATCH_LOBBY},
             scene_assets::SceneAssets,
             server::{Server, ServerConfig},
+            world::GAME_MODE_ENTITY,
         };
         use std::{fs, net::UdpSocket, time::Instant};
 
@@ -653,12 +672,626 @@ mod tests {
             HERO_CATALOG,
             HANDOFF,
             GALLERY_OUT,
+            CUSTOM_GAMES,
+            MATCH_LOBBY,
+            MATCH_LOBBY_OUT,
         ];
         let mut announcement = vec![0, 0];
         announcement.extend_from_slice(&(groups.len() as u32).to_le_bytes());
         for group in groups {
             announcement.extend_from_slice(&group.to_le_bytes());
         }
+        jam_framing::send_frame(&mut tcp, &mut tx, &announcement).unwrap();
+        let mut reader = FrameReader::new(rx);
+        {
+            let mut write = |tcp: &mut TcpStream, crc, wire, id, fields: &Fields| {
+                let mut frame = schemas.header(crc, wire, id).unwrap();
+                frame.extend(schemas.encode(crc, id, fields).unwrap());
+                jam_framing::send_frame(tcp, &mut tx, &frame).unwrap();
+            };
+            let mut read = |tcp: &mut TcpStream, expected: &[(u32, u8, u32)]| {
+                let mut replies = Vec::new();
+                let mut buf = [0; 8192];
+                let limit = Instant::now() + Duration::from_secs(5);
+                let handoff = schemas.header(HANDOFF, 7, HANDOFF_MESSAGE).unwrap();
+                while replies.len() < expected.len() {
+                    let count = tcp.read(&mut buf).unwrap_or_else(|error| {
+                        let wanted: Vec<_> = expected.iter().map(|entry| entry.2).collect();
+                        let received: Vec<_> = replies
+                            .iter()
+                            .map(|entry: &(u32, Fields)| entry.0)
+                            .collect();
+                        panic!("reading lobby replies {wanted:?}, received {received:?}: {error}");
+                    });
+                    assert!(
+                        count != 0 && Instant::now() < limit,
+                        "missing room response"
+                    );
+                    for frame in reader.feed(&buf[..count]) {
+                        if frame.starts_with(&handoff) {
+                            assert!(
+                                expected.contains(&(HANDOFF, 7, HANDOFF_MESSAGE)),
+                                "unexpected handoff"
+                            );
+                        }
+                        for &(crc, wire, id) in expected {
+                            if let Some(body) = frame
+                                .strip_prefix(schemas.header(crc, wire, id).unwrap().as_slice())
+                            {
+                                replies.push((id, schemas.decode(crc, id, body, true).unwrap()));
+                            }
+                        }
+                    }
+                }
+                assert_eq!(
+                    replies.iter().map(|&(id, _)| id).collect::<Vec<_>>(),
+                    expected.iter().map(|&(_, _, id)| id).collect::<Vec<_>>(),
+                );
+                replies
+            };
+            write(&mut tcp, OUT_CONNECT, 2, LOGIN_MESSAGE, &Fields::new());
+            let create = Fields::from([
+                (0x78, Value::Unsigned(1)),
+                (0x80, Value::String(String::new())),
+                (0xa8, Value::Unsigned(4)),
+            ]);
+            let room_packets = [
+                (MATCH_LOBBY, 10, 53000),
+                (CUSTOM_GAMES, 9, 23304),
+                (CUSTOM_GAMES, 9, 23305),
+                (MATCH_LOBBY, 10, 53001),
+                (MATCH_LOBBY, 10, 53002),
+            ];
+            let room_id =
+                |replies: &[(u32, Fields)]| structure(&replies[0].1[&0x78])[&0x30].clone();
+            let start_request = Fields::from([(0x78, Value::Unsigned(1))]);
+            write(&mut tcp, GAME_REQUEST, 3, ROOM_ACTION, &start_request);
+            write(&mut tcp, GAME_REQUEST, 3, CREATE_GAME, &create);
+            let joined = read(&mut tcp, &room_packets);
+            let room_info = structure(&joined[1].1[&0x78]);
+            assert_eq!(room_info[&0x88], Value::String(rust.name.clone()));
+            write(&mut tcp, GAME_REQUEST, 3, CREATE_GAME, &create);
+            assert_eq!(read(&mut tcp, &room_packets), joined);
+
+            #[derive(serde::Deserialize)]
+            struct Edits {
+                schema_version: u32,
+                target_build: u32,
+                names: [String; 3],
+                rename_reply: u32,
+                move_reply: u32,
+                target_team: u64,
+                target_slot: u64,
+                auto_slot: u64,
+                map: String,
+                map_header: String,
+                mode: String,
+                preset: String,
+                capacity: [u64; 3],
+                refresh_replies: Vec<u32>,
+                settings_replies: Vec<u32>,
+            }
+            use Value::{Array, Bool, String as Text, Struct, Unsigned as U};
+            let edits: Edits = serde_json::from_str(include_str!(
+                "../../fixtures/behavior/custom-room-edits-v1.json"
+            ))
+            .unwrap();
+            assert_eq!((edits.schema_version, edits.target_build), (1, 104319));
+            let roster = |fields: &Fields| {
+                let Array(rows) = &fields[&0x78] else {
+                    panic!("missing roster");
+                };
+                structure(&rows[0]).clone()
+            };
+            let account = room_info[&0x68].clone();
+            let move_to = |account, team, slot| {
+                Fields::from([(0x78, account), (0x89, U(team)), (0x8a, U(slot))])
+            };
+            let move_reply = [(MATCH_LOBBY, 10, edits.move_reply)];
+            let signed = |value: u64| Value::Signed(i64::try_from(value).unwrap());
+            let mut move_player = |tcp: &mut TcpStream, account_id, team, slot| {
+                write(
+                    tcp,
+                    GAME_REQUEST,
+                    3,
+                    24017,
+                    &move_to(account_id, team, slot),
+                );
+            };
+            move_player(&mut tcp, Struct(crate::jam_codec::id16(91, 92)), 1, 1);
+            move_player(&mut tcp, account.clone(), 1, 99);
+            move_player(
+                &mut tcp,
+                account.clone(),
+                edits.target_team,
+                edits.target_slot,
+            );
+            let moved = roster(&read(&mut tcp, &move_reply)[0].1);
+            assert_eq!(moved[&0xa8], signed(edits.target_team));
+            assert_eq!(moved[&0xaf], signed(edits.target_slot));
+            move_player(
+                &mut tcp,
+                account.clone(),
+                edits.target_team,
+                edits.auto_slot,
+            );
+            assert_eq!(roster(&read(&mut tcp, &move_reply)[0].1), moved);
+            move_player(&mut tcp, account.clone(), 3, edits.auto_slot);
+            let spectator = roster(&read(&mut tcp, &move_reply)[0].1);
+            assert_eq!(spectator[&0xa8], signed(3));
+            assert_eq!(spectator[&0xaf], signed(0));
+            move_player(&mut tcp, account, edits.target_team, edits.target_slot);
+            assert_eq!(roster(&read(&mut tcp, &move_reply)[0].1), moved);
+
+            let rename_reply = [(CUSTOM_GAMES, 9, edits.rename_reply)];
+            let mut rename = |tcp: &mut TcpStream, kind, name: &str| {
+                write(
+                    tcp,
+                    GAME_REQUEST,
+                    3,
+                    24019,
+                    &Fields::from([(0x78, U(kind)), (0x80, Text(name.to_owned()))]),
+                );
+                read(tcp, &rename_reply).remove(0).1
+            };
+            let mut names = Fields::new();
+            for (index, name) in edits.names.iter().enumerate() {
+                let response = rename(&mut tcp, index as u64 + 1, name);
+                assert_eq!(
+                    structure(&response[&0x88])[&0x88],
+                    Text(edits.names[0].clone())
+                );
+                assert_eq!(structure(&response[&0x88])[&0x78], room_info[&0x78]);
+                names = response;
+            }
+            let team_name = |response: &Fields, index| {
+                let Array(rows) = &response[&0x138] else {
+                    panic!("missing team names");
+                };
+                structure(&rows[index])[&0x20].clone()
+            };
+            assert_eq!(team_name(&names, 0), Text(edits.names[1].clone()));
+            assert_eq!(team_name(&names, 1), Text(edits.names[2].clone()));
+            let names = rename(&mut tcp, 2, "");
+            let Array(name_rows) = &names[&0x138] else {
+                panic!("missing team names");
+            };
+            let named_teams: Vec<_> = name_rows
+                .iter()
+                .map(|row| {
+                    let row = structure(row);
+                    (&row[&0x18], &row[&0x20])
+                })
+                .collect();
+            assert_eq!(
+                named_teams,
+                [
+                    (&Value::Signed(0), &Text(String::new())),
+                    (&Value::Signed(1), &Text(edits.names[2].clone())),
+                ]
+            );
+            let expected_names = &names[&0x138];
+
+            let guid = |text: &str| U(u64::from_str_radix(text, 16).unwrap());
+            let lobby =
+                |spectators| Struct(Fields::from([(0, U(3)), (4, U(1)), (8, U(spectators))]));
+            let mode = |team_a, team_b| {
+                Struct(Fields::from([
+                    (0xa8, guid(&edits.preset)),
+                    (0xb0, guid(&edits.mode)),
+                    (
+                        0xc0,
+                        Array(
+                            [team_a, team_b]
+                                .into_iter()
+                                .enumerate()
+                                .map(|(team, size)| {
+                                    Struct(Fields::from([(0x60, U(team as u64)), (0x61, U(size))]))
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    (0x108, U(1)),
+                ]))
+            };
+            let replies_for = |ids: &[u32]| {
+                ids.iter()
+                    .map(|&id| {
+                        if id < 53000 {
+                            (CUSTOM_GAMES, 9, id)
+                        } else {
+                            (MATCH_LOBBY, 10, id)
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
+            for (index, replies) in [&edits.refresh_replies, &edits.settings_replies]
+                .into_iter()
+                .enumerate()
+            {
+                let [a, b, spectators] = edits.capacity;
+                let team_b = b + 1 - index as u64;
+                let rules = mode(a, team_b);
+                let options = Struct(Fields::from([(0x1d0, lobby(spectators))]));
+                let map = Struct(Fields::from([
+                    (0, rules.clone()),
+                    (0x138, guid(&edits.map)),
+                ]));
+                let hero = Fields::from([(0x98, U(0)), (0x9c, U(1)), (0xa0, Bool(true))]);
+                let header = Fields::from([(0x78, options), (0x3d0, Bool(true))]);
+                write(&mut tcp, GAME_REQUEST, 3, 24008, &header);
+                write(
+                    &mut tcp,
+                    GAME_REQUEST,
+                    3,
+                    24009,
+                    &Fields::from([(0x78, map), (0x1b8, Bool(true))]),
+                );
+                write(&mut tcp, GAME_REQUEST, 3, 24011, &hero);
+                if index == 0 {
+                    // A full room replay during the upload still shows the previous settings.
+                    write(&mut tcp, GAME_REQUEST, 3, ROOM_ACTION, &start_request);
+                    write(&mut tcp, GAME_REQUEST, 3, CREATE_GAME, &create);
+                    let unchanged = read(&mut tcp, &room_packets);
+                    assert_eq!(unchanged[3], joined[3]);
+                    assert_eq!(&unchanged[1].1[&0x128], expected_names);
+                    assert_eq!(roster(&unchanged[4].1), moved);
+                }
+                write(
+                    &mut tcp,
+                    GAME_REQUEST,
+                    3,
+                    24010,
+                    &Fields::from([(0x78, rules)]),
+                );
+                let saved = read(&mut tcp, &replies_for(replies));
+                let tail = &saved[saved.len() - 5..];
+                assert_eq!(tail[0].1[&0x1b8], Bool(true));
+                assert_eq!(tail[1].1[&0x9c], Value::Signed(1));
+                assert_eq!(tail[1].1[&0xa0], Bool(true));
+                assert_eq!(tail[2].1[&0x1b0], Bool(false));
+                let settings = structure(&tail[3].1[&0x78]);
+                assert_eq!(structure(&settings[&0x288])[&0], guid(&edits.map_header));
+                assert_ne!(settings[&0x278], structure(&joined[3].1[&0x78])[&0x278]);
+                let capacity = structure(&settings[&0x298]);
+                assert_eq!(
+                    [&capacity[&0], &capacity[&4], &capacity[&8]],
+                    [&signed(a), &signed(team_b), &signed(spectators)]
+                );
+                let member = roster(&tail[4].1);
+                assert_eq!(member[&0xa8], signed(edits.target_team));
+                assert_eq!(member[&0xaf], signed(team_b - 1));
+            }
+
+            let close = Fields::from([(0x78, room_id(&joined))]);
+            write(&mut tcp, MATCH_LOBBY_OUT, 11, 52902, &close);
+            read(
+                &mut tcp,
+                &[(MATCH_LOBBY, 10, 53003), (CUSTOM_GAMES, 9, 23311)],
+            );
+            write(&mut tcp, GAME_REQUEST, 3, CREATE_GAME, &create);
+            let recreated = read(&mut tcp, &room_packets);
+            assert_ne!(room_id(&recreated), room_id(&joined));
+            assert_eq!(recreated[1].1[&0x128], Array(Vec::new()));
+            assert_eq!(roster(&recreated[4].1)[&0xa8], signed(0));
+            assert_eq!(roster(&recreated[4].1)[&0xaf], signed(0));
+
+            #[derive(serde::Deserialize)]
+            struct StartCase {
+                map: String,
+                mode: String,
+                preset: String,
+                team: usize,
+                team_size: u64,
+                mode_start: Option<u64>,
+                map_start: Option<u64>,
+                waiting: bool,
+            }
+            #[derive(serde::Deserialize)]
+            struct RoomControls {
+                start_mode_action: u64,
+                restart_action: u64,
+                return_action: u64,
+                leave_message: u32,
+                notice_message: u32,
+                restart_notice: String,
+                return_notice: String,
+                waiting_hud_graph: u64,
+            }
+            #[derive(serde::Deserialize)]
+            struct Starts {
+                target_build: u32,
+                controls: RoomControls,
+                cases: Vec<StartCase>,
+            }
+            let starts: Starts = serde_json::from_str(include_str!(
+                "../../fixtures/behavior/custom-room-start-v1.json"
+            ))
+            .unwrap();
+            assert_eq!(starts.target_build, 104319);
+            let controls = &starts.controls;
+            let action = |id| Fields::from([(0x78, U(id))]);
+            let read_ticket = |fields: &Fields| {
+                let ticket = structure(&fields[&0x80]);
+                let U(conn) = ticket[&0x28] else {
+                    panic!("missing custom connection")
+                };
+                let key = |offset| {
+                    let Array(values) = &ticket[&offset] else {
+                        panic!("missing custom UDP key")
+                    };
+                    std::array::from_fn(|i| {
+                        let U(byte) = values[i] else {
+                            panic!("invalid custom UDP key")
+                        };
+                        byte.try_into().unwrap()
+                    })
+                };
+                let id = structure(&ticket[&0]);
+                let (U(lo), U(hi)) = (&id[&0], &id[&8]) else {
+                    panic!("missing custom match ID")
+                };
+                assert_eq!(ticket[&0x2c], U(u64::from(server.game_addr().port())));
+                Handoff {
+                    conn: conn.try_into().unwrap(),
+                    key_in: key(0xae),
+                    key_out: key(0xce),
+                    match_id: [*lo, *hi],
+                }
+            };
+            let waiting_hud = |script: &crate::game_service::tests::harness::ReceivedChunk| {
+                assert_eq!(script.first, 0);
+                let mut bits = script.bits();
+                assert_eq!(bits.bits(2).unwrap(), 0);
+                let mut waiting = false;
+                while bits.w_u16().unwrap() != 0 {
+                    waiting |= bits.bits(16).unwrap() == controls.waiting_hud_graph;
+                    assert_eq!(bits.bits(2).unwrap(), 0);
+                    if bits.bit().unwrap() {
+                        bits.w_var().unwrap();
+                        bits.w_var().unwrap();
+                    }
+                    assert!(!bits.bit().unwrap());
+                }
+                waiting
+            };
+            for (index, start) in starts.cases.iter().enumerate() {
+                let current = if index == 0 {
+                    recreated.clone()
+                } else {
+                    write(&mut tcp, GAME_REQUEST, 3, CREATE_GAME, &create);
+                    let room = read(&mut tcp, &room_packets);
+                    let rules = Fields::from([
+                        (0xa8, guid(&start.preset)),
+                        (0xb0, guid(&start.mode)),
+                        (
+                            0xc0,
+                            Array(
+                                [2, start.team_size]
+                                    .into_iter()
+                                    .enumerate()
+                                    .map(|(team, size)| {
+                                        Struct(Fields::from([
+                                            (0x60, U(team as u64)),
+                                            (0x61, U(size)),
+                                        ]))
+                                    })
+                                    .collect(),
+                            ),
+                        ),
+                        (0x108, U(1)),
+                    ]);
+                    let setting = |choice: Option<u64>| {
+                        let mut rules = rules.clone();
+                        if let Some(choice) = choice {
+                            rules.insert(
+                                0xd8,
+                                Array(vec![Struct(Fields::from([
+                                    (0, U(choice)),
+                                    (4, U(9672)),
+                                    (6, U(3)),
+                                ]))]),
+                            );
+                        }
+                        Struct(rules)
+                    };
+                    let map = Struct(Fields::from([
+                        (0, setting(start.map_start)),
+                        (0x138, guid(&start.map)),
+                    ]));
+                    let options = Struct(Fields::from([
+                        (0, Array(vec![map])),
+                        (0x18, Array(vec![setting(start.mode_start)])),
+                        (0x1d0, lobby(2)),
+                    ]));
+                    write(
+                        &mut tcp,
+                        GAME_REQUEST,
+                        3,
+                        24008,
+                        &Fields::from([(0x78, options)]),
+                    );
+                    read(&mut tcp, &room_packets);
+                    let account = structure(&room[1].1[&0x78])[&0x68].clone();
+                    write(
+                        &mut tcp,
+                        GAME_REQUEST,
+                        3,
+                        24017,
+                        &move_to(account, start.team as u64, 1),
+                    );
+                    assert_eq!(roster(&read(&mut tcp, &move_reply)[0].1)[&0xaf], signed(1));
+                    room
+                };
+                for _ in 0..2 {
+                    write(&mut tcp, GAME_REQUEST, 3, ROOM_ACTION, &start_request);
+                }
+                let handoff = read(&mut tcp, &[(HANDOFF, 7, HANDOFF_MESSAGE)]);
+                let ticket = read_ticket(&handoff[0].1);
+                let mut udp = Client::new(server.game_addr(), &ticket);
+                udp.handshake();
+                let load = udp.receive();
+                assert!(udp.window.accept(load.seq));
+                let load_messages = messages(&game_schemas, &load);
+                assert_eq!(load_messages[0].message.id, 20300);
+                let fields = &load_messages[0].message.fields;
+                assert_eq!(fields[&0x4a8], guid(&start.map));
+                let lobby_roster = structure(&structure(&structure(&fields[&0x80])[&0])[&0]);
+                assert_eq!(lobby_roster[&0xb0], guid(&start.mode));
+                assert_eq!(lobby_roster[&0xa8], guid(&start.preset));
+                let Array(teams) = &lobby_roster[&0xc0] else {
+                    panic!("missing team roster");
+                };
+                let team = structure(&teams[start.team]);
+                assert_eq!(team[&0x61], U(start.team_size));
+                let Array(players) = &team[&0x18] else {
+                    panic!("missing team members");
+                };
+                assert_eq!(players.len(), 1);
+                assert_eq!(structure(&players[0])[&0], U(u64::from(player_entity(0))));
+
+                let loaded = encode(&game_schemas, 21602, &Fields::new()).unwrap();
+                let mut payload = BitWriter::new();
+                write_channel(&mut payload, &[(0, loaded)], &[]).unwrap();
+                udp.send(ACK, payload.into_bytes());
+                let deadline = Instant::now() + Duration::from_secs(5);
+                let mut mode_frame = false;
+                let mut controller_frame = false;
+                while !(mode_frame && controller_frame) {
+                    assert!(Instant::now() < deadline, "missing custom world baseline");
+                    let packet = udp.receive();
+                    assert!(udp.window.accept(packet.seq));
+                    for record in world_records(&game_schemas, &packet) {
+                        if record.entity == GAME_MODE_ENTITY {
+                            if let Some(script) =
+                                record.script.as_ref().filter(|script| script.first == 0)
+                            {
+                                assert_eq!(waiting_hud(script), start.waiting);
+                                mode_frame = true;
+                            }
+                        }
+                        controller_frame |=
+                            record.entity == player_entity(0) && record.script.is_some();
+                    }
+                    udp.send(ACK, Vec::new());
+                }
+                pick_soldier_for_weapon(&mut udp, &game_schemas);
+                if start.waiting {
+                    for _ in 0..2 {
+                        write(
+                            &mut tcp,
+                            GAME_REQUEST,
+                            3,
+                            ROOM_ACTION,
+                            &action(controls.start_mode_action),
+                        );
+                    }
+                    let deadline = Instant::now() + Duration::from_secs(4);
+                    let mut assembled = false;
+                    loop {
+                        assert!(
+                            Instant::now() < deadline,
+                            "missing assembly phase or countdown"
+                        );
+                        let packet = udp.receive();
+                        assert!(udp.window.accept(packet.seq));
+                        let mut countdown = false;
+                        for record in world_records(&game_schemas, &packet) {
+                            if record.entity != GAME_MODE_ENTITY {
+                                continue;
+                            }
+                            let Some(script) = record.script else {
+                                continue;
+                            };
+                            if script.first == 0 {
+                                assembled |= !waiting_hud(&script);
+                            } else if assembled {
+                                let mut bits = script.bits();
+                                assert_eq!(bits.bits(2).unwrap(), 0);
+                                assert_eq!(bits.w_u16().unwrap(), 0);
+                                assert!(bits.bit().unwrap());
+                                assert_eq!(bits.w_var().unwrap(), 1303);
+                                assert_eq!(bits.bits(4).unwrap(), 6);
+                                assert!((26..=29).contains(&bits.bits(8).unwrap()));
+                                countdown = true;
+                            }
+                        }
+                        udp.send(ACK, Vec::new());
+                        if countdown {
+                            break;
+                        }
+                    }
+                }
+                let (leave_action, expected_notice) = if index == 0 {
+                    (controls.restart_action, &controls.restart_notice)
+                } else {
+                    (controls.return_action, &controls.return_notice)
+                };
+                for _ in 0..2 {
+                    write(
+                        &mut tcp,
+                        GAME_REQUEST,
+                        3,
+                        ROOM_ACTION,
+                        &action(leave_action),
+                    );
+                }
+                let notice = read(&mut tcp, &[(CUSTOM_GAMES, 9, controls.notice_message)]);
+                assert_eq!(notice[0].1[&0x78], guid(expected_notice));
+                let deadline = Instant::now() + Duration::from_secs(5);
+                loop {
+                    assert!(Instant::now() < deadline, "missing custom leave message");
+                    let packet = udp.receive();
+                    assert!(udp.window.accept(packet.seq));
+                    if messages(&game_schemas, &packet)
+                        .iter()
+                        .any(|message| message.message.id == controls.leave_message)
+                    {
+                        break;
+                    }
+                    udp.send(ACK, Vec::new());
+                }
+                udp.send(FIN | ACK, Vec::new());
+                let deadline = Instant::now() + Duration::from_secs(3);
+                loop {
+                    assert!(Instant::now() < deadline, "custom link did not close");
+                    let packet = udp.receive();
+                    if packet.kind == KIND_CONTROL && packet.flags == FIN | ACK {
+                        break;
+                    }
+                }
+                let mut resumed_packets = room_packets.to_vec();
+                if index == 0 {
+                    resumed_packets.push((HANDOFF, 7, HANDOFF_MESSAGE));
+                }
+                let resumed = read(&mut tcp, &resumed_packets);
+                assert_eq!(room_id(&resumed), room_id(&current));
+                if index == 0 {
+                    let restarted = read_ticket(&resumed.last().unwrap().1);
+                    assert_ne!(restarted.match_id, ticket.match_id);
+                    let mut udp = Client::new(server.game_addr(), &restarted);
+                    udp.handshake();
+                    let load = udp.receive();
+                    assert!(udp.window.accept(load.seq));
+                    assert_eq!(
+                        messages(&game_schemas, &load)[0].message.fields[&0x4a8],
+                        guid(&start.map)
+                    );
+                    udp.send(FIN | ACK, Vec::new());
+                }
+                let close = Fields::from([(0x78, room_id(&current))]);
+                write(&mut tcp, MATCH_LOBBY_OUT, 11, 52902, &close);
+                read(
+                    &mut tcp,
+                    &[(MATCH_LOBBY, 10, 53003), (CUSTOM_GAMES, 9, 23311)],
+                );
+            }
+            // Reconnect for the existing login and Practice Range assertions.
+            drop(tcp);
+        }
+        let mut tcp = TcpStream::connect(lobby).unwrap();
+        tcp.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let (mut tx, rx) = handshake(&mut tcp);
         jam_framing::send_frame(&mut tcp, &mut tx, &announcement).unwrap();
         for (crc, wire, id, fields) in [
             (OUT_CONNECT, 2, LOGIN_MESSAGE, Fields::new()),

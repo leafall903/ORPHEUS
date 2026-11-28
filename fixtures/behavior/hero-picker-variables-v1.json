@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "case_id": "hero-picker-variables-104319-v1",
+  "target_build": "104319",
+  "source": "104319 288B and Python statescript.owner_delta",
+  "command_frame": 901,
+  "screen_sync_slots": 32,
+  "screen_state_slots": 146,
+  "assembling_sync_slot": 1,
+  "hero": "0x02E000000000006E",
+  "cases": [
+    {"open": false, "assembling": true, "update_assembling": true, "bits": 224, "hex": "aa70c0af018c7520830b70936102d0b21e002004a05d854000000000"},
+    {"open": true, "assembling": false, "update_assembling": true, "bits": 224, "hex": "aa70c0af018c7520830b70936102d4b21e042004805d854000000000"},
+    {"open": true, "assembling": true, "update_assembling": false, "bits": 210, "hex": "aa7040ac018c7520830b70936102d4b21e04007615020100000000"}
+  ]
+}

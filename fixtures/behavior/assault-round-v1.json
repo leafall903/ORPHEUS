@@ -13,6 +13,8 @@
     ],
     "occupants": {
       "attacker_a": [1, 1, [0, 1, 0]],
+      "second_attacker_a": [6, 1, [1, 1, 0]],
+      "third_attacker_a": [7, 1, [-1, 1, 0]],
       "defender_a": [2, 0, [0, 1, 0]],
       "spectator_a": [3, 3, [0, 1, 0]],
       "attacker_above_a": [4, 1, [0, 4, 0]],
@@ -38,7 +40,15 @@
       [100, []],
       [104, ["attacker_a"]]
     ],
-    "overtime_steps": [[135, ["attacker_a", "defender_a"]], [139, []], [140, ["attacker_a"]]]
+    "overtime_steps": [[135, ["attacker_a", "defender_a"]], [139, []], [140, ["attacker_a"]]],
+    "rate_steps": [
+      [75, []],
+      [76, ["attacker_a"]],
+      [77, ["attacker_a", "second_attacker_a"]],
+      [78, ["attacker_a", "second_attacker_a", "third_attacker_a"]],
+      [83, []],
+      [84, []]
+    ]
   },
   "presentation": {
     "capture_segments": 3,
@@ -74,6 +84,7 @@
       ["ACTIVE", 1, 0, false, 165, null],
       ["COMPLETE", 1, 1, false, 165, 1]
     ],
-    "overtime_steps": [[true, null], [true, null], [false, 0]]
+    "overtime_steps": [[true, null], [true, null], [false, 0]],
+    "rate_progress": [0, 0.083333, 0.208333, 0.375, 0.375, 0.333333]
   }
 }

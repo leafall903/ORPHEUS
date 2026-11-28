@@ -1,0 +1,23 @@
+{
+  "waiting":        { "phase": 0, "heading": 23883, "mode": [4, 5], "receivers": [12, 51] },
+  "assemble":       { "phase": 1, "heading": 23884, "mode": [8, 10, 11], "receivers": [1, 52] },
+  "setup":          { "phase": 2, "heading": 23885, "mode": [14, 15], "receivers": [10, 53] },
+  "unlock":         { "phase": 3, "mode": [84, 85, 109, 149], "receivers": [2, 54] },
+  "active":         { "phase": 3, "mode": [84, 85, 109, 149, 176], "receivers": [2, 54] },
+  "round_result":   { "phase": 4, "mode": [84, 85, 109, 176], "receivers": [2, 54] },
+  "match_result":   { "phase": 5, "mode": [21, 85, 98, 109], "receivers": [3, 42, 55] },
+  "summary_attachment": 86,
+  "slow_motion": 59,
+  "overtime": [80, 177],
+  "overtime_countdown": 81,
+  "result_intro_graph": "0x058000000000027F",
+  "result_intro_state": 9,
+  "marker": 3157979,
+  "assembly_music": 412,
+  "setup_countdown": [448, 449, 450, 451, 452],
+  "unlock_sound": 233,
+  "capture_sound": 232,
+  "score_sounds": [316, 317],
+  "round_result_actions": [158, 408],
+  "intermission_setup_music": 216172782113794378
+}

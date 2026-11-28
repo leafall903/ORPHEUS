@@ -138,6 +138,7 @@ mod tests {
         let source = Movement {
             position: [54.56640625, 1.125, 42.1474609375],
             yaw: -31010,
+            body_pitch: 0,
             pitch: -1234,
             velocity: [0.125, -0.5, 5.5],
             flags: CROUCHED_MOVEMENT_FLAG | 0x2000,

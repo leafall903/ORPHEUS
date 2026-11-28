@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdarg>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #pragma comment(lib,"ws2_32.lib")
@@ -29,8 +30,8 @@ static const int SOCK_SEND_SLOT=3;            // [sockvt+0x18]
 static const int VT_COPY=64;
 static const u32 SRV_IP=0x7F000001;           // 127.0.0.1
 static const u16 SRV_PORT=1119;
-static const u16 RELAY_PORT=21119;            // always pipe the stripped plaintext here (our BGS WS server),
-                                              // separate from the port the client dials (a hold-open stall)
+static const u16 DEFAULT_RELAY_PORT=21119;
+static u16 g_relayPort=DEFAULT_RELAY_PORT;     // BGS WebSocket endpoint, separate from the stall
 
 static u64 g_base=0,g_imgHi=0; static FILE* g_log=nullptr; static CRITICAL_SECTION g_cs, g_mapCs;
 static u64 g_bsVA=0, g_sockVtOrig=0; static u64* g_sockVtHeap=nullptr; static u64* g_bsVtHeap=nullptr;
@@ -53,7 +54,7 @@ static int state_thunk(void* /*bs*/){ InterlockedIncrement(&g_stateCalls); retur
 
 // pre-register a client ssl_stream with the port IT targets (from [bs+0xa8]); connect lazily.
 static void registerSock(u64 cs, u16 port){
-    port=RELAY_PORT;  // ignore the client's target port; always pipe to our BGS server
+    port=g_relayPort;  // both clients use the stall, but each has its own BGS endpoint
     EnterCriticalSection(&g_mapCs);
     bool found=false;
     for(int i=0;i<g_nRelays;i++) if(g_relays[i].cs==cs){ found=true; break; }
@@ -161,6 +162,13 @@ static void scan(){
 }
 static DWORD WINAPI worker(LPVOID){
     InitializeCriticalSection(&g_cs);InitializeCriticalSection(&g_mapCs);
+    char portText[6] = {};
+    const DWORD portLength = GetEnvironmentVariableA("ORPHEUS_RELAY_RPC_PORT", portText, sizeof portText);
+    if (portLength > 0 && portLength < sizeof portText) {
+        char* end = nullptr;
+        const auto port = std::strtoul(portText, &end, 10);
+        if (*end == '\0' && port > 0 && port <= 65535) g_relayPort = static_cast<u16>(port);
+    }
     wchar_t modulePath[32768] = {};
     DWORD pathLength = GetModuleFileNameW(g_module, modulePath, 32768);
     if (pathLength > 0 && pathLength < 32768) {
@@ -169,14 +177,15 @@ static DWORD WINAPI worker(LPVOID){
         if (slash != std::wstring::npos) {
             directory = directory.substr(0, slash) + L"\\log";
             CreateDirectoryW(directory.c_str(), nullptr);
-            const std::wstring logPath = directory + L"\\wfd.log";
+            const std::wstring logPath = directory + (g_relayPort == DEFAULT_RELAY_PORT
+                ? L"\\wfd.log" : L"\\wfd-" + std::to_wstring(g_relayPort) + L".log");
             g_log = _wfopen(logPath.c_str(), L"a");
         }
     }
     g_base=(u64)GetModuleHandleW(L"Overwatch.exe");if(!g_base)g_base=(u64)GetModuleHandleW(NULL);
     IMAGE_DOS_HEADER* dos=(IMAGE_DOS_HEADER*)g_base;IMAGE_NT_HEADERS* nt=(IMAGE_NT_HEADERS*)(g_base+dos->e_lfanew);g_imgHi=g_base+nt->OptionalHeader.SizeOfImage;
     g_bsVA=g_base+BS_VT;
-    L("==== owwfd_relay pid=%lu (plaintext pipe -> 127.0.0.1:%u) base=%016llX bsVt=%016llX imageSize=%llX ====",GetCurrentProcessId(),RELAY_PORT,(unsigned long long)g_base,(unsigned long long)g_bsVA,(unsigned long long)(g_imgHi-g_base));
+    L("==== owwfd_relay pid=%lu (plaintext pipe -> 127.0.0.1:%u) base=%016llX bsVt=%016llX imageSize=%llX ====",GetCurrentProcessId(),g_relayPort,(unsigned long long)g_base,(unsigned long long)g_bsVA,(unsigned long long)(g_imgHi-g_base));
     auto gallery = gallery_roster::Install::waiting;
     auto preview = gallery_roster::Install::waiting;
     for (int loop = 0;; ++loop) {

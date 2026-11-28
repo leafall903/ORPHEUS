@@ -347,7 +347,7 @@ impl Schemas {
 fn message_offset_position(crc: u32) -> usize {
     // These protocol registrations carry a zero u32 before the message offset.
     match crc {
-        0xBCD57A46 | 0xBDDBF58A => 5,
+        0xBCD57A46 | 0xBDDBF58A | 0x262EF305 => 5,
         _ => 1,
     }
 }

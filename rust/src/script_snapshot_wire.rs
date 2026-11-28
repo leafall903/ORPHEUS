@@ -39,7 +39,9 @@ mod projection;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use encode::{encounter_countdown_delta, encounter_message_delta, mode_action_delta};
+pub(crate) use encode::{
+    binding_delta, encounter_countdown_delta, encounter_message_delta, mode_action_delta,
+};
 #[cfg(test)]
 pub(crate) use projection::uncertain_polled_switch;
 #[cfg(test)]
@@ -76,6 +78,80 @@ impl FrozenVolley {
 }
 
 impl ProjectedSnapshot {
+    pub(crate) fn scene(entity: u32, values: Variables) -> Self {
+        Self {
+            entity,
+            view: View::Observer,
+            entity_exclusions: BTreeSet::new(),
+            variables: ProjectedVariables {
+                values,
+                ..Default::default()
+            },
+            instances: BTreeMap::new(),
+            callout: 0,
+            callouts: Vec::new(),
+            emit_events: false,
+        }
+    }
+
+    pub(crate) fn mount(
+        &mut self,
+        id: u16,
+        graph: &Graph,
+        parent: Option<(u16, u16)>,
+        values: Variables,
+        states: impl IntoIterator<Item = (u16, StatePayload)>,
+    ) -> Result<(), SnapshotError> {
+        let states = states
+            .into_iter()
+            .map(|(state, payload)| {
+                let site = StateSite {
+                    instance: id,
+                    graph: graph.index,
+                    state,
+                };
+                graph
+                    .state(usize::from(state))
+                    .filter(|node| graph.remote_positions().contains(&node.pos))
+                    .ok_or(SnapshotError::MissingState(site))?;
+                Ok((
+                    state,
+                    ProjectedState {
+                        active: true,
+                        payload,
+                        link: None,
+                        volley: None,
+                    },
+                ))
+            })
+            .collect::<Result<_, SnapshotError>>()?;
+        self.instances.insert(
+            id,
+            ProjectedInstance {
+                graph: graph.index,
+                start_ms: 0,
+                parent,
+                variables: ProjectedVariables {
+                    values,
+                    ..Default::default()
+                },
+                states,
+                events: Vec::new(),
+            },
+        );
+        Ok(())
+    }
+
+    pub(crate) fn mark_state_inactive(&mut self, instance: u16, state: u16) {
+        if let Some(state) = self
+            .instances
+            .get_mut(&instance)
+            .and_then(|instance| instance.states.get_mut(&state))
+        {
+            state.active = false;
+        }
+    }
+
     const PRACTICE_NAMEPLATE: u32 = 0x0d24;
 
     pub fn entity(&self) -> u32 {
@@ -88,6 +164,14 @@ impl ProjectedSnapshot {
 
     pub fn instance_count(&self) -> usize {
         self.instances.len()
+    }
+
+    pub(crate) fn has_instance(&self, instance: u16) -> bool {
+        self.instances.contains_key(&instance)
+    }
+
+    pub(crate) fn state_payload(&self, instance: u16, state: u16) -> Option<&StatePayload> {
+        Some(&self.instances.get(&instance)?.states.get(&state)?.payload)
     }
 
     pub fn acknowledged_callout(&self) -> u32 {
@@ -393,12 +477,10 @@ impl ProjectedSnapshot {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn entity_variables(&self) -> &Variables {
         &self.variables.values
     }
 
-    #[cfg(test)]
     pub(crate) fn instance_variables(&self, instance: u16) -> Option<&Variables> {
         Some(&self.instances.get(&instance)?.variables.values)
     }

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "case_id": "escort-authored-route-v1",
+  "target_build": 104319,
+  "source": "Synthetic authored-style route, room placement, and spawn-stage catalog",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "map": {
+      "name": "Route fixture",
+      "modes": ["0x0230000000000015", "0x0230000000000010"],
+      "placeables": [11, 12, 13, 14],
+      "mirrored": [20, 30, 31, 40, 41, 50],
+      "escort_scene_placeables": [40, 41, 90],
+      "health_packs": [{"placeable": 50}, {"placeable": 91}],
+      "spawns": [
+        {"team": 0, "position": [0, 0, -10], "objectives": [[0, "defense"]]},
+        {"team": 1, "position": [0, 0, -20], "objectives": [[0, "attack"]]},
+        {"team": 1, "position": [40, 0, -10], "objectives": [[1, "attack"]]}
+      ],
+      "objectives": [
+        {"kind": "checkpoint", "objective": 1, "placeable": 31, "position": [30, 0, 10], "escort_seconds": 20},
+        {"kind": "payload", "placeable": 20, "position": [0, 0.5, 0], "rotation": [0, 0, 0, 1]},
+        {"kind": "checkpoint", "objective": 0, "placeable": 30, "position": [10, 0, 10], "escort_seconds": 60}
+      ],
+      "escort_rail": [
+        {"position": [0, 0, 0], "curve": [[0, 0, 1], [0, 0, -6], [0, 0, 15]]},
+        {"position": [0, 0, 10], "curve": [[0, 0, 0], [0, 0, 0], [10, 0, 0]]},
+        {"position": [10, 0, 10], "curve": [[0, 0, 0], [0, 0, 0], [10, 0, 0]], "checkpoint": 30, "wait_seconds": 5, "auto_drive_to": 3, "open_gate": 100},
+        {"position": [20, 0, 10], "curve": [[0, 0, 0], [0, 0, 0], [10, 0, 0]], "close_gate": 100},
+        {"position": [30, 0, 10], "checkpoint": 31}
+      ],
+      "escort_room_placeables": [
+        {"placeable": 40, "kind": "checkpoint_gate", "rooms": [[1, 1]], "gate_tag": 100, "open_delay": 1, "open_seconds": 4, "close_seconds": 3},
+        {"placeable": 41, "kind": "barrier", "rooms": [[0, 1]]}
+      ]
+    }
+  },
+  "expected": {
+    "placeables": [11, 12, 13, 14, 20, 30, 31, 40, 41, 50],
+    "checkpoints": [[20, 30], [40, 31]],
+    "start_pose": [0, 0.5, 0],
+    "first_segment_control_offsets": [[0, 0, 5], [0, 0, 8], [0, 0, 10]],
+    "later_spawn": [40, 0, -10],
+    "fallback_spawn": [0, 0, -10],
+    "stage_seconds": [60, 20],
+    "gate_open_starts": 9,
+    "gate_open_ends": 13,
+    "auto_drive_ends_at": 30
+  }
+}

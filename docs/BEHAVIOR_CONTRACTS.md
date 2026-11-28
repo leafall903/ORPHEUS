@@ -2,6 +2,34 @@
 
 ORPHEUS stores language-neutral JSON contracts under `fixtures/behavior/`. Cross-language consumers compare Python (`main`) and Rust (`rust`) through production code paths. Rust-only regression contracts identify their narrower scope explicitly. Public fixtures use synthetic inputs.
 
+The Rust [custom-room creation contract](../fixtures/behavior/custom-room-create-v1.json) compares 104319 default room settings, roster, and leave message bodies against the Python reference using a synthetic player and room.
+
+The Rust-only [custom-room edit contract](../fixtures/behavior/custom-room-edits-v1.json) exercises the encrypted 104319 lobby connection. It checks account and slot validation, automatic seating, room and team names, and a multipart save with an ordered hero override. It verifies the previous settings remain visible during upload and checks both a preset refresh and an update within the same preset.
+
+The Rust-only [custom-room start contract](../fixtures/behavior/custom-room-start-v1.json) covers the solo host's Start request in build 104319. The encrypted TCP and UDP replay checks the selected map, mode, preset, and team roster, then world baselines and the first hero spawn. It covers the default when-full wait, an immediate mode setting, a manual map override, in-place assembly with a countdown, and return and restart after the old match link closes.
+
+The Rust-only [multiplayer room contract](../fixtures/behavior/custom-room-multiplayer-v1.json) checks the Game Browser reply prefix, listing identity and occupancy, native join request, and shared automatic seating on synthetic accounts. The prepared release replay uses two independent TCP and UDP connections.
+
+The [observer movement clock contract](../fixtures/behavior/observer-movement-clock-v1.json) checks movement after two peers have spawned. The observer pose uses the packet frame and projects input and crouch timing from the pose's room sample. Owner corrections use the original command-frame history.
+
+The [PvP hit contract](../fixtures/behavior/pvp-hit-owner-stream-v1.json) applies nonlethal damage in both directions between two spawned players. The prepared 104319 test checks that each player can still advance inputs and acknowledge an updated owner StateScript frame after every hit.
+
+The Rust-only [authored Escort route fixture](../fixtures/behavior/escort-authored-route-v1.json) loads synthetic map data through the regular catalog. It checks mirror filtering, coefficient conversion to the shared spline's control points, checkpoint ordering and timings, spawn selection, route gate commands, and the rollback floor after automatic movement. The prepared 104319 test exercises the real maps through the per-connection delivery queue.
+
+The [Escort assembly, seat and pose fixture](../fixtures/behavior/escort-assembly-seat-pose-v1.json) supplies the typed null hero selection request and Python-equivalent wire bytes for nonzero body pitch. The prepared replay checks replacement selection, setup headings, the live seat acknowledgement barrier, and pitch on the authored rail.
+
+The [Assault round fixture](../fixtures/behavior/assault-round-v1.json) covers ordered capture, contested occupancy, segment retention, overtime, and the exact waypoint enum encoding. The prepared replay exercises both teams and a late viewer across all six 104319 capture courses, including descriptor loss and the acknowledgement barrier between waypoints.
+
+The [Hybrid round fixture](../fixtures/behavior/hybrid-round-v1.json) checks the capture and payload stage sequence, overtime expiry at A, the unlock gate, and the shared round clock. The prepared replay covers all ten 104319 Hybrid map variants, retransmission of the completed point, the late viewer's unlock snapshot, and the two payload checkpoints.
+
+The Rust-only [objective overtime fixture](../fixtures/behavior/objective-overtime-v1.json) checks the three-second boundary, default Control score window, and fuse decay. The prepared replay checks native HUD inputs and states on both teams, retries, the late-viewer baseline, and overtime exit.
+
+The [hero picker variables fixture](../fixtures/behavior/hero-picker-variables-v1.json) compares owner deltas with Python's 104319 writer. It checks the existing screen instance, the selector flags and an unchanged assembly input omitted from the frame. The prepared Hybrid replay also checks the locked cart's initial pose and the defender-only sign state on both Eichenwalde variants.
+
+The prepared Hybrid replay follows one connection through the switch from offense to defense in Eichenwalde's last attacker spawn and back. It checks the seat acknowledgement, retry of the sign creation, and `00F6`'s visible state and viewer flags from the [Hybrid round fixture](../fixtures/behavior/hybrid-round-v1.json).
+
+The Rust-only [Python profile import fixture](../fixtures/behavior/python-profile-import-v1.json) checks that the native account registry keeps numeric and string event greetings and legacy inventory after import. A second import preserves the updated Rust save.
+
 The Rust-only `script-actions-v1.json` adds 15 historical assignment/branch cases pinned to `f763beb`. Both `orpheus-statescript` public workspace lanes run `script_init::tests::actions_contract::actions_preserve_the_pinned_synthetic_reference_contract`; it is not registered in the Python/Rust differential job. See the [action development guide](STATESCRIPT_DEVELOPMENT.md) for provenance, current module boundaries and the synthetic benchmark.
 
 The Rust-only [runtime state fixture](../fixtures/behavior/script-runtime-state-metadata-v1.json) checks class-level plain fallback and instance-level client scope through the production loader and VM. Native coverage compares both wire views and preserves codec validation.
@@ -328,6 +356,8 @@ The Rust-only [observation fixture](../fixtures/behavior/script-observe-radius-v
 Public synthetic fixtures must never contain game binaries, raw captures, signing keys, or private credentials.
 
 For the proposed private, per-tick Python/Rust gameplay comparison and its evidence limits, see [Golden gameplay traces](GOLDEN_TRACE.md).
+
+The Rust [Control round fixture](../fixtures/behavior/control-round-v1.json) covers the unlock clock, contest and ownership, stage settings, and the authored overtime fuse. The opt-in prepared Control test exercises six local map variants through acknowledged point and mode streams, slow-motion release, and the final HUD.
 
 ## Opt-in Soldier wire reader check
 

@@ -9,7 +9,8 @@ use crate::{
     game_content::GameMap,
     game_instance::FREE_FOR_ALL_TEAM,
     game_stats::GMP_STATS,
-    script_graph::GraphStore,
+    pvp_mode::MatchPhase,
+    script_graph::{Graph, GraphStore, asset_guid},
     script_init::{Snapshot, StateKind},
     script_wire::{self, Instance, Layout, Variables},
     world::{
@@ -26,6 +27,9 @@ pub(crate) const HERO_BIT: u64 = 0x1;
 pub(crate) const DEAD_BIT: u64 = 0x10;
 const MODE_UI: u32 = 0x0cb6;
 const MODE_UI_STATE: usize = 21;
+const MODE_PHASE_RECEIVER: u32 = 0x0cbb;
+const MODE_WAIT_HUD: u32 = 0x1feb;
+const MODE_COUNTDOWN: u32 = 1303;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Possession {
@@ -35,6 +39,12 @@ pub struct Possession {
 }
 
 impl Possession {
+    pub(crate) const CLEARED: Self = Self {
+        body: 0,
+        hero: 0,
+        skin: Some(0),
+    };
+
     pub fn components(self) -> [Component; 2] {
         [
             fields(44, vec![Some(ComponentValue::Entity(self.body)); 3]),
@@ -58,7 +68,7 @@ pub struct PlayerAppearance<'a> {
     pub card: &'a PlayerCard,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct PlayerCard {
     pub account: [u64; 2],
     pub battle_tag: String,
@@ -107,7 +117,7 @@ pub fn player_create(
 ) -> io::Result<EntityUpdate> {
     use ComponentValue::*;
     let card = player.card;
-    let team = if map.free_for_all {
+    let team = if map.free_for_all && player.team != crate::room_primitives::SPECTATOR_TEAM {
         FREE_FOR_ALL_TEAM
     } else {
         player.team
@@ -157,12 +167,49 @@ pub fn player_create(
     Ok(create(player.entity, definition))
 }
 
-pub fn mode_create(mode: u64) -> EntityUpdate {
+pub(crate) fn player_seat_update(
+    entity: u32,
+    team: u8,
+    slot: i8,
+    free_for_all: bool,
+    clear_possession: bool,
+) -> io::Result<EntityUpdate> {
+    use ComponentValue::*;
+    let wire_team = if free_for_all && team != crate::room_primitives::SPECTATOR_TEAM {
+        FREE_FOR_ALL_TEAM
+    } else {
+        team
+    };
+    let mut components = vec![
+        fields(26, vec![Some(Id(PLAYER_FILTER | team_bit(wire_team)?))]),
+        fields(
+            74,
+            vec![None, None, Some(I8(slot)), None, None, None, None, None],
+        ),
+    ];
+    if clear_possession {
+        components.extend(Possession::CLEARED.components());
+    }
+    Ok(EntityUpdate {
+        entity,
+        operation: Some(Operation::Update(components)),
+        ..Default::default()
+    })
+}
+
+pub fn mode_create(mode: u64, preset: u64) -> EntityUpdate {
     create(
         GAME_MODE_ENTITY,
         Create::new(
             GAME_MODE_DEFINITION,
-            vec![fields(114, vec![None, Some(ComponentValue::Id(mode))])],
+            vec![fields(
+                114,
+                vec![
+                    None,
+                    Some(ComponentValue::Id(mode)),
+                    (preset != 0).then_some(ComponentValue::Id(preset)),
+                ],
+            )],
         ),
     )
 }
@@ -248,7 +295,7 @@ pub fn initial_world<'a>(
         ..EntityUpdate::default()
     }));
     updates.push(player_create(map, player, None, Some(board))?);
-    updates.push(mode_create(map.mode_guid));
+    updates.push(mode_create(map.mode_guid, map.preset_guid));
     for bot in bots {
         updates.push(bot_create(bot, None)?);
     }
@@ -267,6 +314,134 @@ pub(crate) fn mode_presentation(
 ) -> io::Result<BitWriter> {
     let instances = mode_instances(graphs, encounter)?;
     script_wire::remote_full(&instances, variables).map_err(invalid)
+}
+
+pub(crate) fn custom_mode_presentation(
+    graphs: &GraphStore,
+    mode: u64,
+    variables: &Variables,
+    phase: MatchPhase,
+    seconds: u32,
+) -> io::Result<BitWriter> {
+    use script_wire::Value;
+    let mut instances = mode_instances(graphs, None)?;
+    let mut values = variables.clone();
+    values.insert(MODE_COUNTDOWN, Value::Float(f64::from(seconds)));
+    values.insert(19529, Value::Bool(phase == MatchPhase::Waiting));
+    values.insert(19528, Value::Bool(phase == MatchPhase::Assemble));
+
+    let phase_message = match phase {
+        MatchPhase::Waiting => Some((0x0700, 11, 12, 51)),
+        MatchPhase::Assemble => Some((0x0692, 5, 1, 52)),
+        MatchPhase::Setup => Some((0x0701, 9, 10, 53)),
+        MatchPhase::Active => Some((0x0694, 4, 2, 54)),
+        _ => None,
+    };
+    if let Some((message, listener, for_code, stack)) = phase_message {
+        let message = 0x0240_0000_0000_0000 | message;
+        let sender = |graph: &Graph| {
+            graph.remote_positions().iter().find_map(|&pos| {
+                let node = graph.node(pos)?;
+                if node.class != "STU_38EE1100"
+                    || node
+                        .field("m_gameMessage.m_gameMessage")
+                        .and_then(asset_guid)
+                        != Some(message)
+                {
+                    return None;
+                }
+                node.state
+            })
+        };
+        // The shared custom-game waiting and assembly UX is also used for
+        // maps whose selected mode has no authored phase publisher.
+        let authored = graphs.mode_scripts(mode).and_then(|mode| mode.graph);
+        let candidate = authored.and_then(|id| graphs.graph(id));
+        let phase_sender = candidate
+            .and_then(|graph| sender(graph).map(|state| (graph, state)))
+            .or_else(|| {
+                matches!(phase, MatchPhase::Waiting | MatchPhase::Assemble)
+                    .then(|| graphs.graph(0x0f4a))
+                    .flatten()
+                    .and_then(|graph| sender(graph).map(|state| (graph, state)))
+            });
+        if let Some((graph, state)) = phase_sender {
+            let mut instance = Instance::new(2, Layout::try_from(graph).map_err(invalid)?, None);
+            activate_mode_state(&mut instance, graph, usize::from(state), false)?;
+            instances.push(instance);
+            let graph = graphs
+                .graph(MODE_PHASE_RECEIVER)
+                .ok_or_else(|| invalid("missing 0CBB"))?;
+            let mut receiver = Instance::new(3, Layout::try_from(graph).map_err(invalid)?, None);
+            activate_mode_state(&mut receiver, graph, listener, true)?;
+            for state in [for_code, stack] {
+                // These children can run locally after the listener receives
+                // its provider. Only the remote children have wire slots.
+                if graph
+                    .state(state)
+                    .is_some_and(|node| graph.remote_positions().contains(&node.pos))
+                {
+                    activate_mode_state(&mut receiver, graph, state, false)?;
+                }
+            }
+            instances.push(receiver);
+        }
+    }
+    if phase == MatchPhase::Waiting {
+        let graph = graphs
+            .graph(MODE_WAIT_HUD)
+            .ok_or_else(|| invalid("missing 1FEB"))?;
+        let mut hud = Instance::new(4, Layout::try_from(graph).map_err(invalid)?, None);
+        hud.variables
+            .insert(1923, Value::Asset(0x0de0_0000_0000_0105));
+        hud.variables.insert(19529, Value::Bool(true));
+        activate_mode_state(&mut hud, graph, 16, false)?;
+        instances.push(hud);
+    }
+    script_wire::remote_full(&instances, &values).map_err(invalid)
+}
+
+fn activate_mode_state(
+    instance: &mut Instance,
+    graph: &Graph,
+    state: usize,
+    stacked: bool,
+) -> io::Result<()> {
+    let node = graph
+        .state(state)
+        .ok_or_else(|| invalid("missing mode phase state"))?;
+    let slot = graph
+        .remote_positions()
+        .iter()
+        .position(|&pos| pos == node.pos)
+        .ok_or_else(|| invalid("missing mode phase state wire slot"))?;
+    let mut bits = BitWriter::new();
+    bits.bits(3, 2).map_err(invalid)?; // X and A
+    match node.class.as_str() {
+        "STU_38EE1100" => bits.bit(false), // No reply handle.
+        "STUStatescriptStateGameMessageEntry" => bits.bit(stacked),
+        "STUStatescriptStateUXPresenter" | "STU_CD46AF93" | "STUStatescriptStateStack" => {}
+        _ => return Err(invalid("unexpected mode phase state class")),
+    }
+    instance.states.insert(slot, bits);
+    Ok(())
+}
+
+pub(crate) fn custom_countdown_delta(seconds: u32) -> io::Result<BitWriter> {
+    let mut bits = BitWriter::new();
+    bits.bits(0, 2).map_err(invalid)?; // H=0
+    bits.w_u16(0); // No changed instances.
+    script_wire::variable_list(
+        &mut bits,
+        &Variables::from([(
+            MODE_COUNTDOWN,
+            script_wire::Value::Float(f64::from(seconds)),
+        )]),
+        script_wire::ValueEncoding::Compact,
+    )
+    .map_err(invalid)?;
+    bits.bits(0, 2).map_err(invalid)?; // No frame actions.
+    Ok(bits)
 }
 
 pub(crate) fn junkenstein_presentation(

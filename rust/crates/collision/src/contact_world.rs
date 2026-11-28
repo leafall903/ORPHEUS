@@ -266,6 +266,7 @@ pub struct WorldHit {
 pub struct ContactWorld {
     shapes: Vec<StaticShape>,
     grid: ColumnGrid,
+    base: Option<Arc<ContactWorld>>,
 }
 
 impl ContactWorld {
@@ -282,7 +283,38 @@ impl ContactWorld {
             grid.insert(id, range)
                 .map_err(|_| ContactWorldError::IndexLimit)?;
         }
-        Ok(Self { shapes, grid })
+        Ok(Self {
+            shapes,
+            grid,
+            base: None,
+        })
+    }
+
+    /// Share the immutable map tree and index only the room's current shapes.
+    pub fn with_layer(
+        base: Arc<Self>,
+        shapes: Vec<StaticShape>,
+    ) -> Result<Self, ContactWorldError> {
+        let mut layer = Self::new(shapes)?;
+        u32::try_from(base.shape_count().saturating_add(layer.shapes.len()))
+            .map_err(|_| ContactWorldError::IndexLimit)?;
+        layer.base = Some(base);
+        Ok(layer)
+    }
+
+    pub fn layer_start(&self) -> usize {
+        self.base.as_ref().map_or(0, |base| base.shape_count())
+    }
+
+    fn shape_count(&self) -> usize {
+        self.layer_start() + self.shapes.len()
+    }
+
+    pub fn shape(&self, id: u32) -> Option<&StaticShape> {
+        match (id as usize).checked_sub(self.layer_start()) {
+            Some(local) => self.shapes.get(local),
+            None => self.base.as_ref()?.shape(id),
+        }
     }
 
     /// Consume the movement cache and retain only the selected placement groups.
@@ -362,7 +394,7 @@ impl ContactWorld {
     }
 
     pub fn shape_breakable_placement(&self, id: u32) -> Option<usize> {
-        self.shapes.get(id as usize)?.breakable_placement()
+        self.shape(id)?.breakable_placement()
     }
 
     /// Find shapes whose fat bounds overlap the box, in proxy order.
@@ -410,6 +442,12 @@ impl ContactWorld {
             }
         });
         found.sort_unstable();
+        if let Some(base) = &self.base {
+            let mut both = base.query_precise(low, high, breakables);
+            let offset = self.layer_start() as u32;
+            both.extend(found.into_iter().map(|id| id + offset));
+            return both;
+        }
         found
     }
 
@@ -474,7 +512,7 @@ impl ContactWorld {
         let mut nearest = None;
         let mut max_fraction = 1.0;
         for id in self.query_precise(low, high, breakables) {
-            let shape = &self.shapes[id as usize];
+            let shape = self.shape(id).expect("shape from this world's query");
             if shape.geometry.mask() & probe.category == 0 {
                 continue;
             }

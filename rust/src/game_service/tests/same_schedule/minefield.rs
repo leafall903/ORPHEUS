@@ -85,10 +85,7 @@ fn prepared_owner_q_delivers_armed_minefield_to_the_casting_peer() {
             MATCH,
             GameMap::practice_range(),
             player(),
-            Some(WorldStart {
-                scene: Box::new(scene),
-                card: PlayerCard::default(),
-            }),
+            Some(WorldStart::new(scene, PlayerCard::default())),
             Duration::ZERO,
         )
         .unwrap()

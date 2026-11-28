@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "escort-assembly-seat-pose-v1",
+  "target_build": 104319,
+  "source": "Synthetic hero request, round setup bindings and movement state checked against the 104319 graphs and Python wire encoder",
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "reopen_pick_parameters": "0000000001c15d400a0c01ff0400000000000000000000000000000000",
+    "movement": {
+      "position": [1, 2, 3],
+      "yaw": 8192,
+      "body_pitch": -4836,
+      "aim_pitch": 0
+    }
+  },
+  "expected": {
+    "assembly": ["confirm_without_possession", "reopen", "confirm_replacement", "setup_possession"],
+    "setup_heading": {"attack": "0x0DE00000000010C4", "defense": "0x0DE00000000010C5"},
+    "round_context_attack_member": 10795,
+    "live_seat": {"team_component": 26, "seat_component": 74, "reset_components": [44, 75]},
+    "movement_bits": 154,
+    "movement_bytes": "0020014092a35d02100024000240023000000000"
+  }
+}

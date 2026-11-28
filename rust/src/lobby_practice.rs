@@ -1,4 +1,4 @@
-//! Post-login solo Practice Range and Junkenstein handoffs.
+//! Post-login solo Practice Range, Junkenstein, and custom match handoffs.
 
 use std::io;
 
@@ -102,7 +102,7 @@ pub fn dispatch(
         login,
         game,
         input,
-        (GameMap::practice_range(), None),
+        (GameMap::practice_range(), 0, None),
         open_match,
         send,
     )
@@ -113,7 +113,7 @@ fn transfer(
     login: &PreparedLogin,
     game: &GameService,
     input: SoloPracticeHandoff<'_>,
-    (map, queue): (GameMap, Option<Fields>),
+    (map, team, queue): (GameMap, u8, Option<Fields>),
     open_match: impl FnOnce(
         &GameService,
         [u64; 2],
@@ -124,7 +124,7 @@ fn transfer(
 ) -> io::Result<LobbySeat> {
     let players = vec![MatchPlayer {
         name: login.account.name.clone(),
-        team: 0,
+        team,
         tournament: login.tournament,
         ranked: false,
     }];
@@ -263,7 +263,7 @@ pub(crate) fn dispatch_junkenstein(
         login,
         game,
         input,
-        (map, Some(key)),
+        (map, 0, Some(key)),
         |game, id, map, players| {
             let scene = assets
                 .prepare_junkenstein(map, rules, players[0].team)
@@ -289,36 +289,42 @@ fn open_with_card(
     scene: PreparedScene,
 ) -> io::Result<Vec<Handoff>> {
     let player = players.pop().expect("solo player");
-    let card = {
-        let profile = login.account.profile();
-        PlayerCard {
-            account: login.identity.account_id(),
-            battle_tag: battle_tag(&profile.player_name, login.identity.account_lo),
-            level: Some(u32::try_from(profile.level).map_err(io::Error::other)?),
-            portrait_frame: Some(collection.portrait_frame(&profile)),
-            skins: assets
-                .heroes()
-                .heroes()
-                .map(|hero| {
-                    collection
-                        .equipped_skin(&profile, hero.guid)
-                        .map(|skin| (hero.guid, skin))
-                })
-                .collect::<io::Result<_>>()?,
-            wheel_cosmetics: assets
-                .heroes()
-                .heroes()
-                .map(|hero| {
-                    collection
-                        .equipped_wheel_cosmetics(&profile, hero.guid)
-                        .map(|cosmetics| (hero.guid, cosmetics))
-                })
-                .collect::<io::Result<_>>()?,
-            ..PlayerCard::default()
-        }
-    };
+    let card = player_card(login, assets, collection)?;
     game.open_prepared_solo(id, scene, player, card)
         .map(|ticket| vec![ticket])
+}
+
+pub(crate) fn player_card(
+    login: &PreparedLogin,
+    assets: &SceneAssets,
+    collection: &Collection,
+) -> io::Result<PlayerCard> {
+    let profile = login.account.profile();
+    Ok(PlayerCard {
+        account: login.identity.account_id(),
+        battle_tag: battle_tag(&profile.player_name, login.identity.account_lo),
+        level: Some(u32::try_from(profile.level).map_err(io::Error::other)?),
+        portrait_frame: Some(collection.portrait_frame(&profile)),
+        skins: assets
+            .heroes()
+            .heroes()
+            .map(|hero| {
+                collection
+                    .equipped_skin(&profile, hero.guid)
+                    .map(|skin| (hero.guid, skin))
+            })
+            .collect::<io::Result<_>>()?,
+        wheel_cosmetics: assets
+            .heroes()
+            .heroes()
+            .map(|hero| {
+                collection
+                    .equipped_wheel_cosmetics(&profile, hero.guid)
+                    .map(|cosmetics| (hero.guid, cosmetics))
+            })
+            .collect::<io::Result<_>>()?,
+        ..PlayerCard::default()
+    })
 }
 
 fn release(game: &GameService, connection: u32, error: io::Error) -> io::Error {
@@ -326,7 +332,7 @@ fn release(game: &GameService, connection: u32, error: io::Error) -> io::Error {
         Ok(_) => error,
         Err(release) => io::Error::new(
             error.kind(),
-            format!("{error} (could not release the Practice Range seat: {release})"),
+            format!("{error} (could not release the solo seat: {release})"),
         ),
     }
 }

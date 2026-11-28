@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "input": {
+    "create_body": "015265706c617920526f6f6d0004000000",
+    "room_id": [55, 73],
+    "account_id": [42, 9],
+    "party_id": [17, 19],
+    "display_name": "Replay#1"
+  },
+  "expected": [
+    [53000, "c8878e46d29649f7b489845090338a73e6eb8a68953a4d8bc798c29b94464132"],
+    [23304, "e626ed011608f25a9a42eff1d31a1c05ff7ff5eb4630b7a5fa8c9afc5c87969c"],
+    [23305, "a6394b7ef7acab2984c2b3f413569f6db2e899acf79ad18fa7cf33bf5c9be95b"],
+    [53001, "966ef725cc2595ee33b86e8af706279faf837caa4ba534967e4135b0586ada31"],
+    [53002, "cf3ef6f1e0b1a2af8f8ef59e8a7819b9db01ac3fea206360bd9b16faba40ac3e"],
+    [53003, "34d1cd1b358bd9d02b272da5f0f3a8cdf53dcf0dbbdb1f79e9bf6742e02273c8"],
+    [23311, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+  ]
+}

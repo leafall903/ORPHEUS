@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "case_id": "custom-room-start-104319-v1",
+  "target_build": 104319,
+  "evidence": "synthetic-reference",
+  "controls": {
+    "start_mode_action": 5,
+    "restart_action": 3,
+    "return_action": 4,
+    "leave_message": 20304,
+    "notice_message": 23319,
+    "settings_updated_notice": "0DE0000000000E3C",
+    "next_match_team_size": 3,
+    "restart_notice": "0DE0000000000E3B",
+    "return_notice": "0DE0000000002B08",
+    "waiting_hud_graph": 8171
+  },
+  "cases": [
+    {
+      "map": "08000000000000D4",
+      "mode": "0230000000000016",
+      "preset": "0FD000000000002C",
+      "team": 0,
+      "team_size": 6,
+      "waiting": true
+    },
+    {
+      "map": "0800000000000165",
+      "mode": "0230000000000014",
+      "preset": "0FD000000000002A",
+      "team": 1,
+      "team_size": 3,
+      "mode_start": 9673,
+      "waiting": false
+    },
+    {
+      "map": "08000000000002C3",
+      "mode": "0230000000000015",
+      "preset": "0FD000000000002E",
+      "team": 1,
+      "team_size": 3,
+      "mode_start": 9673,
+      "map_start": 9675,
+      "waiting": true
+    }
+  ]
+}

@@ -409,8 +409,14 @@ pub fn world_records(schemas: &Schemas, packet: &Packet) -> Vec<WorldRecord> {
                 assert!((0..3).all(|_| reader.f32().unwrap().is_finite()));
                 assert_eq!(reader.bits(5).unwrap(), 0);
                 assert!(reader.bit().unwrap()); // impact count is present
-                assert!(reader.bit().unwrap()); // short count
-                assert_eq!(reader.bits(4).unwrap(), 1);
+                let count_width = if reader.bit().unwrap() {
+                    4
+                } else if reader.bit().unwrap() {
+                    8
+                } else {
+                    32
+                };
+                assert!(reader.bits(count_width).unwrap() > 0);
                 assert_eq!(reader.bits(6).unwrap(), 0);
             }
             assert!(reader.bit().unwrap());

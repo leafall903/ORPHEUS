@@ -279,7 +279,7 @@ fn practice_only_omits_owner_runtime_when_all_owner_content_is_absent() {
         };
         let mut scene = PreparedScene::fixture_for_bots(Vec::new());
         scene.initial_board.index = crate::game_stats::GMP_STATS;
-        scene.owner_body_factory = assets.compile_practice_factories(&scene);
+        scene.owner_body_factory = assets.compile_owner_factories(&scene);
         assert_eq!(
             scene.owner_body_factory.is_none(),
             case.expected == "scriptless",
@@ -312,7 +312,7 @@ fn practice_only_omits_owner_runtime_when_all_owner_content_is_absent() {
 }
 
 #[test]
-fn practice_owner_selector_starts_the_validated_actor_definition() {
+fn owner_factory_selector_starts_the_validated_actor_definition() {
     use serde_json::{Map, json};
 
     #[derive(Deserialize)]
@@ -395,7 +395,7 @@ fn practice_owner_selector_starts_the_validated_actor_definition() {
         matches!(invalid, Some(SceneOwnerPreparationError::Body(error))
         if matches!(error.as_ref(), OwnerBodyPreparationError::MissingBody))
     );
-    scene.owner_body_factory = Some(practice_owner_selector(
+    scene.owner_body_factory = Some(owner_factory_selector(
         definitions.into_iter().collect(),
         Arc::clone(&graphs),
         Some(Arc::clone(&codecs)),

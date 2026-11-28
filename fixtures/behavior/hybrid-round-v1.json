@@ -12,6 +12,7 @@
     "checkpoints": [[12, 34, 20], [13, 48, 10]],
     "gate": 14,
     "automatic_first_node_x": 24,
+    "capture_timeout_steps": [[185, "contested"], [185.5, "empty"], [190, "empty"]],
     "steps": [
       [145, "empty"],
       [146, "contested"],
@@ -26,6 +27,14 @@
   },
   "expected": {
     "capture_speed": 2.0,
+    "capture_timeout": [[true, null], [true, null], [false, 0]],
+    "restricted_sign": {
+      "hide_blue": false,
+      "hide_red": false,
+      "disabled": false,
+      "visible_state": 4,
+      "remote_slot": 1
+    },
     "room_flow": {"spawn_door": 20, "gate": 21, "sign": 22, "debris_delay": 3.0,
                   "rubble": 23, "rubble_rail_node": 2, "rubble_seconds": 3.0,
                   "required_spawn_placeables": [4, 2, 3], "checkpoint_offset": 1},

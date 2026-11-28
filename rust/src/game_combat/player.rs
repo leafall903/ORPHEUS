@@ -72,6 +72,7 @@ pub(crate) struct PlayerBodyState {
     pub(super) selected_model: Option<(u64, u64)>,
     pub(super) elimination_streak: Option<EliminationStreak>,
     pub(crate) mover: Mover,
+    observer_clock: Option<(u32, u32)>,
     pub(crate) history: TargetHistory,
     pub(crate) runtime: Option<Box<dyn OwnerBodyRuntime>>,
     runtime_halted: bool,
@@ -119,6 +120,7 @@ impl PlayerBodyState {
             selected_model,
             elimination_streak: None,
             mover,
+            observer_clock: None,
             history: TargetHistory::new(None),
             runtime,
             runtime_halted: false,
@@ -133,6 +135,18 @@ impl PlayerBodyState {
             pending_pressed_buttons: 0,
             pending_released_buttons: 0,
             recent_hit_feedback: std::collections::VecDeque::new(),
+        }
+    }
+
+    pub(crate) fn sample_observer_clock(&mut self, room_tick: u32) {
+        let Some(command_frame) = self.mover.pose().frame else {
+            return;
+        };
+        if self
+            .observer_clock
+            .is_none_or(|(previous, _)| previous != command_frame)
+        {
+            self.observer_clock = Some((command_frame, room_tick));
         }
     }
 
@@ -557,7 +571,6 @@ impl RoomSimulation {
         true
     }
 
-    #[cfg(test)]
     pub(crate) fn retire_player_body(&mut self, id: BodyId) -> bool {
         let Some(&entity) = self.players_by_wire.get(&id.entity) else {
             return false;
@@ -1178,12 +1191,18 @@ impl RoomSimulation {
     pub(crate) fn observer_player_movements(
         &self,
         exclude_owner: u32,
+        tick: u32,
     ) -> Vec<(u32, crate::world::Movement)> {
         self.players_by_wire
             .values()
             .filter_map(|&entity| self.world.get::<PlayerBodyState>(entity))
             .filter(|state| state.owner != exclude_owner)
-            .map(|state| (state.id.entity, state.mover.pose()))
+            .map(|state| {
+                let sampled_at = state
+                    .observer_clock
+                    .map_or(tick, |(_, room_tick)| room_tick);
+                (state.id.entity, state.mover.pose().for_observer(sampled_at))
+            })
             .collect()
     }
 

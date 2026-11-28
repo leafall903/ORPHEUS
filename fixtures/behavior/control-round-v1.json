@@ -47,12 +47,16 @@
       [258, []],
       [259, [1]],
       [261, []],
-      [265.9, []],
-      [266, []],
-      [269, []],
-      [273, []]
+      [264.79, []],
+      [264.81, []],
+      [271.8, []],
+      [271.82, []],
+      [279.8, []],
+      [279.82, []]
     ],
     "unlock_clock": [20, 10, 5, 4, 3.25, 3, 2.75, 2, 1],
+    "neutral_retake": [[62, [0]], [63, [1, 1]], [64, [1, 1]], [65, [1, 1]]],
+    "overtime_hold": [120.0, 124.0, 133.8, 138.8, 143.8, 148.8],
     "end_scores": [74.75, 75, 75.25, 76, 99.99, 100]
   },
   "expected": {
@@ -65,7 +69,12 @@
                    "scale": [1.25757, 1.272915, 1.5]},
     "round_end_scale": 0.375,
     "round_summary_delay": 7,
+    "neutral_retake": [[0, 0.25], [0, 0.0625], [-1, 0], [1, 0.1875]],
+    "overtime_grace": [5.0, 5.0, 5.0, 3.8333333333, 2.6666666667, 1.5],
     "round_result_actions": [158, 408],
+    "round_end_mode_actions": [316, 158, 408],
+    "next_round_music": "0x030000000000294A",
+    "opening_door_poses": ["Closed", "Closed", "Opening", "Open"],
     "round_hud_owner": -1,
     "setup_waypoint_visible": true,
     "match_result": {"last_hud_percent": 99, "phase_receiver_states": [3, 42, 55]},
@@ -89,10 +98,12 @@
       ["ACTIVE", 0, 0, 97.5, 30, false, false],
       ["ACTIVE", 0, 0.125, 98.3333, 30, false, false],
       ["ACTIVE", 0, 0.125, 99.99, 30, false, true],
-      ["ACTIVE", 0, 0, 99.99, 30, false, true],
+      ["ACTIVE", 0, 0.02625, 99.99, 30, false, true],
       ["ROUND_END", 0, 0, 100, 30, false, false],
       ["ROUND_END", 0, 0, 100, 30, false, false],
-      ["COMPLETE", 0, 0, 100, 30, false, false]
+      ["COMPLETE", 0, 0, 100, 30, false, false],
+      ["COMPLETE", 0, 0, 100, 30, false, false],
+      ["SETUP", -1, 0, 0, 0, false, false]
     ],
     "point_kind": "0x0D80000000002FDB",
     "point_marker": "0x00302FDB",

@@ -1098,6 +1098,19 @@ impl Mover {
         Ok(actor_contact)
     }
 
+    pub(crate) fn set_room_contacts(
+        &mut self,
+        world: Arc<ContactWorld>,
+        carry: Option<[f64; 3]>,
+        dt: f64,
+    ) -> Result<(), HullContactError> {
+        if let Some(displacement) = carry.and_then(SweptDisplacement::new) {
+            self.apply_swept_displacement(displacement, dt, &[])?;
+        }
+        self.body.set_contact_layer(world);
+        Ok(())
+    }
+
     fn apply_relocation(
         &mut self,
         relocation: Relocation,

@@ -4,7 +4,7 @@ use crate::jam_codec::{
     Fields,
     Value::{Array, String, Struct, Unsigned},
 };
-use crate::{game_content::GameMap, game_messages::Message};
+use crate::{game_content::GameMap, game_messages::Message, room_primitives::SPECTATOR_TEAM};
 
 pub const RETAIL_QUANTA: u32 = 16_000;
 pub const TOURNAMENT_QUANTA: u32 = 7_000;
@@ -84,7 +84,10 @@ impl Instance<'_> {
         }
         let team = |number, size| {
             let mut slots: Vec<_> = playing()
-                .filter(|member| self.map.free_for_all || member.team == number)
+                .filter(|member| {
+                    member.team != SPECTATOR_TEAM
+                        && (self.map.free_for_all || member.team == number)
+                })
                 .map(|member| entity(member.entity))
                 .collect();
             if !self.map.free_for_all {
@@ -107,12 +110,15 @@ impl Instance<'_> {
         } else {
             vec![team(0, capacity(0)), team(1, capacity(1))]
         };
-        let roster = Fields::from([
+        let mut roster = Fields::from([
             (0, Struct(Fields::from([(0, Array(records))]))),
             (0xb0, Unsigned(self.map.mode_guid)),
             (0xc0, Array(teams)),
             (0xd8, Array(vec![entity(viewer)])),
         ]);
+        if self.map.preset_guid != 0 {
+            roster.insert(0xa8, Unsigned(self.map.preset_guid));
+        }
         Fields::from([(
             0,
             Struct(Fields::from([

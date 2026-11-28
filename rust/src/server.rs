@@ -14,11 +14,16 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+mod custom_rooms;
+
+use custom_rooms::{CustomRooms, RoomEvent, RoomPeer};
+
 use crate::{
     accounts::{Account, Accounts, load_or_create_profile},
     bnet_protocol::Protocol,
     bnet_rpc::Player,
     bnet_service::{self, BnetService},
+    bnet_session_key::session_key,
     catalog::ItemDb,
     collection::Collection,
     game_content::{GameMap, JUNKENSTEIN_MAP, MapCatalog},
@@ -28,7 +33,7 @@ use crate::{
     lobby_celebrations::Celebrations,
     lobby_chat::{self, ChatRequest},
     lobby_gallery::EquipRequest,
-    lobby_login::{Identity, SIGNED_IN_ELSEWHERE},
+    lobby_login::SIGNED_IN_ELSEWHERE,
     lobby_lootbox::{LootBoxEngine, OpenBoxRequest, PurchaseRequest},
     lobby_menu::{MenuHero, extra_preload_themes},
     lobby_mode_rules::{CareerProfileRequest, owl_live_reply, player_names_reply},
@@ -36,7 +41,7 @@ use crate::{
     lobby_practice::{self, SoloPracticeHandoff},
     lobby_presence::{PRO_ACCOUNT_BITS, Presence},
     lobby_ranked::{LeaderboardPlaces, Ranked},
-    lobby_session::{LobbySession, LoginContent, LoginRequest, SoloLoginParty},
+    lobby_session::{LobbySession, LoginContent, LoginRequest, PreparedLogin, SoloLoginParty},
     lobby_transport::{LobbyMessage, LobbyTransport},
     match_handoff::{
         LobbySeat, general_channel, join_chat_channel, leave_chat_channel, match_channel,
@@ -59,10 +64,12 @@ pub struct ServerConfig {
     pub runtime: PathBuf,
     pub data: PathBuf,
     pub account: Option<String>,
+    pub second_account: Option<String>,
     pub lobby_port: u16,
     pub game_port: u16,
     pub stall_port: u16,
     pub rpc_port: u16,
+    pub second_rpc_port: u16,
     pub debug_port: Option<u16>,
     pub debug_control: bool,
     pub junkenstein_validation: Option<PathBuf>,
@@ -76,10 +83,12 @@ impl ServerConfig {
             runtime,
             data,
             account: None,
+            second_account: None,
             lobby_port: 3724,
             game_port: 3730,
             stall_port: bnet_service::STALL_PORT,
             rpc_port: bnet_service::RPC_PORT,
+            second_rpc_port: bnet_service::SECOND_RPC_PORT,
             debug_port: None,
             debug_control: false,
             junkenstein_validation: None,
@@ -95,6 +104,7 @@ pub struct Server {
     stop_lobby: mpsc::Sender<()>,
     lobby: Option<JoinHandle<io::Result<()>>>,
     bnet: BnetService,
+    second_bnet: Option<BnetService>,
     game: Option<Arc<GameService>>,
     ai_script: Option<PathBuf>,
     #[cfg(feature = "lua-mods")]
@@ -180,6 +190,23 @@ impl Server {
             &template,
             config.account.as_deref(),
         )?;
+        let second_account = config
+            .second_account
+            .as_deref()
+            .map(|name| {
+                session_key(name.trim())?;
+                local_account(&accounts, &config.data, &template, Some(name))
+            })
+            .transpose()?;
+        if let Some(second) = &second_account {
+            session_key(&local.name)?;
+            if second.account_lo == local.account_lo {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "the two local clients must use different accounts",
+                ));
+            }
+        }
         let listener = TcpListener::bind(addr(config.lobby_port))?;
         listener.set_nonblocking(true)?;
         let SocketAddr::V4(lobby_addr) = listener.local_addr()? else {
@@ -267,22 +294,23 @@ impl Server {
         } else {
             None
         };
-        let bnet_account = Arc::clone(&local);
         let bnet = BnetService::start(
             addr(config.stall_port),
             addr(config.rpc_port),
             lobby_addr,
-            protocol,
-            move |_| {
-                let account = u64::from(bnet_account.account_lo);
-                Player {
-                    account,
-                    game_account: account ^ PRO_ACCOUNT_BITS,
-                    battle_tag: bnet_account.battle_tag(),
-                    name: bnet_account.name.clone(),
-                }
-            },
+            Arc::clone(&protocol),
+            account_player(Arc::clone(&local)),
         )?;
+        let second_bnet = second_account
+            .map(|account| {
+                BnetService::start_rpc(
+                    addr(config.second_rpc_port),
+                    lobby_addr,
+                    protocol,
+                    account_player(account),
+                )
+            })
+            .transpose()?;
         #[cfg(feature = "lua-mods")]
         let mod_host = match &config.mod_script {
             Some(path) => {
@@ -320,6 +348,7 @@ impl Server {
             accounts,
             local,
             active: Mutex::new(HashMap::new()),
+            custom_rooms: Mutex::new(CustomRooms::default()),
             game: Arc::clone(&game),
             #[cfg(feature = "lua-mods")]
             mod_host: mod_host.clone(),
@@ -334,6 +363,7 @@ impl Server {
             stop_lobby,
             lobby: Some(lobby),
             bnet,
+            second_bnet,
             game: Some(game),
             ai_script: config.ai_script,
             #[cfg(feature = "lua-mods")]
@@ -354,6 +384,10 @@ impl Server {
     }
     pub fn rpc_addr(&self) -> SocketAddr {
         self.bnet.rpc_addr()
+    }
+
+    pub fn second_rpc_addr(&self) -> Option<SocketAddr> {
+        self.second_bnet.as_ref().map(BnetService::rpc_addr)
     }
 
     pub fn debug_addr(&self) -> Option<SocketAddr> {
@@ -421,6 +455,10 @@ impl Server {
         #[cfg(not(feature = "inspector"))]
         let debug = Ok(());
         let bnet = self.bnet.stop();
+        let second_bnet = self
+            .second_bnet
+            .take()
+            .map_or(Ok(()), |mut bnet| bnet.stop());
         let lobby = if let Some(worker) = self.lobby.take() {
             let _ = self.stop_lobby.send(());
             worker
@@ -435,13 +473,25 @@ impl Server {
                 .map_err(|_| io::Error::other("game worker still in use"))?
                 .stop()
         });
-        debug.and(bnet).and(lobby).and(game)
+        debug.and(bnet).and(second_bnet).and(lobby).and(game)
     }
 }
 
 impl Drop for Server {
     fn drop(&mut self) {
         let _ = self.stop();
+    }
+}
+
+fn account_player(account: Arc<Account>) -> impl Fn(SocketAddr) -> Player {
+    move |_| {
+        let id = u64::from(account.account_lo);
+        Player {
+            account: id,
+            game_account: id ^ PRO_ACCOUNT_BITS,
+            battle_tag: account.battle_tag(),
+            name: account.name.clone(),
+        }
     }
 }
 
@@ -493,6 +543,7 @@ struct Lobby {
     accounts: Arc<Accounts>,
     local: Arc<Account>,
     active: Mutex<HashMap<u32, ActiveLobbyPeer>>,
+    custom_rooms: Mutex<CustomRooms>,
     game: Arc<GameService>,
     #[cfg(feature = "lua-mods")]
     mod_host: Option<Arc<Mutex<crate::mod_script::ModHost>>>,
@@ -512,39 +563,63 @@ struct LoginLease<'a> {
     seat: Option<LobbySeat>,
     incoming: mpsc::Receiver<Arc<LobbyMessage>>,
     next_seat_check: Instant,
+    room_session: u64,
+    room_incoming: mpsc::Receiver<RoomEvent>,
 }
 
 impl<'a> LoginLease<'a> {
-    fn new(lobby: &'a Lobby, account: Arc<Account>, identity: Identity, wall_time: u64) -> Self {
+    fn new(lobby: &'a Lobby, login: &PreparedLogin, wall_time: u64) -> Self {
         let replaced = Arc::new(AtomicBool::new(false));
-        let member = {
+        let account = &login.account;
+        let identity = login.identity;
+        let card = {
             let profile = account.profile();
-            lobby_chat::member(player::record(
+            player::record(
                 &profile,
                 identity,
                 lobby.collection.portrait_frame(&profile),
                 wall_time,
-            ))
+            )
         };
         let (outgoing, incoming) = mpsc::sync_channel(CHAT_QUEUE_LIMIT);
         let peer = ActiveLobbyPeer {
             replaced: Arc::clone(&replaced),
             channel: general_channel(),
-            member,
+            member: lobby_chat::member(card.clone()),
             outgoing,
         };
-        let mut active = lobby.active.lock().expect("lobby accounts");
-        if let Some(previous) = active.insert(account.account_lo, peer) {
-            previous.replaced.store(true, Ordering::Release);
+        {
+            let mut active = lobby.active.lock().expect("lobby accounts");
+            if let Some(previous) = active.insert(account.account_lo, peer) {
+                previous.replaced.store(true, Ordering::Release);
+            }
+            account.set_status(1);
         }
-        account.set_status(1);
+        let (room_outgoing, room_incoming) = mpsc::sync_channel(CHAT_QUEUE_LIMIT);
+        lobby
+            .custom_rooms
+            .lock()
+            .expect("custom rooms")
+            .register(RoomPeer {
+                login: PreparedLogin {
+                    account: Arc::clone(account),
+                    identity,
+                    tournament: login.tournament,
+                },
+                card,
+                can_transfer: false,
+                outgoing: room_outgoing,
+                replaced: Arc::clone(&replaced),
+            });
         Self {
             lobby,
-            account,
+            account: Arc::clone(account),
             replaced,
             seat: None,
             incoming,
             next_seat_check: Instant::now(),
+            room_session: identity.session[0],
+            room_incoming,
         }
     }
 
@@ -612,8 +687,51 @@ impl<'a> LoginLease<'a> {
     }
 }
 
+impl LoginLease<'_> {
+    fn poll_custom_room(&mut self, transport: &mut LobbyTransport, now: Instant) -> io::Result<()> {
+        let can_transfer = transport.wire_for(crate::match_handoff::HANDOFF).is_some();
+        self.lobby.custom_rooms.lock().expect("custom rooms").poll(
+            self.lobby,
+            self.room_session,
+            can_transfer,
+            now,
+        )?;
+        let schemas = &self.lobby.schemas;
+        while let Ok(event) = self.room_incoming.try_recv() {
+            match event {
+                RoomEvent::Messages(messages) => {
+                    for message in messages.iter() {
+                        transport.send_message(schemas, message)?;
+                    }
+                }
+                RoomEvent::Enter(seat, messages) => {
+                    if self.seat.is_some() {
+                        transport.send_message(schemas, &leave_chat_channel(self.channel()))?;
+                    }
+                    self.set_seat(Some(seat));
+                    for message in messages.iter() {
+                        if !transport.send_message(schemas, message)?
+                            && message.0 == crate::match_handoff::HANDOFF
+                        {
+                            return Err(invalid(
+                                "the client did not announce the game handoff protocol",
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Drop for LoginLease<'_> {
     fn drop(&mut self) {
+        self.lobby
+            .custom_rooms
+            .lock()
+            .expect("custom rooms")
+            .unregister(self.room_session, &self.lobby.game);
         if let Some(seat) = self.seat.take() {
             let _ = self.lobby.game.release_seat(&seat.handoff);
         }
@@ -764,8 +882,7 @@ impl Lobby {
             (menu, members)
         };
         login.account.save()?;
-        let mut lease =
-            LoginLease::new(self, Arc::clone(&login.account), login.identity, wall_time);
+        let mut lease = LoginLease::new(self, &login, wall_time);
         let messages = login.available_messages(
             &self.schemas,
             &self.templates,
@@ -798,6 +915,7 @@ impl Lobby {
         }
         let menu_start = Instant::now();
         let mut retries = CHAT_FEATURE_RETRIES.into_iter().peekable();
+        let mut browser_initialized = false;
         while let Some(request) = session.receive_message_until(|transport| {
             if !lease.current() {
                 return Ok(false);
@@ -815,7 +933,8 @@ impl Lobby {
                 retries.next();
             }
             lease.poll_chat(transport, now)?;
-            Ok(true)
+            lease.poll_custom_room(transport, now)?;
+            Ok(lease.current())
         })? {
             if self.chat_request(&lease, &request, &mut session)? {
                 continue;
@@ -881,6 +1000,16 @@ impl Lobby {
                 session.send(&reply)?;
                 continue;
             }
+            if self.custom_rooms.lock().expect("custom rooms").request(
+                self,
+                &login,
+                &session,
+                &request,
+                lease.seat.as_ref(),
+                &mut browser_initialized,
+            )? {
+                continue;
+            }
             let arcade = lobby_practice::arcade_queue(&request).and_then(|(card, key)| {
                 Arcade::junkenstein_queue(card, &login.account.profile(), wall_time)
                     .map(|rules| (rules, key))
@@ -893,6 +1022,11 @@ impl Lobby {
                     continue;
                 }
             }
+            self.custom_rooms
+                .lock()
+                .expect("custom rooms")
+                .leave(lease.room_session, &self.game)?;
+            lease.poll_custom_room(session.transport_mut(), Instant::now())?;
             let input = SoloPracticeHandoff::new(match_id()?, "127.0.0.1");
             if let Some((rules, key)) = arcade {
                 if let Some(map) = self.maps.game_map(
