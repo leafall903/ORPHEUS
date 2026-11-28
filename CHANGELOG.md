@@ -10,6 +10,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Keep both players' action synchronization active after a nonlethal hit in custom games.
 - Keep multiplayer custom games connected after hero selection by publishing remote movement on the room clock.
 - Publish and join public custom rooms from either local client. Share room and seat changes before and during play, and give each member a separate connection into the same match. Use the authored waiting transition for manual and when-full starts.
+- Sync embedded `DeployableWorld.owner` alongside `RoomPet.owner` and
+  `RoomDeployable.owner` during `swap_player_body` transfers so post-swap
+  creator queries see the replacement body ID (wire re-attachment and
+  original-client behavior remain unverified).
 
 - Stage room-triggered status script velocity edits and movement modifiers onto
   the receiving player or stock bot immediately, ordering non-impulse resets

@@ -5092,3 +5092,211 @@ fn lua_mod_abi_v2_dance_party_chat_bots_status_and_voice_cues() {
     );
     assert_eq!(deaths[0].body, owner);
 }
+
+#[test]
+fn transfer_owner_syncs_embedded_world_for_pet_and_deployable() {
+    use crate::{
+        contact_world::ContactWorld, game_heroes::HeroCatalog, game_pools::BODY_GRAPH,
+        game_projectiles::ImpactSpawn, game_replication::BodyId, mover::Mover,
+        mover_settings::MoverSettings, scene_assets::PreparedScene, script_expr::Value,
+        script_graph::GraphStore,
+    };
+    use serde_json::{Value as Json, json};
+
+    let contract: Json = serde_json::from_str(include_str!(
+        "../../../fixtures/behavior/room-swap-embedded-owner-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(contract["schema_version"], 1);
+    assert_eq!(contract["case_id"], "room-swap-embedded-owner.synthetic.v1");
+    assert_eq!(contract["evidence"], "synthetic-rust");
+    let input = &contract["input"];
+    let expected = &contract["expected"];
+
+    let controller = u32::try_from(input["controller"].as_u64().unwrap()).unwrap();
+    let old_body = u32::try_from(input["old_body"].as_u64().unwrap()).unwrap();
+    let new_body = u32::try_from(input["new_body"].as_u64().unwrap()).unwrap();
+    let other_controller = u32::try_from(input["other_controller"].as_u64().unwrap()).unwrap();
+    let other_body = u32::try_from(input["other_body"].as_u64().unwrap()).unwrap();
+    let pet_def = crate::accounts::parse_guid(input["pet_definition"].as_str().unwrap()).unwrap();
+    let dep_def =
+        crate::accounts::parse_guid(input["deployable_definition"].as_str().unwrap()).unwrap();
+    let before_swap_creator =
+        u32::try_from(expected["before_swap_creator"].as_u64().unwrap()).unwrap();
+    let after_swap_creator =
+        u32::try_from(expected["after_swap_creator"].as_u64().unwrap()).unwrap();
+    let other_creator = u32::try_from(expected["other_creator"].as_u64().unwrap()).unwrap();
+    let retired_after_owner_retire = expected["retired_after_owner_retire"].as_bool().unwrap();
+
+    let graphs = json!({
+        "version": 1, "missing": [],
+        "graphs": [{
+            "index": BODY_GRAPH, "items": 2,
+            "nodes": [
+                {
+                    "pos": 0, "uid": 0, "rid": 0, "state": null,
+                    "remote": -1, "client_only": false, "server_only": true,
+                    "class": "STUStatescriptEntry",
+                    "fields": {"m_2BBEEAB8": false, "m_ADEB6E05": false, "m_outPlug": {"$": "Plug", "links": []}}
+                },
+                {
+                    "pos": 1, "uid": 1, "rid": 1, "state": 0,
+                    "remote": -1, "client_only": false, "server_only": true,
+                    "class": "STUStatescriptState",
+                    "fields": {"m_2BBEEAB8": false, "m_ADEB6E05": false}
+                }
+            ],
+            "states": [1],
+            "entries": [0], "remote": [], "sync_vars": [], "containers": {},
+            "unknown_nodes": [],
+            "header": {
+                "m_nodesBitCount": 2, "m_statesBitCount": 2,
+                "m_remoteSyncNodesBitCount": 1, "m_syncVarsBitCount": 1
+            },
+            "fields": {"m_publicSchema": {"m_entries": [{
+                "m_0D09D2D9": "0x0D800000000000C7",
+                "m_value": {"m_value": 100.0}
+            }]}}
+        }],
+        "bodies": {
+            (format!("0x{pet_def:016X}")): {
+                "name": "Synthetic pet", "manager": null,
+                "graphs": [{"graph": BODY_GRAPH, "m_75408640": 0}], "weapons": []
+            },
+            (format!("0x{dep_def:016X}")): {
+                "name": "Synthetic deployable", "manager": null,
+                "graphs": [{"graph": BODY_GRAPH, "m_75408640": 0}], "weapons": []
+            }
+        }
+    });
+    let graphs = Arc::new(GraphStore::from_json(&serde_json::to_vec(&graphs).unwrap()).unwrap());
+    let mut scene = PreparedScene::fixture_for_owner_admission(HeroCatalog::default());
+    let mode = scene.map().mode_guid;
+    let contacts = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+    let make_body = |entity: u32, ctrl: u32, generation: u64| {
+        let mover = Mover::new(
+            MoverSettings::default(),
+            Arc::clone(&contacts),
+            [0.0, 0.0, 0.0],
+            0,
+            0,
+        )
+        .unwrap();
+        PlayerBodyState::new(
+            BodyId { entity, generation },
+            ctrl,
+            0,
+            1,
+            0x02e0_0000_0000_0004,
+            mover,
+            None,
+            10,
+            None,
+        )
+    };
+
+    let pet = next_pet_wire_id();
+    let other_pet = next_pet_wire_id();
+    let room = scene.simulation_mut();
+    room.enable_spatial_queries(false, Arc::new(fixture_ground()), RoomSpatialNeeds::Queries);
+    room.set_script_graphs(graphs, mode);
+    room.spawn_player_body(make_body(old_body, controller, 1))
+        .unwrap();
+    room.spawn_player_body(make_body(other_body, other_controller, 1))
+        .unwrap();
+
+    room.spawn_room_pet(
+        old_body,
+        0,
+        pet,
+        pet_def,
+        Some(old_body),
+        [1.0, 0.0, 1.0],
+        0,
+        None,
+        None,
+        10,
+    );
+    room.spawn_room_pet(
+        other_body,
+        1,
+        other_pet,
+        pet_def,
+        None,
+        [2.0, 0.0, 2.0],
+        0,
+        None,
+        None,
+        10,
+    );
+    room.spawn_impact_deployable(
+        old_body,
+        0,
+        ImpactSpawn {
+            definition: dep_def,
+            on_spawn_graph: None,
+        },
+        [3.0, 0.0, 3.0],
+        0,
+        10,
+    );
+    let dep = *room
+        .room_deployables
+        .keys()
+        .find(|&&id| room.room_deployables[&id].owner == old_body)
+        .unwrap();
+
+    let creator_query = json!({
+        "$": "STU_2B2E2F6D",
+        "m_81A364DE": {"$": "STU_B5A0CAF0"},
+        "m_7BDB02D1": 0
+    });
+    let eval_world = |comp: &mut crate::script_init::Component,
+                      world: &mut super::deployables::DeployableWorld| {
+        let instance = *comp.snapshot().unwrap().instances.keys().next().unwrap();
+        comp.evaluate_state_config(instance, 0, &creator_query, world)
+    };
+    let eval_pet = |room: &mut RoomSimulation, id: u32| {
+        let p = room.room_pets.get_mut(&id).unwrap();
+        eval_world(p.component.as_mut().unwrap(), p.world.as_mut().unwrap())
+    };
+    let eval_dep = |room: &mut RoomSimulation, id: u32| {
+        let d = room.room_deployables.get_mut(&id).unwrap();
+        eval_world(d.component.as_mut().unwrap(), d.world.as_mut().unwrap())
+    };
+
+    assert_eq!(eval_pet(room, pet), Ok(Value::Entity(before_swap_creator)));
+    assert_eq!(eval_dep(room, dep), Ok(Value::Entity(before_swap_creator)));
+    assert_eq!(eval_pet(room, other_pet), Ok(Value::Entity(other_creator)));
+
+    assert!(
+        room.swap_player_body(make_body(new_body, controller, 1))
+            .is_err()
+    );
+    assert_eq!(room.room_pets[&pet].owner, old_body);
+    assert_eq!(eval_pet(room, pet), Ok(Value::Entity(before_swap_creator)));
+
+    room.swap_player_body(make_body(new_body, controller, 2))
+        .unwrap();
+    assert_eq!(room.room_pets[&pet].owner, new_body);
+    assert_eq!(room.room_pets[&pet].attach, Some(new_body));
+    assert_eq!(eval_pet(room, pet), Ok(Value::Entity(after_swap_creator)));
+    assert_eq!(room.room_deployables[&dep].owner, new_body);
+    assert_eq!(eval_dep(room, dep), Ok(Value::Entity(after_swap_creator)));
+
+    assert_eq!(room.room_pets[&other_pet].owner, other_body);
+    assert_eq!(eval_pet(room, other_pet), Ok(Value::Entity(other_creator)));
+
+    assert_eq!(
+        room.retire_player_owner(controller),
+        Some(BodyId {
+            entity: new_body,
+            generation: 2
+        })
+    );
+    assert_eq!(
+        !room.room_pets.contains_key(&pet) && !room.room_deployables.contains_key(&dep),
+        retired_after_owner_retire
+    );
+    assert!(room.room_pets.contains_key(&other_pet));
+}

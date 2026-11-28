@@ -1396,6 +1396,9 @@ impl RoomSimulation {
         for pet in self.room_pets.values_mut() {
             if pet.owner == old_owner {
                 pet.owner = new_owner;
+                if let Some(world) = pet.world.as_mut() {
+                    world.owner = new_owner;
+                }
             }
             if pet.attach == Some(old_owner) {
                 pet.attach = Some(new_owner);
@@ -1404,6 +1407,9 @@ impl RoomSimulation {
         for dep in self.room_deployables.values_mut() {
             if dep.owner == old_owner {
                 dep.owner = new_owner;
+                if let Some(world) = dep.world.as_mut() {
+                    world.owner = new_owner;
+                }
             }
         }
     }

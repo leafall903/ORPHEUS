@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "room-swap-embedded-owner.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "Swap-time transfer of room pets and impact deployables updates their embedded DeployableWorld owner alongside room owner while leaving unrelated owners untouched and retiring swapped entities on owner retirement; does not alter wire attachment or client behavior."
+  },
+  "input": {
+    "controller": 2684355072,
+    "old_body": 2684355073,
+    "new_body": 2684355074,
+    "other_controller": 2684355584,
+    "other_body": 2684355585,
+    "pet_definition": "0x0400000000000223",
+    "deployable_definition": "0x04000000000014A1"
+  },
+  "expected": {
+    "before_swap_creator": 2684355073,
+    "after_swap_creator": 2684355074,
+    "other_creator": 2684355585,
+    "retired_after_owner_retire": true
+  }
+}
