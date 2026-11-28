@@ -8,10 +8,10 @@ Run the preparation command from the repository root on Windows. Supply the dire
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
-python scripts/runtime.py check
+python scripts/runtime.py check --complete
 ```
 
-For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK and the x64 .NET 6 runtime. The first build fetches pinned open-source tools and their build dependencies. It reads game data locally. [Extraction tool setup](../scripts/runtime_tools.py)
+For extraction, install Git, Python 3.12, Rust, PowerShell 7, the x64 .NET 8 SDK and the x64 .NET 6 runtime. The first build fetches pinned open-source tools and their build dependencies. The Python extractor uses the tested `cedec602` revision of the `python` branch for repeatable output. A full native check builds the server with Cargo on first use, or uses the binary named by `ORPHEUS_SERVER_BIN`. For a file and manifest check alone, pass `--files-only`. It reads game data locally. [Extraction tool setup](../scripts/runtime_tools.py)
 
 | Default Windows directory | Purpose |
 | --- | --- |
@@ -35,7 +35,7 @@ Verification checks the stock graph loader and reports unresolved graph referenc
 
 If preparation reports missing inputs, supply the listed files in the inputs directory and rerun the same command. Protocol schemas, templates, StateScript codecs, Battle.net descriptors and the private content and signing inputs require separate local preparation. The installer derives Practice Range rules from the local mode, hero and schema records. A prepared graph or a supplied `mode-rulesets.json` can provide existing profiles. The provenance tables below list the input filenames.
 
-On a supported server platform, use `python scripts/runtime.py check` for the default pack or `python scripts/runtime.py check <pack>` for a custom output with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
+On a supported server platform, use `python scripts/runtime.py check` for the default pack or `python scripts/runtime.py check <pack>` for a custom output with Python and the native Rust server or its build toolchain. This verifies the manifest hashes and the Practice Range graph data, then runs native preflight. Add `--complete` to require the same stock models, projectile definitions and collision caches as a fresh build. A missing item returns a nonzero exit code with its name. It does not start the game. Set `ORPHEUS_RUNTIME_DIR` to the verified pack for prepared-runtime tests. On Windows you can then launch with the [setup script](../scripts/setup_and_play.ps1) or [launcher](../scripts/PLAY_ORPHEUS.cmd).
 
 On a build using only the seven supplemental files and the retail installation, the
 server loaded 613 graphs, 32 tagged bodies, 1,309 stock attachments, 9,140 bone
@@ -138,8 +138,9 @@ movement-based probes and sweeps.
 | `data/junkenstein/junkenstein-npcs.json` | Explicit NPC definitions required for Junkenstein enemy tests/runs |
 | `data/combat_hurt_volumes.json` | Optional local combat regions measured per body, packed and hashed when present. Top-level body regions are standing measurements. A body may supply a `crouched` object with its own `body` and `head` regions. |
 | `data/combat_voice_174.json` | Optional local multikill and actor hurt/death voice catalog, packed and hashed when present |
-| `data/player_voice_174.json` | Optional actor voice catalog. Its `equipped` table maps playback effects to voice stimuli. |
-| `data/voice_effects_174.json` | Optional mapping from equipped voice unlocks to playback effects, preserved by the packer. Generate locally with `tools/extract_voice_effects.py` on the Python reference branch. |
+| `data/player_voice_174.json` | The build command generates hero and skin voice sets, StateScript criteria, equipped stimuli and locally readable clip durations. It reads the installation's text and speech manifests. Lines with an independent StateScript condition are recorded separately in `state_conditioned_sets` until the server supports that condition. |
+| `data/voice_effects_174.json` | The build command generates the voice-unlock to playback-effect mapping alongside the actor catalog. Existing packs retain their verified local files. |
+| `data/status_scripts_174.json` | Optional status-to-StateScript index derived from the on-apply field of each local `.053` definition. Contains script indices only. |
 | `data/emote_aliases_174.json`, `data/emote_blend_trees_174.json` | Optional untagged emote mappings from equipped unlocks to animation aliases and blend trees. Generate locally with `tools/extract_emote_aliases.py` on the `python` branch. |
 | `data/emote_durations_174.json`, `data/emote_scalar_tracks_174.json`, `data/greeting_durations_174.json` | Optional emote/greeting clip durations and scalar camera/pose tracks preserved when present. |
 | `data/map_environment_174.json` | Optional map boundary hazards and per-map/mode respawn delay overrides (Practice Range defaults to 3s). |

@@ -51,6 +51,14 @@ def write_pack(folder, *, stock_models=True):
         cache = folder / name
         cache.parent.mkdir(exist_ok=True)
         cache.write_bytes(b"synthetic collision test data")
+    (target.parent / "player_voice_174.json").write_text(json.dumps({
+        "heroes": {"0x02E0000000000001": "0x07A0000000000001"},
+        "criteria": {"0x0D80000000000001": ["0x0EE0000000000001"]},
+        "sets": {"0x07A0000000000001": {"0x0EE0000000000001": ["0x0760000000000001"]}},
+        "equipped": {"0x0300000000000001": "0x0EE0000000000001"},
+    }), encoding="utf-8")
+    (target.parent / "voice_effects_174.json").write_text(
+        '{"0x0250000000000001":"0x0300000000000001"}', encoding="utf-8")
     target.write_bytes(gzip.compress(json.dumps(bundle).encode()))
     manifest(folder)
 
@@ -226,6 +234,30 @@ class RuntimeEntrypointTest(unittest.TestCase):
         self.build()
         self.native.assert_called_once()
 
+    def test_files_only_checks_hashes_and_never_builds_or_starts_the_server(self):
+        write_pack(self.dest)
+        output = io.StringIO()
+        with redirect_stdout(output):
+            runtime.main(["check", str(self.dest), "--complete", "--files-only"])
+        self.assertIn("Native preflight was skipped", output.getvalue())
+        (self.dest / "collision/0688.col").write_bytes(b"corrupt")
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            runtime.main(["check", str(self.dest), "--files-only"])
+        self.native.assert_not_called()
+        self.generate.assert_not_called()
+
+    def test_complete_check_requires_gameplay_data_without_running_extraction(self):
+        write_pack(self.dest)
+        (self.dest / "collision/0688.rays.col").unlink()
+        manifest(self.dest)
+        errors = io.StringIO()
+        with redirect_stdout(io.StringIO()), redirect_stderr(errors), self.assertRaises(SystemExit) as failure:
+            runtime.main(["check", str(self.dest), "--complete"])
+        self.assertEqual(failure.exception.code, 1)
+        self.assertIn("collision/0688.rays.col", errors.getvalue())
+        self.native.assert_not_called()
+        self.generate.assert_not_called()
+
     def test_check_defaults_to_the_normal_install_directory(self):
         default_pack = self.root / "ORPHEUS/runtime-104319"
         write_pack(default_pack)
@@ -233,6 +265,20 @@ class RuntimeEntrypointTest(unittest.TestCase):
             runtime.main(["check"])
         self.native.assert_called_once_with("orpheus_server", "--runtime", default_pack, "--check-runtime-graphs")
         self.generate.assert_not_called()
+
+    def test_complete_check_identifies_missing_and_empty_voice_metadata(self):
+        write_pack(self.dest)
+        (self.dest / "data/player_voice_174.json").write_text('{"criteria":{}}', encoding="utf-8")
+        (self.dest / "data/voice_effects_174.json").unlink()
+        manifest(self.dest)
+        errors = io.StringIO()
+        with redirect_stdout(io.StringIO()), redirect_stderr(errors), self.assertRaises(SystemExit):
+            runtime.main(["check", str(self.dest), "--complete", "--files-only"])
+        self.assertIn("Missing player voice sets", errors.getvalue())
+        self.assertIn("Missing player voice metadata: data/voice_effects_174.json", errors.getvalue())
+        with redirect_stdout(io.StringIO()):
+            runtime.main(["check", str(self.dest), "--files-only"])
+        self.native.assert_not_called()
 
     def test_generator_failure_is_not_published(self):
         self.inputs()

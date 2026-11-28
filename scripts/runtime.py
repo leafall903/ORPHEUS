@@ -14,7 +14,9 @@ import sys
 import tempfile
 
 from runtime_projectiles import persistent_entity_issue
+from runtime_status import STATUS_SCRIPTS
 from runtime_validation import PRACTICE_COLLISION, stock_model_issue, validate_pack
+from runtime_voice import VOICE_CATALOGS
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.74.0.0.104319"
@@ -28,7 +30,7 @@ GENERATED = (
     "extracted_items.json", "extracted_general_unlocks.json", "extracted_heroes.json",
     "extracted_maps.json", "arcade_cards_174.json", "ai_spawners_174.json", "game_heroes_174.json",
     "game_maps_174.json", "game_movers_174.json", "game_stats_174.json", GRAPH,
-    "collision_props_174.json", "collision_keys_174.json",
+    "collision_props_174.json", "collision_keys_174.json", STATUS_SCRIPTS, *VOICE_CATALOGS,
 )
 
 
@@ -201,10 +203,19 @@ def main(argv=None):
     verify = subs.add_parser("check", help="verify an existing runtime without starting the server")
     verify.add_argument("pack", type=Path, nargs="?", default=default_pack,
                         help="runtime directory (default: the build output directory)")
+    verify.add_argument("--files-only", action="store_true",
+                        help="verify local data without compiling or running the native server")
+    verify.add_argument("--complete", action="store_true",
+                        help="require the same Practice Range gameplay data as a new build")
     args = parser.parse_args(argv)
     try:
         if args.command == "check":
-            check(args.pack.resolve())
+            pack = args.pack.resolve()
+            if args.files_only:
+                validate_pack(pack, require_gameplay_data=args.complete)
+                print(f"Runtime files verified: {pack}. Native preflight was skipped.")
+            else:
+                check(pack, require_gameplay_data=args.complete)
         else:
             build(args.game, args.output, args.inputs, args.cache)
     except (OSError, ValueError, RuntimeError, ImportError, subprocess.SubprocessError, EOFError) as exc:

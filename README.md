@@ -73,19 +73,21 @@ Use your local **1.74.0.0.104319** installation to prepare a private Practice Ra
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
-python scripts/runtime.py check
+python scripts/runtime.py check --complete
 ```
 
 To reuse authorized prepared inputs or choose a new output directory, pass `--inputs <directory>` or `--output <directory>` to `build`. Existing packs can be checked on supported server platforms without a game installation. The check reports stock-model coverage and how to rebuild an older pack.
+
+For a quick data check without compiling Rust, use `python scripts/runtime.py check --complete --files-only`. The full check uses `ORPHEUS_SERVER_BIN` if set, or builds the server with Cargo on first use. The Windows launcher works with the built-in Windows PowerShell. Extracting the collision index from the game requires PowerShell 7.
 
 Once the pack passes, the Windows launcher builds the server with the inspector and Lua mod support, opens the 3D viewer at `http://127.0.0.1:3726/` and stores player state under `%LOCALAPPDATA%\ORPHEUS\state`.
 
 ```powershell
 # Double-click scripts\PLAY_ORPHEUS.cmd, or run:
-pwsh -File scripts\setup_and_play.ps1 -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
 
 # Launch with the ABI v2 Workshop Mod + Web 3D Viewer:
-pwsh -File scripts\setup_and_play.ps1 -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
 ```
 
 ---

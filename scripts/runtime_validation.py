@@ -8,6 +8,7 @@ import re
 import zlib
 
 from runtime_projectiles import persistent_entity_issue
+from runtime_voice import VOICE_CATALOGS
 
 
 GRAPH = "data/game_graphs_174.json.gz"
@@ -180,6 +181,19 @@ def validate_pack(path: Path, *, require_gameplay_data: bool = False) -> None:
         _check_graphs(graph)
         issues = [f"Missing Practice Range collision cache: {name}" for name in PRACTICE_COLLISION
                   if name not in entries]
+        for name in VOICE_CATALOGS:
+            if f"data/{name}" not in entries:
+                issues.append(f"Missing player voice metadata: data/{name}")
+            else:
+                with (root / "data" / name).open(encoding="utf-8") as stream:
+                    catalog = json.load(stream)
+                if not isinstance(catalog, dict) or not catalog:
+                    issues.append(f"Empty or invalid player voice metadata: data/{name}")
+                elif name == "player_voice_174.json" and not all(
+                    isinstance(catalog.get(key), dict) and catalog[key]
+                    for key in ("heroes", "criteria", "sets", "equipped")
+                ):
+                    issues.append(f"Missing player voice sets, heroes, criteria or equipped stimuli in data/{name}")
         if model_issue := stock_model_issue(graph["bodies"]):
             issues.append(model_issue)
         else:

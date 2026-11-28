@@ -12,7 +12,9 @@ import tempfile
 
 from build_runtime_state_metadata import import_model_hardpoints, import_model_skeletons, write_bundle
 from runtime_tools import extraction_tools
+from runtime_status import STATUS_SCRIPTS, status_scripts
 from runtime_validation import stock_model_issue
+from runtime_voice import VOICE_CATALOGS, user_locale, voice_locales
 
 
 def variant(files):
@@ -62,7 +64,7 @@ def import_stock_models(graph, directory):
 
 
 def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, projectiles):
-    from runtime import GRAPH, ROOT, link_input
+    from runtime import GRAPH, ROOT, VERSION, link_input
     from runtime_validation import PRACTICE_COLLISION
 
     reference, owlib, tool = extraction_tools(cache / "tools")
@@ -87,6 +89,17 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         catalogs = checkpoint(raw / "catalogs", lambda out: prepare_catalogs(game, tool, out))
         for name in CLIENT_CATALOGS:
             use(catalogs / name)
+
+    if any(not (data / name).is_file() for name in VOICE_CATALOGS):
+        text, speech = voice_locales(game, VERSION, user_locale())
+        project = ROOT / "scripts/tools/voice_catalog/VoiceCatalog.csproj"
+        def export_voice(out):
+            helper = sdk_tool(project, scratch, tool.parent)
+            subprocess.run([*helper, str(game), text, speech, str(out)], check=True)
+        schema = variant([project, *project.parent.glob("*.cs")])
+        voice = checkpoint(raw / f"voice-{text}-{speech}-{schema}", export_voice)
+        for name in VOICE_CATALOGS:
+            use(voice / name)
 
     def geometry(out):
         out.mkdir()
@@ -130,6 +143,8 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
         families.add("01B")
     if need_rules:
         families.update(("075", "0C5", "0C6"))
+    if not (data / STATUS_SCRIPTS).is_file():
+        families.add("053")
     if need_queues:
         families.update(gameplay.XML_TYPES["game_queues_174.json"])
 
@@ -141,6 +156,11 @@ def generate(game, cache, raw, view, scratch, mode, tags, anchors, need_rules, p
 
     for family in sorted(families):
         checkpoint(xml / family, lambda out, kind=family: export_xml(out, kind))
+
+    if "053" in families and not (data / STATUS_SCRIPTS).is_file():
+        output = scratch / STATUS_SCRIPTS
+        output.write_text(json.dumps(status_scripts(xml / "053"), allow_nan=False), encoding="utf-8")
+        use(output)
 
     def strings(out):
         out.mkdir()

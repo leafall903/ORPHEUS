@@ -73,19 +73,21 @@ return {
 
 ```powershell
 python scripts/runtime.py build "C:\Games\Overwatch"
-python scripts/runtime.py check
+python scripts/runtime.py check --complete
 ```
 
 在构建命令后追加 `--inputs <目录>` 可复用已有的授权输入，追加 `--output <目录>` 可指定新的输出位置。已有运行包可以在受支持的服务端平台上校验，无需安装游戏。校验会列出缺少骨骼或挂点数据的模型，并给出补生成命令。
+
+快速核对文件可以运行 `python scripts/runtime.py check --complete --files-only`。完整校验使用 `ORPHEUS_SERVER_BIN` 指定的服务端，未指定时由 Cargo 在首次运行时编译。启动脚本支持 Windows 自带的 PowerShell，从游戏中提取碰撞索引时需要 PowerShell 7。
 
 运行包校验通过后，Windows 启动脚本会编译带调试器和 Lua Mod 支持的服务端，启动 `http://127.0.0.1:3726/` 上的 3D 查看器，并将玩家存档保存在 `%LOCALAPPDATA%\ORPHEUS\state`。
 
 ```powershell
 # 双击 scripts\PLAY_ORPHEUS.cmd，或在终端运行：
-pwsh -File scripts\setup_and_play.ps1 -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319"
 
 # 同时加载 ABI v2 工坊 Mod 与 Web 3D 查看器启动：
-pwsh -File scripts\setup_and_play.ps1 -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
+.\scripts\PLAY_ORPHEUS.cmd -RuntimeDir "$env:LOCALAPPDATA\ORPHEUS\runtime-104319" -ModScript rust\scripts\mods\dance_party_workshop.lua
 ```
 
 ---

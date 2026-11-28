@@ -4,7 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
-- Rebuild the Practice Range ray cache when a movement-only source pack is supplied. Verify that both collision files are inventoried before publishing a new runtime.
+- Build locale-matched player voice and equipped voice metadata from the local
+  104319 installation. Preserve line conditions and read durations from local
+  audio headers without packaging the recordings. Export the status effects
+  that reference an on-apply StateScript graph in the same build. Include the
+  generated catalogs in the runtime manifest and verify their hashes.
+
+- Rebuild the Practice Range ray cache when a movement-only source pack is supplied. Verify that both collision files are inventoried before publishing a new runtime. Use `runtime.py check --complete` to apply the same gameplay checks to an existing pack. Add `--files-only` to skip the native build and preflight.
 - Include landed projectile entity definitions and their StateScript roots in
   the private runtime. The builder reads referenced definitions from the local
   installation and checks them alongside the stock hero model data.
