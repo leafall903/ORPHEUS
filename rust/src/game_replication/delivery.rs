@@ -2053,7 +2053,7 @@ impl WorldDelivery {
             return Ok((1, true));
         };
         let alive = state.alive();
-        state.mover.block_player_input(!alive);
+        state.mover.set_player_dead(!alive);
         let pending = pending.get_or_insert_with(|| {
             PendingCommand::new(
                 state.mover.pending_poses(command),
@@ -2189,22 +2189,14 @@ impl WorldDelivery {
             },
         );
         let complete = pending.poses.len() == 0;
-        if alive && (!posed_buttons.is_empty() || complete) {
+        if alive && !posed_buttons.is_empty() {
             if let Some(state) = simulation.player_body_mut(id) {
-                if posed_buttons.is_empty() {
-                    let pressed = command.buttons & !state.last_buttons;
-                    let released = state.last_buttons & !command.buttons;
-                    state.last_buttons = command.buttons;
+                for buttons in posed_buttons {
+                    let pressed = buttons & !state.last_buttons;
+                    let released = state.last_buttons & !buttons;
+                    state.last_buttons = buttons;
                     state.pending_pressed_buttons |= pressed;
                     state.pending_released_buttons |= released;
-                } else {
-                    for buttons in posed_buttons {
-                        let pressed = buttons & !state.last_buttons;
-                        let released = state.last_buttons & !buttons;
-                        state.last_buttons = buttons;
-                        state.pending_pressed_buttons |= pressed;
-                        state.pending_released_buttons |= released;
-                    }
                 }
             }
         }

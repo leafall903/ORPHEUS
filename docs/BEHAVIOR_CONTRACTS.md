@@ -102,6 +102,8 @@ The [blocked sweep correction fixture](../fixtures/behavior/owner-blocked-sweep-
 
 The [continuous movement stop fixture](../fixtures/behavior/owner-continuous-motion-stop-v1.json) faults the movement runtime after the first pose of a recovered batch. Subsequent poses release the continuous destination and speed override while retaining committed momentum and a queued external impulse.
 
+The [owner stun input fixture](../fixtures/behavior/owner-stun-input-gate-v1.json) covers suppressed movement and action buttons in a recovered batch, owner corrections for blocked steering, and external impulses queued on either side of the stun. Releasing the stun does not replay the suppressed controls into subsequent missing poses.
+
 The [late join observer fixture](../fixtures/behavior/late-join-observer-create-v1.json) boots a new observer after the existing body's spawn event has been consumed. The observer receives the current transform and health once, then receives subsequent poses and admits the body to contact queries after acknowledging its creation.
 
 The Rust-only [stock bot script isolation fixture](../fixtures/behavior/stock-bot-script-isolation-v1.json) checks that a zeroed owner selector is valid and that an unsupported public selector suspends only the affected bot's script projection. Both physical bots remain in the room. The [mode presentation variables fixture](../fixtures/behavior/mode-presentation-variables-v1.json) checks mode selection and preservation of typed values in the mode bootstrap.

@@ -375,7 +375,7 @@ impl RoomSimulation {
                 state.bot.clear_stun();
             } else if let Some(id) = self.player_handle_for_wire(wire) {
                 if let Some(player) = self.player_body_mut(id) {
-                    player.mover.block_player_input(false);
+                    player.mover.clear_stun();
                 }
             }
         }
@@ -394,12 +394,7 @@ impl RoomSimulation {
             if let Some(player) = self.player_body_mut(id) {
                 if player.alive() {
                     let frame = player.mover.pose().frame.unwrap_or(player.frame);
-                    player.mover.block_player_input(true);
-                    player.mover.clear_pending_script_motion();
-                    player.mover.queue_velocity_change(
-                        frame.saturating_add(1),
-                        crate::mover::VelocityChange::SetHorizontalVelocity([0.0, 0.0]),
-                    );
+                    player.mover.stun(frame.saturating_add(1));
                     let until = tick.saturating_add(ticks);
                     let entry = self.actor_statuses.entry(wire).or_default();
                     entry.stunned_until = Some(entry.stunned_until.map_or(until, |p| p.max(until)));
@@ -671,7 +666,7 @@ impl RoomSimulation {
         for wire in unstunned_players {
             if let Some(id) = self.player_handle_for_wire(wire) {
                 if let Some(player) = self.player_body_mut(id) {
-                    player.mover.block_player_input(false);
+                    player.mover.clear_stun();
                 }
             }
         }

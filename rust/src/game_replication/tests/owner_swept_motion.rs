@@ -891,6 +891,167 @@ fn owner_runtime_stop_releases_continuous_movement_within_a_recovered_batch() {
 }
 
 #[test]
+fn alive_owner_stun_blocks_recovered_controls_without_losing_external_impulse() {
+    use crate::{
+        commands::{FIRE, JUMP},
+        mover::VelocityChange,
+    };
+
+    #[derive(serde::Deserialize)]
+    struct Input {
+        warm_frame: u32,
+        stunned_input_frame: u32,
+        thawed_input_frame: u32,
+        run_speed: f64,
+        impulse: [f64; 3],
+    }
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/owner-stun-input-gate-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+    let card = PlayerCard::default();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &card,
+    };
+
+    // Both orders occur today when a status and a physical impulse settle
+    // during the same room tick. Also run a pure stun for its correction.
+    for impulse_after_stun in [None, Some(false), Some(true)] {
+        let mut scene = PreparedScene::fixture_for_bots(Vec::new());
+        let mut world = WorldDelivery::new(OWNER);
+        let mut egress = GameEgress::default();
+        let owner = avatar(1, 1);
+        world.started = Some(case.warm_frame - 1);
+        world.input.processed = world.started;
+        activate_script_without_movement_projection(
+            &mut world,
+            scene.simulation_mut(),
+            owner,
+            7,
+            Arc::default(),
+        );
+        scene.simulation_mut().player_body_mut(owner).unwrap().mover = Mover::new(
+            MoverSettings {
+                gravity_scale: 0.0,
+                run_forward: case.run_speed,
+                accel_air: 500.0,
+                decel_air_base: 0.0,
+                decel_air_per_speed: 0.0,
+                ..MoverSettings::default()
+            },
+            Arc::new(ContactWorld::new(Vec::new()).unwrap()),
+            [0.0; 3],
+            0,
+            0x18,
+        )
+        .unwrap();
+        world.acknowledge(
+            outcome(
+                Arc::new(record(owner.entity, Delivery::CreateBody(owner))),
+                true,
+            ),
+            Duration::ZERO,
+        );
+        world.queue_commands(case.warm_frame, &[forward(case.warm_frame)]);
+        assert_eq!(
+            world
+                .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+                .unwrap(),
+            (1, false)
+        );
+
+        let player = scene.simulation_mut().player_body_mut(owner).unwrap();
+        assert!(player.alive());
+        let warm = player.mover.pose();
+        assert_eq!(warm.velocity[2], case.run_speed);
+        let apply_impulse = |mover: &mut Mover| {
+            mover.queue_velocity_change(case.warm_frame + 1, VelocityChange::Impulse(case.impulse));
+        };
+        if impulse_after_stun == Some(false) {
+            apply_impulse(&mut player.mover);
+        }
+        player.mover.stun(case.warm_frame + 1);
+        if impulse_after_stun == Some(true) {
+            apply_impulse(&mut player.mover);
+        }
+
+        world.queue_commands(
+            case.stunned_input_frame,
+            &[Command {
+                buttons: FIRE | JUMP,
+                ..forward(case.stunned_input_frame)
+            }],
+        );
+        assert_eq!(
+            world
+                .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+                .unwrap(),
+            (
+                usize::try_from(case.stunned_input_frame - case.warm_frame).unwrap(),
+                false
+            )
+        );
+        let player = scene.simulation().player_body(owner).unwrap();
+        let stunned = player.mover.pose();
+        assert_eq!(stunned.frame, Some(case.stunned_input_frame));
+        assert_eq!(stunned.throttles, [0; 2]);
+        assert_eq!(stunned.position[2], warm.position[2]);
+        let velocity = impulse_after_stun.map_or([0.0; 3], |_| case.impulse);
+        assert_eq!(stunned.velocity, velocity);
+        assert_eq!(player.last_buttons, 0);
+        assert_eq!(player.pending_pressed_buttons, 0);
+        let (packet, sent) = transmit(
+            &mut world,
+            Some(scene.simulation_mut()),
+            &mut egress,
+            case.stunned_input_frame,
+            0,
+        );
+        assert_eq!(read_ack(&packet), case.stunned_input_frame);
+        assert!(sent.records.contains(&RecordSource::Movement(0)));
+
+        // The delayed neutral packet recovers poses from the last command.
+        // None may replay the throttle or ability buttons held during stun.
+        scene
+            .simulation_mut()
+            .player_body_mut(owner)
+            .unwrap()
+            .mover
+            .clear_stun();
+        world.queue_commands(
+            case.thawed_input_frame,
+            &[Command {
+                frame: case.thawed_input_frame,
+                ..Command::default()
+            }],
+        );
+        assert_eq!(
+            world
+                .advance_input(&mut scene, &viewer, RETAIL_QUANTA, 16)
+                .unwrap(),
+            (
+                usize::try_from(case.thawed_input_frame - case.stunned_input_frame).unwrap(),
+                false
+            )
+        );
+        let player = scene.simulation().player_body(owner).unwrap();
+        let thawed = player.mover.pose();
+        assert_eq!(thawed.frame, Some(case.thawed_input_frame));
+        assert_eq!(thawed.velocity, velocity);
+        assert_eq!(thawed.position[2], warm.position[2]);
+        assert_eq!(player.last_buttons, 0);
+        assert_eq!(player.pending_pressed_buttons, 0);
+        assert_eq!(player.pending_released_buttons, 0);
+    }
+}
+
+#[test]
 fn player_displacement_uses_room_actor_contacts_for_the_authoritative_pose() {
     use crate::{mover::VelocityChange, script_init::SweptDisplacement};
 

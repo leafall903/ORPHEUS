@@ -4,6 +4,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Keep living stunned players' steering and action inputs blocked across
+  received and recovered commands. Apply the initial steering stop before
+  external impulses, then correct suppressed movement for the owner.
+
 - Clear continuous script-controlled movement and speed overrides when the
   body runtime stops or the body dies. A runtime stop preserves committed
   momentum and queued external impulses.

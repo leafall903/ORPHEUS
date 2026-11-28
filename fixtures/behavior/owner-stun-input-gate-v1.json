@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "case_id": "owner-stun-input-gate.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "An already moving, living player receives a stun before the next owner pose. Recovered controls remain neutral, physical impulses apply independently of insertion order, and a neutral command after stun does not replay throttles or buttons from the disabled period."
+  },
+  "input": {
+    "warm_frame": 101,
+    "stunned_input_frame": 104,
+    "thawed_input_frame": 108,
+    "run_speed": 4,
+    "impulse": [
+      3,
+      2,
+      0
+    ]
+  }
+}

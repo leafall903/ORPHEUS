@@ -283,7 +283,9 @@ pub struct Mover {
     cinematic_aim: Option<[i32; 2]>,
     authored_facing: Option<[i32; 2]>,
     move_request: Option<([f64; 3], f64)>,
-    player_input_blocked: bool,
+    player_dead: bool,
+    player_stunned: bool,
+    stop_for_stun: Option<u32>,
     velocity_changes: Vec<(u32, VelocityChange)>,
     scripted_motion: Option<(u32, ScriptedMotion)>,
     scripted_motion_frame: Option<u32>,
@@ -295,6 +297,7 @@ pub struct Mover {
     /// is no scripted motion). Set by `move_body`, consumed by `step`.
     drive_pose_moved: bool,
     actor_contact: bool,
+    corrected_input: bool,
     ball_roll_speed: Option<f64>,
     last_command: Option<Command>,
     last_input: Option<u32>,
@@ -328,7 +331,9 @@ impl Mover {
             cinematic_aim: None,
             authored_facing: None,
             move_request: None,
-            player_input_blocked: false,
+            player_dead: false,
+            player_stunned: false,
+            stop_for_stun: None,
             velocity_changes: Vec::new(),
             scripted_motion: None,
             scripted_motion_frame: None,
@@ -336,6 +341,7 @@ impl Mover {
             owner_move_result: None,
             drive_pose_moved: false,
             actor_contact: false,
+            corrected_input: false,
             ball_roll_speed: None,
             last_command: None,
             last_input: None,
@@ -534,6 +540,7 @@ impl Mover {
 
     pub(crate) fn clear_pending_motion(&mut self) {
         self.velocity_changes.clear();
+        self.stop_for_stun = None;
         self.clear_pending_script_motion();
     }
 
@@ -557,7 +564,8 @@ impl Mover {
     }
 
     pub(crate) fn needs_owner_correction_at(&self, frame: u32) -> bool {
-        self.scripted_motion_at(frame) || (self.pose.frame == Some(frame) && self.actor_contact)
+        self.scripted_motion_at(frame)
+            || (self.pose.frame == Some(frame) && (self.actor_contact || self.corrected_input))
     }
 
     pub(crate) fn set_ball_roll_speed(&mut self, speed: Option<f64>) {
@@ -635,8 +643,22 @@ impl Mover {
         poses(self.last_command, newest)
     }
 
-    pub(crate) fn block_player_input(&mut self, blocked: bool) {
-        self.player_input_blocked = blocked;
+    pub(crate) fn set_player_dead(&mut self, dead: bool) {
+        self.player_dead = dead;
+    }
+
+    pub(crate) fn stun(&mut self, frame: u32) {
+        self.player_stunned = true;
+        self.clear_pending_script_motion();
+        self.stop_for_stun = Some(self.stop_for_stun.map_or(frame, |due| due.min(frame)));
+    }
+
+    pub(crate) fn clear_stun(&mut self) {
+        self.player_stunned = false;
+    }
+
+    pub(crate) fn is_stunned(&self) -> bool {
+        self.player_stunned
     }
 
     pub(crate) fn step_pending<B: AsRef<[CapsulePose]>>(
@@ -655,8 +677,13 @@ impl Mover {
         };
         let blockers = blockers.as_ref().map_or(&[][..], AsRef::as_ref);
         let mut stepped = 0;
+        let mut last_stepped = None;
         for mut command in pending.by_ref().take(limit) {
-            if self.player_input_blocked {
+            let corrected_input = self.player_stunned
+                && (command.right != 0
+                    || command.forward != 0
+                    || command.buttons & (crate::commands::CROUCH | crate::commands::JUMP) != 0);
+            if self.player_dead || self.player_stunned {
                 command = Command {
                     frame: command.frame,
                     yaw: command.yaw,
@@ -664,15 +691,17 @@ impl Mover {
                     ..Command::default()
                 };
             }
+            last_stepped = Some(command);
             if let Some(aim) = self.cinematic_aim.or(self.authored_facing) {
                 [command.yaw, command.pitch] = aim;
             }
             self.step_pose(rays, command, dt, blockers)?;
+            self.corrected_input = corrected_input;
             after_pose(self, command);
             stepped += 1;
         }
-        if stepped != 0 && pending.len() == 0 {
-            self.last_command = Some(pending.newest());
+        if let Some(command) = last_stepped.filter(|_| pending.len() == 0) {
+            self.last_command = Some(command);
         }
         Ok(stepped)
     }
@@ -744,6 +773,16 @@ impl Mover {
         }
         let mut launched = false;
         let mut velocity_edited = false;
+        if self
+            .stop_for_stun
+            .is_some_and(|frame| frame <= command.frame)
+        {
+            self.stop_for_stun = None;
+            velocity_edited = self.pose.velocity[0] != 0.0 || self.pose.velocity[2] != 0.0;
+            self.pose.velocity[0] = 0.0;
+            self.pose.velocity[2] = 0.0;
+            scripted_motion_changed |= velocity_edited;
+        }
         self.velocity_changes.retain(|&(frame, change)| {
             if frame <= command.frame {
                 let before = self.pose.velocity;
