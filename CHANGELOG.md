@@ -24,6 +24,11 @@ This log records tested changes and their acceptance status. Entries are grouped
   to the NPC and combat stages until a player next moves.
 - Return a finite contact normal when a sphere center lies on the axis of a
   capsule with coincident endpoints or a reversed axis.
+- Use the shared capsule sweep and contact projection to resolve hostile player
+  contact. Cover vertical clearance beside a second opponent, standing on a
+  capsule, and separation from an exactly coincident body.
+- Compare squared distances consistently when testing a placement against
+  capsules with coincident endpoints.
 
 - Eliminate all seven external private inputs from `scripts/runtime.py build` so a fresh
   Windows machine with only a local 1.74.0.0.104319 Overwatch installation can build and

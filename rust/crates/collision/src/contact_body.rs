@@ -13,7 +13,7 @@ use crate::{
     contact_hull::HullContactError,
     contact_math::{TINY, Vec3, add, dot, maxps, minps, scale, sub},
     contact_mesh::ContactBounds,
-    contact_round::{Capsule, ContactPoint, RoundShape, capsule_capsule, splat_tiny},
+    contact_round::{Capsule, ContactPoint, RoundShape, capsule_capsule},
     contact_solver::{Constraint, ContactPlane, project_target},
     contact_triangle::{SKIN, TOUCH, closest_parameters},
     contact_world::{ContactWorld, PROXY_MARGIN, StaticGeometry, StaticShape, WorldHit, overlaps},
@@ -22,6 +22,7 @@ use crate::{
 
 const MAX_ROUNDS: u32 = 20;
 const FIT_SHRINK: f32 = 0.02;
+const AXIS_CONTACT_NORMAL: Vec3 = [-1.0, 0.0, 0.0];
 
 pub struct BodyMove<'a> {
     pub position: Vec3,
@@ -308,7 +309,7 @@ impl CharacterBody {
                     let distance = norm(separation);
                     if distance <= radius + f64::from(TOUCH) {
                         let normal = if distance == 0.0 {
-                            [-1.0, 0.0, 0.0]
+                            AXIS_CONTACT_NORMAL
                         } else {
                             separation.map(|axis| (axis / distance) as f32)
                         };
@@ -447,8 +448,16 @@ impl CharacterBody {
                     let (a, b, radius) = actor_exclusion(self.pose, *actor);
                     if let Some(hit) = capsule_entry_hit(origin, direction, length, a, b, radius)
                         .filter(|hit| {
-                            hit.distance != 0.0
-                                || dot(hit.normal.map(|axis| axis as f32), translation) < 0.0
+                            if hit.distance != 0.0 {
+                                return true;
+                            }
+                            let outward = if norm(segment_separation(origin, a, b)) == 0.0 {
+                                // Use the same separating plane as the contact projection.
+                                AXIS_CONTACT_NORMAL
+                            } else {
+                                hit.normal.map(|axis| axis as f32)
+                            };
+                            dot(outward, translation) < 0.0
                         })
                     {
                         let candidate = (hit.distance / length) as f32;
@@ -607,16 +616,9 @@ fn overlaps_segment(
             ..
         } => {
             let total = capsule.radius + reach;
-            let u = sub(capsule.b, capsule.a);
-            let v = sub(b, a);
-            if !splat_tiny(dot(u, u)) && !splat_tiny(dot(v, v)) {
-                let d = sub(capsule.a, a);
-                dot(d, d) < total
-            } else {
-                let (first, second) = closest_parameters(capsule.a, capsule.b, a, b);
-                let d = sub(second, first);
-                dot(d, d) < total * total
-            }
+            let (first, second) = closest_parameters(capsule.a, capsule.b, a, b);
+            let d = sub(second, first);
+            dot(d, d) < total * total
         }
         StaticGeometry::Round {
             shape: RoundShape::Sphere(sphere),
@@ -1011,6 +1013,64 @@ mod tests {
             .unwrap();
         assert_eq!(movement.position, [-1.0, 0.0, 0.0]);
         assert!(!movement.touching);
+    }
+
+    #[test]
+    fn coincident_actor_capsules_escape_through_the_same_projection_and_sweep() {
+        let world = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let pose = standing([0.0; 3]);
+        let mut body = CharacterBody::new(world, pose, 0x18);
+        let result = body.move_capsule_against([0.0; 3], 0.016, &[pose]).unwrap();
+        assert!(result.actor_contact);
+        assert!(result.position[0] <= -2.0 * pose.radius + TOUCH);
+        assert_eq!([result.position[1], result.position[2]], [0.0, 0.0]);
+    }
+
+    #[test]
+    fn relocation_compares_squared_distance_for_capsules_with_coincident_endpoints() {
+        #[derive(serde::Deserialize)]
+        struct Case {
+            radius: f32,
+            target: Vec3,
+            clear: bool,
+        }
+        let cases: Vec<Case> = serde_json::from_str(include_str!(
+            "../../../../fixtures/behavior/capsule-point-placement-v1.json"
+        ))
+        .unwrap();
+        for case in cases {
+            let center = [0.0, case.radius, 0.0];
+            let obstacle = StaticShape::new(
+                StaticGeometry::Round {
+                    shape: RoundShape::Capsule(Capsule {
+                        a: center,
+                        b: center,
+                        radius: case.radius,
+                    }),
+                    mask: 0x18,
+                },
+                None,
+            )
+            .unwrap();
+            let world = Arc::new(ContactWorld::new(vec![obstacle]).unwrap());
+            let start = [-5.0, 0.0, 0.0];
+            let pose = CapsulePose {
+                position: start,
+                radius: case.radius,
+                top: case.radius,
+            };
+            let mut body = CharacterBody::new(world, pose, 0x18);
+            assert_eq!(
+                body.relocate_if_clear(case.target, &[]).unwrap(),
+                case.clear,
+                "{:?}",
+                case.target
+            );
+            assert_eq!(
+                body.position(),
+                if case.clear { case.target } else { start }
+            );
+        }
     }
 
     #[test]

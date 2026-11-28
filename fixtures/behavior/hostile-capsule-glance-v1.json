@@ -12,6 +12,10 @@
     "step_seconds": 0.008,
     "steps": 20
   },
+  "vertical_clearance": {
+    "elevated": [0.75, 2.0, 0.0],
+    "neighbor": [-1.1, 0.0, 0.0]
+  },
   "held_contact": {
     "actor_feet": [0, 0, 2],
     "normal_speed": 8.0,

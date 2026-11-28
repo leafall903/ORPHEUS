@@ -1076,7 +1076,7 @@ impl Mover {
             })
         });
         let movement = self.body.move_capsule_against(displacement, dt, blockers)?;
-        let mut actor_contact = movement.actor_contact;
+        let actor_contact = movement.actor_contact;
         let [mut x, mut y, mut z] = clip_velocity([x, y, z], movement.planes).map(f64::from);
         if grounded {
             let squared = (x * x + y * y) + z * z;
@@ -1105,72 +1105,7 @@ impl Mover {
         let [px, py, pz] = capsule_end;
         let feet = f64::from(py - lift);
         let floor = rays.lowest() - ABYSS;
-        let mut resolved = [f64::from(px), feet.max(floor), f64::from(pz)];
-        // Hard-block against enemy capsules: use true standing bounds (`blocker.position[1]`
-        // is `feet + pogo` and `blocker.top` is `segment + radius`), allow standing cleanly
-        // on top of an enemy's head, and wall-safely depenetrate all side overlaps.
-        if !blockers.is_empty() {
-            let self_radius = if self.posture.crouched() {
-                self.base.crouch_radius
-            } else {
-                self.base.stand_radius
-            };
-            let self_height = if self.posture.crouched() {
-                self.base.crouch_height
-            } else {
-                self.base.stand_height
-            };
-            let self_top = resolved[1] + self_height;
-            let mut depen_x = 0.0_f64;
-            let mut depen_z = 0.0_f64;
-            for blocker in blockers {
-                let b_top = f64::from(blocker.position[1] + blocker.top + blocker.radius);
-                let b_bottom = f64::from(blocker.position[1] - blocker.radius) - 0.55;
-                if resolved[1] >= b_top - 0.35 || b_bottom >= self_top {
-                    continue;
-                }
-                let cur_x = resolved[0] + depen_x;
-                let cur_z = resolved[2] + depen_z;
-                let dx = cur_x - f64::from(blocker.position[0]);
-                let dz = cur_z - f64::from(blocker.position[2]);
-                let min_dist = self_radius + f64::from(blocker.radius);
-                let dist = dx.hypot(dz);
-                if dist < min_dist && min_dist > 0.0 {
-                    let (nx, nz) = if dist > 1.0e-5 {
-                        (dx / dist, dz / dist)
-                    } else {
-                        (1.0, 0.0)
-                    };
-                    let push = min_dist - dist + 0.01;
-                    depen_x += nx * push;
-                    depen_z += nz * push;
-                    let inward = x * nx + z * nz;
-                    if inward < 0.0 {
-                        x -= inward * nx;
-                        z -= inward * nz;
-                    }
-                    actor_contact = true;
-                }
-            }
-            if depen_x != 0.0 || depen_z != 0.0 {
-                let start = [
-                    resolved[0] as f32,
-                    (resolved[1] + f64::from(lift)) as f32,
-                    resolved[2] as f32,
-                ];
-                let mut staged = self.body.fresh_at(start);
-                if let Ok(pushed) =
-                    staged.move_capsule_against([depen_x as f32, 0.0, depen_z as f32], dt, &[])
-                {
-                    resolved[0] += f64::from(pushed.position[0]) - f64::from(start[0]);
-                    resolved[2] += f64::from(pushed.position[2]) - f64::from(start[2]);
-                } else {
-                    resolved[0] += depen_x;
-                    resolved[2] += depen_z;
-                }
-            }
-        }
-        let feet_raw = resolved;
+        let feet_raw = [f64::from(px), feet.max(floor), f64::from(pz)];
         self.pose.position = feet_raw.map(snap);
         #[cfg(any(test, feature = "inspector"))]
         {
@@ -1202,8 +1137,8 @@ impl Mover {
             let applied = std::array::from_fn::<_, 3, _>(|i| capsule_end[i] - start[i]);
             [x, y, z] = applied.map(|delta| f64::from(delta / dt));
             if grounded && self.drive_pose_moved && y > 0.0 && py > previous_feet[1] {
-                // Check the committed feet, after actor depenetration, without
-                // the standing step-down band that can reseat on the old floor.
+                // Check the committed feet without the standing step-down band
+                // that can reseat the mover on the old floor.
                 let support = self.probe.probe(
                     rays,
                     self.body.world(),
@@ -2072,6 +2007,58 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn elevated_hostile_capsule_does_not_push_the_owner_into_a_neighbor() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../fixtures/behavior/hostile-capsule-glance-v1.json"
+        ))
+        .unwrap();
+        let input = &fixture["vertical_clearance"];
+        let feet = |key: &str| serde_json::from_value::<[f64; 3]>(input[key].clone()).unwrap();
+        let settings = MoverSettings {
+            gravity_scale: 0.0,
+            stand_radius: 0.5,
+            stand_height: 2.0,
+            stand_pogo: 0.5,
+            ..MoverSettings::default()
+        };
+        let geometry = Arc::new(ContactWorld::new(Vec::new()).unwrap());
+        let rays = TriangleIndex::new([]).unwrap();
+        let elevated = crate::mover_ground::standing_capsule(&settings, feet("elevated"));
+        let neighbor = crate::mover_ground::standing_capsule(&settings, feet("neighbor"));
+        for blockers in [[elevated, neighbor], [neighbor, elevated]] {
+            let mut owner = Mover::new(settings, Arc::clone(&geometry), [0.0; 3], 0, 0x18).unwrap();
+            assert!(elevated.bounds().low[1] > owner.contact_capsule().bounds().high[1]);
+            let command = Command {
+                frame: 1,
+                ..Command::default()
+            };
+            owner
+                .step_against(&rays, command, 0.016, &blockers, |_, _| {})
+                .unwrap();
+            assert_eq!(owner.pose().position, [0.0; 3]);
+            assert!(!owner.needs_owner_correction_at(command.frame));
+        }
+
+        let support = crate::mover_ground::standing_capsule(&settings, [0.0; 3]);
+        let crown = f64::from(support.bounds().high[1]);
+        let mut owner = Mover::new(settings, geometry, [0.0, crown, 0.0], 0, 0x18).unwrap();
+        owner
+            .step_against(
+                &rays,
+                Command {
+                    frame: 1,
+                    ..Command::default()
+                },
+                0.016,
+                &[support],
+                |_, _| {},
+            )
+            .unwrap();
+        assert_eq!(owner.pose().position, [0.0, crown, 0.0]);
+        assert!(owner.needs_owner_correction_at(1));
     }
 
     #[test]
