@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+- Include active pets and impact deployables in late-join room snapshots and
+  track their health and retirement through the existing entity stream.
+- Publish autonomous pet poses as movement and preserve separate cumulative
+  health updates for entities whose wire definitions support them.
+
 - Resolve script instance scope against the calling component. Cross-entity
   calls now create or replace projected instances in the receiving component,
   even when a server-only instance shares the caller's ID.

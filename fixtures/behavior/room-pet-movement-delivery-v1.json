@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "case_id": "room-pet-movement-delivery.synthetic.v1",
+  "evidence": "synthetic-rust",
+  "source": {
+    "basis": "An unparented room pet moves before the observer acknowledges its creation. Same-tick damage uses reliable health delivery and cannot replace the current movement pose."
+  },
+  "input": {
+    "definition": "0x0400000000AA0172",
+    "spawn_tick": 1000,
+    "position": [4.0, 0.0, 0.0],
+    "health": 900.0,
+    "damage": 25.0
+  }
+}

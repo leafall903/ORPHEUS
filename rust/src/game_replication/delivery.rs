@@ -1196,18 +1196,23 @@ impl WorldDelivery {
             .simulation()
             .junkenstein_gate()
             .map(|gate| gate.entity);
-        self.bots.extend(
-            scene
-                .bots()
-                .map_err(io::Error::other)?
-                .map(|bot| (bot.entity, BotLifetime::Live)),
-        );
+        let mut attached = Vec::new();
         for update in records {
-            if self.bots.contains_key(&update.entity) {
-                self.push(Record {
+            if scene.simulation().tracks_scene_entity(update.entity) {
+                self.bots.insert(update.entity, BotLifetime::Live);
+                let has_parent = matches!(
+                    update.operation.as_ref(),
+                    Some(Operation::Create(create)) if create.movement_parent.is_some()
+                );
+                let record = Record {
                     update,
                     delivery: Delivery::BotCreate { after: None },
-                });
+                };
+                if has_parent {
+                    attached.push(record);
+                } else {
+                    self.push(record);
+                }
             } else {
                 self.push(Record::baseline(update));
             }
@@ -1219,6 +1224,9 @@ impl WorldDelivery {
                 update,
                 delivery: Delivery::RemotePlayerCreate(id),
             });
+        }
+        for record in attached {
+            self.push(record);
         }
         self.started = Some(tick);
         Ok(())
@@ -2735,6 +2743,14 @@ impl WorldDelivery {
                 });
             }
         }
+        updates.extend(
+            scene
+                .simulation()
+                .published_pet_movements()
+                .filter(|update| {
+                    self.tracks_current_bot(update.entity) && self.created.contains(&update.entity)
+                }),
+        );
         Ok(updates)
     }
 }

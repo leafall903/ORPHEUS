@@ -1300,7 +1300,8 @@ impl RoomSimulation {
     }
 
     pub(crate) fn initial_creates(&self) -> io::Result<Vec<EntityUpdate>> {
-        self.states()
+        let mut updates = self
+            .states()
             .map(|state| {
                 let state = state.map_err(io::Error::other)?;
                 let mut update = bot_create(&state.bot, Some(&state.vitals))?;
@@ -1311,7 +1312,15 @@ impl RoomSimulation {
                 }
                 Ok(update)
             })
-            .collect()
+            .collect::<io::Result<Vec<_>>>()?;
+        updates.extend(self.initial_deployable_creates());
+        Ok(updates)
+    }
+
+    pub(crate) fn tracks_scene_entity(&self, entity: u32) -> bool {
+        self.by_wire.contains_key(&entity)
+            || self.room_pets.contains_key(&entity)
+            || self.room_deployables.contains_key(&entity)
     }
 
     pub(crate) fn load_bot_target_tags(&mut self, graphs: &crate::script_graph::GraphStore) {

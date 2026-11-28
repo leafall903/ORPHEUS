@@ -44,6 +44,150 @@ fn combat_target_admission_applies_team_and_liveness_rules_to_bots() {
 }
 
 #[test]
+fn autonomous_pet_movement_remains_separate_from_reliable_health() {
+    use crate::{
+        game_egress::{GameEgress, RecordSource},
+        game_heroes::HeroCatalog,
+        game_pools::BODY_GRAPH,
+        game_replication::WorldDelivery,
+        match_scene::{PlayerAppearance, PlayerCard},
+        scene_assets::PreparedScene,
+        script_graph::GraphStore,
+    };
+    use serde_json::{Value, json};
+
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/behavior/room-pet-movement-delivery-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["schema_version"], 1);
+    assert_eq!(fixture["evidence"], "synthetic-rust");
+    let input = &fixture["input"];
+    let definition = input["definition"].as_str().unwrap();
+    let definition_id = crate::accounts::parse_guid(definition).unwrap();
+    let max_health = input["health"].as_f64().unwrap();
+    let damage = input["damage"].as_f64().unwrap();
+    let spawn_tick = u32::try_from(input["spawn_tick"].as_u64().unwrap()).unwrap();
+    let spawn_position: [f64; 3] = serde_json::from_value(input["position"].clone()).unwrap();
+    let graphs = json!({
+        "version": 1, "missing": [],
+        "graphs": [{
+            "index": BODY_GRAPH, "items": 0, "nodes": [], "states": [],
+            "entries": [], "remote": [], "sync_vars": [], "containers": {},
+            "unknown_nodes": [],
+            "header": {
+                "m_nodesBitCount": 1, "m_statesBitCount": 1,
+                "m_remoteSyncNodesBitCount": 1, "m_syncVarsBitCount": 1
+            },
+            "fields": {"m_publicSchema": {"m_entries": [{
+                "m_0D09D2D9": "0x0D800000000000C7",
+                "m_value": {"m_value": max_health}
+            }]}}
+        }],
+        "bodies": {(definition): {
+            "name": "Synthetic moving pet", "manager": null,
+            "graphs": [{"graph": BODY_GRAPH, "m_75408640": 0}], "weapons": []
+        }}
+    });
+    let graphs = Arc::new(GraphStore::from_json(&serde_json::to_vec(&graphs).unwrap()).unwrap());
+    let mut scene = PreparedScene::fixture_for_owner_admission(HeroCatalog::default());
+    let source = 0xa000_0201;
+    let observer_id = 0xa000_0300;
+    let card = PlayerCard::default();
+    let viewer = PlayerAppearance {
+        entity: observer_id,
+        slot: 0,
+        team: 0,
+        card: &card,
+    };
+    let mut observer = WorldDelivery::new(observer_id);
+    observer
+        .start(&scene, &viewer, spawn_tick - BOT_RECORD_DELAY)
+        .unwrap();
+    let pet = next_pet_wire_id();
+    let mode = scene.map().mode_guid;
+    let room = scene.simulation_mut();
+    room.enable_spatial_queries(false, Arc::new(fixture_ground()), RoomSpatialNeeds::Queries);
+    room.set_script_graphs(graphs, mode);
+    room.spawn_room_pet(
+        source,
+        1,
+        pet,
+        definition_id,
+        None,
+        spawn_position,
+        0,
+        None,
+        None,
+        spawn_tick,
+    );
+    let [create]: [EntityUpdate; 1] = room.take_created().try_into().unwrap();
+    observer.create_bot(create);
+
+    let pose_tick = spawn_tick + 2;
+    room.prepare_spatial_frame(pose_tick).unwrap();
+    room.advance_deployables(pose_tick);
+    let position = room.room_pets[&pet].position;
+    assert!(position[2] > spawn_position[2], "{position:?}");
+    assert!(room.take_scripted_health().is_empty());
+    assert_eq!(
+        room.damage_barrier_or_deployable(
+            pet,
+            true,
+            damage,
+            observer_id,
+            pose_tick,
+            Duration::ZERO
+        ),
+        damage
+    );
+    let [health]: [EntityUpdate; 1] = room.take_scripted_health().try_into().unwrap();
+    let vitals = room.room_pets[&pet].vitals.as_ref().unwrap();
+    assert_eq!(vitals.total(), max_health - damage);
+    assert_eq!(health.entity, pet);
+    assert_eq!(
+        health.operation,
+        Some(Operation::Update(vec![vitals.component()]))
+    );
+    assert!(health.movement.is_none());
+    observer.queue_health(health);
+    assert!(!observer.identity_ready(pet));
+    assert!(observer.movement(&scene, pose_tick).unwrap().is_empty());
+
+    let mut egress = GameEgress::default();
+    for sequence in 1..=8 {
+        observer
+            .send_frame(pose_tick, vec![], false, None, &mut egress, |_| {
+                Ok::<_, io::Error>(sequence)
+            })
+            .unwrap();
+        observer.acknowledge(egress.acknowledge(sequence + 1, 1), Duration::ZERO);
+        if observer.identity_ready(pet) {
+            break;
+        }
+    }
+    assert!(observer.identity_ready(pet));
+    assert!(observer.health_pending(pet));
+    let [pose]: [EntityUpdate; 1] = observer
+        .movement(&scene, pose_tick)
+        .unwrap()
+        .try_into()
+        .unwrap();
+    assert_eq!(pose.entity, pet);
+    assert!(pose.operation.is_none());
+    assert_eq!(pose.movement.unwrap().position, position);
+    let sent = observer
+        .send_frame(pose_tick, vec![pose], false, None, &mut egress, |_| {
+            Ok::<_, io::Error>(9)
+        })
+        .unwrap();
+    assert_eq!(
+        sent.records,
+        [RecordSource::Queued(0), RecordSource::Movement(0)]
+    );
+}
+
+#[test]
 fn spatial_candidates_capture_living_room_bodies_once_per_frame() {
     check_spatial_candidates_frame(false);
     check_spatial_candidates_frame(true);

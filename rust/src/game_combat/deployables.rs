@@ -102,6 +102,7 @@ pub(super) struct RoomPet {
     pub(super) yaw: i32,
     pub(super) vitals: Option<Vitals>,
     pub(super) wire_vitals: bool,
+    pub(super) published_movement: bool,
     /// Solid world obstacle (e.g. Mei Ice Wall pillar) that blocks movement & shots for both teams.
     pub(super) solid_wall: bool,
     /// Optional parent pet wire ID for multi-pillar structures (e.g. Mei Ice Wall flanks).
@@ -120,7 +121,10 @@ fn resolve_entity_vitals(
     max_health: Option<f64>,
 ) -> (Option<Vitals>, bool) {
     if let Some(pools) = graphs
-        .and_then(|g| g.entity_body(definition))
+        .and_then(|g| {
+            g.entity_body(definition)
+                .or_else(|| g.bodies().get(&definition))
+        })
         .and_then(|body| {
             crate::game_pools::authored_pools(graphs?, body)
                 .ok()
@@ -152,7 +156,10 @@ fn start_entity_vm(
     extra_graph: Option<u64>,
 ) -> (Option<Component>, Option<DeployableWorld>) {
     let mut graph_ids = Vec::new();
-    if let Some(body) = graphs.entity_body(definition) {
+    if let Some(body) = graphs
+        .entity_body(definition)
+        .or_else(|| graphs.bodies().get(&definition))
+    {
         for binding in &body.graphs {
             if let Some(gid) = binding.graph {
                 if graphs.graph(gid).is_some() && !graph_ids.contains(&gid) {
@@ -284,6 +291,19 @@ fn entity_create_update(
     Some(EntityUpdate {
         entity: wire,
         operation: Some(Operation::Create(Box::new(create))),
+        ..EntityUpdate::default()
+    })
+}
+
+fn take_entity_health(wire: u32, vitals: &mut Vitals, wire_vitals: bool) -> Option<EntityUpdate> {
+    if !wire_vitals {
+        vitals.clear_changed();
+        return None;
+    }
+    let health = vitals.take_cumulative_update()?;
+    Some(EntityUpdate {
+        entity: wire,
+        operation: Some(Operation::Update(vec![health])),
         ..EntityUpdate::default()
     })
 }
@@ -777,6 +797,7 @@ pub(super) struct RoomDeployable {
     pub(super) position: Vec3,
     pub(super) yaw: i32,
     pub(super) vitals: Option<Vitals>,
+    wire_vitals: bool,
     spawned_tick: u32,
     max_ticks: u32,
     pub(super) component: Option<Component>,
@@ -810,6 +831,68 @@ impl RoomDeployable {
 }
 
 impl RoomSimulation {
+    pub(super) fn initial_deployable_creates(&self) -> impl Iterator<Item = EntityUpdate> + '_ {
+        let pets = self.room_pets.iter().filter_map(|(&wire, pet)| {
+            if pet
+                .vitals
+                .as_ref()
+                .is_some_and(|vitals| vitals.death().is_some())
+            {
+                return None;
+            }
+            entity_create_update(
+                wire,
+                pet.team,
+                pet.definition,
+                pet.attach,
+                pet.position,
+                pet.yaw,
+                pet.local_offset,
+                pet.vitals.as_ref(),
+                pet.wire_vitals,
+            )
+        });
+        let deployables = self
+            .room_deployables
+            .iter()
+            .filter_map(|(&wire, deployable)| {
+                if deployable
+                    .vitals
+                    .as_ref()
+                    .is_some_and(|vitals| vitals.death().is_some())
+                {
+                    return None;
+                }
+                entity_create_update(
+                    wire,
+                    deployable.team,
+                    deployable.definition,
+                    None,
+                    deployable.position,
+                    deployable.yaw,
+                    None,
+                    deployable.vitals.as_ref(),
+                    deployable.wire_vitals,
+                )
+            });
+        pets.chain(deployables)
+    }
+
+    pub(crate) fn published_pet_movements(&self) -> impl Iterator<Item = EntityUpdate> + '_ {
+        self.room_pets
+            .iter()
+            .filter(|(_, pet)| pet.published_movement && pet.attach.is_none())
+            .map(|(&entity, pet)| EntityUpdate {
+                entity,
+                movement: Some(Movement {
+                    position: pet.position,
+                    yaw: pet.yaw,
+                    ..Movement::default()
+                }),
+                ..EntityUpdate::default()
+            })
+    }
+
     fn deployable_graphs(&self) -> Option<(Arc<GraphStore>, u64)> {
         self.script_graphs
             .as_ref()
@@ -909,6 +992,7 @@ impl RoomSimulation {
                 yaw,
                 vitals,
                 wire_vitals,
+                published_movement: false,
                 solid_wall,
                 parent_pet: None,
                 ai_fire_cooldown: 16,
@@ -957,6 +1041,7 @@ impl RoomSimulation {
                             yaw,
                             vitals: Some(pillar_vitals),
                             wire_vitals: false,
+                            published_movement: false,
                             solid_wall: true,
                             parent_pet: Some(pet_id),
                             ai_fire_cooldown: 0,
@@ -1160,6 +1245,11 @@ impl RoomSimulation {
                 position,
                 yaw,
                 vitals,
+                wire_vitals: casc_verified_entity_components(
+                    spawn.definition,
+                    authored_body_vitals,
+                )
+                .1,
                 spawned_tick: tick,
                 max_ticks,
                 component,
@@ -1353,16 +1443,16 @@ impl RoomSimulation {
             frame: tick,
             killer: source,
         };
-        let vitals_opt = if is_pet {
+        let health = if is_pet {
             self.room_pets
                 .get_mut(&wire)
-                .and_then(|pet| pet.vitals.as_mut())
+                .and_then(|pet| pet.vitals.as_mut().map(|vitals| (vitals, pet.wire_vitals)))
         } else {
             self.room_deployables
                 .get_mut(&wire)
-                .and_then(|dep| dep.vitals.as_mut())
+                .and_then(|dep| dep.vitals.as_mut().map(|vitals| (vitals, dep.wire_vitals)))
         };
-        let Some(vitals) = vitals_opt else {
+        let Some((vitals, wire_vitals)) = health else {
             return 0.0;
         };
         if vitals.death().is_some() {
@@ -1370,13 +1460,8 @@ impl RoomSimulation {
         }
         let outcome = vitals.damage(damage, death);
         if outcome.dealt > 0.0 || outcome.killed {
-            let comp = vitals.component();
-            vitals.clear_changed();
-            self.scripted_health.push(EntityUpdate {
-                entity: wire,
-                operation: Some(Operation::Update(vec![comp])),
-                ..EntityUpdate::default()
-            });
+            self.scripted_health
+                .extend(take_entity_health(wire, vitals, wire_vitals));
         }
         outcome.dealt
     }
@@ -1591,16 +1676,8 @@ impl RoomSimulation {
                     }
                 }
                 if let Some(vitals) = pet.vitals.as_mut() {
-                    if vitals.has_changed() {
-                        vitals.clear_changed();
-                        if pet.wire_vitals {
-                            self.scripted_health.push(EntityUpdate {
-                                entity: id,
-                                operation: Some(Operation::Update(vec![vitals.component()])),
-                                ..EntityUpdate::default()
-                            });
-                        }
-                    }
+                    self.scripted_health
+                        .extend(take_entity_health(id, vitals, pet.wire_vitals));
                     if vitals.death().is_some() {
                         dead_pets.push(id);
                     }
@@ -1630,14 +1707,8 @@ impl RoomSimulation {
                 }
             }
             if let Some(vitals) = deployable.vitals.as_mut() {
-                if vitals.has_changed() {
-                    vitals.clear_changed();
-                    self.scripted_health.push(EntityUpdate {
-                        entity: id,
-                        operation: Some(Operation::Update(vec![vitals.component()])),
-                        ..EntityUpdate::default()
-                    });
-                }
+                self.scripted_health
+                    .extend(take_entity_health(id, vitals, deployable.wire_vitals));
             }
             if deployable.is_expired(tick) {
                 expired.push(id);
@@ -1905,18 +1976,7 @@ impl RoomSimulation {
                     } else {
                         pet.position[0] += dir[0] * step;
                         pet.position[2] += dir[2] * step;
-                        if tick % 2 == 0 {
-                            self.scripted_health.push(EntityUpdate {
-                                entity: pet_wire,
-                                movement: Some(Movement {
-                                    flags: 0,
-                                    position: pet.position,
-                                    yaw: pet.yaw,
-                                    ..Movement::default()
-                                }),
-                                ..EntityUpdate::default()
-                            });
-                        }
+                        pet.published_movement = true;
                         for c in frame.candidates() {
                             if c.entity == pet.owner || c.entity == pet_wire {
                                 continue;
@@ -1983,16 +2043,7 @@ impl RoomSimulation {
                     let new_yaw = (yaw_rad * 65_536.0 / std::f64::consts::TAU).round() as i32;
                     if new_yaw != pet.yaw {
                         pet.yaw = new_yaw;
-                        self.scripted_health.push(EntityUpdate {
-                            entity: pet_wire,
-                            movement: Some(Movement {
-                                flags: 0,
-                                position: pet.position,
-                                yaw: pet.yaw,
-                                ..Movement::default()
-                            }),
-                            ..EntityUpdate::default()
-                        });
+                        pet.published_movement = true;
                     }
                     pet.ai_fire_cooldown = if is_bob { 8 } else { 15 };
                     ai_hits.push((pet.owner, target, 14.0, None));
@@ -2690,6 +2741,232 @@ mod tests {
         sim.retire_owner_pets_and_deployables(owner);
         assert_eq!(sim.active_room_pets(), 0);
         assert!(sim.take_retired_enemies().contains(&pet_id));
+    }
+
+    #[test]
+    fn late_observers_receive_live_deployables_and_their_retirement() {
+        use std::borrow::Borrow;
+
+        use crate::{
+            game_egress::GameEgress,
+            game_heroes::HeroCatalog,
+            game_replication::WorldDelivery,
+            match_scene::{PlayerAppearance, PlayerCard},
+            scene_assets::PreparedScene,
+            world::health,
+        };
+
+        #[derive(serde::Deserialize)]
+        struct Input {
+            spawn_tick: u32,
+            join_tick: u32,
+            expire_tick: u32,
+            definition: String,
+            health: f64,
+            positions: [[f64; 3]; 2],
+            observed_positions: [[f64; 3]; 2],
+            observed_yaws: [i32; 2],
+            damage_before_join: [f64; 2],
+            damage_before_create_ack: f64,
+        }
+        let fixture: Json = serde_json::from_str(include_str!(
+            "../../../fixtures/behavior/late-join-deployables-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(fixture["schema_version"], 1);
+        assert_eq!(fixture["evidence"], "synthetic-rust");
+        let case: Input = serde_json::from_value(fixture["input"].clone()).unwrap();
+        let definition = crate::accounts::parse_guid(&case.definition).unwrap();
+        let body_graph = crate::game_pools::BODY_GRAPH;
+        let schema = json!({
+            "version": 1, "missing": [], "bodies": {},
+            "graphs": [{
+                "index": body_graph, "items": 0,
+                "nodes": [], "states": [], "entries": [], "remote": [], "sync_vars": [],
+                "containers": {}, "unknown_nodes": [],
+                "header": {"m_nodesBitCount": 1, "m_statesBitCount": 1,
+                    "m_remoteSyncNodesBitCount": 1, "m_syncVarsBitCount": 1},
+                "fields": {"m_publicSchema": {"m_entries": [{
+                    "m_0D09D2D9": "0x0D800000000000C7",
+                    "m_value": {"m_value": case.health}
+                }]}}
+            }],
+            "entities": {
+                (case.definition.clone()): {
+                    "name": "Synthetic deployable", "weapons": [], "graphs": [{"graph": body_graph, "m_75408640": 0}]
+                }
+            }
+        });
+        let graphs =
+            Arc::new(GraphStore::from_json(&serde_json::to_vec(&schema).unwrap()).unwrap());
+        let mut scene = PreparedScene::fixture_for_owner_admission(HeroCatalog::default());
+        let sim = scene.simulation_mut();
+        sim.set_script_graphs(graphs, 1);
+        let peer = 0xa000_0100;
+        let owner = 0xa000_0201;
+        let pet = next_pet_wire_id();
+        sim.spawn_room_pet(
+            owner,
+            1,
+            pet,
+            definition,
+            None,
+            case.positions[0],
+            0,
+            None,
+            None,
+            case.spawn_tick,
+        );
+        sim.spawn_impact_deployable(
+            owner,
+            1,
+            ImpactSpawn {
+                definition,
+                on_spawn_graph: None,
+            },
+            case.positions[1],
+            0,
+            case.spawn_tick,
+        );
+        let created = sim.take_created();
+        assert_eq!(created.len(), 2);
+        assert_eq!(created[0].entity, pet);
+        let deployable = created[1].entity;
+        let wires = [pet, deployable];
+        let room_pet = sim.room_pets.get_mut(&pet).unwrap();
+        room_pet.position = case.observed_positions[0];
+        room_pet.yaw = case.observed_yaws[0];
+        let room_deployable = sim.room_deployables.get_mut(&deployable).unwrap();
+        room_deployable.position = case.observed_positions[1];
+        room_deployable.yaw = case.observed_yaws[1];
+        for (index, wire) in wires.into_iter().enumerate() {
+            let damage = case.damage_before_join[index];
+            assert_eq!(
+                sim.damage_barrier_or_deployable(
+                    wire,
+                    index == 0,
+                    damage,
+                    peer,
+                    case.join_tick - 1,
+                    Duration::ZERO
+                ),
+                damage
+            );
+        }
+        assert_eq!(sim.take_scripted_health().len(), 2);
+        assert!(sim.take_created().is_empty());
+
+        let card = PlayerCard::default();
+        let viewer = PlayerAppearance {
+            entity: peer,
+            slot: 0,
+            team: 0,
+            card: &card,
+        };
+        let mut delivery = WorldDelivery::new(peer);
+        let mut egress = GameEgress::default();
+        delivery.start(&scene, &viewer, case.join_tick).unwrap();
+        for wire in wires {
+            assert!(delivery.tracks_current_bot(wire));
+            assert!(!delivery.identity_ready(wire));
+        }
+        let sim = scene.simulation_mut();
+        assert_eq!(
+            sim.damage_barrier_or_deployable(
+                pet,
+                true,
+                case.damage_before_create_ack,
+                peer,
+                case.join_tick,
+                Duration::ZERO
+            ),
+            case.damage_before_create_ack
+        );
+        for update in sim.take_scripted_health() {
+            delivery.queue_health(update);
+        }
+        assert!(delivery.health_pending(pet));
+
+        let ready = delivery.ready();
+        for (index, wire) in wires.into_iter().enumerate() {
+            let mut pending = ready.iter().filter_map(|item| {
+                let update: &EntityUpdate = item.borrow();
+                (update.entity == wire).then_some(update)
+            });
+            let Some(Operation::Create(create)) =
+                &pending.next().expect("late-join create").operation
+            else {
+                panic!("expected durable deployable create");
+            };
+            assert!(pending.next().is_none(), "health must wait for create ACK");
+            assert_eq!(create.definition, definition);
+            assert_eq!(
+                create.position,
+                case.observed_positions[index].map(|axis| axis as f32)
+            );
+            assert_eq!(
+                create.rotation,
+                yaw_rotation(f64::from(case.observed_yaws[index]))
+            );
+            assert!(create.movement_parent.is_none());
+            assert!(create.components.contains(&health(
+                (case.health - case.damage_before_join[index]) as f32,
+                case.health as f32,
+                0.0,
+                0.0
+            )));
+        }
+
+        let send = |delivery: &mut WorldDelivery, egress: &mut GameEgress<_>, tick, sequence| {
+            delivery
+                .send_frame(tick, Vec::new(), false, None, egress, |_| {
+                    Ok::<_, ()>(sequence)
+                })
+                .unwrap();
+            delivery.acknowledge(egress.acknowledge(sequence + 1, 1), Duration::ZERO);
+        };
+        let mut sequence = 0;
+        for _ in 0..8 {
+            send(&mut delivery, &mut egress, case.join_tick, sequence);
+            sequence += 1;
+            if wires.into_iter().all(|wire| delivery.identity_ready(wire)) {
+                break;
+            }
+        }
+        assert!(wires.into_iter().all(|wire| delivery.identity_ready(wire)));
+        assert!(delivery.ready().iter().any(|item| {
+            let update: &EntityUpdate = item.borrow();
+            update.entity == pet && matches!(update.operation, Some(Operation::Update(_)))
+        }));
+        send(&mut delivery, &mut egress, case.join_tick + 1, sequence);
+        assert!(!delivery.health_pending(pet));
+
+        let sim = scene.simulation_mut();
+        sim.advance_deployables(case.expire_tick);
+        sim.despawn_room_pet(pet);
+        let retired = sim.take_retired_enemies();
+        assert_eq!(retired.len(), 2);
+        for wire in wires {
+            assert!(retired.contains(&wire));
+            delivery.retire_enemy(wire);
+            assert!(!delivery.tracks_current_bot(wire));
+            assert!(delivery.identity_ready(wire));
+        }
+        let pending = delivery.ready();
+        assert!(wires.into_iter().all(|wire| pending.iter().any(|item| {
+            let update: &EntityUpdate = item.borrow();
+            update.entity == wire && update.operation == Some(Operation::Destroy)
+        })));
+        send(&mut delivery, &mut egress, case.expire_tick, sequence + 1);
+        assert!(wires.into_iter().all(|wire| !delivery.identity_ready(wire)));
+
+        let mut later = WorldDelivery::new(peer);
+        later.start(&scene, &viewer, case.expire_tick + 1).unwrap();
+        assert!(
+            wires
+                .into_iter()
+                .all(|wire| !later.tracks_current_bot(wire))
+        );
     }
 
     #[test]

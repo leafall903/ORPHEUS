@@ -108,6 +108,8 @@ The [owner stun input fixture](../fixtures/behavior/owner-stun-input-gate-v1.jso
 
 The [late join observer fixture](../fixtures/behavior/late-join-observer-create-v1.json) boots a new observer after the existing body's spawn event has been consumed. The observer receives the current transform and health once, then receives subsequent poses and admits the body to contact queries after acknowledging its creation.
 
+The [late join deployable fixture](../fixtures/behavior/late-join-deployables-v1.json) joins a room with an existing pet and impact deployable after their original creates were consumed. It checks that current transforms and health survive the join, health waits for create acknowledgement, and retirement reaches the same observer.
+
 The Rust-only [stock bot script isolation fixture](../fixtures/behavior/stock-bot-script-isolation-v1.json) checks that a zeroed owner selector is valid and that an unsupported public selector suspends only the affected bot's script projection. Both physical bots remain in the room. The [mode presentation variables fixture](../fixtures/behavior/mode-presentation-variables-v1.json) checks mode selection and preservation of typed values in the mode bootstrap.
 
 The prepared Practice Range return probe applies a room impulse and steps the real map collision and stock body VM. It verifies that the bot actually moves away, requests a return, and settles near its starting position before ending that request.
