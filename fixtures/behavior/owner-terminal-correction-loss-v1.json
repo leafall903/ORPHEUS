@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "movement.owner-terminal-correction-loss.v1",
+  "evidence": "synthetic-rust",
+  "start_frame": 100,
+  "impulse": [3.0, 7.0, 0.0],
+  "terminal_frame": 116,
+  "outstanding_sequence": 10,
+  "later_packets": 64
+}

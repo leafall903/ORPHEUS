@@ -120,6 +120,7 @@ fn only_identified_committed_records_produce_ordered_owner_effects() {
     };
     let receipts = DeliveryReport {
         requeued_reliable: 0,
+        owner_correction: None,
         packets: vec![
             PacketDelivery {
                 sequence: 1,

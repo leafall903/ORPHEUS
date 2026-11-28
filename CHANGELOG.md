@@ -15,6 +15,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   stops at the hostile capsule boundary with lateral motion still available.
 - Publish acknowledged remote player poses on every scheduled world send,
   including when the room clock skips across a send boundary.
+- Retry the latest owner movement correction after a confirmed datagram loss,
+  including when the owner has stopped sending movement commands. Hold the
+  input replay window until delivery is confirmed and scope retries to the
+  active body generation.
 
 - Treat unavailable static grapple queries as misses instead of reusing the
   previous hit. Upward scripted pulls that leave walkable support now publish

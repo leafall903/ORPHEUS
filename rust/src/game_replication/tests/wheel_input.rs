@@ -351,6 +351,7 @@ fn prepared_world_delivery_emote_completes_and_wasd_cancels() {
         world.acknowledge(
             DeliveryReport {
                 requeued_reliable: 0,
+                owner_correction: None,
                 packets: vec![PacketDelivery {
                     sequence: 0,
                     arrived: true,
@@ -713,6 +714,7 @@ fn prepared_world_delivery_all_32_heroes_full_ability_probe() {
         world.acknowledge(
             DeliveryReport {
                 requeued_reliable: 0,
+                owner_correction: None,
                 packets: vec![PacketDelivery {
                     sequence: 0,
                     arrived: true,

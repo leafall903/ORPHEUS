@@ -531,6 +531,7 @@ mod tests {
         world.acknowledge(
             DeliveryReport {
                 requeued_reliable: 0,
+                owner_correction: None,
                 packets: vec![PacketDelivery {
                     sequence: 0,
                     arrived,

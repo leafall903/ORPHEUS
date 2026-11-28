@@ -88,6 +88,7 @@ fn bot_health_replaces_stale_packets_and_respawn_keeps_creation_order() {
         world.acknowledge(
             DeliveryReport {
                 requeued_reliable: 0,
+                owner_correction: None,
                 packets: vec![PacketDelivery {
                     sequence: 0,
                     arrived,
@@ -1235,6 +1236,7 @@ fn record(entity: u32, delivery: Delivery) -> Record {
 fn outcome(record: Arc<Record>, arrived: bool) -> DeliveryReport<Arc<Record>> {
     DeliveryReport {
         requeued_reliable: 0,
+        owner_correction: None,
         packets: vec![PacketDelivery {
             sequence: 0,
             arrived,

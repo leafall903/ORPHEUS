@@ -29,7 +29,7 @@ use crate::{
         PlayerAppearance, Possession, bot_controller_create, bot_controller_possession, team_bit,
     },
     mover::Mover,
-    mover_correction::CorrectionHistory,
+    mover_correction::{Correction, CorrectionHistory},
     mover_kinematics::Poses,
     mover_modifiers::{Modifier, ModifierKey},
     projectile_flight::ProjectileFlight,
@@ -378,6 +378,14 @@ struct OwnerScriptFault {
     error: io::Error,
 }
 
+#[derive(Clone, Copy)]
+struct PendingOwnerCorrection {
+    id: BodyId,
+    sequence: u32,
+    pose: Correction,
+    retry: bool,
+}
+
 pub(crate) struct WorldDelivery {
     owner: u32,
     queued: Vec<Arc<Record>>,
@@ -410,6 +418,7 @@ pub(crate) struct WorldDelivery {
     input: InputQueue,
     body_script: Option<BodyScript>,
     detached_motion: Option<(BodyId, CorrectionHistory)>,
+    pending_owner_correction: Option<PendingOwnerCorrection>,
     #[cfg(test)]
     owner_script_fault: Option<OwnerScriptFault>,
     projectile_destroys: HashMap<u32, (BodyId, ProjectileToken)>,

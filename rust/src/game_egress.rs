@@ -77,6 +77,8 @@ pub struct PacketDelivery<T> {
 #[cfg_attr(test, derive(Clone))]
 pub struct DeliveryReport<T> {
     pub requeued_reliable: usize,
+    /// Sequence and arrival of the latest tracked owner movement.
+    pub owner_correction: Option<(u32, bool)>,
     /// Resolved tracked datagrams in send order. The match checks record
     /// lifetimes before applying delivery or requeueing a lost record.
     pub packets: Vec<PacketDelivery<T>>,
@@ -93,6 +95,7 @@ pub struct GameEgress<T> {
     reliable: VecDeque<Reliable>,
     unreliable: VecDeque<EncodedMessage>,
     in_flight: VecDeque<InFlight<T>>,
+    owner_correction: Option<u32>,
 }
 
 impl<T> Default for GameEgress<T> {
@@ -102,6 +105,7 @@ impl<T> Default for GameEgress<T> {
             reliable: VecDeque::new(),
             unreliable: VecDeque::new(),
             in_flight: VecDeque::new(),
+            owner_correction: None,
         }
     }
 }
@@ -231,6 +235,11 @@ impl<T> GameEgress<T> {
         })
     }
 
+    /// Track just the latest owner correction. It supersedes earlier poses.
+    pub(crate) fn track_owner_correction(&mut self, sequence: u32) {
+        self.owner_correction = Some(sequence);
+    }
+
     /// Interpret one authenticated ACK window. Resolved packets leave flight
     /// once, so a duplicate ACK cannot deliver or retry their records again.
     pub fn acknowledge(&mut self, ack: u32, ack_bits: u64) -> DeliveryReport<T> {
@@ -256,8 +265,15 @@ impl<T> GameEgress<T> {
             lost.sort_unstable_by_key(|(ordinal, _)| *ordinal);
             self.reliable = lost.into();
         }
+        let owner_correction = self
+            .owner_correction
+            .and_then(|seq| delivery(seq, ack, ack_bits).map(|arrived| (seq, arrived)));
+        if owner_correction.is_some() {
+            self.owner_correction = None;
+        }
         DeliveryReport {
             requeued_reliable,
+            owner_correction,
             packets,
         }
     }

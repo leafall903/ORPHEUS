@@ -100,6 +100,7 @@ impl WorldDelivery {
             input: InputQueue::default(),
             body_script: None,
             detached_motion: None,
+            pending_owner_correction: None,
             #[cfg(test)]
             owner_script_fault: None,
             projectile_destroys: HashMap::new(),
@@ -138,6 +139,7 @@ impl WorldDelivery {
         self.encounter_outcome_queued = false;
         self.body_script = None;
         self.detached_motion = None;
+        self.pending_owner_correction = None;
         self.projectile_destroys.clear();
         self.biotic_views.clear();
         self.scene_views.clear();
@@ -460,9 +462,27 @@ impl WorldDelivery {
         }
     }
 
+    fn current_owner_correction(&self) -> Option<PendingOwnerCorrection> {
+        let pending = self.pending_owner_correction?;
+        self.body
+            .is_some_and(|body| body.id == pending.id)
+            .then_some(pending)
+    }
+
     pub(crate) fn acknowledge(&mut self, report: DeliveryReport<Arc<Record>>, now: Duration) {
         if self.started.is_none() {
             return;
+        }
+        if let Some((sequence, arrived)) = report.owner_correction {
+            if let Some(pending) = self
+                .current_owner_correction()
+                .filter(|pending| pending.sequence == sequence)
+            {
+                self.pending_owner_correction = (!arrived).then_some(PendingOwnerCorrection {
+                    retry: true,
+                    ..pending
+                });
+            }
         }
         let mut retry = Vec::new();
         for packet in report.packets {
@@ -883,12 +903,25 @@ impl WorldDelivery {
             (self.body.is_some_and(|body| body.id == *id)).then_some((*id, history))
         });
         let history = owner_history.map(|(_, history)| history);
+        let pending = self.current_owner_correction();
+        let protect_correction = pending.is_some()
+            || history.is_some_and(|history| history.impulse_correction().is_some());
         let correction = if reliable_only {
             None
         } else {
-            owner_history.and_then(|(id, history)| {
-                history.candidate(tick, self.created.contains(&id.entity))
-            })
+            owner_history
+                .and_then(|(id, history)| {
+                    history.candidate(tick, self.created.contains(&id.entity))
+                })
+                .or_else(|| {
+                    pending
+                        .filter(|pending| {
+                            pending.retry
+                                && pending.pose.frame() <= tick
+                                && self.created.contains(&pending.id.entity)
+                        })
+                        .map(|pending| pending.pose)
+                })
         };
         if let Some(last) = self.last_sent_remote_movement {
             movements.sort_unstable_by_key(|record| (record.entity <= last, record.entity));
@@ -938,8 +971,11 @@ impl WorldDelivery {
                             .any(|record| std::ptr::eq(*record, &movements[index]))
                     })
                     .and(correction.as_ref());
-                history.map_or(newest, |history| {
+                let ack = history.map_or(newest, |history| {
                     history.command_ack(tick, Some(newest), selected)
+                });
+                pending.map_or(ack, |pending| {
+                    selected.unwrap_or(&pending.pose).limit_replay_ack(ack)
                 })
             },
             |source| match source {
@@ -980,6 +1016,15 @@ impl WorldDelivery {
             .zip(correction)
             .filter(|(index, _)| sent.records.contains(&RecordSource::Movement(*index)));
         if let Some((_, correction)) = selected {
+            if let Some(body) = self.body.filter(|_| protect_correction) {
+                egress.track_owner_correction(sent.sequence);
+                self.pending_owner_correction = Some(PendingOwnerCorrection {
+                    id: body.id,
+                    sequence: sent.sequence,
+                    pose: correction,
+                    retry: false,
+                });
+            }
             if detached {
                 if let Some((_, history)) = &mut self.detached_motion {
                     if history.sent(&correction) && history.impulse_correction().is_none() {
@@ -2588,6 +2633,12 @@ impl WorldDelivery {
     }
 
     pub(super) fn retire_body(&mut self, id: BodyId) {
+        if self
+            .pending_owner_correction
+            .is_some_and(|pending| pending.id == id)
+        {
+            self.pending_owner_correction = None;
+        }
         if self
             .detached_motion
             .as_ref()

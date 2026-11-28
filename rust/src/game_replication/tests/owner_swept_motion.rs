@@ -237,6 +237,200 @@ fn combat_impulse_uses_the_resolved_owner_pose_with_or_without_a_script() {
 }
 
 #[test]
+fn lost_terminal_owner_correction_retries_once_unless_a_newer_pose_was_sent() {
+    use crate::{mover::VelocityChange, world::frame};
+
+    #[derive(serde::Deserialize)]
+    struct Case {
+        start_frame: u32,
+        impulse: [f64; 3],
+        terminal_frame: u32,
+        outstanding_sequence: u32,
+        later_packets: u32,
+    }
+    let case: Case = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/owner-terminal-correction-loss-v1.json"
+    ))
+    .unwrap();
+    let viewer = PlayerAppearance {
+        entity: OWNER,
+        slot: 0,
+        team: 0,
+        card: &PlayerCard::default(),
+    };
+    let id = avatar(1, 1);
+    let step = |world: &mut WorldDelivery, scene: &mut PreparedScene, tick| {
+        world.queue_commands(
+            tick,
+            &[Command {
+                frame: tick,
+                ..Command::default()
+            }],
+        );
+        world
+            .advance_input(scene, &viewer, RETAIL_QUANTA, 16)
+            .unwrap();
+        assert_eq!(world.input.processed, Some(tick));
+    };
+    let expected = |tick, ack, pose: Movement| {
+        let record = EntityUpdate {
+            entity: id.entity,
+            movement: Some(pose),
+            ..EntityUpdate::default()
+        };
+        frame(tick, ack, &[], &[], &[&record]).unwrap()
+    };
+
+    for (newer_sent, continued_input) in [(false, false), (false, true), (true, false)] {
+        let mut world = WorldDelivery::new(OWNER);
+        let mut scene = PreparedScene::fixture_for_bots(Vec::new());
+        let mut egress = GameEgress::default();
+        world.started = Some(case.start_frame);
+        world.input.processed = Some(case.start_frame);
+        activate_script(&mut world, scene.simulation_mut(), id, 7, Arc::default());
+        if !newer_sent {
+            world.cancel_body_script(Some(scene.simulation_mut()));
+        }
+        world.acknowledge(
+            outcome(Arc::new(record(id.entity, Delivery::CreateBody(id))), true),
+            Duration::ZERO,
+        );
+        scene
+            .simulation_mut()
+            .player_body_mut(id)
+            .unwrap()
+            .mover
+            .queue_velocity_change(case.start_frame + 1, VelocityChange::Impulse(case.impulse));
+        for tick in case.start_frame + 1..=case.terminal_frame {
+            step(&mut world, &mut scene, tick);
+        }
+        let terminal = scene.simulation().player_body(id).unwrap().mover.pose();
+        assert_eq!(terminal.frame, Some(case.terminal_frame));
+        let (original, _) = transmit(
+            &mut world,
+            None,
+            &mut egress,
+            case.terminal_frame,
+            case.outstanding_sequence,
+        );
+        assert_eq!(
+            original,
+            expected(case.terminal_frame, case.terminal_frame, terminal)
+        );
+
+        // Advance the receiver's real packet window beyond the unreceived datagram.
+        for offset in 1..=case.later_packets {
+            let sequence = case.outstanding_sequence + offset;
+            let tick = case.terminal_frame + offset;
+            if newer_sent && offset == 1 {
+                step(&mut world, &mut scene, tick);
+                let latest = scene.simulation().player_body(id).unwrap().mover.pose();
+                let (packet, _) = transmit(&mut world, None, &mut egress, tick, sequence);
+                assert_eq!(latest.frame, Some(tick));
+                assert_eq!(packet, expected(tick, tick, latest));
+            } else {
+                if continued_input && offset <= 4 {
+                    step(&mut world, &mut scene, tick);
+                }
+                world
+                    .send_frame(tick, Vec::new(), true, None, &mut egress, |payload| {
+                        if continued_input {
+                            assert_eq!(read_ack(&payload), case.terminal_frame + offset.min(2));
+                        }
+                        Ok::<_, ()>(sequence)
+                    })
+                    .unwrap();
+            }
+        }
+        let next_seq = case.outstanding_sequence + case.later_packets + 1;
+        let next_tick = case.terminal_frame + case.later_packets + 1;
+        world.acknowledge(egress.acknowledge(next_seq, u64::MAX), Duration::ZERO);
+        let (payload, sent) = transmit(&mut world, None, &mut egress, next_tick, next_seq);
+        if newer_sent {
+            assert!(
+                sent.records.is_empty(),
+                "a later continuous pose supersedes the lost correction"
+            );
+        } else {
+            assert_eq!(sent.records.len(), 1);
+            assert_eq!(
+                payload,
+                expected(
+                    next_tick,
+                    case.terminal_frame + if continued_input { 2 } else { 0 },
+                    terminal
+                )
+            );
+            transport_outcome(&mut world, &mut egress, next_seq, true);
+            let (_, settled) = transmit(&mut world, None, &mut egress, next_tick + 1, next_seq + 1);
+            assert!(
+                settled.records.is_empty(),
+                "the acknowledged correction repeated"
+            );
+        }
+    }
+}
+
+#[test]
+fn old_owner_correction_cannot_retry_on_a_reused_wire_id() {
+    use crate::mover_correction::CorrectionHistory;
+
+    let old = avatar(1, 1);
+    let replacement = avatar(1, 2);
+    let bind_created_body = |world: &mut WorldDelivery, id: BodyId| {
+        world.body = Some(body(id));
+        world
+            .bodies
+            .insert(id.entity, (id.generation, Lifetime::Live));
+        world.acknowledge(
+            outcome(Arc::new(record(id.entity, Delivery::CreateBody(id))), true),
+            Duration::ZERO,
+        );
+    };
+    for loss_before_replacement in [true, false] {
+        let mut world = WorldDelivery::new(OWNER);
+        let mut egress = GameEgress::default();
+        world.started = Some(100);
+        bind_created_body(&mut world, old);
+        let mut history = CorrectionHistory::new(old.entity, old.generation);
+        history.swept_motion(100, RETAIL_QUANTA);
+        let (_, terminal) = history.impulse_correction().unwrap();
+        history.record(Movement {
+            frame: Some(terminal),
+            position: [3.0, 1.0, 0.0],
+            ..Movement::default()
+        });
+        world.detached_motion = Some((old, history));
+        world.input.processed = Some(terminal);
+        let (_, first) = transmit(&mut world, None, &mut egress, terminal, 10);
+        assert_eq!(first.records, [RecordSource::Movement(0)]);
+        let lost = egress.acknowledge(75, u64::MAX);
+        assert_eq!(lost.owner_correction, Some((10, false)));
+
+        // Keep the wire created across the transition so only generation distinguishes the bodies.
+        if loss_before_replacement {
+            world.acknowledge(lost, Duration::ZERO);
+            bind_created_body(&mut world, replacement);
+        } else {
+            bind_created_body(&mut world, replacement);
+            world.acknowledge(lost, Duration::ZERO);
+        }
+        let current_frame = terminal + 8;
+        world.input.processed = Some(current_frame);
+        let (packet, next) = transmit(&mut world, None, &mut egress, current_frame, 75);
+        assert!(
+            next.records.is_empty(),
+            "old pose was sent to a new generation"
+        );
+        assert_eq!(
+            read_ack(&packet),
+            current_frame,
+            "old pose capped the new body's input ACK"
+        );
+    }
+}
+
+#[test]
 fn posed_owner_fault_cancels_future_velocity_before_the_recovered_batch_continues() {
     use crate::mover::VelocityChange;
 
