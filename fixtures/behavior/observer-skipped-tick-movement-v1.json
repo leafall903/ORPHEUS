@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "case_id": "movement.observer-skipped-ticks.v1",
+  "evidence": "synthetic-rust",
+  "missed_ticks_per_step": 2,
+  "expected_world_send_frames": [1003, 1006, 1009]
+}

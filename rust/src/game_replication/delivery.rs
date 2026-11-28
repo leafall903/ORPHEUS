@@ -2669,15 +2669,15 @@ impl WorldDelivery {
                 ..EntityUpdate::default()
             })
             .collect();
-        if tick % SEND_EVERY == 0 {
-            for (entity, movement) in scene.simulation().observer_player_movements(self.owner) {
-                if self.created.contains(&entity) {
-                    updates.push(EntityUpdate {
-                        entity,
-                        movement: Some(movement),
-                        ..EntityUpdate::default()
-                    });
-                }
+        // The room already selected this world send, which can fall between
+        // exact cadence multiples when the clock skips simulation ticks.
+        for (entity, movement) in scene.simulation().observer_player_movements(self.owner) {
+            if self.created.contains(&entity) {
+                updates.push(EntityUpdate {
+                    entity,
+                    movement: Some(movement),
+                    ..EntityUpdate::default()
+                });
             }
         }
         Ok(updates)

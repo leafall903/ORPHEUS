@@ -13,6 +13,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Check occupied destinations for both NPC and player teleports. An invalid
   landing preserves the original position. Verify repeated inward movement
   stops at the hostile capsule boundary with lateral motion still available.
+- Publish acknowledged remote player poses on every scheduled world send,
+  including when the room clock skips across a send boundary.
 
 - Treat unavailable static grapple queries as misses instead of reusing the
   previous hit. Upward scripted pulls that leave walkable support now publish

@@ -18,6 +18,50 @@ fn remote_contact_delivery(id: BodyId, world: &mut WorldDelivery, arrived: bool)
 }
 
 #[test]
+fn observer_receives_acknowledged_player_poses_on_skipped_tick_world_sends() {
+    use crate::game_clock::{GameClock, Step};
+
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/behavior/observer-skipped-tick-movement-v1.json"
+    ))
+    .unwrap();
+    let missed = fixture["missed_ticks_per_step"].as_u64().unwrap();
+    let expected_frames: Vec<u32> =
+        serde_json::from_value(fixture["expected_world_send_frames"].clone()).unwrap();
+    let mut clock = GameClock::default();
+    let start = clock.frame();
+    let mut scene = PreparedScene::fixture_for_bots(Vec::new());
+    let mut observer = WorldDelivery::new(OWNER);
+    observer.started = Some(start - BOT_RECORD_DELAY);
+    let visible = avatar(2, 1);
+    let pending = avatar(3, 1);
+    for (id, owner, slot) in [(visible, OWNER + 0x100, 1), (pending, OWNER + 0x200, 2)] {
+        scene
+            .simulation_mut()
+            .spawn_player_body(fixture_player_state(
+                id, owner, slot, 1, [0.0; 3], 200.0, true,
+            ))
+            .unwrap();
+        remote_contact_delivery(id, &mut observer, id == visible);
+    }
+    for expected_frame in expected_frames {
+        let Step::Simulate { frame, send_world } = clock.step(missed, true) else {
+            panic!("unexpected clock drain");
+        };
+        assert_eq!(frame, expected_frame);
+        assert!(send_world);
+        assert_ne!(frame % SEND_EVERY, 0);
+        let position = [f64::from(frame - start), 0.0, 0.0];
+        let remote = scene.simulation_mut().player_body_mut(visible).unwrap();
+        remote.mover = mover_at(position);
+        let updates = observer.movement(&scene, frame).unwrap();
+        assert_eq!(updates.len(), 1, "only the acknowledged body is visible");
+        assert_eq!(updates[0].entity, visible.entity);
+        assert_eq!(updates[0].movement.unwrap().position, position);
+    }
+}
+
+#[test]
 fn hostile_actor_contact_corrects_ordinary_movement_with_or_without_an_owner_script() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../fixtures/behavior/owner-actor-contact-v1.json"
